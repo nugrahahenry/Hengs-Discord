@@ -23,6 +23,14 @@ Aktifkan **Developer Mode**: Settings → Advanced → Developer Mode (ON).
 - Klik-kanan tiap **channel** → Copy Channel ID → isi `*_CHANNEL_ID`
 - Atau: jalanin bot, lalu ketik `/admin ids` buat scan otomatis semua channel.
 
+Untuk Ops Hub, isi tiga nilai berikut:
+
+- `OWNER_ID` — User ID Henry; hanya ID ini yang boleh membuat, publish, atau discard draft.
+- `BOT_SETTINGS_CHANNEL_ID` — channel privat `🎛️・bot-settings` untuk review draft.
+- `ANNOUNCE_CHANNEL_ID` — channel publik tujuan pengumuman.
+
+Ops Hub sengaja tidak memakai `BOT_CHANNEL_ID` sebagai fallback ruang review.
+
 ## 4. API key AI (buat chat via mention)
 
 - **Groq** (cepat, free): https://console.groq.com → `GROQ_API_KEY`
@@ -34,6 +42,12 @@ Aktifkan **Developer Mode**: Settings → Advanced → Developer Mode (ON).
 npm install
 npm run deploy   # daftarin slash commands ke server (sekali / tiap nambah command)
 npm start
+```
+
+Jalankan test lokal sebelum registrasi command:
+
+```bash
+npm test
 ```
 
 > Auto-setup struktur server: jalanin `/admin setup` di server (bikin channel & kategori otomatis).

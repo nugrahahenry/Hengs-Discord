@@ -1,11 +1,12 @@
 {
   "name": "discord-bot-henzzz",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "deploy": "node src/deploy-commands.js"
+    "deploy": "node src/deploy-commands.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@discordjs/voice": "^0.17.0",

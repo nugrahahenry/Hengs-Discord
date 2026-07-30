@@ -23,6 +23,40 @@ const voiceStore = require('./utils/voice-store');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 
+// Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
+// event dobel, ini menutup kemungkinan dua instance mem-publish draft yang sama.
+const INSTANCE_LOCK = path.join(__dirname, '..', '.dc-bot.lock');
+function isPidAlive(pid) {
+  try { process.kill(pid, 0); return true; } catch (error) { return error.code === 'EPERM'; }
+}
+function acquireInstanceLock() {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const fd = fs.openSync(INSTANCE_LOCK, 'wx');
+      fs.writeFileSync(fd, String(process.pid));
+      fs.closeSync(fd);
+      return;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      const oldPid = Number.parseInt(fs.readFileSync(INSTANCE_LOCK, 'utf8').trim(), 10);
+      if (oldPid && oldPid !== process.pid && isPidAlive(oldPid)) {
+        console.error(`\n🔒 Hengs Discord sudah berjalan (PID ${oldPid}). Instance kedua dihentikan.\n`);
+        process.exit(0);
+      }
+      fs.rmSync(INSTANCE_LOCK, { force: true });
+    }
+  }
+  throw new Error('Gagal memperoleh single-instance lock Hengs Discord.');
+}
+function releaseInstanceLock() {
+  try {
+    const ownerPid = Number.parseInt(fs.readFileSync(INSTANCE_LOCK, 'utf8').trim(), 10);
+    if (ownerPid === process.pid) fs.rmSync(INSTANCE_LOCK, { force: true });
+  } catch {}
+}
+acquireInstanceLock();
+process.on('exit', releaseInstanceLock);
+
 // ── Client setup ────────────────────────────────────────────────────────────
 const client = new Client({
   intents: [
@@ -305,7 +339,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await opsHub.handleButton(interaction);
     } catch (err) {
       console.error('❌ Ops Hub button error:', err);
-      if (!interaction.replied && !interaction.deferred) {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({ content: '❌ Aksi Ops Hub gagal dijalankan.', ephemeral: true }).catch(() => {});
+      } else {
         await interaction.reply({ content: '❌ Aksi Ops Hub gagal dijalankan.', ephemeral: true }).catch(() => {});
       }
     }
@@ -339,7 +375,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (err) {
     console.error(`❌ Error di /${interaction.commandName}:`, err);
     const errMsg = { content: '❌ Ada error saat menjalankan command ini.', ephemeral: true };
-    if (interaction.replied || interaction.deferred) {
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply({ content: errMsg.content }).catch(() => {});
+    } else if (interaction.replied) {
       await interaction.followUp(errMsg).catch(() => {});
     } else {
       await interaction.reply(errMsg).catch(() => {});

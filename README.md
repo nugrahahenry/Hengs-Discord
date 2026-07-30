@@ -73,10 +73,12 @@ discord-bot/
 │   ├── state.js            # state mode
 │   ├── deploy-commands.js  # daftarin slash commands ke Discord
 │   ├── commands/           # admin, announce, fun, scrim, study, voice
+│   ├── ops/                # draft store, owner approval, inbox Canox
 │   └── utils/
 │       ├── welcome-card.js # render welcome/leave card (canvas)
 │       └── role-store.js   # persistensi reaction roles
 ├── docs/                   # SETUP.md, dll
+├── test/                   # test race/idempotensi Ops Hub
 ├── .env.example            # template konfigurasi
 └── package.json
 ```
@@ -100,7 +102,15 @@ Canox tidak boleh mem-posting ke channel publik secara langsung. Jika nanti Cano
 }
 ```
 
-Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Pengumuman baru tayang ke `#announcements` setelah owner menekan **Publish**. Isi `OWNER_ID` dan, agar penargetan selalu pasti, `BOT_SETTINGS_CHANNEL_ID` di `.env`.
+Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Pengumuman baru tayang ke `#announcements` setelah owner menekan **Publish**. Isi `OWNER_ID`, `BOT_SETTINGS_CHANNEL_ID`, dan `ANNOUNCE_CHANNEL_ID` di `.env`. Jika ID ruang review belum diisi, fallback hanya menerima nama channel persis `🎛️・bot-settings` atau `bot-settings`—tidak pernah channel bot umum.
+
+Setiap draft Canox wajib punya `id` unik. Canox harus menulis JSON ke file sementara terlebih dahulu, lalu melakukan rename atomik menjadi `canox-ops-inbox.json`; ini mencegah Hengs membaca file yang baru ditulis setengah. Ops Hub menyimpan status lokal di `data/ops-state.json`, menolak external ID yang sama, mengunci draft sebelum request publish dikirim agar klik ganda tidak menghasilkan pengumuman duplikat, dan memulihkan file inbox yang tertinggal bila proses mati saat konsumsi.
+
+Untuk verifikasi lokal tanpa mendaftarkan command ke Discord:
+
+```bash
+npm test
+```
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
 

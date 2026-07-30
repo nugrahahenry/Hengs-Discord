@@ -26,7 +26,12 @@ desktop.ini
 *.bat
 *.vbs
 .wa-bot.lock
+.dc-bot.lock
 
-# ─── Docs pribadi & catatan internal ───
-docs/
-CHANGELOG.md
+# ─── Docs checkpoint yang boleh masuk Git ───
+docs/*
+!docs/CHANGELOG.md
+!docs/SETUP.md
+!docs/WELCOME_CARD_BRIEF.md
+!docs/HANDOFF.md
+/CHANGELOG.md

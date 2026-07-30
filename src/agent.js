@@ -186,7 +186,7 @@ function parseAnnouncement(raw, fallbackTitle) {
   const text = String(raw || '').trim();
   const titleMatch = text.match(/^TITLE\s*:\s*(.+)$/im);
   const bodyMatch = text.match(/^BODY\s*:\s*\n?([\s\S]+)$/im);
-  const title = (fallbackTitle || titleMatch?.[1] || 'Pengumuman').trim().slice(0, 256);
+  const title = (fallbackTitle || titleMatch?.[1] || 'Pengumuman').trim().slice(0, 230);
   const body = (bodyMatch?.[1] || text).trim().slice(0, 4000);
   return { title: title || 'Pengumuman', body: body || 'Tidak ada isi pengumuman.' };
 }
