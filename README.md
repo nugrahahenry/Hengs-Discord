@@ -7,6 +7,7 @@
 - **AI chat via mention** — tinggal mention bot, dia bales kontekstual (history per user)
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
+- **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI, lalu owner review lewat tombol Publish / Discard di `🎛️・bot-settings`
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -57,6 +58,7 @@ stop-bot.bat            # hentikan bot
 | `@Hengs <pesan>` | Ngobrol sama AI |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
+| `/ops draft` · `/ops status` | Draft pengumuman, approval owner, dan status operasional |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
@@ -80,6 +82,25 @@ discord-bot/
 ```
 
 ## ⚠️ Catatan
+
+### Ops Hub: Canox → Discord dengan approval owner
+
+Canox tidak boleh mem-posting ke channel publik secara langsung. Jika nanti Canox menemukan event atau menyusun pengumuman, ia dapat menulis draft ke `data/canox-ops-inbox.json`:
+
+```json
+{
+  "drafts": [
+    {
+      "id": "event-unik-001",
+      "title": "Turnamen komunitas Sabtu ini",
+      "body": "Daftar sebelum Jumat, 20.00 WIB.",
+      "context": "Sumber dan detail pencarian Canox"
+    }
+  ]
+}
+```
+
+Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Pengumuman baru tayang ke `#announcements` setelah owner menekan **Publish**. Isi `OWNER_ID` dan, agar penargetan selalu pasti, `BOT_SETTINGS_CHANNEL_ID` di `.env`.
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
 

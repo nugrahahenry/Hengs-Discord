@@ -21,6 +21,7 @@ const { AttachmentBuilder } = require('discord.js');
 const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const opsHub = require('./ops/hub');
 
 // ── Client setup ────────────────────────────────────────────────────────────
 const client = new Client({
@@ -114,6 +115,7 @@ client.once(Events.ClientReady, async (c) => {
   for (const guild of c.guilds.cache.values()) {
     await updateServerStats(guild).catch(() => {});
   }
+  opsHub.startCanoxInbox(c);
 
   // ── Auto-rejoin voice channel terakhir (kalau sebelumnya bot di voice) ──────
   for (const guild of c.guilds.cache.values()) {
@@ -298,6 +300,18 @@ client.on(Events.MessageCreate, async (msg) => {
 
 // ── Slash command handler ─────────────────────────────────────────────────────
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton() && interaction.customId.startsWith('ops:')) {
+    try {
+      await opsHub.handleButton(interaction);
+    } catch (err) {
+      console.error('❌ Ops Hub button error:', err);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '❌ Aksi Ops Hub gagal dijalankan.', ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   // Restrict commands ke BOT_CHANNEL_ID
@@ -321,7 +335,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
-    await cmd.execute(interaction, { state, agent });
+    await cmd.execute(interaction, { state, agent, opsHub });
   } catch (err) {
     console.error(`❌ Error di /${interaction.commandName}:`, err);
     const errMsg = { content: '❌ Ada error saat menjalankan command ini.', ephemeral: true };
