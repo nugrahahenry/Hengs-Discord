@@ -69,13 +69,15 @@ function createDraft({ title, body, brief = null, source = 'discord', createdBy 
     finalizedBy: null,
     publication: null,
     revisions: [],
+    schedule: null,
+    lastSchedule: null,
   };
   state.drafts.unshift(draft);
   // Jangan pernah membuang draft aktif hanya demi batas arsip. Yang dipangkas hanya
   // draft finalized lama; pending/publishing selalu dipertahankan.
   let finalizedKept = 0;
   state.drafts = state.drafts.filter(item => {
-    if (['pending', 'revising', 'publishing'].includes(item.status)) return true;
+    if (['pending', 'revising', 'scheduled', 'publishing'].includes(item.status)) return true;
     finalizedKept += 1;
     return finalizedKept <= MAX_DRAFTS;
   });
@@ -114,10 +116,16 @@ function removeDraft(id) {
 
 // Sinkron dan atomik pada satu proses Node: hanya klik pertama yang dapat mengubah
 // pending -> publishing sebelum operasi network dimulai.
-function claimPublish(id, userId) {
+function claimPublish(id, userId, { allowScheduled = false } = {}) {
   const state = readState();
   const draft = state.drafts.find(item => item.id === id);
-  if (!draft || draft.status !== 'pending') return null;
+  if (
+    !draft
+    || (draft.status !== 'pending' && !(allowScheduled && draft.status === 'scheduled'))
+  ) {
+    return null;
+  }
+  draft.publishOriginStatus = draft.status;
   draft.status = 'publishing';
   draft.actionStartedAt = new Date().toISOString();
   draft.actionBy = String(userId);
@@ -129,9 +137,113 @@ function releasePublish(id) {
   const state = readState();
   const draft = state.drafts.find(item => item.id === id);
   if (!draft || draft.status !== 'publishing') return null;
-  draft.status = 'pending';
+  draft.status = draft.publishOriginStatus === 'scheduled' && draft.schedule
+    ? 'scheduled'
+    : 'pending';
   draft.actionStartedAt = null;
   draft.actionBy = null;
+  draft.publishOriginStatus = null;
+  writeState(state);
+  return draft;
+}
+
+function scheduleDraft(id, userId, scheduledAt, nowMs = Date.now()) {
+  const timestamp = Date.parse(scheduledAt);
+  if (!Number.isFinite(timestamp) || timestamp <= nowMs) {
+    throw new Error('Jadwal harus berada di masa depan.');
+  }
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  if (!draft || draft.status !== 'pending') return null;
+  const now = new Date().toISOString();
+  draft.status = 'scheduled';
+  draft.schedule = {
+    at: new Date(timestamp).toISOString(),
+    nextAttemptAt: new Date(timestamp).toISOString(),
+    createdAt: now,
+    by: String(userId).slice(0, 100),
+    attempts: 0,
+    lastErrorCode: null,
+  };
+  draft.lastSchedule = null;
+  writeState(state);
+  return draft;
+}
+
+function cancelSchedule(id, userId) {
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  if (!draft || draft.status !== 'scheduled') return null;
+  draft.lastSchedule = {
+    ...draft.schedule,
+    status: 'cancelled',
+    completedAt: new Date().toISOString(),
+    completedBy: String(userId).slice(0, 100),
+  };
+  draft.schedule = null;
+  draft.status = 'pending';
+  writeState(state);
+  return draft;
+}
+
+function listDueSchedules(nowMs = Date.now()) {
+  return readState().drafts
+    .filter(draft =>
+      draft.status === 'scheduled'
+      && Number.isFinite(Date.parse(draft.schedule?.nextAttemptAt || draft.schedule?.at))
+      && Date.parse(draft.schedule?.nextAttemptAt || draft.schedule?.at) <= nowMs)
+    .sort((a, b) =>
+      Date.parse(a.schedule.nextAttemptAt || a.schedule.at)
+      - Date.parse(b.schedule.nextAttemptAt || b.schedule.at));
+}
+
+function claimScheduledPublish(id, nowMs = Date.now()) {
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  const dueAt = Date.parse(draft?.schedule?.nextAttemptAt || draft?.schedule?.at);
+  if (!draft || draft.status !== 'scheduled' || !Number.isFinite(dueAt) || dueAt > nowMs) {
+    return null;
+  }
+  draft.publishOriginStatus = 'scheduled';
+  draft.status = 'publishing';
+  draft.actionStartedAt = new Date().toISOString();
+  draft.actionBy = 'scheduler';
+  writeState(state);
+  return draft;
+}
+
+function failScheduledPublish(id, errorCode = 'SEND_FAILED', nowMs = Date.now()) {
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  if (
+    !draft
+    || draft.status !== 'publishing'
+    || draft.publishOriginStatus !== 'scheduled'
+    || !draft.schedule
+  ) {
+    return null;
+  }
+
+  const attempts = (Number(draft.schedule.attempts) || 0) + 1;
+  draft.schedule.attempts = attempts;
+  draft.schedule.lastErrorCode = String(errorCode).slice(0, 50);
+  draft.actionStartedAt = null;
+  draft.actionBy = null;
+  draft.publishOriginStatus = null;
+
+  if (attempts >= 3) {
+    draft.lastSchedule = {
+      ...draft.schedule,
+      status: 'failed',
+      completedAt: new Date(nowMs).toISOString(),
+    };
+    draft.schedule = null;
+    draft.status = 'pending';
+  } else {
+    const backoffMs = attempts === 1 ? 60_000 : 5 * 60_000;
+    draft.schedule.nextAttemptAt = new Date(nowMs + backoffMs).toISOString();
+    draft.status = 'scheduled';
+  }
   writeState(state);
   return draft;
 }
@@ -248,8 +360,10 @@ function finalizeDraft(id, status, userId, publication = null) {
 
   const state = readState();
   const draft = state.drafts.find(item => item.id === id);
-  const expectedStatus = status === 'published' ? 'publishing' : 'pending';
-  if (!draft || draft.status !== expectedStatus) return null;
+  const validStatus = status === 'published'
+    ? draft?.status === 'publishing'
+    : ['pending', 'scheduled'].includes(draft?.status);
+  if (!draft || !validStatus) return null;
 
   draft.status = status;
   draft.finalizedAt = new Date().toISOString();
@@ -258,6 +372,16 @@ function finalizeDraft(id, status, userId, publication = null) {
     channelId: String(publication.channelId),
     messageId: String(publication.messageId),
   } : null;
+  if (draft.schedule) {
+    draft.lastSchedule = {
+      ...draft.schedule,
+      status: status === 'published' ? 'published' : 'discarded',
+      completedAt: draft.finalizedAt,
+      completedBy: draft.finalizedBy,
+    };
+    draft.schedule = null;
+  }
+  draft.publishOriginStatus = null;
   state.history.unshift({
     id: draft.id,
     title: draft.title,
@@ -266,6 +390,7 @@ function finalizeDraft(id, status, userId, publication = null) {
     at: draft.finalizedAt,
     by: draft.finalizedBy,
     publication: draft.publication,
+    schedule: draft.lastSchedule,
   });
   state.history = state.history.slice(0, MAX_HISTORY);
   writeState(state);
@@ -277,6 +402,7 @@ function getStatus() {
   return {
     pending: state.drafts.filter(draft => draft.status === 'pending').length,
     revising: state.drafts.filter(draft => draft.status === 'revising').length,
+    scheduled: state.drafts.filter(draft => draft.status === 'scheduled').length,
     publishing: state.drafts.filter(draft => draft.status === 'publishing').length,
     published: state.history.filter(item => item.status === 'published').length,
     discarded: state.history.filter(item => item.status === 'discarded').length,
@@ -292,6 +418,11 @@ module.exports = {
   removeDraft,
   claimPublish,
   releasePublish,
+  scheduleDraft,
+  cancelSchedule,
+  listDueSchedules,
+  claimScheduledPublish,
+  failScheduledPublish,
   updatePendingDraft,
   claimRevision,
   applyRevision,

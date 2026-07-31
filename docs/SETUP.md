@@ -36,9 +36,14 @@ Setelah `/ops draft`, panel privat menyediakan:
 - **Edit** — ubah judul dan isi melalui modal.
 - **Perpendek** — AI meringkas tanpa membuang tanggal, tautan, syarat, atau call-to-action.
 - **Regenerate** — AI membuat versi alternatif dari brief dan draft saat ini.
-- **Publish / Discard** — finalisasi tetap hanya oleh owner.
+- **Publish Now** — kirim segera ke channel announcements.
+- **Jadwalkan** — pilih waktu `HH:mm` atau `YYYY-MM-DD HH:mm` dalam WIB.
+- **Batalkan Jadwal** — kembalikan draft terjadwal ke status pending.
+- **Discard** — buang draft tanpa publikasi.
 
 Revisi AI mengunci draft sementara agar tidak dapat dipublish bersamaan. Bila proses gagal atau bot restart, draft asli dipulihkan otomatis.
+
+Jadwal minimal satu menit dari sekarang dan maksimal satu tahun. Input `HH:mm` memakai hari ini bila waktunya belum lewat, atau besok bila sudah lewat. Jadwal disimpan di `data/ops-state.json`, sehingga tetap aktif setelah restart. Hengs memeriksa jadwal setiap 15 detik. Pengiriman gagal dicoba ulang setelah 1 menit dan 5 menit; setelah kegagalan ketiga, draft kembali ke pending agar owner dapat mereview atau menjadwalkan ulang.
 
 ## 4. API key AI (buat chat via mention)
 

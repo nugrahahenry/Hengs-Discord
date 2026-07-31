@@ -4,9 +4,9 @@ Updated: 2026-07-31
 
 ## Completed checkpoint
 
-- Version: **v1.2.0**, committed as `e05c2b9`.
-- Scope: restricted DeepL document translation for owner/allowlisted VIP.
-- Live acceptance passed on 2026-07-31: a non-sensitive English TXT returned as an ephemeral Indonesian attachment; temp cleanup and bot health passed.
+- Version: **v1.3.0**, committed as `361eb8c`.
+- Scope: owner draft revision workflow for Ops Hub.
+- Live acceptance passed on 2026-07-31: Regenerate and Perpendek completed through Groq, two revisions were persisted, and the private test draft was discarded without publication.
 
 ## Version-history note
 
@@ -72,28 +72,32 @@ Checkpoint status: committed as `e05c2b9`.
 
 ## Current checkpoint
 
-- Proposed version: **v1.3.0**.
-- Scope: Ops Hub revision workflow before owner approval.
-- Pending panels expose five actions: Edit, Perpendek, Regenerate, Publish, and Discard.
-- Edit uses a prefilled Discord modal; stale modal submissions fail closed if draft status changed.
-- Perpendek and Regenerate use the existing Groq -> OpenRouter model chain with distinct fact-preserving prompts.
-- Revision state is persisted as `revising`; Publish/Discard and concurrent revisions cannot claim the same draft.
-- AI failure releases the revision claim and restores the original draft.
-- Restart recovery returns interrupted revisions to pending and refreshes pending panels, covering a crash between state write and Discord panel update.
-- Up to 20 previous title/body versions are retained in ignored local Ops state for audit.
-- No slash-command schema changed, so v1.3.0 does not require `npm run deploy`.
+- Proposed version: **v1.4.0**.
+- Scope: persistent scheduled announcements in Ops Hub.
+- Pending panels expose Edit, Perpendek, Regenerate, Publish Now, Jadwalkan, and Discard.
+- Schedule input accepts `HH:mm` or `YYYY-MM-DD HH:mm` in WIB, with a minimum lead time of one minute and maximum of one year.
+- A time-only value uses today when still upcoming, otherwise tomorrow.
+- Scheduled panels expose Publish Now, Batalkan Jadwal, and Discard.
+- Schedule state is persisted in ignored `data/ops-state.json` and refreshed after restart.
+- A single worker checks due drafts every 15 seconds and atomically claims `scheduled -> publishing` before network I/O.
+- Failed automatic sends retry after 1 minute and 5 minutes. A third failure returns the draft to pending with failure context for owner review.
+- Existing Draft ID publication recovery remains responsible for a crash after Discord accepts the message but before local finalization.
+- No slash-command schema changed, so v1.4.0 does not require `npm run deploy`.
 
-## v1.3.0 verification
+## v1.4.0 verification
 
-- `node --check`: all 21 source and test JavaScript files pass.
-- `node --test`: 20 passed, 0 failed.
+- `node --check`: all 22 source and test JavaScript files pass.
+- `node --test`: 25 passed, 0 failed.
 - `npm audit --omit=dev`: 0 vulnerabilities.
 - `git diff --check` and changed-file credential scan pass.
-- Live Discord panel rendering passed: the private test draft shows Edit, Perpendek, Regenerate, Publish, and Discard in `bot-settings`.
-- Live action acceptance passed: Regenerate and Perpendek both completed through Groq GPT-OSS 120B, two revisions were persisted, and the test draft was Discarded.
-- Final state passed: zero pending/revising/publishing drafts, no publication was created, and Hengs remained online as one instance.
-- Bot restarted cleanly as one instance with local v1.3.0 code; live acceptance is complete and the private test draft was discarded without sending a public announcement.
+- `package.json` and both package-lock version fields are aligned at 1.4.0.
+- Parser coverage includes same-day WIB, tomorrow rollover, explicit dates, invalid dates, past values, and the one-minute boundary.
+- Store coverage includes schedule/cancel, due claims, retry backoff, three-failure recovery, and Publish Now locking.
+- Worker integration coverage runs concurrent scheduler calls and verifies exactly one public send plus persisted publication.
+- Bot restarted cleanly as one instance with local v1.4.0 code; no slash-command registration was needed.
+- Live Discord acceptance passed: the private test draft was scheduled, its panel changed to scheduled, cancellation returned it to review, and Discard finalized it.
+- Final live state passed: `lastSchedule.status` is `cancelled`, publication is null, and zero pending/revising/scheduled/publishing drafts remain.
 
 Checkpoint status: **ready for Henry's manual commit**.
 
-Suggested commit after live acceptance: `Hengs Discord v1.3.0: Add owner draft revision workflow`
+Suggested commit after live acceptance: `Hengs Discord v1.4.0: Add persistent scheduled announcements`

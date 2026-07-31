@@ -80,6 +80,7 @@ module.exports = {
       .addFields(
         { name: 'Draft menunggu', value: String(status.pending), inline: true },
         { name: 'Sedang direvisi', value: String(status.revising), inline: true },
+        { name: 'Terjadwal', value: String(status.scheduled), inline: true },
         { name: 'Sedang diproses', value: String(status.publishing), inline: true },
         { name: 'Sudah publish', value: String(status.published), inline: true },
         { name: 'Dibuang', value: String(status.discarded), inline: true },

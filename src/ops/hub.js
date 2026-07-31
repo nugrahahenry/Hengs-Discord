@@ -10,6 +10,7 @@ const {
   TextInputStyle,
 } = require('discord.js');
 const store = require('./store');
+const { formatWib, parseScheduleInput } = require('./time');
 
 const DATA_DIR = process.env.OPS_DATA_DIR
   ? path.resolve(process.env.OPS_DATA_DIR)
@@ -17,6 +18,8 @@ const DATA_DIR = process.env.OPS_DATA_DIR
 const CANOX_INBOX = path.join(DATA_DIR, 'canox-ops-inbox.json');
 let inboxTimer = null;
 let inboxBusy = false;
+let scheduleTimer = null;
+let scheduleBusy = false;
 
 function isOwner(userId) {
   return Boolean(process.env.OWNER_ID) && userId === process.env.OWNER_ID;
@@ -61,11 +64,13 @@ function draftEmbed(draft) {
   const source = draft.source === 'canox' ? 'Canox' : 'Discord';
   const color = draft.status === 'published' ? 0x57F287
     : draft.status === 'discarded' ? 0xED4245
+      : draft.status === 'scheduled' ? 0x9B59B6
       : ['publishing', 'revising'].includes(draft.status) ? 0x5865F2
         : 0xFEE75C;
   const status = {
     pending: 'Menunggu persetujuan owner',
     revising: 'Sedang dibuatkan revisi',
+    scheduled: 'Terjadwal',
     publishing: 'Sedang dipublikasikan',
     published: 'Sudah dipublikasikan',
     discarded: 'Dibuang',
@@ -96,6 +101,22 @@ function draftEmbed(draft) {
       inline: false,
     });
   }
+  if (draft.schedule?.at) {
+    const retry = Number(draft.schedule.attempts) > 0
+      ? `\nPercobaan ulang: ${draft.schedule.attempts}/3 · ${formatWib(draft.schedule.nextAttemptAt)}`
+      : '';
+    embed.addFields({
+      name: 'Jadwal tayang (WIB)',
+      value: `${formatWib(draft.schedule.at)}${retry}`,
+      inline: false,
+    });
+  } else if (draft.status === 'pending' && draft.lastSchedule?.status === 'failed') {
+    embed.addFields({
+      name: 'Jadwal terakhir gagal',
+      value: 'Tiga percobaan gagal. Review lalu jadwalkan ulang atau Publish Now.',
+      inline: false,
+    });
+  }
   return embed;
 }
 
@@ -111,29 +132,55 @@ function publicEmbed(draft) {
 }
 
 function approvalRow(draft) {
-  if (draft.status !== 'pending') return [];
-  return [new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`ops:edit:${draft.id}`)
-      .setLabel('Edit')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`ops:shorten:${draft.id}`)
-      .setLabel('Perpendek')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`ops:regenerate:${draft.id}`)
-      .setLabel('Regenerate')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`ops:publish:${draft.id}`)
-      .setLabel('Publish')
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`ops:discard:${draft.id}`)
-      .setLabel('Discard')
-      .setStyle(ButtonStyle.Danger),
-  )];
+  if (draft.status === 'pending') {
+    return [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ops:edit:${draft.id}`)
+          .setLabel('Edit')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`ops:shorten:${draft.id}`)
+          .setLabel('Perpendek')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(`ops:regenerate:${draft.id}`)
+          .setLabel('Regenerate')
+          .setStyle(ButtonStyle.Secondary),
+      ),
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ops:publishnow:${draft.id}`)
+          .setLabel('Publish Now')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`ops:schedule:${draft.id}`)
+          .setLabel('Jadwalkan')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(`ops:discard:${draft.id}`)
+          .setLabel('Discard')
+          .setStyle(ButtonStyle.Danger),
+      ),
+    ];
+  }
+  if (draft.status === 'scheduled') {
+    return [new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`ops:publishnow:${draft.id}`)
+        .setLabel('Publish Now')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`ops:cancelschedule:${draft.id}`)
+        .setLabel('Batalkan Jadwal')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`ops:discard:${draft.id}`)
+        .setLabel('Discard')
+        .setStyle(ButtonStyle.Danger),
+    )];
+  }
+  return [];
 }
 
 async function editStoredPanel(guild, draft) {
@@ -187,7 +234,9 @@ async function handlePublish(interaction, draftId) {
   }
 
   // Lock dilakukan sinkron sebelum await pertama. Klik kedua tidak bisa melewati ini.
-  const claimed = store.claimPublish(draftId, interaction.user.id);
+  const claimed = store.claimPublish(draftId, interaction.user.id, {
+    allowScheduled: true,
+  });
   if (!claimed) {
     await interaction.reply({ content: 'ℹ️ Draft ini sudah diproses atau sedang dipublikasikan.', ephemeral: true });
     return;
@@ -280,6 +329,45 @@ async function handleEdit(interaction, draftId) {
   await interaction.showModal(modal);
 }
 
+async function handleSchedule(interaction, draftId) {
+  const draft = store.getDraft(draftId);
+  if (!draft || draft.status !== 'pending') {
+    await interaction.reply({ content: 'ℹ️ Draft ini sudah diproses atau memiliki jadwal.', ephemeral: true });
+    return;
+  }
+  const modal = new ModalBuilder()
+    .setCustomId(`ops:schedulemodal:${draft.id}`)
+    .setTitle('Jadwalkan pengumuman');
+  const timeInput = new TextInputBuilder()
+    .setCustomId('time_wib')
+    .setLabel('Waktu WIB')
+    .setPlaceholder('Contoh: 20:30 atau 2026-08-02 20:30')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(16);
+  modal.addComponents(new ActionRowBuilder().addComponents(timeInput));
+  await interaction.showModal(modal);
+}
+
+async function handleCancelSchedule(interaction, draftId) {
+  const cancelled = store.cancelSchedule(draftId, interaction.user.id);
+  if (!cancelled) {
+    await interaction.reply({
+      content: 'ℹ️ Jadwal ini sudah berubah status atau sedang dipublikasikan.',
+      ephemeral: true,
+    });
+    return;
+  }
+  await interaction.update({
+    embeds: [draftEmbed(cancelled)],
+    components: approvalRow(cancelled),
+  });
+  await interaction.followUp({
+    content: `✅ Jadwal **${cancelled.title}** dibatalkan. Draft kembali ke review.`,
+    ephemeral: true,
+  });
+}
+
 async function handleAiRevision(interaction, draftId, kind, agent) {
   if (!agent?.reviseAnnouncement) {
     await interaction.reply({ content: '❌ Editor AI Ops Hub belum tersedia.', ephemeral: true });
@@ -330,7 +418,19 @@ async function handleButton(interaction, { agent } = {}) {
 
   const [, action, draftId] = interaction.customId.split(':');
   // Draft dari Ops Hub awal memakai 12 hex; draft baru memakai 16 hex.
-  if (!['edit', 'shorten', 'regenerate', 'publish', 'discard'].includes(action) || !isValidDraftId(draftId)) {
+  if (
+    ![
+      'edit',
+      'shorten',
+      'regenerate',
+      'publish',
+      'publishnow',
+      'schedule',
+      'cancelschedule',
+      'discard',
+    ].includes(action)
+    || !isValidDraftId(draftId)
+  ) {
     await interaction.reply({ content: '❌ Aksi Ops Hub tidak valid.', ephemeral: true });
     return true;
   }
@@ -338,20 +438,49 @@ async function handleButton(interaction, { agent } = {}) {
   if (action === 'edit') await handleEdit(interaction, draftId);
   else if (action === 'shorten' || action === 'regenerate') {
     await handleAiRevision(interaction, draftId, action, agent);
-  } else if (action === 'publish') await handlePublish(interaction, draftId);
+  } else if (action === 'schedule') await handleSchedule(interaction, draftId);
+  else if (action === 'cancelschedule') await handleCancelSchedule(interaction, draftId);
+  else if (action === 'publish' || action === 'publishnow') await handlePublish(interaction, draftId);
   else await handleDiscard(interaction, draftId);
   return true;
 }
 
 async function handleModal(interaction) {
-  if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('ops:editmodal:')) return false;
+  if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('ops:')) return false;
   if (!isOwner(interaction.user.id)) {
-    await interaction.reply({ content: '❌ Hanya owner yang dapat mengedit draft.', ephemeral: true });
+    await interaction.reply({ content: '❌ Hanya owner yang dapat mengubah draft.', ephemeral: true });
     return true;
   }
   const [, action, draftId] = interaction.customId.split(':');
-  if (action !== 'editmodal' || !isValidDraftId(draftId)) {
-    await interaction.reply({ content: '❌ Form edit Ops Hub tidak valid.', ephemeral: true });
+  if (!['editmodal', 'schedulemodal'].includes(action) || !isValidDraftId(draftId)) {
+    await interaction.reply({ content: '❌ Form Ops Hub tidak valid.', ephemeral: true });
+    return true;
+  }
+
+  if (action === 'schedulemodal') {
+    let parsed;
+    try {
+      parsed = parseScheduleInput(interaction.fields.getTextInputValue('time_wib'));
+    } catch (error) {
+      await interaction.reply({ content: `❌ ${error.message}`, ephemeral: true });
+      return true;
+    }
+    const scheduled = store.scheduleDraft(draftId, interaction.user.id, parsed.scheduledAt);
+    if (!scheduled) {
+      await interaction.reply({
+        content: 'ℹ️ Draft berubah status sebelum jadwal disimpan.',
+        ephemeral: true,
+      });
+      return true;
+    }
+    await interaction.deferReply({ ephemeral: true });
+    const panelUpdated = await editStoredPanel(interaction.guild, scheduled).catch(() => false);
+    const tomorrowNote = parsed.rolledToTomorrow ? ' Karena jam hari ini sudah lewat, jadwal dipasang untuk besok.' : '';
+    await interaction.editReply({
+      content: panelUpdated
+        ? `✅ **${scheduled.title}** dijadwalkan: **${parsed.label} WIB**.${tomorrowNote}`
+        : `✅ Jadwal tersimpan untuk **${parsed.label} WIB**, tetapi panel tidak ditemukan.`,
+    });
     return true;
   }
 
@@ -524,16 +653,74 @@ async function recoverRevisingDrafts(client) {
   console.log(`  ♻️ ${recoveredIds.length} revisi Ops yang terputus dikembalikan ke pending.`);
 }
 
+async function processDueSchedules(client) {
+  if (scheduleBusy) return;
+  const due = store.listDueSchedules();
+  if (!due.length) return;
+  scheduleBusy = true;
+  try {
+    const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID).catch(() => null);
+    if (!guild) {
+      console.error('⚠ Ops scheduler: guild tidak dapat diakses.');
+      return;
+    }
+    const channel = findAnnouncementsChannel(guild);
+
+    for (const dueDraft of due) {
+      const claimed = store.claimScheduledPublish(dueDraft.id);
+      if (!claimed) continue;
+      await editStoredPanel(guild, claimed).catch(() => {});
+
+      if (!channel) {
+        console.error(`⚠ Ops scheduled publish ${claimed.id}: channel announcements tidak ditemukan.`);
+        const failed = store.failScheduledPublish(claimed.id, 'CHANNEL_MISSING');
+        if (failed) await editStoredPanel(guild, failed).catch(() => {});
+        continue;
+      }
+
+      let publicMessage = null;
+      let finalized = null;
+      try {
+        publicMessage = await channel.send({
+          embeds: [publicEmbed(claimed)],
+          allowedMentions: { parse: [] },
+        });
+        finalized = store.finalizeDraft(claimed.id, 'published', 'scheduler', {
+          channelId: channel.id,
+          messageId: publicMessage.id,
+        });
+        if (!finalized) throw new Error('Scheduled draft tidak dapat difinalisasi.');
+        await editStoredPanel(guild, finalized);
+        console.log(`  ⏰ Scheduled Ops draft ${claimed.id} berhasil dipublikasikan.`);
+      } catch (error) {
+        console.error(`⚠ Ops scheduled publish ${claimed.id}:`, error.message);
+        if (!publicMessage) {
+          const failed = store.failScheduledPublish(claimed.id, error.code || 'SEND_FAILED');
+          if (failed) await editStoredPanel(guild, failed).catch(() => {});
+        } else if (!finalized) {
+          // Marker Draft ID di pesan publik akan dipakai recovery startup.
+          console.error(`⚠ Scheduled draft ${claimed.id} sudah terkirim; menunggu recovery state.`);
+        }
+      }
+    }
+  } finally {
+    scheduleBusy = false;
+  }
+}
+
 async function refreshPendingDraftPanels(client) {
-  const pending = store.listDraftsByStatus('pending').filter(draft => draft.panel);
-  if (!pending.length) return;
+  const reviewable = [
+    ...store.listDraftsByStatus('pending'),
+    ...store.listDraftsByStatus('scheduled'),
+  ].filter(draft => draft.panel);
+  if (!reviewable.length) return;
   const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID).catch(() => null);
   if (!guild) {
     console.error('⚠ Ops pending panel refresh: guild tidak dapat diakses.');
     return;
   }
   let refreshed = 0;
-  for (const draft of pending) {
+  for (const draft of reviewable) {
     if (await editStoredPanel(guild, draft).catch(error => {
       console.error(`⚠ Ops pending panel refresh ${draft.id}:`, error.message);
       return false;
@@ -553,10 +740,17 @@ function startCanoxInbox(client) {
     console.error('⚠ Ops inbox recovery error:', error.message);
   }
   inboxTimer = setInterval(() => consumeCanoxInbox(client), 10_000);
+  if (!scheduleTimer) {
+    scheduleTimer = setInterval(() => {
+      processDueSchedules(client).catch(error =>
+        console.error('⚠ Ops scheduler loop error:', error.message));
+    }, 15_000);
+  }
   recoverRevisingDrafts(client)
     .then(() => recoverPublishingDrafts(client))
     .then(() => refreshPendingDraftPanels(client))
     .then(() => consumeCanoxInbox(client))
+    .then(() => processDueSchedules(client))
     .catch(error => console.error('⚠ Ops startup recovery error:', error.message));
   console.log('  → Ops Hub siap menerima draft Canox untuk direview owner.');
 }
@@ -573,6 +767,7 @@ module.exports = {
   normalizeCanoxEntries,
   recoverStaleCanoxInbox,
   refreshPendingDraftPanels,
+  processDueSchedules,
   isValidDraftId,
   approvalRow,
 };

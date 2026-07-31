@@ -14,11 +14,13 @@ const {
   findSettingsChannel,
   recoverStaleCanoxInbox,
   refreshPendingDraftPanels,
+  processDueSchedules,
   isValidDraftId,
   approvalRow,
   handleButton,
   handleModal,
 } = require('../src/ops/hub');
+const { parseScheduleInput } = require('../src/ops/time');
 
 test.after(() => {
   fs.rmSync(testDataDir, { recursive: true, force: true });
@@ -174,14 +176,23 @@ test('AI revision claim blocks publish, applies once, and recovers after a crash
   assert.equal(store.getDraft(draft.id).status, 'pending');
 });
 
-test('pending panel exposes five owner actions and hides them while revising', () => {
+test('pending and scheduled panels expose only valid owner actions', () => {
   const { draft } = store.createDraft({ title: 'Panel', body: 'Isi panel.' });
-  const customIds = approvalRow(draft)[0].toJSON().components.map(component => component.custom_id);
+  const customIds = approvalRow(draft)
+    .flatMap(row => row.toJSON().components.map(component => component.custom_id));
   assert.deepEqual(customIds, [
     `ops:edit:${draft.id}`,
     `ops:shorten:${draft.id}`,
     `ops:regenerate:${draft.id}`,
-    `ops:publish:${draft.id}`,
+    `ops:publishnow:${draft.id}`,
+    `ops:schedule:${draft.id}`,
+    `ops:discard:${draft.id}`,
+  ]);
+  const scheduledIds = approvalRow({ ...draft, status: 'scheduled' })[0]
+    .toJSON().components.map(component => component.custom_id);
+  assert.deepEqual(scheduledIds, [
+    `ops:publishnow:${draft.id}`,
+    `ops:cancelschedule:${draft.id}`,
     `ops:discard:${draft.id}`,
   ]);
   assert.deepEqual(approvalRow({ ...draft, status: 'revising' }), []);
@@ -209,7 +220,177 @@ test('startup refresh repairs a pending panel after a crash window', async () =>
   await refreshPendingDraftPanels({
     guilds: { fetch: async () => guild },
   });
-  assert.equal(editedPayload.components[0].components.length, 5);
+  assert.equal(
+    editedPayload.components.reduce((total, row) => total + row.components.length, 0),
+    6,
+  );
+});
+
+test('WIB parser accepts explicit dates and rolls passed HH:mm to tomorrow', () => {
+  const now = Date.parse('2026-07-31T05:00:00.000Z'); // 12:00 WIB
+  const sameDay = parseScheduleInput('20:30', now);
+  assert.equal(sameDay.scheduledAt, '2026-07-31T13:30:00.000Z');
+  assert.equal(sameDay.rolledToTomorrow, false);
+
+  const tomorrow = parseScheduleInput('08:00', now);
+  assert.equal(tomorrow.scheduledAt, '2026-08-01T01:00:00.000Z');
+  assert.equal(tomorrow.rolledToTomorrow, true);
+
+  const explicit = parseScheduleInput('2026-08-02 09:15', now);
+  assert.equal(explicit.scheduledAt, '2026-08-02T02:15:00.000Z');
+  assert.throws(() => parseScheduleInput('2026-02-30 10:00', now), /tidak valid/);
+  assert.throws(() => parseScheduleInput('besok malam', now), /Format waktu/);
+  assert.throws(() => parseScheduleInput('2026-07-31 11:00', now), /minimal 1 menit/);
+  assert.throws(
+    () => parseScheduleInput('12:01', Date.parse('2026-07-31T05:00:30.000Z')),
+    /minimal 1 menit/,
+  );
+});
+
+test('schedule lifecycle is race-safe and stops retrying after three failures', () => {
+  const base = Date.now();
+  const { draft } = store.createDraft({ title: 'Jadwal retry', body: 'Isi jadwal.' });
+  const at = new Date(base + 61_000).toISOString();
+  assert.equal(store.scheduleDraft(draft.id, 'owner-1', at, base).status, 'scheduled');
+  assert.equal(store.claimPublish(draft.id, 'owner-1'), null);
+  assert.equal(store.claimScheduledPublish(draft.id, base), null);
+
+  assert.equal(store.claimScheduledPublish(draft.id, base + 61_000).status, 'publishing');
+  assert.equal(store.cancelSchedule(draft.id, 'owner-1'), null);
+  const retryOne = store.failScheduledPublish(draft.id, 'SEND_FAILED', base + 61_000);
+  assert.equal(retryOne.status, 'scheduled');
+  assert.equal(retryOne.schedule.attempts, 1);
+
+  const retryOneAt = Date.parse(retryOne.schedule.nextAttemptAt);
+  assert.equal(store.claimScheduledPublish(draft.id, retryOneAt).status, 'publishing');
+  const retryTwo = store.failScheduledPublish(draft.id, 'SEND_FAILED', retryOneAt);
+  assert.equal(retryTwo.schedule.attempts, 2);
+
+  const retryTwoAt = Date.parse(retryTwo.schedule.nextAttemptAt);
+  assert.equal(store.claimScheduledPublish(draft.id, retryTwoAt).status, 'publishing');
+  const failed = store.failScheduledPublish(draft.id, 'SEND_FAILED', retryTwoAt);
+  assert.equal(failed.status, 'pending');
+  assert.equal(failed.schedule, null);
+  assert.equal(failed.lastSchedule.status, 'failed');
+});
+
+test('owner can cancel a schedule or publish it now without duplicate claims', () => {
+  const base = Date.now();
+  const { draft } = store.createDraft({ title: 'Jadwal owner', body: 'Isi owner.' });
+  const at = new Date(base + 120_000).toISOString();
+  assert.equal(store.scheduleDraft(draft.id, 'owner-1', at, base).status, 'scheduled');
+  assert.equal(store.cancelSchedule(draft.id, 'owner-1').status, 'pending');
+
+  store.scheduleDraft(draft.id, 'owner-1', at, base);
+  const claimed = store.claimPublish(draft.id, 'owner-1', { allowScheduled: true });
+  assert.equal(claimed.status, 'publishing');
+  assert.equal(store.claimPublish(draft.id, 'owner-1', { allowScheduled: true }), null);
+  assert.equal(store.releasePublish(draft.id).status, 'scheduled');
+  const discarded = store.finalizeDraft(draft.id, 'discarded', 'owner-1');
+  assert.equal(discarded.status, 'discarded');
+  assert.equal(discarded.lastSchedule.status, 'discarded');
+});
+
+test('due schedule worker publishes exactly once and persists publication', async () => {
+  const now = Date.now();
+  const { draft } = store.createDraft({ title: 'Worker', body: 'Publish sekali.' });
+  store.setPanel(draft.id, { channelId: 'settings', messageId: 'panel-worker' });
+  store.scheduleDraft(
+    draft.id,
+    'owner-1',
+    new Date(now - 60_000).toISOString(),
+    now - 180_000,
+  );
+
+  let sends = 0;
+  const panelMessage = { edit: async () => {} };
+  const settings = {
+    id: 'settings',
+    messages: { fetch: async () => panelMessage },
+  };
+  const announcements = {
+    id: 'announcements',
+    isTextBased: () => true,
+    send: async () => {
+      sends += 1;
+      return { id: `public-${sends}` };
+    },
+  };
+  const guild = {
+    channels: {
+      cache: new Collection([
+        [settings.id, settings],
+        [announcements.id, announcements],
+      ]),
+      fetch: async () => null,
+    },
+  };
+  const previousAnnouncementId = process.env.ANNOUNCE_CHANNEL_ID;
+  process.env.ANNOUNCE_CHANNEL_ID = announcements.id;
+  try {
+    const client = { guilds: { fetch: async () => guild } };
+    await Promise.all([processDueSchedules(client), processDueSchedules(client)]);
+    assert.equal(sends, 1);
+    const published = store.getDraft(draft.id);
+    assert.equal(published.status, 'published');
+    assert.deepEqual(published.publication, {
+      channelId: announcements.id,
+      messageId: 'public-1',
+    });
+    await processDueSchedules(client);
+    assert.equal(sends, 1);
+  } finally {
+    if (previousAnnouncementId === undefined) delete process.env.ANNOUNCE_CHANNEL_ID;
+    else process.env.ANNOUNCE_CHANNEL_ID = previousAnnouncementId;
+  }
+});
+
+test('owner schedule modal persists WIB time and cancel button returns to review', async () => {
+  const previousOwner = process.env.OWNER_ID;
+  process.env.OWNER_ID = 'owner-1';
+  try {
+    const { draft } = store.createDraft({ title: 'Modal jadwal', body: 'Isi jadwal modal.' });
+    store.setPanel(draft.id, { channelId: 'settings', messageId: 'panel-schedule' });
+    const panelMessage = { edit: async () => {} };
+    const settings = {
+      id: 'settings',
+      messages: { fetch: async () => panelMessage },
+    };
+    const guild = {
+      channels: {
+        cache: new Collection([[settings.id, settings]]),
+        fetch: async () => null,
+      },
+    };
+    const futureWib = new Date(Date.now() + (2 * 60 * 60 * 1000) + (7 * 60 * 60 * 1000));
+    const timeInput = `${String(futureWib.getUTCHours()).padStart(2, '0')}:${String(futureWib.getUTCMinutes()).padStart(2, '0')}`;
+    const replies = [];
+    await handleModal({
+      isModalSubmit: () => true,
+      customId: `ops:schedulemodal:${draft.id}`,
+      user: { id: 'owner-1' },
+      fields: { getTextInputValue: () => timeInput },
+      guild,
+      deferReply: async () => {},
+      editReply: async payload => { replies.push(payload); },
+    });
+    assert.equal(store.getDraft(draft.id).status, 'scheduled');
+    assert.match(replies.at(-1).content, /dijadwalkan/);
+
+    const updates = [];
+    await handleButton({
+      isButton: () => true,
+      customId: `ops:cancelschedule:${draft.id}`,
+      user: { id: 'owner-1' },
+      update: async payload => { updates.push(payload); },
+      followUp: async () => {},
+    });
+    assert.equal(store.getDraft(draft.id).status, 'pending');
+    assert.equal(updates[0].components.length, 2);
+  } finally {
+    if (previousOwner === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previousOwner;
+  }
 });
 
 test('owner modal edits pending draft while unauthorized buttons fail closed', async () => {
