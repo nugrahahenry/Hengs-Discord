@@ -105,6 +105,11 @@ Bridge Canox Event Hub memakai `data/canox-event-inbox.json` secara default. Ove
 sender dengan `DISCORD_EVENT_INBOX_FILE`. Penambahan bridge tidak mengubah schema slash
 command, jadi `npm run deploy` tidak perlu dijalankan ulang untuk v1.7.0.
 
+Event Draft Editor v1.8.0 memakai tombol dan modal pada panel yang sudah ada, sehingga
+schema `/event` tetap sama dan tidak memerlukan `npm run deploy`. Role pada
+`OPS_EDITOR_ROLE_IDS` dapat mengedit isi draft, tetapi Publish, Discard, dan Cancel
+tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
+
 ## 🔐 Catatan keamanan
 
 - Token bocor (ke-share di chat/screenshot/commit)? **Langsung Reset Token** di Developer Portal, update `.env`.

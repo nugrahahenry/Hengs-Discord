@@ -85,6 +85,32 @@ function normalizedSourceUrl(value) {
   return parsed.href;
 }
 
+function normalizedRequiredText(value, field, maximum) {
+  const normalized = String(value || '').trim();
+  if (!normalized) throw new Error(`${field} event tidak boleh kosong.`);
+  if (normalized.length > maximum) {
+    throw new Error(`${field} event maksimal ${maximum} karakter.`);
+  }
+  return normalized;
+}
+
+function normalizedOptionalText(value, field, maximum) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  const normalized = String(value).trim();
+  if (normalized.length > maximum) {
+    throw new Error(`${field} event maksimal ${maximum} karakter.`);
+  }
+  return normalized;
+}
+
+function normalizedFutureStart(value, nowMs = Date.now()) {
+  const startMs = Date.parse(value);
+  if (!Number.isFinite(startMs) || startMs <= nowMs) {
+    throw new Error('Waktu event harus berada di masa depan.');
+  }
+  return new Date(startMs).toISOString();
+}
+
 function createEvent({
   title,
   description,
@@ -124,7 +150,10 @@ function createEvent({
     createdBy: String(createdBy || 'unknown').slice(0, 100),
     externalId: normalizedExternalId,
     status: 'draft',
+    revision: 0,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    updatedBy: String(createdBy || 'unknown').slice(0, 100),
     actionStartedAt: null,
     actionBy: null,
     panel: null,
@@ -169,6 +198,54 @@ function removeEvent(id) {
   state.audit = state.audit.filter((entry) => entry.eventId !== id);
   writeState(state);
   return true;
+}
+
+function updateDraft(id, changes, actor, expectedRevision, nowMs = Date.now()) {
+  const state = readState();
+  const event = state.events.find((item) => item.id === id);
+  if (!event || event.status !== 'draft') {
+    return { ok: false, reason: 'status', event: event || null };
+  }
+  const currentRevision = Number.isInteger(event.revision) ? event.revision : 0;
+  if (!Number.isInteger(expectedRevision) || currentRevision !== expectedRevision) {
+    return { ok: false, reason: 'stale', event };
+  }
+
+  const next = { ...event };
+  if (Object.hasOwn(changes, 'title')) {
+    next.title = normalizedRequiredText(changes.title, 'Judul', 200);
+  }
+  if (Object.hasOwn(changes, 'description')) {
+    next.description = normalizedRequiredText(changes.description, 'Deskripsi', 3500);
+  }
+  if (Object.hasOwn(changes, 'startAt')) {
+    next.startAt = normalizedFutureStart(changes.startAt, nowMs);
+  }
+  if (Object.hasOwn(changes, 'location')) {
+    next.location = normalizedOptionalText(changes.location, 'Lokasi', 500);
+  }
+  if (Object.hasOwn(changes, 'capacity')) {
+    next.capacity = changes.capacity === '' ? null : normalizedCapacity(changes.capacity);
+  }
+  if (Object.hasOwn(changes, 'sourceUrl')) {
+    next.sourceUrl = normalizedSourceUrl(changes.sourceUrl);
+  }
+
+  const editable = ['title', 'description', 'startAt', 'location', 'capacity', 'sourceUrl'];
+  if (!editable.some((field) => Object.hasOwn(changes, field))) {
+    throw new Error('Tidak ada field event yang dapat diperbarui.');
+  }
+  Object.assign(event, next);
+  event.revision = currentRevision + 1;
+  event.updatedAt = new Date(nowMs).toISOString();
+  event.updatedBy = String(actor || 'unknown').slice(0, 100);
+  event.messageSyncPending = true;
+  appendAudit(state, event.id, 'event_edited', actor, {
+    revision: event.revision,
+    fields: editable.filter((field) => Object.hasOwn(changes, field)).join(','),
+  });
+  writeState(state);
+  return { ok: true, event };
 }
 
 function claimPublish(id, actor, nowMs = Date.now()) {
@@ -395,6 +472,7 @@ module.exports = {
   getEvent,
   setPanel,
   removeEvent,
+  updateDraft,
   claimPublish,
   releasePublish,
   finalizePublish,

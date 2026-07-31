@@ -1,7 +1,7 @@
 # Hengs Community Event Hub
 
-**Version:** 1.7.0
-**Status:** Canox bridge live acceptance passed
+**Version:** 1.8.0
+**Status:** Event Draft Editor implemented and automatically verified
 **Timezone input:** WIB (`Asia/Jakarta`)
 
 ## Product flow
@@ -9,12 +9,29 @@
 1. Owner atau role `OPS_EDITOR_ROLE_IDS` menjalankan `/event draft`.
 2. Hengs menyimpan event sebagai draft lokal dan membuat panel privat di
    `BOT_SETTINGS_CHANNEL_ID`.
-3. Hanya `OWNER_ID` yang dapat memilih **Publish Event** atau **Discard**.
-4. Event yang disetujui dikirim ke `ANNOUNCE_CHANNEL_ID` dengan tiga tombol RSVP.
-5. Anggota dapat memilih **Hadir**, **Mungkin**, atau **Batal RSVP**; pilihan terakhir
+3. Owner dan role `OPS_EDITOR_ROLE_IDS` dapat memakai **Edit Detail** untuk judul,
+   deskripsi, waktu, dan lokasi, atau **Kapasitas & Sumber** untuk kapasitas dan URL.
+4. Hanya `OWNER_ID` yang dapat memilih **Publish Event** atau **Discard**.
+5. Event yang disetujui dikirim ke `ANNOUNCE_CHANNEL_ID` dengan tiga tombol RSVP.
+6. Anggota dapat memilih **Hadir**, **Mungkin**, atau **Batal RSVP**; pilihan terakhir
    menggantikan pilihan sebelumnya.
-6. Owner dapat membatalkan event dari panel privat. Worker menutup RSVP otomatis saat
+7. Owner dapat membatalkan event dari panel privat. Worker menutup RSVP otomatis saat
    waktu event dimulai.
+
+## Draft editor
+
+- Discord membatasi satu modal hingga lima input, jadi enam field event dibagi ke dua
+  modal agar tetap mudah dipakai dan tidak mengubah schema slash command.
+- Setiap draft memiliki nomor `revision`. Modal menyimpan nomor revisi ketika dibuka;
+  submit dari modal lama ditolak jika draft sudah berubah agar edit bersamaan tidak
+  saling menimpa.
+- Edit hanya berlaku saat status masih `draft`. Event yang sedang dipublikasikan,
+  sudah tayang, dibuang, dibatalkan, atau selesai tidak dapat diedit.
+- Perubahan disimpan atomik sebelum panel disegarkan. Jika Discord gagal menyegarkan
+  panel, state tetap menandai `messageSyncPending` agar startup/worker dapat mencoba
+  sinkronisasi lagi dan pengguna mendapat peringatan untuk tidak Publish dahulu.
+- Audit hanya mencatat actor, nomor revisi, dan nama field yang berubah; isi judul,
+  deskripsi, lokasi, serta URL tidak disalin ke audit.
 
 ## Canox intake
 
@@ -52,6 +69,9 @@ hanya memperbaiki event bertanda ini agar tidak mengedit seluruh arsip.
 ## Security and privacy
 
 - Publish, Discard, dan Cancel selalu memeriksa `OWNER_ID` saat tombol ditekan.
+- Tombol edit dan submit modal memeriksa ulang owner/`OPS_EDITOR_ROLE_IDS`; tampilan
+  tombol tidak dianggap sebagai otorisasi.
+- Revision compare-and-set menolak modal kedaluwarsa dan menutup lost-update race.
 - Semua event dan reminder menonaktifkan mention parsing.
 - RSVP menyimpan user ID lokal untuk menjaga satu pilihan per anggota, tetapi pesan
   publik hanya menampilkan jumlah Hadir/Mungkin.
@@ -85,3 +105,8 @@ tanpa AI, tepat satu panel berlabel Canox muncul di `bot-settings`, URL referens
 tersimpan, lalu owner menekan Discard. State final `discarded`, publication tetap null,
 seluruh tombol hilang, dan tidak ada inbox/processing tersisa. Schema slash command
 tidak berubah sehingga tidak ada registrasi command ulang.
+
+Event Draft Editor v1.8.0 diverifikasi otomatis: editor dapat memperbarui kedua modal,
+modal palsu dan pengguna tanpa izin ditolak, modal revisi lama tidak dapat overwrite,
+editor tetap tidak memperoleh Publish/Discard, event non-draft tidak dapat diedit,
+dan panel kembali sinkron setelah penyimpanan. Schema `/event` tetap tidak berubah.

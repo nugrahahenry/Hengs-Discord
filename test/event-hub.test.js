@@ -74,11 +74,12 @@ function createGuild() {
   };
 }
 
-function buttonInteraction(guild, customId, userId) {
+function buttonInteraction(guild, customId, userId, roles = []) {
   return {
     customId,
     guild,
     user: { id: userId },
+    member: { roles },
     replied: false,
     deferred: false,
     isButton: () => true,
@@ -86,11 +87,32 @@ function buttonInteraction(guild, customId, userId) {
     replies: [],
     updates: [],
     followUps: [],
+    modals: [],
     async reply(payload) { this.replied = true; this.replies.push(payload); },
     async deferReply() { this.deferred = true; },
     async editReply(payload) { this.replies.push(payload); },
     async update(payload) { this.replied = true; this.updates.push(payload); },
     async followUp(payload) { this.followUps.push(payload); },
+    async showModal(modal) { this.replied = true; this.modals.push(modal.toJSON()); },
+  };
+}
+
+function modalInteraction(guild, customId, userId, values, roles = []) {
+  return {
+    customId,
+    guild,
+    user: { id: userId },
+    member: { roles },
+    replied: false,
+    deferred: false,
+    isModalSubmit: () => true,
+    fields: {
+      getTextInputValue: (field) => values[field] ?? '',
+    },
+    replies: [],
+    async reply(payload) { this.replied = true; this.replies.push(payload); },
+    async deferReply() { this.deferred = true; },
+    async editReply(payload) { this.replies.push(payload); },
   };
 }
 
@@ -163,6 +185,154 @@ test('draft approval is owner-only, publishes once, supports RSVP, and cancels s
   assert.equal(store.getEvent(created.event.id).messageSyncPending, false);
   const publicMessage = await guild.announcements.messages.fetch(published.publication.messageId);
   assert.equal(publicMessage.components.length, 0);
+});
+
+test('event editors can revise private drafts without gaining final-action permission', async () => {
+  const previousRoles = process.env.OPS_EDITOR_ROLE_IDS;
+  process.env.OPS_EDITOR_ROLE_IDS = '123456789012345678';
+  try {
+    const guild = createGuild();
+    const created = await hub.createDraftPanel(guild, {
+      title: 'Draft Awal',
+      description: 'Deskripsi awal.',
+      startAt: futureIso(),
+      location: 'General Voice',
+      capacity: 20,
+      sourceUrl: 'https://example.com/original',
+      createdBy: 'editor-1',
+      externalId: 'discord:event-editor-test',
+    });
+    const panel = await guild.settings.messages.fetch(created.event.panel.messageId);
+    const actionIds = panel.components[0].components.map((component) => component.data.custom_id);
+    assert.deepEqual(actionIds, [
+      `event:edit_details:${created.event.id}`,
+      `event:edit_settings:${created.event.id}`,
+      `event:publish:${created.event.id}`,
+      `event:discard:${created.event.id}`,
+    ]);
+
+    const unauthorized = buttonInteraction(guild, `event:edit_details:${created.event.id}`, 'user-1');
+    await hub.handleButton(unauthorized);
+    assert.match(unauthorized.replies[0].content, /owner atau editor/);
+
+    const forgedModal = modalInteraction(
+      guild,
+      `event:editdetailsmodal:${created.event.id}:0`,
+      'user-1',
+      {
+        title: 'Forged edit',
+        description: 'Tidak boleh tersimpan.',
+        time_wib: hub.formatWibInput(futureIso()),
+        location: '',
+      },
+    );
+    await hub.handleModal(forgedModal);
+    assert.match(forgedModal.replies[0].content, /owner atau editor/);
+    assert.equal(store.getEvent(created.event.id).title, 'Draft Awal');
+
+    const editor = buttonInteraction(
+      guild,
+      `event:edit_details:${created.event.id}`,
+      'editor-1',
+      ['123456789012345678'],
+    );
+    await hub.handleButton(editor);
+    assert.equal(editor.modals.length, 1);
+    assert.equal(editor.modals[0].custom_id, `event:editdetailsmodal:${created.event.id}:0`);
+
+    const timeWib = hub.formatWibInput(futureIso(3 * 24 * 60 * 60 * 1000));
+    const edit = modalInteraction(
+      guild,
+      `event:editdetailsmodal:${created.event.id}:0`,
+      'editor-1',
+      {
+        title: 'Draft Direvisi',
+        description: 'Deskripsi yang sudah diperbarui.',
+        time_wib: timeWib,
+        location: 'Gaming Voice',
+      },
+      ['123456789012345678'],
+    );
+    await hub.handleModal(edit);
+    const revised = store.getEvent(created.event.id);
+    assert.equal(revised.revision, 1);
+    assert.equal(revised.title, 'Draft Direvisi');
+    assert.equal(revised.location, 'Gaming Voice');
+    assert.equal(revised.messageSyncPending, false);
+    assert.match(edit.replies.at(-1).content, /berhasil diperbarui/);
+
+    const stale = modalInteraction(
+      guild,
+      `event:editdetailsmodal:${created.event.id}:0`,
+      'editor-2',
+      {
+        title: 'Overwrite Lama',
+        description: 'Tidak boleh masuk.',
+        time_wib: timeWib,
+        location: '',
+      },
+      ['123456789012345678'],
+    );
+    await hub.handleModal(stale);
+    assert.match(stale.replies.at(-1).content, /sudah diedit/);
+    assert.equal(store.getEvent(created.event.id).title, 'Draft Direvisi');
+
+    const settings = buttonInteraction(
+      guild,
+      `event:edit_settings:${created.event.id}`,
+      'editor-1',
+      ['123456789012345678'],
+    );
+    await hub.handleButton(settings);
+    assert.equal(settings.modals[0].custom_id, `event:editsettingsmodal:${created.event.id}:1`);
+    const settingsEdit = modalInteraction(
+      guild,
+      `event:editsettingsmodal:${created.event.id}:1`,
+      'editor-1',
+      { capacity: '35', source_url: '' },
+      ['123456789012345678'],
+    );
+    await hub.handleModal(settingsEdit);
+    const configured = store.getEvent(created.event.id);
+    assert.equal(configured.revision, 2);
+    assert.equal(configured.capacity, 35);
+    assert.equal(configured.sourceUrl, null);
+
+    const editorPublish = buttonInteraction(
+      guild,
+      `event:publish:${created.event.id}`,
+      'editor-1',
+      ['123456789012345678'],
+    );
+    await hub.handleButton(editorPublish);
+    assert.match(editorPublish.replies[0].content, /Hanya owner/);
+    assert.equal(store.getEvent(created.event.id).status, 'draft');
+
+    const editorDiscard = buttonInteraction(
+      guild,
+      `event:discard:${created.event.id}`,
+      'editor-1',
+      ['123456789012345678'],
+    );
+    await hub.handleButton(editorDiscard);
+    assert.match(editorDiscard.replies[0].content, /Hanya owner/);
+    assert.equal(store.getEvent(created.event.id).status, 'draft');
+
+    store.claimPublish(created.event.id, process.env.OWNER_ID);
+    const tooLate = modalInteraction(
+      guild,
+      `event:editsettingsmodal:${created.event.id}:2`,
+      'editor-1',
+      { capacity: '40', source_url: '' },
+      ['123456789012345678'],
+    );
+    await hub.handleModal(tooLate);
+    assert.match(tooLate.replies.at(-1).content, /berubah status/);
+    assert.equal(store.getEvent(created.event.id).capacity, 35);
+  } finally {
+    if (previousRoles === undefined) delete process.env.OPS_EDITOR_ROLE_IDS;
+    else process.env.OPS_EDITOR_ROLE_IDS = previousRoles;
+  }
 });
 
 test('worker sends one recoverable reminder and closes event at start', async () => {

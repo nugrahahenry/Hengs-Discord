@@ -4,14 +4,17 @@ const {
   ButtonStyle,
   EmbedBuilder,
   MessageFlags,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const store = require('./store');
-const { formatWib } = require('../ops/time');
+const { formatWib, parseScheduleInput } = require('../ops/time');
 const { findSettingsChannel, findAnnouncementsChannel } = require('../ops/hub');
-const { isOwner } = require('../ops/permissions');
+const { isOwner, isEditor } = require('../ops/permissions');
 
 const refreshQueues = new Map();
 const DATA_DIR = process.env.EVENT_DATA_DIR
@@ -46,6 +49,14 @@ function eventColor(status) {
   return 0xED4245;
 }
 
+function formatWibInput(value) {
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return '';
+  const date = new Date(time + (7 * 60 * 60 * 1000));
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+}
+
 function eventEmbed(event, { publicView = false } = {}) {
   const unix = Math.floor(Date.parse(event.startAt) / 1000);
   const yes = event.rsvp?.yes?.length || 0;
@@ -72,6 +83,7 @@ function eventEmbed(event, { publicView = false } = {}) {
       { name: 'Status', value: statusLabel(event.status), inline: true },
       { name: 'ID', value: `\`${event.id}\``, inline: true },
       { name: 'Sumber', value: event.source === 'canox' ? 'Canox' : 'Discord', inline: true },
+      { name: 'Revisi', value: String(Number.isInteger(event.revision) ? event.revision : 0), inline: true },
     );
     embed.setFooter({ text: 'Event Hub · editor membuat draft, owner memutuskan final' });
   }
@@ -81,6 +93,14 @@ function eventEmbed(event, { publicView = false } = {}) {
 function approvalRow(event) {
   if (event.status === 'draft') {
     return [new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`event:edit_details:${event.id}`)
+        .setLabel('Edit Detail')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`event:edit_settings:${event.id}`)
+        .setLabel('Kapasitas & Sumber')
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`event:publish:${event.id}`)
         .setLabel('Publish Event')
@@ -242,11 +262,101 @@ async function publishEvent(interaction, eventId) {
   }
 }
 
+async function showEditDetailsModal(interaction, event) {
+  const revision = Number.isInteger(event.revision) ? event.revision : 0;
+  const modal = new ModalBuilder()
+    .setCustomId(`event:editdetailsmodal:${event.id}:${revision}`)
+    .setTitle('Edit detail event');
+  const title = new TextInputBuilder()
+    .setCustomId('title')
+    .setLabel('Judul')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(200)
+    .setValue(event.title);
+  const description = new TextInputBuilder()
+    .setCustomId('description')
+    .setLabel('Deskripsi')
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true)
+    .setMaxLength(3500)
+    .setValue(event.description);
+  const startAt = new TextInputBuilder()
+    .setCustomId('time_wib')
+    .setLabel('Waktu WIB')
+    .setPlaceholder('Contoh: 2026-08-02 19:30')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(16)
+    .setValue(formatWibInput(event.startAt));
+  const location = new TextInputBuilder()
+    .setCustomId('location')
+    .setLabel('Lokasi (boleh kosong)')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false)
+    .setMaxLength(500);
+  if (event.location) location.setValue(event.location);
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(title),
+    new ActionRowBuilder().addComponents(description),
+    new ActionRowBuilder().addComponents(startAt),
+    new ActionRowBuilder().addComponents(location),
+  );
+  await interaction.showModal(modal);
+}
+
+async function showEditSettingsModal(interaction, event) {
+  const revision = Number.isInteger(event.revision) ? event.revision : 0;
+  const modal = new ModalBuilder()
+    .setCustomId(`event:editsettingsmodal:${event.id}:${revision}`)
+    .setTitle('Kapasitas dan sumber');
+  const capacity = new TextInputBuilder()
+    .setCustomId('capacity')
+    .setLabel('Kapasitas 2-500 (boleh kosong)')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false)
+    .setMaxLength(3);
+  if (event.capacity) capacity.setValue(String(event.capacity));
+  const sourceUrl = new TextInputBuilder()
+    .setCustomId('source_url')
+    .setLabel('URL sumber HTTP(S) (boleh kosong)')
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(false)
+    .setMaxLength(1000);
+  if (event.sourceUrl) sourceUrl.setValue(event.sourceUrl);
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(capacity),
+    new ActionRowBuilder().addComponents(sourceUrl),
+  );
+  await interaction.showModal(modal);
+}
+
 async function handleButton(interaction) {
   if (!interaction.isButton?.() || !interaction.customId.startsWith('event:')) return false;
   const [, action, eventId] = interaction.customId.split(':');
   if (!isValidEventId(eventId) || !interaction.inGuild?.()) {
     await interaction.reply({ content: 'Kontrol event tidak valid.', flags: MessageFlags.Ephemeral });
+    return true;
+  }
+
+  if (['edit_details', 'edit_settings'].includes(action)) {
+    if (!isEditor(interaction)) {
+      await interaction.reply({
+        content: 'Hanya owner atau editor Ops Hub yang dapat mengedit draft event.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return true;
+    }
+    const event = store.getEvent(eventId);
+    if (!event || event.status !== 'draft') {
+      await interaction.reply({
+        content: 'Draft event sudah berubah status dan tidak dapat diedit.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return true;
+    }
+    if (action === 'edit_details') await showEditDetailsModal(interaction, event);
+    else await showEditSettingsModal(interaction, event);
     return true;
   }
 
@@ -298,6 +408,82 @@ async function handleButton(interaction) {
     return true;
   }
   await interaction.reply({ content: 'Aksi event tidak dikenal.', flags: MessageFlags.Ephemeral });
+  return true;
+}
+
+async function handleModal(interaction) {
+  if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('event:')) return false;
+  const [, action, eventId, revisionRaw] = interaction.customId.split(':');
+  const expectedRevision = Number(revisionRaw);
+  if (
+    !['editdetailsmodal', 'editsettingsmodal'].includes(action)
+    || !isValidEventId(eventId)
+    || !Number.isInteger(expectedRevision)
+    || expectedRevision < 0
+  ) {
+    await interaction.reply({ content: 'Form Event Hub tidak valid.', flags: MessageFlags.Ephemeral });
+    return true;
+  }
+  if (!isEditor(interaction)) {
+    await interaction.reply({
+      content: 'Hanya owner atau editor Ops Hub yang dapat menyimpan edit event.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return true;
+  }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  let changes;
+  try {
+    if (action === 'editdetailsmodal') {
+      const parsed = parseScheduleInput(interaction.fields.getTextInputValue('time_wib'));
+      changes = {
+        title: interaction.fields.getTextInputValue('title'),
+        description: interaction.fields.getTextInputValue('description'),
+        startAt: parsed.scheduledAt,
+        location: interaction.fields.getTextInputValue('location'),
+      };
+    } else {
+      const rawCapacity = interaction.fields.getTextInputValue('capacity').trim();
+      if (rawCapacity && !/^\d{1,3}$/.test(rawCapacity)) {
+        throw new Error('Kapasitas harus angka 2-500 atau dikosongkan.');
+      }
+      changes = {
+        capacity: rawCapacity,
+        sourceUrl: interaction.fields.getTextInputValue('source_url'),
+      };
+    }
+    const result = store.updateDraft(
+      eventId,
+      changes,
+      interaction.user.id,
+      expectedRevision,
+    );
+    if (!result.ok) {
+      const content = result.reason === 'stale'
+        ? 'Draft sudah diedit dari panel lain. Buka modal terbaru agar perubahan tidak menimpa revisi baru.'
+        : 'Draft event sudah berubah status dan tidak dapat diedit.';
+      await interaction.editReply({ content });
+      return true;
+    }
+
+    let panelSynced = true;
+    try {
+      await queueRefresh(interaction.guild, eventId);
+      panelSynced = store.getEvent(eventId)?.messageSyncPending === false;
+    } catch (error) {
+      panelSynced = false;
+      console.error('Event edit panel error:', error.message);
+    }
+    const label = action === 'editdetailsmodal' ? 'Detail event' : 'Kapasitas dan sumber';
+    await interaction.editReply({
+      content: panelSynced
+        ? `${label} berhasil diperbarui. Review lagi sebelum Publish.`
+        : `${label} tersimpan, tetapi panel belum sinkron. Jangan Publish sebelum panel pulih.`,
+    });
+  } catch (error) {
+    await interaction.editReply({ content: `Edit event gagal: ${error.message}` });
+  }
   return true;
 }
 
@@ -538,6 +724,7 @@ function start(client) {
 module.exports = {
   createDraftPanel,
   handleButton,
+  handleModal,
   start,
   processWorker,
   recoverPublishingEvents,
@@ -550,5 +737,6 @@ module.exports = {
   consumeCanoxEventInbox,
   recoverStaleCanoxEventInbox,
   isValidEventId,
+  formatWibInput,
   getStatus: store.getStatus,
 };

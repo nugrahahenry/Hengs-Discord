@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-07-31
+
+### Added
+- Event Draft Editor privat dengan dua modal: **Edit Detail** untuk judul, deskripsi, waktu WIB, dan lokasi; **Kapasitas & Sumber** untuk kapasitas serta URL referensi.
+- Nomor revisi persisten pada setiap draft dan panel untuk mencegah modal lama menimpa perubahan editor lain.
+- Audit `event_edited` yang hanya menyimpan actor, revision, dan nama field tanpa menyalin isi event.
+
+### Changed
+- Owner dan role `OPS_EDITOR_ROLE_IDS` dapat merevisi draft Event Hub dari `bot-settings`; schema `/event` tidak berubah dan tidak memerlukan registrasi ulang.
+- Panel draft menampilkan revisi aktif dan disinkronkan ulang setelah edit atomik.
+
+### Security
+- Hak edit diverifikasi ulang saat tombol dibuka dan modal disubmit. Publish, Discard, dan Cancel tetap owner-only.
+- Edit ditolak setelah event meninggalkan status draft; URL, kapasitas, panjang teks, dan waktu masa depan divalidasi ulang di store.
+- Compare-and-set revision menutup lost-update race dari dua modal yang dibuka bersamaan.
+
+### Tests
+- 46 test lulus, termasuk modal palsu tanpa izin, editor role, final-action guard, validasi kedua modal, stale revision, panel sync, dan larangan edit setelah publish claim.
+- Semua file JavaScript lulus syntax check dan `git diff --check` lulus.
+
 ## [1.7.0] - 2026-07-31
 
 ### Added

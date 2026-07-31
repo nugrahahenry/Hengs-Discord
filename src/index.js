@@ -372,9 +372,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.isButton() && interaction.customId.startsWith('event:')) {
+  if (
+    (interaction.isButton() || interaction.isModalSubmit())
+    && interaction.customId.startsWith('event:')
+  ) {
     try {
-      await eventHub.handleButton(interaction);
+      if (interaction.isButton()) await eventHub.handleButton(interaction);
+      else await eventHub.handleModal(interaction);
     } catch (err) {
       console.error('Event Hub interaction error:', err);
       if (interaction.deferred || interaction.replied) {

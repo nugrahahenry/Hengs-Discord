@@ -74,6 +74,49 @@ test('event source URL accepts only credential-free HTTP(S)', () => {
   assert.throws(() => create({ sourceUrl: 'https://user:pass@example.com/event' }), /credential/);
 });
 
+test('draft edit is validated, revision-safe, and disabled after publication starts', () => {
+  const now = Date.now();
+  const event = create({ startAt: new Date(now + (3 * 60 * 60 * 1000)).toISOString() });
+  assert.equal(event.revision, 0);
+
+  const first = store.updateDraft(event.id, {
+    title: 'Community Night Revised',
+    description: 'Agenda yang sudah diperbarui.',
+    startAt: new Date(now + (4 * 60 * 60 * 1000)).toISOString(),
+    location: '',
+  }, 'editor-1', 0, now);
+  assert.equal(first.ok, true);
+  assert.equal(first.event.revision, 1);
+  assert.equal(first.event.title, 'Community Night Revised');
+  assert.equal(first.event.location, null);
+  assert.equal(first.event.messageSyncPending, true);
+
+  const stale = store.updateDraft(event.id, { title: 'Stale overwrite' }, 'editor-2', 0, now);
+  assert.equal(stale.ok, false);
+  assert.equal(stale.reason, 'stale');
+  assert.equal(store.getEvent(event.id).title, 'Community Night Revised');
+
+  assert.throws(
+    () => store.updateDraft(event.id, { capacity: 1 }, 'editor-1', 1, now),
+    /2-500/,
+  );
+  assert.throws(
+    () => store.updateDraft(event.id, { sourceUrl: 'https://user:pass@example.com/event' }, 'editor-1', 1, now),
+    /credential/,
+  );
+  assert.throws(
+    () => store.updateDraft(event.id, { startAt: new Date(now - 1).toISOString() }, 'editor-1', 1, now),
+    /masa depan/,
+  );
+  assert.equal(store.getEvent(event.id).revision, 1);
+
+  const claimed = store.claimPublish(event.id, 'owner-1', now);
+  assert.equal(claimed.status, 'publishing');
+  const blocked = store.updateDraft(event.id, { title: 'Too late' }, 'editor-1', 1, now);
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.reason, 'status');
+});
+
 test('RSVP is exclusive, capacity-safe, removable, and closed after start', () => {
   const event = create();
   store.claimPublish(event.id, 'owner-1');

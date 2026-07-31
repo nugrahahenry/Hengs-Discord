@@ -130,9 +130,12 @@ Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot
 
 Gunakan `/event draft` untuk menyiapkan event di ruang privat `bot-settings`. Waktu
 menerima `HH:mm` atau `YYYY-MM-DD HH:mm` dalam WIB. Owner harus menekan **Publish
-Event** sebelum event muncul di announcements; editor tidak dapat melakukan tindakan
-final. Draft yang jadwalnya sudah lewat ditolak saat Publish dan harus dibuat ulang
-dengan waktu yang masih akan datang.
+Event** sebelum event muncul di announcements. Owner dan role `OPS_EDITOR_ROLE_IDS`
+dapat merevisi draft langsung dari panel lewat **Edit Detail** serta **Kapasitas &
+Sumber**, tetapi hanya owner yang dapat Publish, Discard, atau Cancel. Setiap modal
+membawa nomor revisi sehingga form lama tidak dapat menimpa perubahan yang lebih baru.
+Draft yang jadwalnya sudah lewat ditolak saat Publish dan harus diperbarui ke waktu
+yang masih akan datang.
 
 Setelah tayang, anggota dapat memilih **Hadir**, **Mungkin**, atau **Batal RSVP**.
 Satu anggota hanya memiliki satu pilihan aktif dan kapasitas hanya menghitung pilihan

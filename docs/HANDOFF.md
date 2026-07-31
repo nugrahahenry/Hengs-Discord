@@ -126,7 +126,7 @@ Checkpoint status: **ready for Henry's manual commit**.
 
 Suggested commit after live acceptance: `Hengs Discord v1.6.0: Add approved Community Event Hub`
 
-## Current checkpoint
+## Previous checkpoint: v1.7.0
 
 - Proposed version: **v1.7.0**.
 - Scope: private Canox-to-Event Hub intake for researched or structured community events.
@@ -146,3 +146,34 @@ Suggested commit after live acceptance: `Hengs Discord v1.6.0: Add approved Comm
 Checkpoint status: **ready for Henry's manual commit**.
 
 Suggested commit after live acceptance: `Hengs Discord v1.7.0: Accept private Canox event drafts`
+
+## Current checkpoint
+
+- Proposed version: **v1.8.0**.
+- Scope: private Event Draft Editor on the existing Event Hub approval panel.
+- Owner and configured `OPS_EDITOR_ROLE_IDS` can edit title, description, WIB time,
+  location, capacity, and source URL while the event remains a draft.
+- Publish, Discard, and Cancel remain owner-only. Button visibility is not trusted;
+  authorization is checked again for every button and modal submission.
+- Editing is split into two modals because Discord allows at most five inputs per
+  modal. This does not change the `/event` slash command schema.
+- Persistent revision compare-and-set rejects stale forms, preventing simultaneous
+  editors from overwriting newer changes.
+- Event edit audit records actor, revision, and changed field names only. Event
+  contents are excluded.
+
+## v1.8.0 verification
+
+- All JavaScript syntax checks pass.
+- `node --test`: 46 passed, 0 failed.
+- `git diff --check` passes.
+- Coverage includes unauthorized buttons, forged modal submission, editor allowlist,
+  both edit modals, field validation, panel synchronization, stale revision rejection,
+  owner-only Publish/Discard, and edit rejection after publication starts.
+- Slash command registration is not required because the command schema is unchanged.
+- Live Discord acceptance was intentionally skipped at Henry's request; automated
+  interaction tests cover the complete editor flow.
+
+Checkpoint status: **ready for Henry's review and manual commit**.
+
+Suggested commit: `Hengs Discord v1.8.0: Add revision-safe event draft editor`
