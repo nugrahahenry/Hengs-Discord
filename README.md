@@ -8,6 +8,7 @@
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
+- **Community Event Hub** — `/event draft` membuat event ber-approval dengan RSVP, kapasitas, reminder, cancel, dan auto-close
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
@@ -61,6 +62,7 @@ stop-bot.bat            # hentikan bot
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
 | `/ops draft` · `/ops status` · `/ops history` | Draft pengumuman, approval owner, status, dan audit operasional |
+| `/event draft` · `/event status` | Event komunitas dengan approval owner, RSVP, kapasitas, reminder, dan auto-close |
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
@@ -77,6 +79,7 @@ discord-bot/
 │   ├── deploy-commands.js  # daftarin slash commands ke Discord
 │   ├── commands/           # slash commands, termasuk ops & translate
 │   ├── ops/                # draft store, owner approval, inbox Canox
+│   ├── events/             # event approval, RSVP, reminder, recovery
 │   ├── translation/        # DeepL client, validasi, antrean, cleanup
 │   └── utils/
 │       ├── welcome-card.js # render welcome/leave card (canvas)
@@ -122,6 +125,21 @@ mengubah role, atau mendaftarkan slash command; hasilnya mencakup channel operas
 permission bot, role hierarchy, owner, dan keberadaan pesan reaction-role.
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
+
+### Community Event Hub
+
+Gunakan `/event draft` untuk menyiapkan event di ruang privat `bot-settings`. Waktu
+menerima `HH:mm` atau `YYYY-MM-DD HH:mm` dalam WIB. Owner harus menekan **Publish
+Event** sebelum event muncul di announcements; editor tidak dapat melakukan tindakan
+final. Draft yang jadwalnya sudah lewat ditolak saat Publish dan harus dibuat ulang
+dengan waktu yang masih akan datang.
+
+Setelah tayang, anggota dapat memilih **Hadir**, **Mungkin**, atau **Batal RSVP**.
+Satu anggota hanya memiliki satu pilihan aktif dan kapasitas hanya menghitung pilihan
+Hadir. Event mengirim reminder tanpa mention pada jendela 24 jam dan 1 jam, lalu
+menutup RSVP otomatis saat waktu mulai. Owner dapat membatalkan event dari panel
+privat. State disimpan di `data/events-state.json`; detail teknis dan recovery ada di
+`docs/EVENT-HUB.md`.
 
 ### Restricted document translation
 

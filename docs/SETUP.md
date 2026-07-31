@@ -94,6 +94,12 @@ roles, owner, dan pesan reaction-role yang tersimpan.
 
 > Auto-setup struktur server: jalanin `/admin setup` di server (bikin channel & kategori otomatis).
 
+Setelah menambahkan atau memperbarui Event Hub, jalankan `npm run deploy` dengan izin
+owner agar Discord mendaftarkan `/event draft` dan `/event status`. Event memakai
+`BOT_SETTINGS_CHANNEL_ID`, `ANNOUNCE_CHANNEL_ID`, `OWNER_ID`, dan optional
+`OPS_EDITOR_ROLE_IDS` yang sama dengan Ops Hub; tidak memerlukan permission Discord
+Scheduled Events karena publikasinya berupa pesan RSVP biasa.
+
 ## 🔐 Catatan keamanan
 
 - Token bocor (ke-share di chat/screenshot/commit)? **Langsung Reset Token** di Developer Portal, update `.env`.

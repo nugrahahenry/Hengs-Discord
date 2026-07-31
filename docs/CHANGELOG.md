@@ -5,6 +5,29 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-31
+
+### Added
+- `/event draft` untuk membuat draft event privat dengan judul, deskripsi, waktu WIB, lokasi opsional, dan kapasitas opsional.
+- `/event status` untuk melihat draft, event aktif, jumlah RSVP, event selesai, dan event dibatalkan.
+- Panel approval Event Hub di `bot-settings`; editor dapat membuat draft sedangkan Publish Event, Discard, dan Batalkan Event tetap owner-only.
+- Pesan event publik dengan RSVP eksklusif **Hadir**, **Mungkin**, dan **Batal RSVP**, termasuk penegakan kapasitas secara atomik.
+- Reminder tanpa mention pada jendela 24 jam dan 1 jam, auto-close saat event dimulai, state persisten, serta pemulihan publish/reminder setelah restart.
+
+### Fixed
+- Race publish ganda, RSVP bersamaan, kapasitas penuh, cancel saat reminder sedang dikirim, dan stale message setelah crash ditutup oleh state claim sinkron serta `messageSyncPending` persisten.
+- Crash setelah Discord menerima event tetapi sebelum state lokal final tidak mengirim event kedua; startup mencocokkan marker Event ID yang sudah terkirim.
+- Draft yang jadwalnya sudah lewat tidak lagi dapat dipublikasikan; validasi dilakukan sebelum respons Discord dan di publish claim untuk menutup race waktu.
+
+### Security
+- Isi event tidak dapat memicu user, role, `@here`, atau `@everyone` mention karena seluruh publication/reminder memakai `allowedMentions: { parse: [] }`.
+- RSVP publik hanya menyimpan Discord user ID secara lokal dan hanya menampilkan jumlah peserta; daftar identitas tidak dipublikasikan.
+- Semua tindakan final diverifikasi ulang terhadap `OWNER_ID` saat tombol ditekan.
+
+### Tests
+- 41 test lulus, termasuk schema command, owner/editor guard, publish idempoten, penolakan draft kedaluwarsa, RSVP/capacity, cancel, reminder, auto-close, crash recovery, dan sinkronisasi panel/pesan publik.
+- Live acceptance Discord lulus: satu RSVP Hadir tercatat, reminder satu jam terkirim tepat sekali, publikasi hanya satu, Cancel owner tersimpan, dan seluruh tombol panel/publik dinonaktifkan.
+
 ## [1.5.1] - 2026-07-31
 
 ### Added

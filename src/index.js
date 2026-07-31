@@ -10,7 +10,7 @@
 require('dotenv').config();
 const {
   Client, GatewayIntentBits, Collection, Partials,
-  Events, EmbedBuilder, PermissionFlagsBits, ActivityType,
+  Events, EmbedBuilder, PermissionFlagsBits, ActivityType, MessageFlags,
 } = require('discord.js');
 const fs   = require('node:fs');
 const path = require('node:path');
@@ -23,6 +23,7 @@ const voiceStore = require('./utils/voice-store');
 const { assignMemberRole } = require('./utils/member-onboarding');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
+const eventHub = require('./events/hub');
 const translationService = require('./translation/service');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -135,7 +136,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log('  /scrim on [game]  | /scrim off');
   console.log('  /announce [message]');
   console.log('  /fun quote | /fun 8ball | /fun roll | /fun flip | /fun meme');
-  console.log('  /ops draft | /translate file');
+  console.log('  /ops draft | /event draft | /translate file');
   console.log('  Mention bot untuk AI chat!');
   console.log('─────────────────────────────────────\n');
 
@@ -153,6 +154,7 @@ client.once(Events.ClientReady, async (c) => {
     await updateServerStats(guild).catch(() => {});
   }
   opsHub.startCanoxInbox(c);
+  eventHub.start(c);
   const staleTranslationDirs = await translationService.cleanupStaleTempDirs();
   if (staleTranslationDirs > 0) {
     console.log(`🧹 ${staleTranslationDirs} folder sementara penerjemahan lama dibersihkan.`);
@@ -370,13 +372,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  if (interaction.isButton() && interaction.customId.startsWith('event:')) {
+    try {
+      await eventHub.handleButton(interaction);
+    } catch (err) {
+      console.error('Event Hub interaction error:', err);
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp({ content: 'Aksi Event Hub gagal dijalankan.', flags: MessageFlags.Ephemeral }).catch(() => {});
+      } else {
+        await interaction.reply({ content: 'Aksi Event Hub gagal dijalankan.', flags: MessageFlags.Ephemeral }).catch(() => {});
+      }
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   // Restrict commands ke BOT_CHANNEL_ID
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
   // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
-  const freeCommands = ['announce', 'admin', 'translate', 'ops'];
+  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
   if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({
@@ -393,7 +409,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
-    await cmd.execute(interaction, { state, agent, opsHub });
+    await cmd.execute(interaction, { state, agent, opsHub, eventHub });
   } catch (err) {
     console.error(`❌ Error di /${interaction.commandName}:`, err);
     const errMsg = { content: '❌ Ada error saat menjalankan command ini.', ephemeral: true };

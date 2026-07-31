@@ -35,4 +35,5 @@ docs/*
 !docs/WELCOME_CARD_BRIEF.md
 !docs/HANDOFF.md
 !docs/DEEPL-DOCUMENT-VALIDATION.md
+!docs/EVENT-HUB.md
 /CHANGELOG.md

@@ -71,7 +71,7 @@ Repository HEAD before this audit was `5b7e604 Hengs Discord v1.1.0: Add private
 
 Checkpoint status: committed as `e05c2b9`.
 
-## Current checkpoint
+## Previous checkpoint: v1.5.0
 
 - Proposed version: **v1.5.0**.
 - Scope: moderator draft workflow and privacy-minimized Ops audit.
@@ -101,3 +101,27 @@ Checkpoint status: committed as `e05c2b9`.
 Checkpoint status: **ready for Henry's manual commit**.
 
 Suggested commit after live acceptance: `Hengs Discord v1.5.0: Add moderator workflow and Ops audit`
+
+## Current checkpoint
+
+- Proposed version: **v1.6.0**.
+- Scope: owner-approved Community Event Hub with public RSVP, bounded capacity, reminders, cancellation, auto-close, and crash recovery.
+- Owner or configured Ops editor can create `/event draft` and inspect `/event status`; Publish Event, Discard, and Batalkan Event remain owner-only at runtime.
+- Event state is private and atomic in ignored `data/events-state.json`; public messages expose counts, not RSVP identities.
+- Publication, reminder, RSVP, message refresh, and startup recovery are idempotent and disable mention parsing.
+- Drafts whose start time has passed cannot be claimed for publication.
+
+## v1.6.0 verification
+
+- All JavaScript syntax checks pass and `node --test` reports 41 passed, 0 failed.
+- Read-only server verification passed with zero failures and warnings before live acceptance.
+- `npm audit --omit=dev` reports 0 vulnerabilities.
+- Nine guild slash commands, including `/event`, were registered with Henry's explicit approval using the Windows certificate store.
+- Bot restarted under the existing loop; process inspection confirmed one Discord bot and one separate WhatsApp bot, not duplicate Discord instances.
+- Live Discord acceptance passed: exactly one public event, RSVP Hadir 1/2, exactly one one-hour reminder, owner Cancel, state synchronization, and zero remaining buttons.
+- The first acceptance attempt exposed publication after an elapsed start time. A double-layer validation plus regression test was added before the successful second run.
+- Test announcements may be deleted from Discord after acceptance; finalized local records remain bounded and are not republished.
+
+Checkpoint status: **ready for Henry's manual commit**.
+
+Suggested commit after live acceptance: `Hengs Discord v1.6.0: Add approved Community Event Hub`
