@@ -5,6 +5,8 @@ const {
   EmbedBuilder,
   MessageFlags,
 } = require('discord.js');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const store = require('./store');
 const { formatWib } = require('../ops/time');
@@ -12,8 +14,14 @@ const { findSettingsChannel, findAnnouncementsChannel } = require('../ops/hub');
 const { isOwner } = require('../ops/permissions');
 
 const refreshQueues = new Map();
+const DATA_DIR = process.env.EVENT_DATA_DIR
+  ? path.resolve(process.env.EVENT_DATA_DIR)
+  : path.join(__dirname, '..', '..', 'data');
+const CANOX_EVENT_INBOX = path.join(DATA_DIR, 'canox-event-inbox.json');
 let workerTimer = null;
 let workerBusy = false;
+let inboxTimer = null;
+let inboxBusy = false;
 
 function isValidEventId(value) {
   return /^[a-f0-9]{16}$/.test(value || '');
@@ -54,6 +62,9 @@ function eventEmbed(event, { publicView = false } = {}) {
       { name: 'Mungkin', value: String(maybe), inline: true },
     )
     .setTimestamp(new Date(event.createdAt));
+  if (event.sourceUrl) {
+    embed.addFields({ name: 'Referensi', value: `<${event.sourceUrl}>`, inline: false });
+  }
   if (publicView) {
     embed.setFooter({ text: `Hengs Event Hub · Event ID: ${event.id}` });
   } else {
@@ -392,18 +403,136 @@ async function refreshStoredMessages(client) {
   }
 }
 
+function normalizeCanoxEventEntries(payload, nowMs = Date.now()) {
+  const entries = Array.isArray(payload) ? payload : payload?.events;
+  if (!Array.isArray(entries) || entries.length < 1 || entries.length > 10) return [];
+  const normalized = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') return [];
+    const id = typeof entry.id === 'string' ? entry.id.trim() : '';
+    const title = typeof entry.title === 'string' ? entry.title.trim() : '';
+    const description = typeof entry.description === 'string' ? entry.description.trim() : '';
+    const startAt = typeof entry.start_at === 'string' ? entry.start_at.trim() : '';
+    const startMs = Date.parse(startAt);
+    const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(startAt);
+    if (
+      !/^[A-Za-z0-9._:-]{8,120}$/.test(id)
+      || !title || title.length > 200
+      || !description || description.length > 3500
+      || !hasTimezone || !Number.isFinite(startMs) || startMs <= nowMs
+    ) return [];
+
+    const location = entry.location === null || entry.location === undefined
+      ? null : String(entry.location).trim();
+    if (location && location.length > 500) return [];
+    const capacity = entry.capacity === null || entry.capacity === undefined
+      ? null : Number(entry.capacity);
+    if (capacity !== null && (!Number.isInteger(capacity) || capacity < 2 || capacity > 500)) return [];
+
+    let sourceUrl = null;
+    if (entry.source_url !== null && entry.source_url !== undefined && String(entry.source_url).trim()) {
+      try {
+        const parsed = new URL(String(entry.source_url).trim());
+        if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
+          return [];
+        }
+        sourceUrl = parsed.href;
+      } catch {
+        return [];
+      }
+      if (sourceUrl.length > 1000) return [];
+    }
+    normalized.push({ id, title, description, startAt, location, capacity, sourceUrl });
+  }
+  return normalized;
+}
+
+async function consumeCanoxEventInbox(client) {
+  if (inboxBusy || !fs.existsSync(CANOX_EVENT_INBOX)) return;
+  inboxBusy = true;
+  const suffix = `${Date.now()}-${process.pid}`;
+  const processing = path.join(DATA_DIR, `canox-event-inbox.processing-${suffix}.json`);
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.renameSync(CANOX_EVENT_INBOX, processing);
+    const payload = JSON.parse(fs.readFileSync(processing, 'utf8'));
+    const entries = normalizeCanoxEventEntries(payload);
+    if (!entries.length) {
+      throw new Error('Inbox event Canox tidak valid atau memuat jadwal yang sudah lewat.');
+    }
+
+    const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID).catch(() => null);
+    if (!guild) throw new Error('DISCORD_GUILD_ID tidak ditemukan atau bot belum masuk server.');
+    for (const entry of entries) {
+      const result = await createDraftPanel(guild, {
+        title: entry.title,
+        description: entry.description,
+        startAt: entry.startAt,
+        location: entry.location,
+        capacity: entry.capacity,
+        sourceUrl: entry.sourceUrl,
+        source: 'canox',
+        createdBy: 'canox',
+        externalId: `canox-event:${entry.id}`,
+      });
+      if (result.created) console.log(`  -> Draft event Canox masuk: ${result.event.title}`);
+    }
+    fs.rmSync(processing, { force: true });
+  } catch (error) {
+    console.error('Canox Event inbox error:', error.message);
+    if (fs.existsSync(processing)) {
+      fs.renameSync(processing, path.join(DATA_DIR, `canox-event-inbox.failed-${suffix}.json`));
+    }
+  } finally {
+    inboxBusy = false;
+  }
+}
+
+function recoverStaleCanoxEventInbox() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const staleFiles = fs.readdirSync(DATA_DIR)
+    .filter((name) => name.startsWith('canox-event-inbox.processing-') && name.endsWith('.json'))
+    .sort();
+  if (!staleFiles.length) return 0;
+  let recovered = 0;
+  for (const [index, name] of staleFiles.entries()) {
+    const source = path.join(DATA_DIR, name);
+    if (!fs.existsSync(CANOX_EVENT_INBOX)) {
+      fs.renameSync(source, CANOX_EVENT_INBOX);
+      recovered += 1;
+    } else {
+      fs.renameSync(source, path.join(
+        DATA_DIR,
+        `canox-event-inbox.failed-stale-${Date.now()}-${index}.json`,
+      ));
+    }
+  }
+  return recovered;
+}
+
 function start(client) {
-  if (workerTimer) clearInterval(workerTimer);
+  if (workerTimer || inboxTimer) return;
+  try {
+    const recovered = recoverStaleCanoxEventInbox();
+    if (recovered) console.log('  -> Inbox event Canox yang tertinggal dipulihkan.');
+  } catch (error) {
+    console.error('Canox Event inbox recovery error:', error.message);
+  }
   recoverPublishingEvents(client)
     .then(() => recoverSendingReminders(client))
     .then(() => processWorker(client))
     .then(() => refreshStoredMessages(client))
+    .then(() => consumeCanoxEventInbox(client))
     .catch((error) => console.error('Event Hub startup recovery error:', error.message));
   workerTimer = setInterval(() => {
     processWorker(client).catch((error) => console.error('Event Hub worker error:', error.message));
   }, 30_000);
   workerTimer.unref?.();
-  console.log('  -> Event Hub siap menerima draft dan RSVP.');
+  inboxTimer = setInterval(() => {
+    consumeCanoxEventInbox(client).catch((error) => console.error('Canox Event inbox loop error:', error.message));
+  }, 10_000);
+  inboxTimer.unref?.();
+  console.log('  -> Event Hub siap menerima draft Discord/Canox dan RSVP.');
 }
 
 module.exports = {
@@ -417,6 +546,9 @@ module.exports = {
   eventEmbed,
   approvalRow,
   rsvpRow,
+  normalizeCanoxEventEntries,
+  consumeCanoxEventInbox,
+  recoverStaleCanoxEventInbox,
   isValidEventId,
   getStatus: store.getStatus,
 };

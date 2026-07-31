@@ -102,7 +102,7 @@ Checkpoint status: **ready for Henry's manual commit**.
 
 Suggested commit after live acceptance: `Hengs Discord v1.5.0: Add moderator workflow and Ops audit`
 
-## Current checkpoint
+## Previous checkpoint: v1.6.0
 
 - Proposed version: **v1.6.0**.
 - Scope: owner-approved Community Event Hub with public RSVP, bounded capacity, reminders, cancellation, auto-close, and crash recovery.
@@ -125,3 +125,24 @@ Suggested commit after live acceptance: `Hengs Discord v1.5.0: Add moderator wor
 Checkpoint status: **ready for Henry's manual commit**.
 
 Suggested commit after live acceptance: `Hengs Discord v1.6.0: Add approved Community Event Hub`
+
+## Current checkpoint
+
+- Proposed version: **v1.7.0**.
+- Scope: private Canox-to-Event Hub intake for researched or structured community events.
+- Canox writes `data/canox-event-inbox.json` atomically; Hengs consumes it into `bot-settings` and never publishes automatically.
+- Event and Ops inboxes are separate. Payload validation is all-or-nothing and external IDs make retries idempotent.
+- Optional source provenance is shown as a safe HTTP(S) link. Publish, Discard, Cancel, RSVP, reminders, and target channels remain controlled by Hengs.
+- Slash command schema is unchanged; no command registration is required for v1.7.0.
+
+## v1.7.0 verification
+
+- `node --check` passes for changed Event Hub source/tests.
+- `node --test`: 44 passed, 0 failed before live acceptance.
+- Coverage includes mixed invalid payload rejection, private-only delivery, retry idempotency, timezone enforcement, credential-bearing URL rejection, and stale processing recovery.
+- Canox companion checkpoint v0.33.0 has 108 passing tests and exposes only draft/status routes.
+- Live acceptance passed: production Canox sender created exactly one private panel with source provenance; owner Discard left publication null, removed all buttons, and left no inbox/processing file.
+
+Checkpoint status: **ready for Henry's manual commit**.
+
+Suggested commit after live acceptance: `Hengs Discord v1.7.0: Accept private Canox event drafts`

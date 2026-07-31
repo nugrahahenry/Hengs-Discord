@@ -94,7 +94,7 @@ discord-bot/
 
 ### Ops Hub: Canox → Discord dengan approval owner
 
-Canox tidak boleh mem-posting ke channel publik secara langsung. Jika nanti Canox menemukan event atau menyusun pengumuman, ia dapat menulis draft ke `data/canox-ops-inbox.json`:
+Canox tidak boleh mem-posting ke channel publik secara langsung. Untuk menyusun pengumuman, ia dapat menulis draft ke `data/canox-ops-inbox.json`:
 
 ```json
 {
@@ -140,6 +140,29 @@ Hadir. Event mengirim reminder tanpa mention pada jendela 24 jam dan 1 jam, lalu
 menutup RSVP otomatis saat waktu mulai. Owner dapat membatalkan event dari panel
 privat. State disimpan di `data/events-state.json`; detail teknis dan recovery ada di
 `docs/EVENT-HUB.md`.
+
+Canox juga dapat memasukkan event hasil percakapan/riset melalui inbox terpisah
+`data/canox-event-inbox.json`. Inbox ini hanya membuat panel privat dan tidak memiliki
+aksi Publish. Payload wajib ditulis memakai temporary file lalu atomic rename:
+
+```json
+{
+  "events": [{
+    "id": "event-request-unik-001",
+    "title": "AI Community Meetup",
+    "description": "Diskusi AI terapan untuk komunitas.",
+    "start_at": "2026-08-02T19:00:00+07:00",
+    "location": "General Voice",
+    "capacity": 30,
+    "source_url": "https://example.com/events/ai-meetup"
+  }]
+}
+```
+
+ID harus unik; waktu wajib masih di masa depan dan memiliki zona waktu. Kapasitas
+opsional dibatasi 2-500, sedangkan referensi opsional hanya menerima HTTP(S) tanpa
+credential. Seluruh payload gagal bila satu entry tidak valid. File processing yang
+tertinggal akibat crash dipulihkan saat startup dan external ID mencegah panel ganda.
 
 ### Restricted document translation
 

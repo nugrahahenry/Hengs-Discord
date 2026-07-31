@@ -100,6 +100,11 @@ owner agar Discord mendaftarkan `/event draft` dan `/event status`. Event memaka
 `OPS_EDITOR_ROLE_IDS` yang sama dengan Ops Hub; tidak memerlukan permission Discord
 Scheduled Events karena publikasinya berupa pesan RSVP biasa.
 
+Bridge Canox Event Hub memakai `data/canox-event-inbox.json` secara default. Override
+`EVENT_DATA_DIR` hanya untuk test atau layout lokal lanjutan; Canox dapat mengarahkan
+sender dengan `DISCORD_EVENT_INBOX_FILE`. Penambahan bridge tidak mengubah schema slash
+command, jadi `npm run deploy` tidak perlu dijalankan ulang untuk v1.7.0.
+
 ## 🔐 Catatan keamanan
 
 - Token bocor (ke-share di chat/screenshot/commit)? **Langsung Reset Token** di Developer Portal, update `.env`.

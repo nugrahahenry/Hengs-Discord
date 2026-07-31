@@ -67,6 +67,13 @@ test('an expired draft cannot be claimed for publication', () => {
   assert.equal(store.getEvent(event.id).status, 'draft');
 });
 
+test('event source URL accepts only credential-free HTTP(S)', () => {
+  const event = create({ sourceUrl: 'https://example.com/events/alpha' });
+  assert.equal(event.sourceUrl, 'https://example.com/events/alpha');
+  assert.throws(() => create({ sourceUrl: 'file:///C:/secret.txt' }), /HTTP atau HTTPS/);
+  assert.throws(() => create({ sourceUrl: 'https://user:pass@example.com/event' }), /credential/);
+});
+
 test('RSVP is exclusive, capacity-safe, removable, and closed after start', () => {
   const event = create();
   store.claimPublish(event.id, 'owner-1');

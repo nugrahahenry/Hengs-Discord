@@ -1,7 +1,7 @@
 # Hengs Community Event Hub
 
-**Version:** 1.6.0  
-**Status:** Live acceptance passed  
+**Version:** 1.7.0
+**Status:** Canox bridge live acceptance passed
 **Timezone input:** WIB (`Asia/Jakarta`)
 
 ## Product flow
@@ -15,6 +15,19 @@
    menggantikan pilihan sebelumnya.
 6. Owner dapat membatalkan event dari panel privat. Worker menutup RSVP otomatis saat
    waktu event dimulai.
+
+## Canox intake
+
+- Canox menulis `data/canox-event-inbox.json` melalui temporary file dan atomic rename.
+- Inbox event terpisah dari `canox-ops-inbox.json`, sehingga event tidak dapat menimpa
+  draft pengumuman.
+- Payload maksimal 10 entry dan diproses all-or-nothing. Setiap entry wajib memiliki
+  ID unik, judul, deskripsi, dan timestamp masa depan dengan zona waktu.
+- Lokasi, kapasitas 2-500, dan URL sumber HTTP(S) tanpa credential bersifat opsional.
+- Hengs hanya membuat panel privat berlabel sumber Canox. Publish/Discard tetap memakai
+  tombol owner yang sama dengan draft Discord.
+- File `processing-*` yang tertinggal akibat crash dipulihkan saat startup. External ID
+  membuat pengiriman ulang aman dan tidak menghasilkan panel kedua.
 
 ## Reminder
 
@@ -45,6 +58,8 @@ hanya memperbaiki event bertanda ini agar tidak mengedit seluruh arsip.
 - Kapasitas 2-500 dan ditegakkan di store sebelum message edit.
 - Cancel ditolak sementara reminder sedang dalam state `sending`, sehingga reminder
   tidak dapat terkirim setelah event dibatalkan.
+- Isi inbox Canox tidak dapat memilih status, publication channel, RSVP, reminder, atau
+  actor final. Field di luar kontrak diabaikan dan mention parsing tetap dinonaktifkan.
 
 ## Verification
 
@@ -64,3 +79,9 @@ awal juga menemukan draft yang dipublikasikan setelah waktu mulai; publish sekar
 ditolak oleh validasi UI dan atomic claim, dengan regression test khusus. Pengujian
 kapasitas serentak dua akun tetap ditutup oleh unit test atomik karena hanya satu akun
 Discord manusia yang tersedia saat acceptance.
+
+Live acceptance v1.7.0 lulus: sender produksi Canox mengirim satu structured event
+tanpa AI, tepat satu panel berlabel Canox muncul di `bot-settings`, URL referensi
+tersimpan, lalu owner menekan Discard. State final `discarded`, publication tetap null,
+seluruh tombol hilang, dan tidak ada inbox/processing tersisa. Schema slash command
+tidak berubah sehingga tidak ada registrasi command ulang.

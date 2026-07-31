@@ -66,12 +66,32 @@ function normalizedCapacity(value) {
   return capacity;
 }
 
+function normalizedSourceUrl(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  const raw = String(value).trim();
+  if (raw.length > 1000) throw new Error('URL sumber maksimal 1000 karakter.');
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error('URL sumber event tidak valid.');
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+    throw new Error('URL sumber event harus memakai HTTP atau HTTPS.');
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error('URL sumber event tidak boleh memuat credential.');
+  }
+  return parsed.href;
+}
+
 function createEvent({
   title,
   description,
   startAt,
   location = null,
   capacity = null,
+  sourceUrl = null,
   createdBy,
   source = 'discord',
   externalId = null,
@@ -99,6 +119,7 @@ function createEvent({
     startAt: new Date(startMs).toISOString(),
     location: location ? String(location).trim().slice(0, 500) : null,
     capacity: normalizedCapacity(capacity),
+    sourceUrl: normalizedSourceUrl(sourceUrl),
     source: source === 'canox' ? 'canox' : 'discord',
     createdBy: String(createdBy || 'unknown').slice(0, 100),
     externalId: normalizedExternalId,

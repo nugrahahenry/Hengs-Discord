@@ -5,6 +5,25 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-31
+
+### Added
+- Inbox atomik `data/canox-event-inbox.json` untuk mengubah event hasil percakapan/riset Canox menjadi panel Event Hub privat.
+- Referensi HTTP(S) opsional pada draft dan pesan event agar sumber hasil riset tetap dapat diperiksa sebelum dan setelah Publish.
+- Startup recovery untuk file event Canox berstatus `processing` yang tertinggal akibat crash.
+
+### Changed
+- Event Hub menerima sumber Discord dan Canox melalui store/approval flow yang sama; schema slash command tidak berubah.
+
+### Security
+- Payload Canox diproses all-or-nothing, maksimal 10 event, dengan ID ketat, waktu masa depan berzona, panjang field terbatas, kapasitas 2-500, dan URL tanpa credential.
+- Canox hanya dapat mengisi data draft. Status, actor final, publication, RSVP, reminder, dan channel tujuan tidak dapat dikendalikan melalui inbox.
+- Publish, Discard, dan Cancel tetap diverifikasi terhadap `OWNER_ID`; seluruh output tetap menonaktifkan mention parsing.
+
+### Tests
+- 44 test lulus, termasuk contract inbox Canox, all-or-nothing validation, duplicate retry, private-only panel, source URL, timezone, dan stale processing recovery.
+- Live acceptance lulus: sender produksi Canox membuat tepat satu panel privat, owner melakukan Discard, publication tetap null, tombol hilang, dan tidak ada file inbox/processing tersisa.
+
 ## [1.6.0] - 2026-07-31
 
 ### Added

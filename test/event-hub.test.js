@@ -10,6 +10,7 @@ process.env.EVENT_DATA_DIR = testDataDir;
 process.env.OWNER_ID = '570152798126342144';
 process.env.BOT_SETTINGS_CHANNEL_ID = 'settings-channel';
 process.env.ANNOUNCE_CHANNEL_ID = 'announce-channel';
+process.env.DISCORD_GUILD_ID = 'guild-1';
 
 const store = require('../src/events/store');
 const hub = require('../src/events/hub');
@@ -219,4 +220,69 @@ test('startup recovery finalizes a sent event instead of publishing it twice', a
   assert.equal(recovered.status, 'published');
   assert.equal(recovered.publication.messageId, sent.id);
   assert.equal(guild.announcements.sent.size, 1);
+});
+
+test('Canox event inbox is all-or-nothing and creates one private idempotent draft', async () => {
+  const startAt = futureIso();
+  const valid = {
+    id: 'canox-event-001',
+    title: 'AI Community Meetup',
+    description: 'Diskusi komunitas tentang AI terapan.',
+    start_at: startAt,
+    location: 'General Voice',
+    capacity: 20,
+    source_url: 'https://example.com/events/ai-meetup',
+  };
+  assert.deepEqual(hub.normalizeCanoxEventEntries({ events: [valid] })[0], {
+    id: valid.id,
+    title: valid.title,
+    description: valid.description,
+    startAt,
+    location: valid.location,
+    capacity: 20,
+    sourceUrl: valid.source_url,
+  });
+  assert.deepEqual(hub.normalizeCanoxEventEntries({ events: [
+    valid,
+    { ...valid, id: 'canox-event-002', start_at: 'invalid' },
+  ] }), []);
+  assert.deepEqual(hub.normalizeCanoxEventEntries({ events: [
+    { ...valid, start_at: '2099-01-01T19:00:00' },
+  ] }), []);
+
+  const guild = createGuild();
+  const client = {
+    guilds: {
+      fetch: async (id) => (id === guild.id ? guild : null),
+      cache: new Collection([[guild.id, guild]]),
+    },
+  };
+  const inbox = path.join(testDataDir, 'canox-event-inbox.json');
+  fs.writeFileSync(inbox, JSON.stringify({ events: [valid] }), 'utf8');
+  await hub.consumeCanoxEventInbox(client);
+
+  const stored = store.listEvents().find((event) => event.externalId === `canox-event:${valid.id}`);
+  assert.equal(stored.status, 'draft');
+  assert.equal(stored.source, 'canox');
+  assert.equal(stored.sourceUrl, valid.source_url);
+  assert.equal(guild.settings.sent.size, 1);
+  assert.equal(guild.announcements.sent.size, 0);
+  assert.equal(fs.existsSync(inbox), false);
+
+  fs.writeFileSync(inbox, JSON.stringify({ events: [valid] }), 'utf8');
+  await hub.consumeCanoxEventInbox(client);
+  assert.equal(guild.settings.sent.size, 1);
+  assert.equal(guild.announcements.sent.size, 0);
+});
+
+test('stale Canox event processing file is recovered without overwriting an inbox', () => {
+  const stale = path.join(testDataDir, 'canox-event-inbox.processing-123-456.json');
+  const inbox = path.join(testDataDir, 'canox-event-inbox.json');
+  fs.rmSync(inbox, { force: true });
+  fs.writeFileSync(stale, JSON.stringify({ events: [] }), 'utf8');
+
+  assert.equal(hub.recoverStaleCanoxEventInbox(), 1);
+  assert.equal(fs.existsSync(stale), false);
+  assert.equal(fs.existsSync(inbox), true);
+  fs.rmSync(inbox, { force: true });
 });
