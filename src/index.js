@@ -379,7 +379,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
   // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
-  const freeCommands = ['announce', 'admin', 'translate'];
+  const freeCommands = ['announce', 'admin', 'translate', 'ops'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
   if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({

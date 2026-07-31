@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { Collection } = require('discord.js');
+const { Collection, PermissionFlagsBits } = require('discord.js');
 
 const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-ops-test-'));
 process.env.OPS_DATA_DIR = testDataDir;
@@ -19,8 +19,11 @@ const {
   approvalRow,
   handleButton,
   handleModal,
+  isOwner,
+  isEditor,
 } = require('../src/ops/hub');
 const { parseScheduleInput } = require('../src/ops/time');
+const opsCommand = require('../src/commands/ops');
 
 test.after(() => {
   fs.rmSync(testDataDir, { recursive: true, force: true });
@@ -489,6 +492,183 @@ test('failed AI revision releases its claim and preserves the original draft', a
     if (previousOwner === undefined) delete process.env.OWNER_ID;
     else process.env.OWNER_ID = previousOwner;
   }
+});
+
+test('Ops editor role can revise but final actions remain owner-only', async () => {
+  const previousOwner = process.env.OWNER_ID;
+  const previousRoles = process.env.OPS_EDITOR_ROLE_IDS;
+  const ownerId = '570152798126342144';
+  const editorId = '700000000000000001';
+  const editorRoleId = '800000000000000001';
+  process.env.OWNER_ID = ownerId;
+  process.env.OPS_EDITOR_ROLE_IDS = editorRoleId;
+  const editor = {
+    user: { id: editorId },
+    member: { roles: { cache: new Collection([[editorRoleId, {}]]) } },
+  };
+
+  try {
+    assert.equal(isOwner(ownerId), true);
+    assert.equal(isEditor(editor), true);
+    assert.equal(isEditor({ user: { id: ownerId } }), true);
+    assert.equal(isEditor({ user: { id: editorId }, member: { roles: [] } }), false);
+    assert.equal(opsCommand.assertOpsAccess(editor), null);
+
+    const { draft } = store.createDraft({
+      title: 'Editor draft',
+      body: 'Isi awal editor.',
+      createdBy: editorId,
+    });
+    let modalShown = null;
+    await handleButton({
+      ...editor,
+      isButton: () => true,
+      customId: `ops:edit:${draft.id}`,
+      showModal: async modal => { modalShown = modal; },
+    });
+    assert.equal(modalShown.toJSON().custom_id, `ops:editmodal:${draft.id}`);
+
+    let finalDenied = null;
+    await handleButton({
+      ...editor,
+      isButton: () => true,
+      customId: `ops:publishnow:${draft.id}`,
+      reply: async payload => { finalDenied = payload; },
+    });
+    assert.match(finalDenied.content, /Hanya owner/);
+    assert.equal(store.getDraft(draft.id).status, 'pending');
+
+    const editReplies = [];
+    await handleModal({
+      ...editor,
+      isModalSubmit: () => true,
+      customId: `ops:editmodal:${draft.id}`,
+      fields: {
+        getTextInputValue: key => key === 'title' ? 'Editor update' : 'Isi setelah editor.',
+      },
+      deferReply: async () => {},
+      editReply: async payload => { editReplies.push(payload); },
+    });
+    assert.equal(store.getDraft(draft.id).title, 'Editor update');
+    assert.match(editReplies.at(-1).content, /tersimpan/);
+
+    let scheduleDenied = null;
+    await handleModal({
+      ...editor,
+      isModalSubmit: () => true,
+      customId: `ops:schedulemodal:${draft.id}`,
+      reply: async payload => { scheduleDenied = payload; },
+    });
+    assert.match(scheduleDenied.content, /Hanya owner/);
+  } finally {
+    if (previousOwner === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previousOwner;
+    if (previousRoles === undefined) delete process.env.OPS_EDITOR_ROLE_IDS;
+    else process.env.OPS_EDITOR_ROLE_IDS = previousRoles;
+  }
+});
+
+test('Ops audit records actions without copying draft contents', () => {
+  const base = Date.now();
+  const sensitiveTitle = 'Internal launch codename';
+  const sensitiveBody = 'Sensitive body must never enter audit.';
+  const { draft } = store.createDraft({
+    title: sensitiveTitle,
+    body: sensitiveBody,
+    createdBy: 'editor-1',
+  });
+  store.updatePendingDraft(
+    draft.id,
+    { title: 'Edited internal title', body: 'Edited sensitive body.' },
+    'editor-1',
+  );
+  store.scheduleDraft(
+    draft.id,
+    'owner-1',
+    new Date(base + 120_000).toISOString(),
+    base,
+  );
+  store.cancelSchedule(draft.id, 'owner-1');
+  store.finalizeDraft(draft.id, 'discarded', 'owner-1');
+
+  const entries = store.getAuditHistory(20).filter(entry => entry.draftId === draft.id);
+  assert.deepEqual(entries.map(entry => entry.action), [
+    'draft_discarded',
+    'schedule_cancelled',
+    'schedule_created',
+    'draft_edited',
+    'draft_created',
+  ]);
+  const serialized = JSON.stringify(entries);
+  assert.doesNotMatch(serialized, /Internal launch codename/);
+  assert.doesNotMatch(serialized, /Sensitive body/);
+  assert.equal(entries.every(entry => entry.id && entry.actor && entry.at), true);
+});
+
+test('/ops exposes editor-gated history with no mention parsing', async () => {
+  const previousOwner = process.env.OWNER_ID;
+  const previousRoles = process.env.OPS_EDITOR_ROLE_IDS;
+  const editorRoleId = '800000000000000002';
+  process.env.OWNER_ID = '570152798126342144';
+  process.env.OPS_EDITOR_ROLE_IDS = editorRoleId;
+  try {
+    const schema = opsCommand.data.toJSON();
+    assert.equal(
+      schema.default_member_permissions,
+      String(PermissionFlagsBits.ManageMessages),
+    );
+    assert.equal(schema.options.some(option => option.name === 'history'), true);
+
+    let response = null;
+    await opsCommand.execute({
+      inGuild: () => true,
+      user: { id: '700000000000000002' },
+      member: { roles: [editorRoleId] },
+      options: {
+        getSubcommand: () => 'history',
+        getInteger: () => 5,
+      },
+      reply: async payload => { response = payload; },
+    }, {
+      opsHub: {
+        getAuditHistory: () => [{
+          draftId: 'a1b2c3d4e5f60708',
+          action: 'draft_edited',
+          actor: '700000000000000002',
+          at: '2026-07-31T07:00:00.000Z',
+        }],
+      },
+    });
+    const description = response.embeds[0].toJSON().description;
+    assert.match(description, /Mengedit draft/);
+    assert.match(description, /a1b2c3d4e5f60708/);
+    assert.deepEqual(response.allowedMentions, { parse: [] });
+    assert.equal(response.ephemeral, true);
+
+    const malformed = opsCommand.auditLine({
+      draftId: '`@everyone`',
+      action: '**unsafe**',
+      actor: '`@everyone`',
+      at: 'invalid',
+    });
+    assert.doesNotMatch(malformed, /@everyone/);
+    assert.match(malformed, /Draft `unknown`/);
+    assert.match(malformed, /waktu tidak valid/);
+  } finally {
+    if (previousOwner === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previousOwner;
+    if (previousRoles === undefined) delete process.env.OPS_EDITOR_ROLE_IDS;
+    else process.env.OPS_EDITOR_ROLE_IDS = previousRoles;
+  }
+});
+
+test('Ops state without audit array migrates to an empty audit history', () => {
+  fs.writeFileSync(
+    path.join(testDataDir, 'ops-state.json'),
+    JSON.stringify({ drafts: [], history: [] }),
+    'utf8',
+  );
+  assert.deepEqual(store.getAuditHistory(), []);
 });
 
 test('corrupt state fails closed instead of silently resetting drafts', () => {

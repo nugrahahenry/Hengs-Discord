@@ -9,9 +9,10 @@ const STATE_FILE = path.join(DATA_DIR, 'ops-state.json');
 const MAX_DRAFTS = 250;
 const MAX_HISTORY = 100;
 const MAX_REVISIONS_PER_DRAFT = 20;
+const MAX_AUDIT = 500;
 
 function defaultState() {
-  return { drafts: [], history: [] };
+  return { drafts: [], history: [], audit: [] };
 }
 
 function readState() {
@@ -20,10 +21,18 @@ function readState() {
   try {
     const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
     if (!parsed || typeof parsed !== 'object') throw new Error('root state bukan object');
-    if (!Array.isArray(parsed.drafts) || !Array.isArray(parsed.history)) {
-      throw new Error('drafts/history bukan array');
+    if (
+      !Array.isArray(parsed.drafts)
+      || !Array.isArray(parsed.history)
+      || (parsed.audit !== undefined && !Array.isArray(parsed.audit))
+    ) {
+      throw new Error('drafts/history/audit bukan array');
     }
-    return { drafts: parsed.drafts, history: parsed.history };
+    return {
+      drafts: parsed.drafts,
+      history: parsed.history,
+      audit: parsed.audit || [],
+    };
   } catch (error) {
     throw new Error(`Ops state tidak dapat dibaca: ${error.message}`);
   }
@@ -38,6 +47,29 @@ function writeState(state) {
   } finally {
     if (fs.existsSync(temp)) fs.rmSync(temp, { force: true });
   }
+}
+
+function appendAudit(state, draftId, action, actor, details = null) {
+  if (!Array.isArray(state.audit)) state.audit = [];
+  const entry = {
+    id: crypto.randomBytes(6).toString('hex'),
+    draftId: String(draftId).slice(0, 32),
+    action: String(action).slice(0, 40),
+    actor: String(actor || 'system').slice(0, 100),
+    at: new Date().toISOString(),
+  };
+  if (details && typeof details === 'object') {
+    entry.details = Object.fromEntries(
+      Object.entries(details)
+        .slice(0, 5)
+        .map(([key, value]) => [
+          String(key).slice(0, 30),
+          String(value).slice(0, 100),
+        ]),
+    );
+  }
+  state.audit.unshift(entry);
+  state.audit = state.audit.slice(0, MAX_AUDIT);
 }
 
 function createDraft({ title, body, brief = null, source = 'discord', createdBy = null, externalId = null }) {
@@ -81,6 +113,7 @@ function createDraft({ title, body, brief = null, source = 'discord', createdBy 
     finalizedKept += 1;
     return finalizedKept <= MAX_DRAFTS;
   });
+  appendAudit(state, draft.id, 'draft_created', draft.createdBy || draft.source);
   writeState(state);
   return { draft, created: true };
 }
@@ -110,6 +143,7 @@ function removeDraft(id) {
   const index = state.drafts.findIndex(item => item.id === id);
   if (index < 0) return false;
   state.drafts.splice(index, 1);
+  state.audit = state.audit.filter(entry => entry.draftId !== id);
   writeState(state);
   return true;
 }
@@ -166,6 +200,9 @@ function scheduleDraft(id, userId, scheduledAt, nowMs = Date.now()) {
     lastErrorCode: null,
   };
   draft.lastSchedule = null;
+  appendAudit(state, draft.id, 'schedule_created', userId, {
+    scheduledAt: draft.schedule.at,
+  });
   writeState(state);
   return draft;
 }
@@ -182,6 +219,7 @@ function cancelSchedule(id, userId) {
   };
   draft.schedule = null;
   draft.status = 'pending';
+  appendAudit(state, draft.id, 'schedule_cancelled', userId);
   writeState(state);
   return draft;
 }
@@ -239,10 +277,19 @@ function failScheduledPublish(id, errorCode = 'SEND_FAILED', nowMs = Date.now())
     };
     draft.schedule = null;
     draft.status = 'pending';
+    appendAudit(state, draft.id, 'schedule_failed', 'scheduler', {
+      attempts,
+      errorCode,
+    });
   } else {
     const backoffMs = attempts === 1 ? 60_000 : 5 * 60_000;
     draft.schedule.nextAttemptAt = new Date(nowMs + backoffMs).toISOString();
     draft.status = 'scheduled';
+    appendAudit(state, draft.id, 'schedule_retry', 'scheduler', {
+      attempt: attempts,
+      nextAttemptAt: draft.schedule.nextAttemptAt,
+      errorCode,
+    });
   }
   writeState(state);
   return draft;
@@ -286,6 +333,7 @@ function updatePendingDraft(id, input, userId, kind = 'edit') {
   draft.lastRevisedAt = new Date().toISOString();
   draft.lastRevisedBy = String(userId).slice(0, 100);
   draft.lastRevisionKind = String(kind).slice(0, 30);
+  appendAudit(state, draft.id, 'draft_edited', userId);
   writeState(state);
   return draft;
 }
@@ -323,6 +371,7 @@ function applyRevision(id, input, userId) {
   draft.actionStartedAt = null;
   draft.actionBy = null;
   draft.revisionKind = null;
+  appendAudit(state, draft.id, `draft_${kind}`, userId);
   writeState(state);
   return draft;
 }
@@ -348,6 +397,7 @@ function recoverRevisingDrafts() {
     draft.actionStartedAt = null;
     draft.actionBy = null;
     draft.revisionKind = null;
+    appendAudit(state, draft.id, 'revision_recovered', 'system');
   }
   writeState(state);
   return revising.map(draft => draft.id);
@@ -393,6 +443,7 @@ function finalizeDraft(id, status, userId, publication = null) {
     schedule: draft.lastSchedule,
   });
   state.history = state.history.slice(0, MAX_HISTORY);
+  appendAudit(state, draft.id, status === 'published' ? 'draft_published' : 'draft_discarded', userId);
   writeState(state);
   return draft;
 }
@@ -408,6 +459,11 @@ function getStatus() {
     discarded: state.history.filter(item => item.status === 'discarded').length,
     latest: state.drafts[0] || null,
   };
+}
+
+function getAuditHistory(limit = 10) {
+  const bounded = Math.max(1, Math.min(Number(limit) || 10, 20));
+  return readState().audit.slice(0, bounded);
 }
 
 module.exports = {
@@ -430,4 +486,5 @@ module.exports = {
   recoverRevisingDrafts,
   finalizeDraft,
   getStatus,
+  getAuditHistory,
 };

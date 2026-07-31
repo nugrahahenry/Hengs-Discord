@@ -11,6 +11,7 @@ const {
 } = require('discord.js');
 const store = require('./store');
 const { formatWib, parseScheduleInput } = require('./time');
+const { isOwner, isEditor } = require('./permissions');
 
 const DATA_DIR = process.env.OPS_DATA_DIR
   ? path.resolve(process.env.OPS_DATA_DIR)
@@ -20,10 +21,6 @@ let inboxTimer = null;
 let inboxBusy = false;
 let scheduleTimer = null;
 let scheduleBusy = false;
-
-function isOwner(userId) {
-  return Boolean(process.env.OWNER_ID) && userId === process.env.OWNER_ID;
-}
 
 function isValidDraftId(draftId) {
   return /^(?:[a-f0-9]{12}|[a-f0-9]{16})$/.test(draftId || '');
@@ -84,7 +81,7 @@ function draftEmbed(draft) {
       { name: 'Sumber', value: source, inline: true },
       { name: 'ID', value: `\`${draft.id}\``, inline: true },
     )
-    .setFooter({ text: 'Ops Hub · review dulu sebelum tayang publik' })
+    .setFooter({ text: 'Ops Hub · editor merevisi, owner memutuskan final' })
     .setTimestamp(new Date(draft.createdAt));
   if (draft.brief) {
     embed.addFields({
@@ -411,10 +408,6 @@ async function handleAiRevision(interaction, draftId, kind, agent) {
 
 async function handleButton(interaction, { agent } = {}) {
   if (!interaction.isButton?.() || !interaction.customId.startsWith('ops:')) return false;
-  if (!isOwner(interaction.user.id)) {
-    await interaction.reply({ content: '❌ Hanya owner yang dapat mengubah atau memproses draft.', ephemeral: true });
-    return true;
-  }
 
   const [, action, draftId] = interaction.customId.split(':');
   // Draft dari Ops Hub awal memakai 12 hex; draft baru memakai 16 hex.
@@ -435,6 +428,23 @@ async function handleButton(interaction, { agent } = {}) {
     return true;
   }
 
+  const editorActions = new Set(['edit', 'shorten', 'regenerate']);
+  if (editorActions.has(action)) {
+    if (!isEditor(interaction)) {
+      await interaction.reply({
+        content: '❌ Hanya owner atau editor Ops Hub yang dapat merevisi draft.',
+        ephemeral: true,
+      });
+      return true;
+    }
+  } else if (!isOwner(interaction.user.id)) {
+    await interaction.reply({
+      content: '❌ Hanya owner yang dapat memublikasikan, menjadwalkan, membatalkan, atau membuang draft.',
+      ephemeral: true,
+    });
+    return true;
+  }
+
   if (action === 'edit') await handleEdit(interaction, draftId);
   else if (action === 'shorten' || action === 'regenerate') {
     await handleAiRevision(interaction, draftId, action, agent);
@@ -447,13 +457,19 @@ async function handleButton(interaction, { agent } = {}) {
 
 async function handleModal(interaction) {
   if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('ops:')) return false;
-  if (!isOwner(interaction.user.id)) {
-    await interaction.reply({ content: '❌ Hanya owner yang dapat mengubah draft.', ephemeral: true });
-    return true;
-  }
   const [, action, draftId] = interaction.customId.split(':');
   if (!['editmodal', 'schedulemodal'].includes(action) || !isValidDraftId(draftId)) {
     await interaction.reply({ content: '❌ Form Ops Hub tidak valid.', ephemeral: true });
+    return true;
+  }
+
+  if (action === 'editmodal' ? !isEditor(interaction) : !isOwner(interaction.user.id)) {
+    await interaction.reply({
+      content: action === 'editmodal'
+        ? '❌ Hanya owner atau editor Ops Hub yang dapat mengedit draft.'
+        : '❌ Hanya owner yang dapat menjadwalkan draft.',
+      ephemeral: true,
+    });
     return true;
   }
 
@@ -760,6 +776,7 @@ module.exports = {
   findSettingsChannel,
   findAnnouncementsChannel,
   getStatus: store.getStatus,
+  getAuditHistory: store.getAuditHistory,
   handleButton,
   handleModal,
   startCanoxInbox,
@@ -770,4 +787,6 @@ module.exports = {
   processDueSchedules,
   isValidDraftId,
   approvalRow,
+  isOwner,
+  isEditor,
 };

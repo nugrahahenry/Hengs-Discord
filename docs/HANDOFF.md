@@ -4,9 +4,9 @@ Updated: 2026-07-31
 
 ## Completed checkpoint
 
-- Version: **v1.3.0**, committed as `361eb8c`.
-- Scope: owner draft revision workflow for Ops Hub.
-- Live acceptance passed on 2026-07-31: Regenerate and Perpendek completed through Groq, two revisions were persisted, and the private test draft was discarded without publication.
+- Version: **v1.4.0**, committed as `cb035f6`.
+- Scope: persistent scheduled announcements in Ops Hub.
+- Live acceptance passed on 2026-07-31: a private draft was scheduled, cancelled back to review, and discarded without publication.
 
 ## Version-history note
 
@@ -16,13 +16,14 @@ Repository HEAD before this audit was `5b7e604 Hengs Discord v1.1.0: Add private
 
 1. Discord owner runs `/ops draft`, or Canox atomically writes `data/canox-ops-inbox.json` with a unique `id` per draft.
 2. Hengs creates a pending panel only in `BOT_SETTINGS_CHANNEL_ID`, with exact-name fallback limited to `🎛️・bot-settings` / `bot-settings`.
-3. Only `OWNER_ID` can Edit, Perpendek, Regenerate, Publish, or Discard.
-4. AI revision claims `pending -> revising` before network I/O; Publish claims `pending -> publishing`. Concurrent actions cannot both proceed.
-5. Public embeds disable all mentions and include an internal Draft ID marker for crash recovery.
-6. Existing 12-character draft IDs and new 16-character IDs are both accepted by approval buttons.
-7. Single-instance lock mencegah launcher ganda menjalankan dua consumer/publisher.
-8. Stale Canox `processing-*` files are recovered on startup; ambiguous extras are preserved as failed files instead of overwriting an active inbox.
-9. Runtime files remain under ignored `data/`; no permanent external service receives draft state.
+3. `OWNER_ID` and `OPS_EDITOR_ROLE_IDS` can create, inspect, Edit, Perpendek, and Regenerate.
+4. Only `OWNER_ID` can Publish Now, Jadwalkan, Batalkan Jadwal, or Discard.
+5. AI revision claims `pending -> revising` before network I/O; Publish claims `pending -> publishing`. Concurrent actions cannot both proceed.
+6. Public embeds disable all mentions and include an internal Draft ID marker for crash recovery.
+7. Existing 12-character draft IDs and new 16-character IDs are both accepted by approval buttons.
+8. Single-instance lock mencegah launcher ganda menjalankan dua consumer/publisher.
+9. Stale Canox `processing-*` files are recovered on startup; ambiguous extras are preserved as failed files instead of overwriting an active inbox.
+10. Runtime files remain under ignored `data/`; no permanent external service receives draft state.
 
 ## Verification
 
@@ -72,32 +73,31 @@ Checkpoint status: committed as `e05c2b9`.
 
 ## Current checkpoint
 
-- Proposed version: **v1.4.0**.
-- Scope: persistent scheduled announcements in Ops Hub.
-- Pending panels expose Edit, Perpendek, Regenerate, Publish Now, Jadwalkan, and Discard.
-- Schedule input accepts `HH:mm` or `YYYY-MM-DD HH:mm` in WIB, with a minimum lead time of one minute and maximum of one year.
-- A time-only value uses today when still upcoming, otherwise tomorrow.
-- Scheduled panels expose Publish Now, Batalkan Jadwal, and Discard.
-- Schedule state is persisted in ignored `data/ops-state.json` and refreshed after restart.
-- A single worker checks due drafts every 15 seconds and atomically claims `scheduled -> publishing` before network I/O.
-- Failed automatic sends retry after 1 minute and 5 minutes. A third failure returns the draft to pending with failure context for owner review.
-- Existing Draft ID publication recovery remains responsible for a crash after Discord accepts the message but before local finalization.
-- No slash-command schema changed, so v1.4.0 does not require `npm run deploy`.
+- Proposed version: **v1.5.0**.
+- Scope: moderator draft workflow and privacy-minimized Ops audit.
+- `OPS_EDITOR_ROLE_IDS` is an optional comma-separated Discord Role ID allowlist. Blank keeps the existing owner-only behavior.
+- Owner and configured editors can run `/ops draft`, `/ops status`, `/ops history`, Edit, Perpendek, and Regenerate.
+- Publish Now, Jadwalkan, Batalkan Jadwal, and Discard remain owner-only through runtime checks.
+- Role access is re-evaluated on each slash command, button, and modal submission.
+- `/ops history [limit]` returns 5–20 recent audit events ephemerally with mention parsing disabled.
+- Audit state stores at most 500 events with action, Draft ID, actor, timestamp, and limited operational metadata. Draft title, brief, and body are excluded.
+- Old `ops-state.json` files without an audit array migrate in memory to an empty audit history.
+- The `/ops` command schema changed, so live acceptance requires Henry's explicit approval for `npm run deploy`.
 
-## v1.4.0 verification
+## v1.5.0 verification
 
-- `node --check`: all 22 source and test JavaScript files pass.
-- `node --test`: 25 passed, 0 failed.
+- `node --check`: all 23 source and test JavaScript files pass.
+- `node --test`: 29 passed, 0 failed.
 - `npm audit --omit=dev`: 0 vulnerabilities.
-- `git diff --check` and changed-file credential scan pass.
-- `package.json` and both package-lock version fields are aligned at 1.4.0.
-- Parser coverage includes same-day WIB, tomorrow rollover, explicit dates, invalid dates, past values, and the one-minute boundary.
-- Store coverage includes schedule/cancel, due claims, retry backoff, three-failure recovery, and Publish Now locking.
-- Worker integration coverage runs concurrent scheduler calls and verifies exactly one public send plus persisted publication.
-- Bot restarted cleanly as one instance with local v1.4.0 code; no slash-command registration was needed.
-- Live Discord acceptance passed: the private test draft was scheduled, its panel changed to scheduled, cancellation returned it to review, and Discard finalized it.
-- Final live state passed: `lastSchedule.status` is `cancelled`, publication is null, and zero pending/revising/scheduled/publishing drafts remain.
+- `git diff --check` and changed-file credential scan across 13 files pass.
+- `package.json` and both package-lock version fields are aligned at 1.5.0.
+- Coverage includes editor allowlist, owner-only final actions, edit/schedule modal guards, `/ops history` schema and output, audit privacy, and old-state migration.
+- Eight slash commands were registered with Henry's explicit approval. The first TLS attempt failed closed; retry with Node system CA succeeded without disabling certificate verification.
+- Bot restarted cleanly as one instance with local v1.5.0 code.
+- Live Discord acceptance passed: a private draft was created, edited, discarded, and shown by `/ops history`.
+- Final live state passed: audit actions are `draft_created`, `draft_edited`, and `draft_discarded`; audit contains no title/body/brief, publication is null, and zero active drafts remain.
+- `OPS_EDITOR_ROLE_IDS` is intentionally still blank. Moderator live acceptance remains optional until Henry supplies a real Discord Role ID.
 
 Checkpoint status: **ready for Henry's manual commit**.
 
-Suggested commit after live acceptance: `Hengs Discord v1.4.0: Add persistent scheduled announcements`
+Suggested commit after live acceptance: `Hengs Discord v1.5.0: Add moderator workflow and Ops audit`

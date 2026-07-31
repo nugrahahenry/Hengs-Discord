@@ -23,13 +23,15 @@ Aktifkan **Developer Mode**: Settings → Advanced → Developer Mode (ON).
 - Klik-kanan tiap **channel** → Copy Channel ID → isi `*_CHANNEL_ID`
 - Atau: jalanin bot, lalu ketik `/admin ids` buat scan otomatis semua channel.
 
-Untuk Ops Hub, isi tiga nilai berikut:
+Untuk Ops Hub, isi nilai berikut:
 
-- `OWNER_ID` — User ID Henry; hanya ID ini yang boleh membuat, mengedit, merevisi, publish, atau discard draft.
+- `OWNER_ID` — User ID Henry; wajib dan tetap menjadi pemegang keputusan final.
+- `OPS_EDITOR_ROLE_IDS` — opsional, Role ID moderator/editor dipisah koma. Role ini dapat membuat, melihat, mengedit, dan merevisi draft.
 - `BOT_SETTINGS_CHANNEL_ID` — channel privat `🎛️・bot-settings` untuk review draft.
 - `ANNOUNCE_CHANNEL_ID` — channel publik tujuan pengumuman.
 
 Ops Hub sengaja tidak memakai `BOT_CHANNEL_ID` sebagai fallback ruang review.
+Biarkan `OPS_EDITOR_ROLE_IDS` kosong bila belum ada moderator. Role editor juga perlu permission Discord **Manage Messages** agar `/ops` terlihat; runtime Hengs tetap memeriksa Role ID pada setiap command, tombol, dan modal.
 
 Setelah `/ops draft`, panel privat menyediakan:
 
@@ -41,9 +43,13 @@ Setelah `/ops draft`, panel privat menyediakan:
 - **Batalkan Jadwal** — kembalikan draft terjadwal ke status pending.
 - **Discard** — buang draft tanpa publikasi.
 
+Editor hanya mendapat **Edit**, **Perpendek**, dan **Regenerate**. **Publish Now**, **Jadwalkan**, **Batalkan Jadwal**, dan **Discard** selalu membutuhkan `OWNER_ID`, meskipun editor dapat melihat tombolnya.
+
 Revisi AI mengunci draft sementara agar tidak dapat dipublish bersamaan. Bila proses gagal atau bot restart, draft asli dipulihkan otomatis.
 
 Jadwal minimal satu menit dari sekarang dan maksimal satu tahun. Input `HH:mm` memakai hari ini bila waktunya belum lewat, atau besok bila sudah lewat. Jadwal disimpan di `data/ops-state.json`, sehingga tetap aktif setelah restart. Hengs memeriksa jadwal setiap 15 detik. Pengiriman gagal dicoba ulang setelah 1 menit dan 5 menit; setelah kegagalan ketiga, draft kembali ke pending agar owner dapat mereview atau menjadwalkan ulang.
+
+Gunakan `/ops history [limit]` untuk melihat 5–20 tindakan terbaru secara ephemeral. Audit menyimpan ID draft, jenis tindakan, pelaku, waktu, dan metadata operasional terbatas; judul serta isi draft tidak disalin ke audit.
 
 ## 4. API key AI (buat chat via mention)
 

@@ -3,7 +3,28 @@
 Format: [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) · Versi: [SemVer](https://semver.org/lang/id/).
 Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
-## [Unreleased] - 1.4.0
+## [Unreleased] - 1.5.0
+
+### Added
+- Allowlist `OPS_EDITOR_ROLE_IDS` untuk moderator yang boleh membuat, melihat, mengedit, dan meminta revisi AI pada draft Ops Hub.
+- `/ops history [limit]` untuk menampilkan 5–20 tindakan audit terbaru secara ephemeral.
+- Audit persisten maksimal 500 tindakan yang menyimpan jenis tindakan, ID draft, pelaku, waktu, dan metadata operasional terbatas.
+
+### Changed
+- Gate tampilan `/ops` menggunakan permission Discord **Manage Messages**, lalu tetap diperketat oleh allowlist role/owner pada runtime.
+- `/ops` dapat dijalankan dari channel operasional karena command memiliki runtime guard sendiri.
+
+### Security
+- Publish Now, Jadwalkan, Batalkan Jadwal, dan Discard tetap owner-only meskipun editor dapat melihat tombolnya.
+- Role editor diverifikasi ulang pada setiap slash command, klik tombol, dan submit modal; role yang dicabut langsung kehilangan akses.
+- Audit tidak menyalin judul, brief, atau isi draft dan output history menonaktifkan mention parsing.
+- `OWNER_ID` tetap wajib; konfigurasi editor tidak dapat membuka Ops Hub bila owner belum dikonfigurasi.
+
+### Tests
+- 29 test lulus, termasuk editor allowlist, penolakan tindakan final, modal guard, schema `/ops history`, migrasi state lama, dan pemeriksaan bahwa isi draft tidak masuk audit.
+- Live acceptance Discord lulus: draft privat dibuat, diedit, lalu di-Discard; `/ops history` menampilkan ketiga tindakan tanpa isi draft dan tanpa publication.
+
+## [1.4.0] - 2026-07-31
 
 ### Added
 - Tombol owner-only **Jadwalkan** pada draft pending dengan input waktu WIB `HH:mm` atau `YYYY-MM-DD HH:mm`.

@@ -7,7 +7,7 @@
 - **AI chat via mention** — tinggal mention bot, dia bales kontekstual (history per user)
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
-- **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; owner dapat Edit, Perpendek, Regenerate, Publish Now, Jadwalkan, Batalkan Jadwal, atau Discard dari `🎛️・bot-settings`
+- **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
@@ -60,7 +60,7 @@ stop-bot.bat            # hentikan bot
 | `@Hengs <pesan>` | Ngobrol sama AI |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
-| `/ops draft` · `/ops status` | Draft pengumuman, approval owner, dan status operasional |
+| `/ops draft` · `/ops status` · `/ops history` | Draft pengumuman, approval owner, status, dan audit operasional |
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
@@ -106,9 +106,9 @@ Canox tidak boleh mem-posting ke channel publik secara langsung. Jika nanti Cano
 }
 ```
 
-Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Owner dapat mengubah manual lewat **Edit**, meminta AI **Perpendek** atau **Regenerate**, lalu memilih **Publish Now**, **Jadwalkan**, atau **Discard**. Jadwal menerima `HH:mm` atau `YYYY-MM-DD HH:mm` dalam WIB dan tetap tersimpan setelah bot restart. Draft terjadwal dapat dipublikasikan lebih cepat atau dibatalkan kembali menjadi pending. Isi `OWNER_ID`, `BOT_SETTINGS_CHANNEL_ID`, dan `ANNOUNCE_CHANNEL_ID` di `.env`. Jika ID ruang review belum diisi, fallback hanya menerima nama channel persis `🎛️・bot-settings` atau `bot-settings`—tidak pernah channel bot umum.
+Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Owner dan role dalam `OPS_EDITOR_ROLE_IDS` dapat mengubah manual lewat **Edit** atau meminta AI **Perpendek** dan **Regenerate**. Hanya owner yang dapat memilih **Publish Now**, **Jadwalkan**, **Batalkan Jadwal**, atau **Discard**. Jadwal menerima `HH:mm` atau `YYYY-MM-DD HH:mm` dalam WIB dan tetap tersimpan setelah bot restart. Isi `OWNER_ID`, `BOT_SETTINGS_CHANNEL_ID`, dan `ANNOUNCE_CHANNEL_ID` di `.env`; biarkan `OPS_EDITOR_ROLE_IDS` kosong sampai role moderator siap. Jika ID ruang review belum diisi, fallback hanya menerima nama channel persis `🎛️・bot-settings` atau `bot-settings`—tidak pernah channel bot umum.
 
-Setiap draft Canox wajib punya `id` unik. Canox harus menulis JSON ke file sementara terlebih dahulu, lalu melakukan rename atomik menjadi `canox-ops-inbox.json`; ini mencegah Hengs membaca file yang baru ditulis setengah. Ops Hub menyimpan status lokal di `data/ops-state.json`, menolak external ID yang sama, serta memakai lock terpisah untuk revisi dan publish. Selama AI merevisi, semua tombol dinonaktifkan; kegagalan atau restart mengembalikan draft asli ke status pending. Worker jadwal mengklaim satu draft sebelum mengirim, lalu mencoba ulang setelah 1 menit dan 5 menit bila pengiriman gagal. Setelah tiga kegagalan, draft kembali ke pending untuk direview owner. Maksimal 20 versi sebelumnya disimpan lokal sebagai audit trail.
+Setiap draft Canox wajib punya `id` unik. Canox harus menulis JSON ke file sementara terlebih dahulu, lalu melakukan rename atomik menjadi `canox-ops-inbox.json`; ini mencegah Hengs membaca file yang baru ditulis setengah. Ops Hub menyimpan status lokal di `data/ops-state.json`, menolak external ID yang sama, serta memakai lock terpisah untuk revisi dan publish. Selama AI merevisi, semua tombol dinonaktifkan; kegagalan atau restart mengembalikan draft asli ke status pending. Worker jadwal mengklaim satu draft sebelum mengirim, lalu mencoba ulang setelah 1 menit dan 5 menit bila pengiriman gagal. Setelah tiga kegagalan, draft kembali ke pending untuk direview owner. Maksimal 20 versi draft dan 500 tindakan audit disimpan lokal. `/ops history` hanya menampilkan tindakan, ID draft, pelaku, dan waktu—tidak menyalin isi draft.
 
 Untuk verifikasi lokal tanpa mendaftarkan command ke Discord:
 
