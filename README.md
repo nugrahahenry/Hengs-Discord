@@ -114,7 +114,12 @@ Untuk verifikasi lokal tanpa mendaftarkan command ke Discord:
 
 ```bash
 npm test
+npm run verify:server
 ```
+
+`verify:server` hanya membaca Discord API. Pemeriksaan ini tidak mengirim pesan,
+mengubah role, atau mendaftarkan slash command; hasilnya mencakup channel operasional,
+permission bot, role hierarchy, owner, dan keberadaan pesan reaction-role.
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
 

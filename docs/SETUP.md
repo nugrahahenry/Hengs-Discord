@@ -85,7 +85,12 @@ Jalankan test lokal sebelum registrasi command:
 
 ```bash
 npm test
+npm run verify:server
 ```
+
+`verify:server` adalah pemeriksaan read-only. Bot tidak mengirim pesan atau mengubah
+server; alat ini memvalidasi ID channel, permission, hierarchy role Member/reaction
+roles, owner, dan pesan reaction-role yang tersimpan.
 
 > Auto-setup struktur server: jalanin `/admin setup` di server (bikin channel & kategori otomatis).
 

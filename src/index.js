@@ -20,6 +20,7 @@ const { generateCard } = require('./utils/welcome-card');
 const { AttachmentBuilder } = require('discord.js');
 const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
+const { assignMemberRole } = require('./utils/member-onboarding');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 const translationService = require('./translation/service');
@@ -194,10 +195,20 @@ client.once(Events.ClientReady, async (c) => {
 
 // ── Welcome member baru ──────────────────────────────────────────────────────
 client.on(Events.GuildMemberAdd, async (member) => {
+  // Auto-role and stats remain operational even when the welcome channel is missing.
+  await updateServerStats(member.guild).catch(() => {});
+  await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
+
   const channelId = process.env.WELCOME_CHANNEL_ID;
-  if (!channelId) return;
+  if (!channelId) {
+    console.warn('  WELCOME_CHANNEL_ID belum diisi; auto-role tetap berjalan tanpa welcome card.');
+    return;
+  }
   const channel = member.guild.channels.cache.get(channelId);
-  if (!channel) return;
+  if (!channel) {
+    console.warn('  WELCOME_CHANNEL_ID tidak ditemukan; auto-role tetap berjalan tanpa welcome card.');
+    return;
+  }
 
   try {
     const cardBuffer = await generateCard(member, 'welcome');
@@ -236,20 +247,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
     console.error('❌ Welcome card error:', err.message);
   }
 
-  // Update stats
-  await updateServerStats(member.guild).catch(() => {});
-
-  // Auto-assign Member role on join — by ID (kalau di-set) atau by nama "Member"
-  const memberRoleId = process.env.MEMBER_ROLE_ID;
-  const memberRole = (memberRoleId && member.guild.roles.cache.get(memberRoleId))
-    || member.guild.roles.cache.find(r => r.name.toLowerCase().replace(/[^a-z]/g, '').includes('member'));
-  if (memberRole) {
-    await member.roles.add(memberRole)
-      .then(() => console.log(`  ✅ Role "${memberRole.name}" → ${member.user.username}`))
-      .catch(err => console.error(`  ❌ Gagal kasih role Member: ${err.message} — cek: bot punya izin "Manage Roles" & role BOT harus di ATAS role Member`));
-  } else {
-    console.log('  ⚠️ Role "Member" nggak ketemu. Bikin role bernama "Member", atau isi MEMBER_ROLE_ID di .env');
-  }
 });
 
 // ── Leave message ─────────────────────────────────────────────────────────────

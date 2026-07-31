@@ -3,7 +3,25 @@
 Format: [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) · Versi: [SemVer](https://semver.org/lang/id/).
 Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
-## [Unreleased] - 1.5.0
+## [Unreleased]
+
+## [1.5.1] - 2026-07-31
+
+### Added
+- `npm run verify:server` untuk pemeriksaan Discord API read-only terhadap konfigurasi channel, permission, role hierarchy, owner, dan pesan reaction-role.
+- Test render offline untuk welcome/leave card serta test auto-role dan hierarchy guard.
+
+### Fixed
+- Auto-role Member dan pembaruan statistik sekarang tetap berjalan jika `WELCOME_CHANNEL_ID` kosong, salah, atau welcome card gagal dikirim.
+- Fallback role Member hanya menerima nama ternormalisasi yang persis `Member`, bukan role lain yang sekadar mengandung kata "member".
+- Verifier memakai Windows system CA agar tetap mempertahankan validasi TLS saat koneksi lokal diintersepsi AVG.
+
+### Operations
+- Live server verification lulus tanpa failure/warning: owner, lima channel operasional, permission Manage Roles/Channels, hierarchy Member, dan tiga pesan reaction-role tervalidasi.
+- `MEMBER_ROLE_ID` dan `ROLES_CHANNEL_ID` dikunci di `.env` lokal; autostart `HengsDC.lnk` dan restart satu-instance berhasil diverifikasi.
+- 32 test lulus, welcome/leave PNG berhasil dirender, dan `npm audit --omit=dev` melaporkan 0 vulnerability.
+
+## [1.5.0] - 2026-07-31
 
 ### Added
 - Allowlist `OPS_EDITOR_ROLE_IDS` untuk moderator yang boleh membuat, melihat, mengedit, dan meminta revisi AI pada draft Ops Hub.
