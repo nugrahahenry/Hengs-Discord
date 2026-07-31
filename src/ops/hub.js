@@ -5,6 +5,9 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } = require('discord.js');
 const store = require('./store');
 
@@ -58,10 +61,11 @@ function draftEmbed(draft) {
   const source = draft.source === 'canox' ? 'Canox' : 'Discord';
   const color = draft.status === 'published' ? 0x57F287
     : draft.status === 'discarded' ? 0xED4245
-      : draft.status === 'publishing' ? 0x5865F2
+      : ['publishing', 'revising'].includes(draft.status) ? 0x5865F2
         : 0xFEE75C;
   const status = {
     pending: 'Menunggu persetujuan owner',
+    revising: 'Sedang dibuatkan revisi',
     publishing: 'Sedang dipublikasikan',
     published: 'Sudah dipublikasikan',
     discarded: 'Dibuang',
@@ -84,6 +88,14 @@ function draftEmbed(draft) {
       inline: false,
     });
   }
+  if (draft.lastRevisedAt) {
+    const revisionCount = Array.isArray(draft.revisions) ? draft.revisions.length : 1;
+    embed.addFields({
+      name: 'Revisi',
+      value: `${revisionCount}x · terakhir: ${draft.lastRevisionKind || 'edit'}`,
+      inline: false,
+    });
+  }
   return embed;
 }
 
@@ -102,6 +114,18 @@ function approvalRow(draft) {
   if (draft.status !== 'pending') return [];
   return [new ActionRowBuilder().addComponents(
     new ButtonBuilder()
+      .setCustomId(`ops:edit:${draft.id}`)
+      .setLabel('Edit')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`ops:shorten:${draft.id}`)
+      .setLabel('Perpendek')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`ops:regenerate:${draft.id}`)
+      .setLabel('Regenerate')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
       .setCustomId(`ops:publish:${draft.id}`)
       .setLabel('Publish')
       .setStyle(ButtonStyle.Success),
@@ -113,13 +137,15 @@ function approvalRow(draft) {
 }
 
 async function editStoredPanel(guild, draft) {
-  if (!draft?.panel) return;
-  const channel = guild.channels.cache.get(draft.panel.channelId)
-    || await guild.channels.fetch(draft.panel.channelId).catch(() => null);
-  if (!channel?.messages?.fetch) return;
-  const message = await channel.messages.fetch(draft.panel.messageId).catch(() => null);
-  if (!message) return;
-  await message.edit({ embeds: [draftEmbed(draft)], components: approvalRow(draft) });
+  const latest = draft?.id ? store.getDraft(draft.id) : null;
+  if (!latest?.panel) return false;
+  const channel = guild.channels.cache.get(latest.panel.channelId)
+    || await guild.channels.fetch(latest.panel.channelId).catch(() => null);
+  if (!channel?.messages?.fetch) return false;
+  const message = await channel.messages.fetch(latest.panel.messageId).catch(() => null);
+  if (!message) return false;
+  await message.edit({ embeds: [draftEmbed(latest)], components: approvalRow(latest) });
+  return true;
 }
 
 async function postDraftPanel(guild, draft) {
@@ -223,22 +249,138 @@ async function handleDiscard(interaction, draftId) {
   await interaction.followUp({ content: `🗑️ Draft **${finalized.title}** dibuang.`, ephemeral: true });
 }
 
-async function handleButton(interaction) {
+async function handleEdit(interaction, draftId) {
+  const draft = store.getDraft(draftId);
+  if (!draft || draft.status !== 'pending') {
+    await interaction.reply({ content: 'ℹ️ Draft ini sudah diproses atau sedang direvisi.', ephemeral: true });
+    return;
+  }
+
+  const modal = new ModalBuilder()
+    .setCustomId(`ops:editmodal:${draft.id}`)
+    .setTitle('Edit draft pengumuman');
+  const titleInput = new TextInputBuilder()
+    .setCustomId('title')
+    .setLabel('Judul')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(230)
+    .setValue(draft.title);
+  const bodyInput = new TextInputBuilder()
+    .setCustomId('body')
+    .setLabel('Isi pengumuman')
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true)
+    .setMaxLength(4000)
+    .setValue(draft.body);
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(titleInput),
+    new ActionRowBuilder().addComponents(bodyInput),
+  );
+  await interaction.showModal(modal);
+}
+
+async function handleAiRevision(interaction, draftId, kind, agent) {
+  if (!agent?.reviseAnnouncement) {
+    await interaction.reply({ content: '❌ Editor AI Ops Hub belum tersedia.', ephemeral: true });
+    return;
+  }
+  const claimed = store.claimRevision(draftId, interaction.user.id, kind);
+  if (!claimed) {
+    await interaction.reply({ content: 'ℹ️ Draft ini sudah diproses atau sedang direvisi.', ephemeral: true });
+    return;
+  }
+
+  try {
+    await interaction.update({ embeds: [draftEmbed(claimed)], components: [] });
+  } catch (error) {
+    store.releaseRevision(draftId);
+    throw error;
+  }
+
+  try {
+    const revised = await agent.reviseAnnouncement(claimed, kind);
+    const applied = store.applyRevision(draftId, revised, interaction.user.id);
+    if (!applied) throw new Error('Draft tidak dapat menyimpan hasil revisi.');
+    const panelUpdated = await editStoredPanel(interaction.guild, applied);
+    const label = kind === 'shorten' ? 'dipendekkan' : 'dibuat ulang';
+    await interaction.followUp({
+      content: panelUpdated
+        ? `✅ Draft **${applied.title}** sudah ${label}. Review lagi sebelum Publish.`
+        : `✅ Revisi sudah tersimpan, tetapi panel tidak ditemukan. Cek \`/ops status\` sebelum Publish.`,
+      ephemeral: true,
+    });
+  } catch (error) {
+    console.error(`❌ Ops ${kind} error:`, error.message);
+    const released = store.releaseRevision(draftId);
+    if (released) await editStoredPanel(interaction.guild, released).catch(() => {});
+    await interaction.followUp({
+      content: '❌ Revisi AI gagal. Draft asli tetap aman dan bisa dicoba lagi.',
+      ephemeral: true,
+    }).catch(() => {});
+  }
+}
+
+async function handleButton(interaction, { agent } = {}) {
   if (!interaction.isButton?.() || !interaction.customId.startsWith('ops:')) return false;
   if (!isOwner(interaction.user.id)) {
-    await interaction.reply({ content: '❌ Hanya owner yang dapat menyetujui atau membuang draft.', ephemeral: true });
+    await interaction.reply({ content: '❌ Hanya owner yang dapat mengubah atau memproses draft.', ephemeral: true });
     return true;
   }
 
   const [, action, draftId] = interaction.customId.split(':');
   // Draft dari Ops Hub awal memakai 12 hex; draft baru memakai 16 hex.
-  if (!['publish', 'discard'].includes(action) || !isValidDraftId(draftId)) {
+  if (!['edit', 'shorten', 'regenerate', 'publish', 'discard'].includes(action) || !isValidDraftId(draftId)) {
     await interaction.reply({ content: '❌ Aksi Ops Hub tidak valid.', ephemeral: true });
     return true;
   }
 
-  if (action === 'publish') await handlePublish(interaction, draftId);
+  if (action === 'edit') await handleEdit(interaction, draftId);
+  else if (action === 'shorten' || action === 'regenerate') {
+    await handleAiRevision(interaction, draftId, action, agent);
+  } else if (action === 'publish') await handlePublish(interaction, draftId);
   else await handleDiscard(interaction, draftId);
+  return true;
+}
+
+async function handleModal(interaction) {
+  if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('ops:editmodal:')) return false;
+  if (!isOwner(interaction.user.id)) {
+    await interaction.reply({ content: '❌ Hanya owner yang dapat mengedit draft.', ephemeral: true });
+    return true;
+  }
+  const [, action, draftId] = interaction.customId.split(':');
+  if (action !== 'editmodal' || !isValidDraftId(draftId)) {
+    await interaction.reply({ content: '❌ Form edit Ops Hub tidak valid.', ephemeral: true });
+    return true;
+  }
+
+  const updated = store.updatePendingDraft(draftId, {
+    title: interaction.fields.getTextInputValue('title'),
+    body: interaction.fields.getTextInputValue('body'),
+  }, interaction.user.id, 'edit');
+  if (!updated) {
+    await interaction.reply({
+      content: 'ℹ️ Draft berubah status sebelum edit disimpan. Tidak ada isi yang ditimpa.',
+      ephemeral: true,
+    });
+    return true;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  try {
+    const panelUpdated = await editStoredPanel(interaction.guild, updated);
+    await interaction.editReply({
+      content: panelUpdated
+        ? `✅ Draft **${updated.title}** berhasil diedit.`
+        : '✅ Isi draft tersimpan, tetapi panel tidak ditemukan. Cek `/ops status` sebelum Publish.',
+    });
+  } catch (error) {
+    console.error('❌ Ops edit panel error:', error.message);
+    await interaction.editReply({
+      content: '✅ Isi draft sudah tersimpan, tetapi panel gagal diperbarui. Cek `/ops status` sebelum Publish.',
+    });
+  }
   return true;
 }
 
@@ -364,6 +506,44 @@ async function recoverPublishingDrafts(client) {
   }
 }
 
+async function recoverRevisingDrafts(client) {
+  const recoveredIds = store.recoverRevisingDrafts();
+  if (!recoveredIds.length) return;
+  const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID).catch(() => null);
+  if (!guild) {
+    console.error('⚠ Ops revision recovery: guild tidak dapat diakses.');
+    return;
+  }
+  for (const draftId of recoveredIds) {
+    const draft = store.getDraft(draftId);
+    if (draft) {
+      await editStoredPanel(guild, draft).catch(error =>
+        console.error(`⚠ Ops revision panel recovery ${draftId}:`, error.message));
+    }
+  }
+  console.log(`  ♻️ ${recoveredIds.length} revisi Ops yang terputus dikembalikan ke pending.`);
+}
+
+async function refreshPendingDraftPanels(client) {
+  const pending = store.listDraftsByStatus('pending').filter(draft => draft.panel);
+  if (!pending.length) return;
+  const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID).catch(() => null);
+  if (!guild) {
+    console.error('⚠ Ops pending panel refresh: guild tidak dapat diakses.');
+    return;
+  }
+  let refreshed = 0;
+  for (const draft of pending) {
+    if (await editStoredPanel(guild, draft).catch(error => {
+      console.error(`⚠ Ops pending panel refresh ${draft.id}:`, error.message);
+      return false;
+    })) {
+      refreshed += 1;
+    }
+  }
+  if (refreshed) console.log(`  ♻️ ${refreshed} panel Ops pending disinkronkan.`);
+}
+
 function startCanoxInbox(client) {
   if (inboxTimer) return;
   try {
@@ -373,7 +553,9 @@ function startCanoxInbox(client) {
     console.error('⚠ Ops inbox recovery error:', error.message);
   }
   inboxTimer = setInterval(() => consumeCanoxInbox(client), 10_000);
-  recoverPublishingDrafts(client)
+  recoverRevisingDrafts(client)
+    .then(() => recoverPublishingDrafts(client))
+    .then(() => refreshPendingDraftPanels(client))
     .then(() => consumeCanoxInbox(client))
     .catch(error => console.error('⚠ Ops startup recovery error:', error.message));
   console.log('  → Ops Hub siap menerima draft Canox untuk direview owner.');
@@ -385,9 +567,12 @@ module.exports = {
   findAnnouncementsChannel,
   getStatus: store.getStatus,
   handleButton,
+  handleModal,
   startCanoxInbox,
   // Pure helper diekspor untuk test kontrak inbox tanpa menjalankan bot.
   normalizeCanoxEntries,
   recoverStaleCanoxInbox,
+  refreshPendingDraftPanels,
   isValidDraftId,
+  approvalRow,
 };

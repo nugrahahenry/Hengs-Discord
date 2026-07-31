@@ -355,11 +355,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.isButton() && interaction.customId.startsWith('ops:')) {
+  if (
+    (interaction.isButton() || interaction.isModalSubmit())
+    && interaction.customId.startsWith('ops:')
+  ) {
     try {
-      await opsHub.handleButton(interaction);
+      if (interaction.isButton()) await opsHub.handleButton(interaction, { agent });
+      else await opsHub.handleModal(interaction);
     } catch (err) {
-      console.error('❌ Ops Hub button error:', err);
+      console.error('❌ Ops Hub interaction error:', err);
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({ content: '❌ Aksi Ops Hub gagal dijalankan.', ephemeral: true }).catch(() => {});
       } else {

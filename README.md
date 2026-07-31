@@ -7,7 +7,7 @@
 - **AI chat via mention** — tinggal mention bot, dia bales kontekstual (history per user)
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
-- **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI, lalu owner review lewat tombol Publish / Discard di `🎛️・bot-settings`
+- **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; owner dapat Edit, Perpendek, Regenerate, Publish, atau Discard dari `🎛️・bot-settings`
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
@@ -106,9 +106,9 @@ Canox tidak boleh mem-posting ke channel publik secara langsung. Jika nanti Cano
 }
 ```
 
-Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Pengumuman baru tayang ke `#announcements` setelah owner menekan **Publish**. Isi `OWNER_ID`, `BOT_SETTINGS_CHANNEL_ID`, dan `ANNOUNCE_CHANNEL_ID` di `.env`. Jika ID ruang review belum diisi, fallback hanya menerima nama channel persis `🎛️・bot-settings` atau `bot-settings`—tidak pernah channel bot umum.
+Hengs hanya menaruhnya sebagai draft di `🎛️・bot-settings`. Owner dapat mengubah manual lewat **Edit**, meminta AI **Perpendek** atau **Regenerate**, lalu memilih **Publish** atau **Discard**. Pengumuman baru tayang ke `#announcements` setelah owner menekan **Publish**. Isi `OWNER_ID`, `BOT_SETTINGS_CHANNEL_ID`, dan `ANNOUNCE_CHANNEL_ID` di `.env`. Jika ID ruang review belum diisi, fallback hanya menerima nama channel persis `🎛️・bot-settings` atau `bot-settings`—tidak pernah channel bot umum.
 
-Setiap draft Canox wajib punya `id` unik. Canox harus menulis JSON ke file sementara terlebih dahulu, lalu melakukan rename atomik menjadi `canox-ops-inbox.json`; ini mencegah Hengs membaca file yang baru ditulis setengah. Ops Hub menyimpan status lokal di `data/ops-state.json`, menolak external ID yang sama, mengunci draft sebelum request publish dikirim agar klik ganda tidak menghasilkan pengumuman duplikat, dan memulihkan file inbox yang tertinggal bila proses mati saat konsumsi.
+Setiap draft Canox wajib punya `id` unik. Canox harus menulis JSON ke file sementara terlebih dahulu, lalu melakukan rename atomik menjadi `canox-ops-inbox.json`; ini mencegah Hengs membaca file yang baru ditulis setengah. Ops Hub menyimpan status lokal di `data/ops-state.json`, menolak external ID yang sama, serta memakai lock terpisah untuk revisi dan publish. Selama AI merevisi, semua tombol dinonaktifkan; kegagalan atau restart mengembalikan draft asli ke status pending. Maksimal 20 versi sebelumnya disimpan lokal sebagai audit trail.
 
 Untuk verifikasi lokal tanpa mendaftarkan command ke Discord:
 

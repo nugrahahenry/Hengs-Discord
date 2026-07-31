@@ -3,7 +3,32 @@
 Format: [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) · Versi: [SemVer](https://semver.org/lang/id/).
 Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
-## [Unreleased] - 1.2.0
+## [Unreleased] - 1.3.0
+
+### Added
+- Tombol owner-only **Edit**, **Perpendek**, dan **Regenerate** pada setiap panel Ops Hub pending.
+- Modal edit untuk mengubah judul dan isi tanpa membuat draft atau publication baru.
+- Riwayat maksimal 20 versi sebelumnya per draft sebagai audit trail lokal.
+
+### Changed
+- `/ops status` sekarang menampilkan jumlah draft yang sedang direvisi.
+- Panel pending lama disinkronkan saat startup sehingga memperoleh kontrol revisi terbaru.
+
+### Fixed
+- State transition `pending -> revising -> pending` mencegah Publish, Discard, atau revisi kedua berjalan bersamaan dengan panggilan AI.
+- Revisi AI yang gagal mengembalikan draft asli beserta tombolnya dan tidak lagi dilaporkan sebagai sukses melalui fallback teks lama.
+- Revisi yang terputus karena crash dipulihkan ke pending; startup juga memperbaiki panel bila proses mati setelah state tersimpan tetapi sebelum Discord selesai diperbarui.
+- Submit modal lama tidak dapat menimpa draft yang sudah publishing, published, discarded, atau sedang direvisi.
+
+### Security
+- Semua tombol dan modal revisi tetap memakai runtime `OWNER_ID`; permission tampilan Discord tidak dijadikan satu-satunya guard.
+- Prompt revisi memperlakukan brief dan isi draft sebagai data, mempertahankan fakta, serta melarang mention dan detail rekaan.
+
+### Tests
+- 20 test lulus, termasuk revision lock, stale modal, owner guard, revision history, AI failure rollback, crash recovery, dan startup panel refresh.
+- Live acceptance Discord lulus: Regenerate dan Perpendek berhasil melalui Groq GPT-OSS 120B, dua versi tercatat, lalu draft uji di-Discard tanpa publication.
+
+## [1.2.0] - 2026-07-31
 
 ### Added
 - `/translate file:<attachment> to:<language> non_sensitive:true` untuk PDF, DOCX, PPTX, HTML, dan TXT dengan auto-detect bahasa sumber.

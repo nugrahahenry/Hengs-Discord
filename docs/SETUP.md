@@ -25,11 +25,20 @@ Aktifkan **Developer Mode**: Settings → Advanced → Developer Mode (ON).
 
 Untuk Ops Hub, isi tiga nilai berikut:
 
-- `OWNER_ID` — User ID Henry; hanya ID ini yang boleh membuat, publish, atau discard draft.
+- `OWNER_ID` — User ID Henry; hanya ID ini yang boleh membuat, mengedit, merevisi, publish, atau discard draft.
 - `BOT_SETTINGS_CHANNEL_ID` — channel privat `🎛️・bot-settings` untuk review draft.
 - `ANNOUNCE_CHANNEL_ID` — channel publik tujuan pengumuman.
 
 Ops Hub sengaja tidak memakai `BOT_CHANNEL_ID` sebagai fallback ruang review.
+
+Setelah `/ops draft`, panel privat menyediakan:
+
+- **Edit** — ubah judul dan isi melalui modal.
+- **Perpendek** — AI meringkas tanpa membuang tanggal, tautan, syarat, atau call-to-action.
+- **Regenerate** — AI membuat versi alternatif dari brief dan draft saat ini.
+- **Publish / Discard** — finalisasi tetap hanya oleh owner.
+
+Revisi AI mengunci draft sementara agar tidak dapat dipublish bersamaan. Bila proses gagal atau bot restart, draft asli dipulihkan otomatis.
 
 ## 4. API key AI (buat chat via mention)
 
