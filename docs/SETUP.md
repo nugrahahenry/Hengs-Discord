@@ -36,7 +36,24 @@ Ops Hub sengaja tidak memakai `BOT_CHANNEL_ID` sebagai fallback ruang review.
 - **Groq** (cepat, free): https://console.groq.com → `GROQ_API_KEY`
 - **OpenRouter** (fallback): https://openrouter.ai → `OPENROUTER_API_KEY`
 
-## 5. Jalankan
+## 5. Restricted document translation
+
+Isi konfigurasi berikut:
+
+- `DEEPL_API_KEY` — key server-side DeepL; jangan pernah ditaruh di source/client.
+- `TRANSLATE_ALLOWED_USER_IDS` — ID Discord VIP dipisah koma. `OWNER_ID` selalu otomatis diizinkan.
+- `TRANSLATE_TIMEOUT_MS` — opsional, default 180000 (3 menit).
+- `TRANSLATE_MAX_QUEUE` — opsional, default 3 job aktif + antre.
+
+Command:
+
+```text
+/translate file:<attachment> to:<bahasa> non_sensitive:true
+```
+
+Format awal: PDF, DOCX, PPTX, HTML, TXT. Bahasa sumber dideteksi otomatis. Pada API Free hanya gunakan dokumen non-sensitif; file lokal sementara dihapus setelah response attachment selesai dikirim.
+
+## 6. Jalankan
 
 ```bash
 npm install

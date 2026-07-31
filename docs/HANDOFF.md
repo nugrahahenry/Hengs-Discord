@@ -1,13 +1,13 @@
 # Hengs Discord Bot — Handoff
 
-Updated: 2026-07-30
+Updated: 2026-07-31
 
-## Current checkpoint
+## Completed checkpoint
 
-- Proposed version: **v1.1.1**
+- Version: **v1.1.1**, committed as `ef3301a`.
 - Scope: correctness and security hardening for the existing owner-approved Ops Hub.
 - Translation scope: **not implemented in this checkpoint**.
-- Git publication: pending Henry review; Codex did not add, commit, push, deploy, or register slash commands.
+- Live acceptance passed on 2026-07-31: `/ops` registered, one test draft reached `bot-settings`, Henry discarded it, buttons disappeared, and no announcement was published.
 
 ## Version-history note
 
@@ -30,25 +30,45 @@ Repository HEAD before this audit was `5b7e604 Hengs Discord v1.1.0: Add private
 - `node --check` passed for all 17 JavaScript source and test files.
 - `node --test`: 7 tests passed, 0 failed.
 - `npm audit --omit=dev` completed with Node system CA support: 4 known transitive `undici` findings remain (3 moderate, 1 high). npm reports no fix without changing the current dependency line; do not disable TLS or force a breaking Discord.js upgrade inside this checkpoint.
-- Live Discord test is still pending because slash-command registration/deploy requires Henry's explicit permission.
+- Live Discord test passed: command registration, private panel creation, owner-only Discard, panel finalization, and no-publication behavior were verified.
 
 ## Local configuration state
 
-- Present: `OWNER_ID`, `DISCORD_GUILD_ID`, `ANNOUNCE_CHANNEL_ID`.
-- Missing at audit time: `BOT_SETTINGS_CHANNEL_ID`.
-- Exact channel-name fallback should find `🎛️・bot-settings`, but filling the ID remains recommended.
+- Present: `OWNER_ID`, `DISCORD_GUILD_ID`, `BOT_SETTINGS_CHANNEL_ID`, and `ANNOUNCE_CHANNEL_ID`.
+- The runtime `.env` remains ignored and no credential value is stored in Git.
 
-## Manual acceptance after commit
+## Live acceptance result
 
-1. Fill `BOT_SETTINGS_CHANNEL_ID` in `.env`.
-2. Run `npm run deploy` only after explicit approval.
-3. Restart the Discord bot.
-4. Run `/ops draft`, double-click Publish rapidly, and verify exactly one public announcement appears.
-5. Run `/ops status`, then verify Publish and Discard panels update correctly.
-6. Test one Canox inbox payload written through temp-file + atomic rename.
+1. Seven slash commands, including `/ops`, were registered with Henry's explicit approval.
+2. Hengs Discord restarted cleanly as one instance and acquired `.dc-bot.lock`.
+3. A test draft entered through the atomic Canox inbox path and appeared only in `bot-settings`.
+4. Henry pressed Discard; the state became `discarded`, buttons disappeared, and `publication` remained null.
+5. Publish and double-click behavior remain available for a later non-test announcement because this acceptance intentionally avoided sending public content.
 
-## Next checkpoint
+## Current checkpoint
 
-Private document translation may start only after this working tree is reviewed and committed. Before implementation, verify the actual DeepL account supports Document Translation and record its current file/size/format limits. Proposed next feature version from the current repository history: **v1.2.0**.
+- Proposed version: **v1.2.0**.
+- `/translate file:<attachment> to:<language> non_sensitive:true` is implemented locally.
+- Source language is auto-detected; target autocomplete comes from DeepL.
+- Formats: PDF, DOCX, PPTX, HTML, TXT. PDF OCR remains out of scope.
+- Access: `OWNER_ID` plus `TRANSLATE_ALLOWED_USER_IDS`; currently only Henry is configured because no Discord VIP ID has been supplied.
+- Privacy: API Free requires explicit non-sensitive confirmation and always displays the vendor-processing warning.
+- Runtime: one active job, queue cap 3, 3-minute timeout, usage preflight, bounded-memory download, ephemeral progress/result, and local temp cleanup including stale crash leftovers on startup.
+- Security: extension/MIME/size/CDN/signature validation, sanitized output filename, content-free logs, and no document-handle persistence.
+- DeepL production client uses native Node fetch; the SDK was removed after its transitive ZIP advisory was identified.
 
-Suggested commit: `Hengs Discord v1.1.1: Harden owner-approved Ops Hub`
+## v1.2.0 verification
+
+- `node --check`: all source and test JavaScript files pass.
+- `node --test`: 14 passed, 0 failed.
+- Native DeepL integration TXT EN -> ID: done, 29 billed characters, output read successfully, temp cleanup verified.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- Local `.env`: DeepL key, owner, timeout, and queue configured; key value remains ignored and was never printed.
+- Eight guild slash commands, including `/translate`, were registered with Henry's explicit approval on 2026-07-31.
+- Hengs Discord restarted cleanly as one instance; the new process acquired `.dc-bot.lock`, loaded `/translate`, and reached `Discord Bot Online` without startup errors.
+- Live Discord attachment acceptance passed: Henry submitted a non-sensitive two-line English TXT, received an ephemeral Indonesian TXT result, and Discord reported 141 billed characters.
+- Post-test health check passed: the bot remained online as one instance, no translation error entered the log, and zero `hengs-translate-*` temp directories remained.
+
+Checkpoint status: **ready for Henry's manual commit**.
+
+Suggested commit: `Hengs Discord v1.2.0: Add restricted document translation`

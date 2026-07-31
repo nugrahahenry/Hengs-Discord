@@ -8,6 +8,7 @@
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI, lalu owner review lewat tombol Publish / Discard di `🎛️・bot-settings`
+- **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -23,6 +24,7 @@
 | Grafis | @napi-rs/canvas (welcome card) |
 | Voice | @discordjs/voice + tweetnacl |
 | AI | Groq / OpenRouter (via openai SDK) |
+| Dokumen | DeepL Document Translation API |
 
 ## 🚀 Setup
 
@@ -59,6 +61,7 @@ stop-bot.bat            # hentikan bot
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
 | `/ops draft` · `/ops status` | Draft pengumuman, approval owner, dan status operasional |
+| `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
@@ -72,8 +75,9 @@ discord-bot/
 │   ├── agent.js            # logika AI chat
 │   ├── state.js            # state mode
 │   ├── deploy-commands.js  # daftarin slash commands ke Discord
-│   ├── commands/           # admin, announce, fun, scrim, study, voice
+│   ├── commands/           # slash commands, termasuk ops & translate
 │   ├── ops/                # draft store, owner approval, inbox Canox
+│   ├── translation/        # DeepL client, validasi, antrean, cleanup
 │   └── utils/
 │       ├── welcome-card.js # render welcome/leave card (canvas)
 │       └── role-store.js   # persistensi reaction roles
@@ -113,6 +117,20 @@ npm test
 ```
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
+
+### Restricted document translation
+
+Gunakan:
+
+```text
+/translate file:<attachment> to:<bahasa> non_sensitive:true
+```
+
+DeepL mendeteksi bahasa sumber otomatis. Bahasa tujuan dipilih lewat autocomplete; `Indonesian (ID)` menerjemahkan semua bahasa sumber yang didukung akun DeepL ke bahasa Indonesia. Bahasa di luar daftar dukungan DeepL tetap tidak dapat diproses.
+
+Fitur ini memakai runtime allowlist `TRANSLATE_ALLOWED_USER_IDS`; `OWNER_ID` selalu otomatis diizinkan. Semua respons dan hasil bersifat ephemeral. File hanya berada di folder temp selama proses, tidak dicatat ke log, dan dihapus setelah hasil selesai di-upload.
+
+Karena key saat ini DeepL API Free, command hanya untuk dokumen **non-sensitif**. Jangan unggah data pribadi, kontrak, keuangan, credential, medis, atau rahasia kerja. DOCX/PPTX/PDF juga memakai minimum kuota 50.000 karakter per file. Detail validasi ada di `docs/DEEPL-DOCUMENT-VALIDATION.md`.
 
 ---
 

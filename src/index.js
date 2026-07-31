@@ -22,6 +22,7 @@ const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
+const translationService = require('./translation/service');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
 // event dobel, ini menutup kemungkinan dua instance mem-publish draft yang sama.
@@ -133,6 +134,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log('  /scrim on [game]  | /scrim off');
   console.log('  /announce [message]');
   console.log('  /fun quote | /fun 8ball | /fun roll | /fun flip | /fun meme');
+  console.log('  /ops draft | /translate file');
   console.log('  Mention bot untuk AI chat!');
   console.log('─────────────────────────────────────\n');
 
@@ -150,6 +152,10 @@ client.once(Events.ClientReady, async (c) => {
     await updateServerStats(guild).catch(() => {});
   }
   opsHub.startCanoxInbox(c);
+  const staleTranslationDirs = await translationService.cleanupStaleTempDirs();
+  if (staleTranslationDirs > 0) {
+    console.log(`🧹 ${staleTranslationDirs} folder sementara penerjemahan lama dibersihkan.`);
+  }
 
   // ── Auto-rejoin voice channel terakhir (kalau sebelumnya bot di voice) ──────
   for (const guild of c.guilds.cache.values()) {
@@ -334,6 +340,21 @@ client.on(Events.MessageCreate, async (msg) => {
 
 // ── Slash command handler ─────────────────────────────────────────────────────
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isAutocomplete()) {
+    const cmd = client.commands.get(interaction.commandName);
+    if (!cmd?.autocomplete) {
+      await interaction.respond([]).catch(() => {});
+      return;
+    }
+    try {
+      await cmd.autocomplete(interaction);
+    } catch (error) {
+      console.error(`Autocomplete /${interaction.commandName} gagal:`, error.message);
+      await interaction.respond([]).catch(() => {});
+    }
+    return;
+  }
+
   if (interaction.isButton() && interaction.customId.startsWith('ops:')) {
     try {
       await opsHub.handleButton(interaction);
@@ -352,9 +373,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // Restrict commands ke BOT_CHANNEL_ID
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
-  // Regular user: harus di BOT_CHANNEL_ID, kecuali /announce dan /admin
+  // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
-  const freeCommands = ['announce', 'admin'];
+  const freeCommands = ['announce', 'admin', 'translate'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
   if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({
