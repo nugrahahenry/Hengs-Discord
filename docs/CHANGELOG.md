@@ -5,6 +5,27 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-08-09
+
+### Added
+- `/ops overview` sebagai Community Operations Dashboard privat untuk merangkum runtime,
+  Ops Hub, Event Hub, antrean penerjemah, dan mode fokus.
+- Snapshot read-only antrean penerjemah yang hanya mengembalikan configured, running,
+  queued, depth, dan kapasitas.
+
+### Security
+- Akses dashboard memakai guard owner/editor Ops Hub yang sudah ada, respons ephemeral,
+  dan mention parsing dinonaktifkan.
+- Dashboard hanya memakai angka agregat dan enum allowlist. Isi draft/event, RSVP,
+  identitas anggota, nama file, topik fokus, credential, path, dan raw error dibuang.
+- Kegagalan satu store terisolasi sebagai kode `*_UNAVAILABLE`; dashboard tidak menulis
+  atau memperbaiki state secara otomatis.
+
+### Tests
+- 59 test lulus, termasuk agregasi lintas-modul, privacy boundary, partial failure,
+  permission command, respons ephemeral, dan snapshot antrean.
+- Semua 36 file JavaScript lulus syntax check dan Git whitespace validation lulus.
+
 ## [1.9.0] - 2026-08-09
 
 ### Added

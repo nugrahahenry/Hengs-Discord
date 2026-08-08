@@ -2,7 +2,30 @@
 
 Updated: 2026-08-09
 
-## Current checkpoint: v1.9.0
+## Current checkpoint: v1.10.0
+
+- Proposed version: **v1.10.0**.
+- Scope: read-only Community Operations Dashboard melalui `/ops overview`; tidak ada
+  perubahan Canox, tindakan moderasi otomatis, atau migrasi state.
+- Owner dan `OPS_EDITOR_ROLE_IDS` dapat melihat ringkasan ephemeral untuk runtime,
+  Ops Hub, Event Hub, antrean penerjemah, dan mode fokus.
+- Dashboard hanya membaca angka agregat dan enum allowlist. Isi draft/event, RSVP,
+  identitas anggota, nama file, topik fokus, credential, path, dan raw exception tidak
+  masuk embed atau state baru.
+- Kegagalan satu store terisolasi sebagai kode `*_UNAVAILABLE`; bagian lain tetap
+  tampil dan dashboard tidak mencoba mengubah state.
+- Slash command schema berubah karena subcommand baru. Registrasi dan live acceptance
+  belum dilakukan dan memerlukan izin eksplisit Henry.
+
+Verification target:
+- `node --test`: 59 passed, 0 failed.
+- Semua 36 file JavaScript lulus syntax check dan `git diff --check` lulus.
+- Read-only Discord server verification harus tetap lulus sebelum registrasi.
+
+Suggested commit after registration/live acceptance:
+`Hengs Discord v1.10.0: Add private community operations dashboard`
+
+## Previous checkpoint: v1.9.0
 
 - Proposed version: **v1.9.0**.
 - Scope: producer-side Discord runtime health contract; no Canox code or slash-command

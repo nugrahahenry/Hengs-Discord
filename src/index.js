@@ -433,7 +433,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
-    await cmd.execute(interaction, { state, agent, opsHub, eventHub });
+    await cmd.execute(interaction, {
+      state,
+      agent,
+      opsHub,
+      eventHub,
+      translation: translationService,
+      runtimeHealth,
+      version: packageMetadata.version,
+    });
   } catch (err) {
     console.error(`❌ Error di /${interaction.commandName}:`, err);
     const errMsg = { content: '❌ Ada error saat menjalankan command ini.', ephemeral: true };

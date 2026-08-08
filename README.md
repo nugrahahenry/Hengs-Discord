@@ -11,6 +11,7 @@
 - **Community Event Hub** — `/event draft` membuat event ber-approval dengan RSVP, kapasitas, reminder, cancel, dan auto-close
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
+- **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -62,7 +63,7 @@ stop-bot.bat            # hentikan bot
 | `@Hengs <pesan>` | Ngobrol sama AI |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
-| `/ops draft` · `/ops status` · `/ops history` | Draft pengumuman, approval owner, status, dan audit operasional |
+| `/ops draft` · `/ops status` · `/ops history` · `/ops overview` | Draft pengumuman, approval owner, audit, dan ringkasan operasi privat |
 | `/event draft` · `/event status` | Event komunitas dengan approval owner, RSVP, kapasitas, reminder, dan auto-close |
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/admin setup` | Auto-bikin struktur server |
@@ -141,6 +142,19 @@ Consumer lokal wajib memeriksa freshness: Hengs hanya boleh dianggap online keti
 status `CONNECTED` dan heartbeat belum melewati 90 detik. Schema lengkap dan aturan
 stale ada di [`docs/RUNTIME-HEALTH.md`](docs/RUNTIME-HEALTH.md). Lokasi dapat diubah
 melalui `HENGS_RUNTIME_HEALTH_FILE`, tetapi jangan diarahkan ke folder publik.
+
+### Community Operations Dashboard
+
+Gunakan `/ops overview` untuk melihat satu ringkasan privat tentang runtime Hengs,
+pekerjaan Ops Hub, Event Hub, antrean penerjemah, dan mode fokus. Command ini hanya
+dapat dipakai owner atau role dalam `OPS_EDITOR_ROLE_IDS`, memakai respons ephemeral,
+dan tidak menjalankan tindakan otomatis.
+
+Dashboard hanya membaca angka agregat dan status allowlist. Isi draft, judul event,
+daftar RSVP, nama/ID anggota, nama file, topik fokus, dokumen, token, serta error mentah
+tidak dimasukkan ke embed. Jika satu state store rusak atau tidak dapat dibaca, bagian
+tersebut ditandai tidak tersedia sementara bagian lain tetap tampil. Kontrak lengkap
+ada di [`docs/COMMUNITY-OPERATIONS.md`](docs/COMMUNITY-OPERATIONS.md).
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
 

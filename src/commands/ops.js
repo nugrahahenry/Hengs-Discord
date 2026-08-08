@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { isEditor } = require('../ops/permissions');
+const { collectCommunityOverview, formatCommunityOverview } = require('../ops/overview');
 
 function assertOpsAccess(interaction) {
   if (!process.env.OWNER_ID) {
@@ -65,6 +66,9 @@ module.exports = {
       .setName('status')
       .setDescription('Lihat draft tertunda dan aktivitas Ops Hub'))
     .addSubcommand(sub => sub
+      .setName('overview')
+      .setDescription('Lihat ringkasan privat seluruh operasi Hengs'))
+    .addSubcommand(sub => sub
       .setName('history')
       .setDescription('Lihat audit tindakan Ops Hub tanpa isi draft')
       .addIntegerOption(option => option
@@ -73,7 +77,15 @@ module.exports = {
         .setMinValue(5)
         .setMaxValue(20))),
 
-  async execute(interaction, { agent, opsHub }) {
+  async execute(interaction, {
+    agent,
+    opsHub,
+    eventHub,
+    translation,
+    runtimeHealth,
+    state,
+    version,
+  }) {
     if (!interaction.inGuild()) {
       await interaction.reply({ content: '❌ Ops Hub hanya dapat dipakai di server Henzzz.', ephemeral: true });
       return;
@@ -85,6 +97,31 @@ module.exports = {
     }
 
     const subcommand = interaction.options.getSubcommand();
+    if (subcommand === 'overview') {
+      const overview = collectCommunityOverview({
+        runtimeHealth,
+        opsHub,
+        eventHub,
+        translation,
+        focusState: state,
+        version,
+      });
+      const presentation = formatCommunityOverview(overview);
+      const embed = new EmbedBuilder()
+        .setColor(presentation.color)
+        .setTitle(presentation.title)
+        .setDescription(presentation.description)
+        .addFields(presentation.fields)
+        .setFooter({ text: presentation.footer })
+        .setTimestamp();
+      await interaction.reply({
+        embeds: [embed],
+        ephemeral: true,
+        allowedMentions: { parse: [] },
+      });
+      return;
+    }
+
     if (subcommand === 'draft') {
       await interaction.deferReply({ ephemeral: true });
       const brief = interaction.options.getString('brief', true);

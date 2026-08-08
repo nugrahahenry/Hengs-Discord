@@ -587,6 +587,16 @@ function enqueueTranslation(options, onStart) {
   return translationQueue.enqueue(() => translateAndDeliver(options), onStart);
 }
 
+function getQueueStatus() {
+  return {
+    configured: isConfigured(),
+    running: translationQueue.running,
+    queued: translationQueue.items.length,
+    depth: translationQueue.depth,
+    maxJobs: translationQueue.maxJobs,
+  };
+}
+
 function getPublicError(error) {
   return mapDeepLError(error).userMessage;
 }
@@ -598,6 +608,7 @@ module.exports = {
   cleanupStaleTempDirs,
   enqueueTranslation,
   formatBytes,
+  getQueueStatus,
   getPublicError,
   getTargetLanguageSuggestions,
   isAllowedDiscordCdnUrl,
