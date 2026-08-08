@@ -10,6 +10,7 @@
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
 - **Community Event Hub** — `/event draft` membuat event ber-approval dengan RSVP, kapasitas, reminder, cancel, dan auto-close
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
+- **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -81,6 +82,7 @@ discord-bot/
 │   ├── ops/                # draft store, owner approval, inbox Canox
 │   ├── events/             # event approval, RSVP, reminder, recovery
 │   ├── translation/        # DeepL client, validasi, antrean, cleanup
+│   ├── runtime/            # producer heartbeat dan kontrak health lokal
 │   └── utils/
 │       ├── welcome-card.js # render welcome/leave card (canvas)
 │       └── role-store.js   # persistensi reaction roles
@@ -123,6 +125,22 @@ npm run verify:server
 `verify:server` hanya membaca Discord API. Pemeriksaan ini tidak mengirim pesan,
 mengubah role, atau mendaftarkan slash command; hasilnya mencakup channel operasional,
 permission bot, role hierarchy, owner, dan keberadaan pesan reaction-role.
+
+### Runtime health
+
+Saat proses berjalan, Hengs menulis `data/runtime-health.json` setiap 30 detik dengan
+atomic rename. Snapshot berisi versi, uptime, heartbeat, status koneksi Discord, dan
+kode masalah terbatas. Token, ID Discord, nama server, pesan, draft, dokumen, path,
+serta error mentah tidak disimpan.
+
+Single-instance lock juga memiliki heartbeat 30 detik. Lock yang tidak diperbarui lebih
+dari lima menit dapat dipulihkan, sehingga PID Windows yang sudah hilang tetapi salah
+terbaca `EPERM` tidak membuat launcher terjebak restart selamanya.
+
+Consumer lokal wajib memeriksa freshness: Hengs hanya boleh dianggap online ketika
+status `CONNECTED` dan heartbeat belum melewati 90 detik. Schema lengkap dan aturan
+stale ada di [`docs/RUNTIME-HEALTH.md`](docs/RUNTIME-HEALTH.md). Lokasi dapat diubah
+melalui `HENGS_RUNTIME_HEALTH_FILE`, tetapi jangan diarahkan ke folder publik.
 
 Token Discord = **rahasia**. Kalau pernah ke-share di mana pun (chat, screenshot, commit), langsung **Reset Token** di Developer Portal. File `.env` & folder `data/` otomatis di-ignore Git.
 

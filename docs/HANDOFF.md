@@ -1,6 +1,32 @@
 # Hengs Discord Bot — Handoff
 
-Updated: 2026-07-31
+Updated: 2026-08-09
+
+## Current checkpoint: v1.9.0
+
+- Proposed version: **v1.9.0**.
+- Scope: producer-side Discord runtime health contract; no Canox code or slash-command
+  schema is changed.
+- Hengs writes an atomic `data/runtime-health.json` snapshot every 30 seconds with
+  version, uptime, connection lifecycle, heartbeat, and allowlisted issue metadata.
+- Consumers must require schema/service identity and a fresh heartbeat. A `CONNECTED`
+  snapshot older than 90 seconds is offline/stale, not healthy.
+- Discord ready, shard disconnect/reconnect/resume/error, invalidated session, login
+  failure, fatal process errors, and graceful shutdown are mapped explicitly.
+- Snapshot I/O failure is isolated and retried on the next heartbeat.
+- The instance lock now has its own 30-second heartbeat and five-minute stale recovery,
+  fixing a live Windows `EPERM` false-positive for a missing legacy PID.
+- Privacy boundary excludes secrets, Discord IDs/names, messages, drafts, documents,
+  paths, raw exceptions, and stack traces.
+- `node --test`: 55 passed, 0 failed. All 34 JavaScript files pass syntax checks and
+  `git diff --check` passes.
+- Read-only Discord server verification passed with 0 failures and 0 warnings.
+- Live restart passed: v1.9.0 reached `CONNECTED`, heartbeat and uptime advanced after
+  one full interval, the lock timestamp refreshed, and a second instance exited without
+  replacing the active process. No slash-command registration is required.
+
+Suggested commit after live acceptance:
+`Hengs Discord v1.9.0: Add privacy-safe runtime health`
 
 ## Completed checkpoint
 
@@ -147,7 +173,7 @@ Checkpoint status: **ready for Henry's manual commit**.
 
 Suggested commit after live acceptance: `Hengs Discord v1.7.0: Accept private Canox event drafts`
 
-## Current checkpoint
+## Previous checkpoint: v1.8.0
 
 - Proposed version: **v1.8.0**.
 - Scope: private Event Draft Editor on the existing Event Hub approval panel.

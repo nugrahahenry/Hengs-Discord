@@ -25,40 +25,30 @@ const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@disco
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
 const translationService = require('./translation/service');
+const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
+const { InstanceLockError, createInstanceLock } = require('./runtime/instance-lock');
+const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
 // event dobel, ini menutup kemungkinan dua instance mem-publish draft yang sama.
 const INSTANCE_LOCK = path.join(__dirname, '..', '.dc-bot.lock');
-function isPidAlive(pid) {
-  try { process.kill(pid, 0); return true; } catch (error) { return error.code === 'EPERM'; }
-}
-function acquireInstanceLock() {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const fd = fs.openSync(INSTANCE_LOCK, 'wx');
-      fs.writeFileSync(fd, String(process.pid));
-      fs.closeSync(fd);
-      return;
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw error;
-      const oldPid = Number.parseInt(fs.readFileSync(INSTANCE_LOCK, 'utf8').trim(), 10);
-      if (oldPid && oldPid !== process.pid && isPidAlive(oldPid)) {
-        console.error(`\n🔒 Hengs Discord sudah berjalan (PID ${oldPid}). Instance kedua dihentikan.\n`);
-        process.exit(0);
-      }
-      fs.rmSync(INSTANCE_LOCK, { force: true });
-    }
+const instanceLock = createInstanceLock({ filePath: INSTANCE_LOCK });
+try {
+  instanceLock.acquire();
+} catch (error) {
+  if (error instanceof InstanceLockError && error.code === 'INSTANCE_ACTIVE') {
+    const owner = error.pid ? ` (PID ${error.pid})` : '';
+    console.error(`\n🔒 Hengs Discord sudah berjalan${owner}. Instance kedua dihentikan.\n`);
+    process.exit(0);
   }
-  throw new Error('Gagal memperoleh single-instance lock Hengs Discord.');
+  throw error;
 }
-function releaseInstanceLock() {
-  try {
-    const ownerPid = Number.parseInt(fs.readFileSync(INSTANCE_LOCK, 'utf8').trim(), 10);
-    if (ownerPid === process.pid) fs.rmSync(INSTANCE_LOCK, { force: true });
-  } catch {}
-}
-acquireInstanceLock();
-process.on('exit', releaseInstanceLock);
+const runtimeHealth = createRuntimeHealth({ version: packageMetadata.version });
+runtimeHealth.start();
+process.on('exit', () => {
+  runtimeHealth.stop();
+  instanceLock.release();
+});
 
 // ── Client setup ────────────────────────────────────────────────────────────
 const client = new Client({
@@ -74,6 +64,36 @@ const client = new Client({
   // sebelum bot restart) nggak dikirim Discord → reaction roles mati senyap. Inilah yang
   // bikin /admin rolereact "nggak jalan" kemarin.
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User, Partials.GuildMember],
+});
+
+let shutdownStarted = false;
+let fatalExitStarted = false;
+
+function gracefulShutdown(signal) {
+  if (shutdownStarted || fatalExitStarted) return;
+  shutdownStarted = true;
+  console.log(`\nHengs Discord menerima ${signal}; menutup koneksi...`);
+  runtimeHealth.setConnection('STOPPING');
+  try { client.destroy(); } catch {}
+  process.exit(0);
+}
+
+function fatalExit(issueCode, error) {
+  if (fatalExitStarted) return;
+  fatalExitStarted = true;
+  runtimeHealth.setConnection('FAILED', issueCode);
+  console.error(`[fatal] ${issueCode}:`, error);
+  try { client.destroy(); } catch {}
+  process.exit(1);
+}
+
+process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('uncaughtException', error => fatalExit('UNCAUGHT_EXCEPTION', error));
+process.on('unhandledRejection', error => fatalExit('UNHANDLED_REJECTION', error));
+
+bindDiscordClientHealth(client, runtimeHealth, Events, {
+  isStopping: () => shutdownStarted || fatalExitStarted,
 });
 
 // ── Load slash commands ──────────────────────────────────────────────────────
@@ -468,4 +488,6 @@ client.on(Events.MessageReactionRemove, (r, u) => handleReaction(r, u, false));
 
 // ── Login ────────────────────────────────────────────────────────────────────
 console.log('🚀 Starting Discord Bot...\n');
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN).catch(error => {
+  fatalExit('LOGIN_FAILED', error);
+});

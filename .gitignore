@@ -36,4 +36,5 @@ docs/*
 !docs/HANDOFF.md
 !docs/DEEPL-DOCUMENT-VALIDATION.md
 !docs/EVENT-HUB.md
+!docs/RUNTIME-HEALTH.md
 /CHANGELOG.md

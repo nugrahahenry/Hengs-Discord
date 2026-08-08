@@ -5,6 +5,34 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-09
+
+### Added
+- Producer runtime health lokal di `data/runtime-health.json` dengan heartbeat 30 detik,
+  versi, uptime, lifecycle koneksi Discord, dan kategori masalah terbatas.
+- Kontrak consumer untuk status starting, connected, reconnecting, disconnected,
+  degraded, invalidated, stopping, stopped, failed, serta deteksi stale 90 detik.
+
+### Changed
+- Login gagal, fatal process error, shutdown, shard disconnect/reconnect/resume, dan
+  session invalidation sekarang memperbarui lifecycle snapshot sebelum proses berhenti
+  atau launcher mencoba recovery.
+- Single-instance lock sekarang menyegarkan timestamp setiap 30 detik dan memulihkan
+  lock stale setelah lima menit. Ini menutup false-positive Windows `EPERM` pada PID
+  yang sebenarnya sudah tidak ada tanpa melemahkan guard instance aktif.
+
+### Security
+- Snapshot ditulis lewat temporary file, flush, dan atomic rename; kegagalan I/O tidak
+  menjatuhkan bot dan akan dicoba lagi pada heartbeat berikutnya.
+- Token, API key, guild/channel/user ID, nama server, pesan, dokumen, draft, path, raw
+  exception, dan stack trace tidak pernah masuk snapshot.
+
+### Tests
+- 55 test lulus, termasuk atomic write, stale/future timestamp, fail-closed schema,
+  allowlisted issue code, I/O isolation, lifecycle disconnect/reconnect/recovery, lock
+  stale, owner aktif, dan larangan proses lain melepas lock.
+- Semua 34 file JavaScript lulus syntax check dan Git whitespace validation lulus.
+
 ## [1.8.0] - 2026-07-31
 
 ### Added
