@@ -13,6 +13,7 @@
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
+- **Moderation Queue** - `/reports` memberi owner/moderator antrean privat metadata-only, urutan laporan tertua, pagination, dan prioritas revisi-aman
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -68,6 +69,7 @@ stop-bot.bat            # hentikan bot
 | `/event draft` · `/event status` | Event komunitas dengan approval owner, RSVP, kapasitas, reminder, dan auto-close |
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/report category details [member] [message_link] [evidence] [anonymous]` | Kirim laporan insiden privat kepada owner/moderator |
+| `/reports` | Buka antrean laporan aktif privat untuk owner/moderator |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
@@ -237,6 +239,27 @@ privat dan file sementara lokal selalu dibersihkan. Laporan selesai disimpan sel
 jika Discord sementara gagal. Hengs tidak mengirim DM, pengumuman publik, atau hukuman
 otomatis; keputusan tetap pada manusia. Kontrak operator lengkap ada di
 [`docs/REPORT-HUB.md`](docs/REPORT-HUB.md).
+
+### Private moderation queue
+
+Gunakan `/reports` untuk melihat laporan berstatus open atau claimed. Command ini hanya
+dapat dipakai `OWNER_ID` dan role dalam `REPORT_MODERATOR_ROLE_IDS`; izin diperiksa
+lagi pada setiap Refresh, Sebelumnya, dan Berikutnya.
+
+Antrean menampilkan maksimum 10 laporan per halaman, diurutkan dari yang paling lama.
+Priority hanya menjadi tie-break untuk waktu yang sama: Mendesak, Penting, lalu Normal.
+Default category adalah Penting untuk harassment, spam/scam, dan inappropriate; category
+lain dimulai dari Normal. Reviewer dapat mengganti priority lewat panel dengan revision
+compare-and-set sehingga klik lama atau dua moderator bersamaan tidak menimpa state baru.
+
+Queue hanya memuat Report ID, status, priority, category, usia relatif, claimant, dan
+tautan panel yang tervalidasi. Detail laporan, pelapor, target, link pesan, bukti, final
+note, dan audit tidak masuk queue. Semua respons bersifat ephemeral, pagination dibatasi,
+dan mention parsing dimatikan.
+
+Anti-Raid tidak termasuk checkpoint ini. Deteksi mass promo/scam/pornografi, penghapusan
+pesan, dan auto-ban direncanakan sebagai boundary terpisah untuk v1.13.0 agar policy dan
+false-positive guard dapat diaudit sendiri.
 
 ---
 

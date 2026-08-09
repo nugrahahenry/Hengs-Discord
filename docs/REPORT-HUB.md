@@ -43,10 +43,35 @@ terjadi, bukan menyalin identitasnya.
 - **Reopen**: owner-only, membuka kembali laporan final.
 - **Reveal Reporter**: owner-only dan ephemeral.
 - **Purge**: owner-only, membutuhkan pengetikan ID laporan secara persis.
+- **Normal / Penting / Mendesak**: mengubah priority triase tanpa memutuskan benar-salah
+  laporan. Category harassment, spam/scam, dan inappropriate default ke Penting;
+  category lain default ke Normal.
 
 Semua aksi memeriksa role dan revisi state saat tombol/modal dikirim. Tampilan tombol
 tidak dianggap sebagai izin. Dua Claim pada revisi yang sama hanya menghasilkan satu
 pemenang.
+
+## Antrean Reviewer
+
+`/reports` menampilkan laporan open dan claimed untuk owner/reviewer. Command tidak
+memakai permission tampilan Discord sebagai satu-satunya guard: `OWNER_ID` atau role
+`REPORT_MODERATOR_ROLE_IDS` diverifikasi ulang saat membuka antrean dan pada setiap
+tombol pagination/refresh.
+
+Setiap halaman memuat maksimum 10 laporan, paling lama terlebih dahulu. Priority hanya
+memecah urutan jika timestamp sama. Page maksimum dibatasi dan request ke halaman yang
+sudah kosong di-clamp ke halaman aktif terakhir.
+
+Antrean sengaja metadata-only. Field yang boleh tampil hanya Report ID, status,
+priority, category, usia relatif, claimant, dan link panel privat yang dibentuk hanya
+bila guild/channel/message ID valid. Detail, reporter, target, message link, evidence,
+final note, dan audit tidak masuk payload. Respons selalu ephemeral dan menonaktifkan
+mention parsing.
+
+Priority change memakai revision compare-and-set. Dua reviewer yang menekan revision
+yang sama hanya menghasilkan satu perubahan; tombol stale mendapat respons privat.
+Jika Discord gagal mengedit panel setelah state berubah, `messageSyncPending` tetap
+aktif agar startup recovery menyinkronkan panel kemudian.
 
 ## Bukti dan Privasi
 
@@ -63,9 +88,17 @@ Hengs tidak mengirim laporan lewat DM, tidak menghubungi target, tidak membuat p
 publik, dan tidak menjalankan timeout/mute/kick/ban/warning. Moderator wajib menilai
 konteks dan bukti secara manusiawi.
 
+## Batas Anti-Raid
+
+Checkpoint v1.12.0 tidak membaca semua pesan untuk melakukan klasifikasi massal dan
+tidak menghapus pesan, timeout, kick, atau ban otomatis. Anti-Raid untuk promo/scam/
+pornografi lintas-channel direncanakan sebagai v1.13.0 terpisah dengan policy,
+allowlist, false-positive guard, audit, dan recovery sendiri.
+
 ## Recovery
 
-State ditulis melalui temporary file, flush, dan atomic rename. Panel yang berubah
+State ditulis melalui temporary file, flush, dan atomic rename. State legacy tanpa
+priority dimigrasikan atomik; field parsial atau invalid gagal tertutup. Panel yang berubah
 tetapi gagal diedit ditandai untuk sinkronisasi startup. Laporan resolved/dismissed yang
 melewati retention masuk `purge_pending`; state baru dihapus setelah panel Discord
 berhasil dihapus atau Discord menyatakan pesannya sudah tidak ada. Gangguan izin atau

@@ -330,28 +330,44 @@ test('/report hides unexpected internal error messages from members', () => {
   );
 });
 
-test('report component router dispatches only report buttons and modals', async () => {
+test('reports component router keeps report and queue namespaces separate', async () => {
   const calls = [];
   const reportHub = {
     handleButton: async () => calls.push('button'),
     handleModal: async () => calls.push('modal'),
   };
+  const reportQueue = {
+    handleQueueComponent: async () => {
+      calls.push('queue');
+      return true;
+    },
+  };
   assert.equal(await routeReportComponent({
     customId: 'report:claim:0123456789abcdef:0',
     isButton: () => true,
     isModalSubmit: () => false,
-  }, reportHub), true);
+  }, reportHub, reportQueue), true);
   assert.equal(await routeReportComponent({
     customId: 'report:resolve_modal:0123456789abcdef:1',
     isButton: () => false,
     isModalSubmit: () => true,
-  }, reportHub), true);
+  }, reportHub, reportQueue), true);
+  assert.equal(await routeReportComponent({
+    customId: 'reports:refresh:0',
+    isButton: () => true,
+    isModalSubmit: () => false,
+  }, reportHub, reportQueue), true);
+  assert.equal(await routeReportComponent({
+    customId: 'reports:refresh:0',
+    isButton: () => false,
+    isModalSubmit: () => true,
+  }, reportHub, reportQueue), false);
   assert.equal(await routeReportComponent({
     customId: 'event:publish:0123456789abcdef',
     isButton: () => true,
     isModalSubmit: () => false,
-  }, reportHub), false);
-  assert.deepEqual(calls, ['button', 'modal']);
+  }, reportHub, reportQueue), false);
+  assert.deepEqual(calls, ['button', 'modal', 'queue']);
 });
 
 test('anonymous panel hides reporter and disables all mentions', async () => {
@@ -515,6 +531,7 @@ test('a forged report button from a non-reviewer fails ephemerally', async () =>
   const outsider = fakeInteraction(`report:claim:${report.id}:0`, '700000000000000099');
   await hub.handleButton(outsider);
   assert.equal(outsider.lastReply.ephemeral, true);
+  assert.match(outsider.lastReply.content, /owner atau moderator/i);
   assert.equal(store.getReport(report.id).status, 'open');
 });
 
@@ -719,4 +736,123 @@ test('startup retention keeps purge_pending state when Discord deletion fails', 
   } finally {
     console.error = originalConsoleError;
   }
+});
+test('priority controls render localized labels within Discord limits', () => {
+  const report = seedOpenReport({ category: 'spam_scam' });
+  const embed = hub.reportEmbed(report).toJSON();
+  const priorityField = embed.fields.find(field => field.name === 'Prioritas');
+  assert.equal(priorityField.value, 'Penting');
+
+  const rows = hub.reportComponents(report).map(row => row.toJSON());
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every(row => row.components.length <= 5));
+  assert.ok(rows.length <= 5);
+
+  const priorityButtons = rows[1].components;
+  assert.deepEqual(priorityButtons.map(button => button.custom_id), [
+    `report:priority_normal:${report.id}:${report.revision}`,
+    `report:priority_important:${report.id}:${report.revision}`,
+    `report:priority_urgent:${report.id}:${report.revision}`,
+  ]);
+  assert.deepEqual(priorityButtons.map(button => button.label), ['Normal', 'Penting', 'Mendesak']);
+  assert.deepEqual(priorityButtons.map(button => button.disabled), [false, true, false]);
+  assert.deepEqual(hub.panelPayload(report).allowedMentions, { parse: [] });
+});
+
+test('owner and moderator can change report priority and synchronize the panel', async () => {
+  const report = seedOpenReport({ category: 'technical' });
+  store.setPanel(report.id, {
+    channelId: process.env.MOD_LOG_CHANNEL_ID,
+    messageId: '333333333333333333',
+  });
+  const moderator = fakeInteraction(
+    `report:priority_urgent:${report.id}:${report.revision}`,
+    '700000000000000010',
+    ['800000000000000001'],
+  );
+
+  await hub.handleButton(moderator);
+
+  let current = store.getReport(report.id);
+  assert.equal(current.priority, 'urgent');
+  assert.equal(current.prioritySource, 'moderator');
+  assert.equal(current.revision, 1);
+  assert.equal(current.messageSyncPending, false);
+  assert.ok(moderator.lastUpdate);
+  assert.match(JSON.stringify(moderator.lastUpdate), /Mendesak/);
+
+  const owner = fakeInteraction(
+    `report:priority_normal:${report.id}:${current.revision}`,
+    process.env.OWNER_ID,
+  );
+  await hub.handleButton(owner);
+
+  current = store.getReport(report.id);
+  assert.equal(current.priority, 'normal');
+  assert.equal(current.revision, 2);
+  assert.equal(current.messageSyncPending, false);
+  assert.ok(owner.lastUpdate);
+});
+
+test('stale priority buttons allow exactly one revision winner', async () => {
+  const report = seedOpenReport({ category: 'technical' });
+  const first = fakeInteraction(
+    `report:priority_urgent:${report.id}:0`,
+    '700000000000000010',
+    ['800000000000000001'],
+  );
+  const second = fakeInteraction(
+    `report:priority_important:${report.id}:0`,
+    '700000000000000011',
+    ['800000000000000001'],
+  );
+
+  await Promise.all([hub.handleButton(first), hub.handleButton(second)]);
+
+  const current = store.getReport(report.id);
+  assert.equal(current.revision, 1);
+  assert.ok(['urgent', 'important'].includes(current.priority));
+  assert.equal([first, second].filter(item => item.lastUpdate).length, 1);
+  const stale = [first, second].find(item => !item.lastUpdate);
+  assert.match(stale.lastReply.content, /sudah berubah/i);
+});
+
+test('forged priority button from a non-reviewer fails privately', async () => {
+  const report = seedOpenReport({ category: 'technical' });
+  const outsider = fakeInteraction(
+    `report:priority_urgent:${report.id}:0`,
+    '700000000000000099',
+  );
+
+  await hub.handleButton(outsider);
+
+  const current = store.getReport(report.id);
+  assert.equal(current.priority, 'normal');
+  assert.equal(current.revision, 0);
+  assert.equal(outsider.lastReply.ephemeral, true);
+  assert.match(outsider.lastReply.content, /owner atau moderator/i);
+});
+
+test('change report priority keeps sync pending when panel update fails', async () => {
+  const report = seedOpenReport({ category: 'technical' });
+  store.setPanel(report.id, {
+    channelId: process.env.MOD_LOG_CHANNEL_ID,
+    messageId: '333333333333333333',
+  });
+  const moderator = fakeInteraction(
+    `report:priority_important:${report.id}:0`,
+    '700000000000000010',
+    ['800000000000000001'],
+  );
+  moderator.update = async () => {
+    throw new Error('Discord edit failed');
+  };
+
+  await hub.handleButton(moderator);
+
+  const current = store.getReport(report.id);
+  assert.equal(current.priority, 'important');
+  assert.equal(current.revision, 1);
+  assert.equal(current.messageSyncPending, true);
+  assert.match(moderator.lastReply.content, /disinkronkan ulang otomatis/i);
 });

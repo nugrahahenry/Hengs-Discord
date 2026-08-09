@@ -2,46 +2,64 @@
 
 Updated: 2026-08-09
 
-## Current checkpoint: v1.11.0
+## Current checkpoint: v1.12.0
 
-- Proposed version: **v1.11.0**.
-- Scope: Incident Report Hub privat untuk seluruh member melalui `/report`; tidak ada
-  hukuman otomatis, AI judgment, DM, publikasi, Canox, atau integrasi Hengs WA.
-- Intake mendukung kategori, detail 20-1.500 karakter, member terkait, link pesan satu
-  server, bukti terbatas, dan anonimitas opt-in.
-- Panel hanya masuk `MOD_LOG_CHANNEL_ID` bila `@everyone` tidak dapat melihatnya.
-  Administrator Discord tetap dipercaya karena dapat melewati overwrite channel.
-- `REPORT_MODERATOR_ROLE_IDS` dapat Claim/Release/Resolve/Dismiss. Owner juga dapat
-  Reopen, Reveal Reporter secara ephemeral, dan Purge permanen.
-- State `data/reports-state.json` atomik dan ignored. Revision menutup race, interaction
-  ID serta delivery claim mencegah panel ganda, dan audit tidak menyimpan konten sensitif.
-- Marker Report ID memulihkan panel yang diterima Discord sebelum state tersimpan;
-  startup membuang reservation terputus bila panel memang tidak pernah terkirim.
-- Bukti maksimum efektif 8 MiB memakai allowlist format, CDN/HTTPS, MIME/signature,
-  bounded stream, timeout, filename sanitization, larangan redirect, serta cleanup
-  terisolasi dalam `finally`.
-- Link pesan diverifikasi dengan fetch read-only dari guild yang sama tanpa menyimpan
-  isinya. State menjalani schema validation penuh dan error publik tidak memuat raw path.
-- Retention default 30 hari. Penghapusan panel yang gagal meninggalkan `purge_pending`
-  untuk retry; state tidak dianggap hilang sebelum panel Discord terhapus. Purge manual
-  memakai revision guard agar modal lama tidak dapat menghapus state yang lebih baru.
-- Dua catatan live acceptance v1.10.0 yang sebelumnya belum di-commit tetap digabung
-  dalam checkpoint ini atas instruksi Henry.
+- Proposed version: **v1.12.0**.
+- Scope: private moderation queue and report priority on top of the existing Incident
+  Report Hub. No automatic punishment, AI judgment, public notification, Canox, or WA
+  integration is added.
+- `/reports` is guild-only and available only to `OWNER_ID` or role IDs in
+  `REPORT_MODERATOR_ROLE_IDS`. The command and every queue component recheck runtime
+  authorization.
+- Queue entries are active-only (open/claimed), maximum 10 per page, oldest first, with
+  priority as deterministic tie-break. Pages are bounded and clamped after state shrinks.
+- Queue payloads expose metadata only: Report ID, status, priority, category, relative
+  age, claimant, and a validated panel link. Sensitive report fields are excluded.
+- Priority defaults to Important for harassment, spam/scam, and inappropriate, otherwise
+  Normal. Reviewers can set Normal/Important/Urgent from the private panel.
+- Priority changes and legacy migration are revision-safe. Failed panel updates remain
+  sync-pending for startup recovery rather than reporting false success.
+- `report:` and `reports:` component namespaces are routed independently.
+- Anti-Raid remains an explicit v1.13.0 boundary.
 
-Verification target:
-- `node --test`: 112 passed, 0 failed.
-- Seluruh file JavaScript harus lulus syntax check dan `git diff --check`.
-- `npm audit --omit=dev` dan read-only `verify:server` harus lulus sebelum live acceptance.
+Verification complete:
+- `node --test`: 134 passed, 0 failed.
+- Syntax check: 49 JavaScript files passed.
+- `git diff --check` passed.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- Read-only server verification from main local state: 0 failures, 0 warnings.
+- Focused security/correctness re-review of Task 4: PASS, no actionable findings.
 
-Pending live acceptance (memerlukan izin eksplisit Henry):
-- Isi `MOD_LOG_CHANNEL_ID`; biarkan `REPORT_MODERATOR_ROLE_IDS` kosong untuk owner-only
-  atau isi role reviewer yang memang dipercaya.
-- Daftarkan ulang slash command, restart satu instance bot, lalu uji laporan non-sensitif.
-- Verifikasi anonimitas moderator/owner, Claim/Resolve, Reopen, dan Purge tanpa pesan
-  publik, duplikasi panel, file temp tertinggal, atau konten sensitif di log.
+Pending live acceptance (requires explicit Henry approval):
+- Register the new `/reports` guild command and verify total command count 11.
+- Restart exactly one bot instance, then test owner access, outsider denial, pagination,
+  priority override, stale button rejection, and panel navigation.
+- Do not start Anti-Raid implementation in this checkpoint.
 
 Suggested commit after live acceptance:
-`Hengs Discord v1.11.0: Add private incident report hub`
+`Hengs Discord v1.12.0: Add private moderation queue`
+
+## Previous checkpoint: v1.11.0
+
+- Incident Report Hub `/report` is committed at `828b3b6` with private intake,
+  optional anonymity, evidence validation, moderator workflow, retention, and recovery.
+- v1.12.0 only adds triage metadata and queue navigation; the underlying report privacy
+  and human-decision boundary remain unchanged.
+Live acceptance completed:
+- `MOD_LOG_CHANNEL_ID` memakai channel `mod-logs` yang menolak View Channel untuk
+  `@everyone`; `REPORT_MODERATOR_ROLE_IDS` kosong sehingga reviewer saat ini owner-only.
+- Sepuluh slash command terdaftar dan schema remote `/report` memuat keenam opsi yang
+  dirancang.
+- Acceptance sintetis memastikan panel masuk channel privat, reporter anonim tidak
+  muncul pada embed, kontrol moderator tersedia, dan panel/state uji berhasil dibersihkan.
+- Bot berjalan sebagai tepat satu instance `v1.11.0`; runtime health melaporkan
+  `connected` setelah restart.
+- `restart.bat` lokal sudah diperbaiki ke ASCII/CRLF dan memakai `Start-Sleep` agar aman
+  dipanggil secara hidden/non-interaktif.
+
+Optional human smoke test:
+- Jalankan satu `/report` non-sensitif dari akun member untuk mengecek UX receipt
+  ephemeral. Backend, panel privat, dan cleanup sudah lolos acceptance otomatis.
 
 ## Previous checkpoint: v1.10.0
 

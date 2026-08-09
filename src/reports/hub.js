@@ -23,6 +23,16 @@ const PANEL_PERMISSIONS = [
   PermissionsBitField.Flags.ReadMessageHistory,
 ];
 const CATEGORY_LABELS = new Map(REPORT_CATEGORIES.map(item => [item.value, item.name]));
+const PRIORITY_LABELS = Object.freeze({
+  normal: 'Normal',
+  important: 'Penting',
+  urgent: 'Mendesak',
+});
+const PRIORITY_ACTIONS = Object.freeze({
+  priority_normal: 'normal',
+  priority_important: 'important',
+  priority_urgent: 'urgent',
+});
 const MAINTENANCE_INTERVAL_MS = 10 * 60 * 1000;
 const ACTIVE_DELIVERY_GRACE_MS = 2 * 60 * 1000;
 let maintenanceTimer = null;
@@ -111,6 +121,7 @@ function reportEmbed(report) {
   const fields = [
     { name: 'Status', value: statusLabel(report.status), inline: true },
     { name: 'Kategori', value: CATEGORY_LABELS.get(report.category) || report.category, inline: true },
+    { name: 'Prioritas', value: PRIORITY_LABELS[report.priority] || 'Normal', inline: true },
     { name: 'ID', value: `\`${report.id}\``, inline: true },
     { name: 'Pelapor', value: reporter, inline: true },
   ];
@@ -130,11 +141,12 @@ function reportEmbed(report) {
     .setTimestamp(new Date(report.createdAt));
 }
 
-function actionButton(report, action, label, style) {
+function actionButton(report, action, label, style, disabled = false) {
   return new ButtonBuilder()
     .setCustomId(`report:${action}:${report.id}:${report.revision}`)
     .setLabel(label)
-    .setStyle(style);
+    .setStyle(style)
+    .setDisabled(disabled);
 }
 
 function reportComponents(report) {
@@ -153,7 +165,34 @@ function reportComponents(report) {
   }
   if (report.anonymous) buttons.push(actionButton(report, 'reveal', 'Reveal Reporter', ButtonStyle.Secondary));
   buttons.push(actionButton(report, 'purge', 'Purge', ButtonStyle.Danger));
-  return [new ActionRowBuilder().addComponents(buttons)];
+
+  const priorityButtons = [
+    actionButton(
+      report,
+      'priority_normal',
+      PRIORITY_LABELS.normal,
+      ButtonStyle.Secondary,
+      report.priority === 'normal',
+    ),
+    actionButton(
+      report,
+      'priority_important',
+      PRIORITY_LABELS.important,
+      ButtonStyle.Primary,
+      report.priority === 'important',
+    ),
+    actionButton(
+      report,
+      'priority_urgent',
+      PRIORITY_LABELS.urgent,
+      ButtonStyle.Danger,
+      report.priority === 'urgent',
+    ),
+  ];
+  return [
+    new ActionRowBuilder().addComponents(buttons),
+    new ActionRowBuilder().addComponents(priorityButtons),
+  ];
 }
 
 function panelPayload(report, files = []) {
@@ -330,7 +369,7 @@ function parseComponentId(customId, modal = false) {
   const match = String(customId || '').match(
     modal
       ? /^report:(resolve_modal|dismiss_modal|purge_modal):([a-f0-9]{16}):(\d+)$/
-      : /^report:(claim|release|resolve|dismiss|reopen|reveal|purge):([a-f0-9]{16}):(\d+)$/,
+      : /^report:(claim|release|resolve|dismiss|reopen|reveal|purge|priority_normal|priority_important|priority_urgent):([a-f0-9]{16}):(\d+)$/,
   );
   if (!match || !REPORT_ID.test(match[2])) return null;
   return { action: match[1], reportId: match[2], revision: Number(match[3]) };
@@ -437,7 +476,14 @@ async function handleButton(interaction) {
   }
 
   let result;
-  if (parsed.action === 'claim') {
+  if (PRIORITY_ACTIONS[parsed.action]) {
+    result = store.setPriority(
+      current.id,
+      interaction.user.id,
+      PRIORITY_ACTIONS[parsed.action],
+      parsed.revision,
+    );
+  } else if (parsed.action === 'claim') {
     result = store.claimReport(current.id, interaction.user.id, parsed.revision);
   } else if (parsed.action === 'release') {
     result = store.releaseClaim(current.id, interaction.user.id, parsed.revision, owner);

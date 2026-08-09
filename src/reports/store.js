@@ -18,21 +18,66 @@ const ACTIVE_STATUSES = new Set(['open', 'claimed', 'purge_pending']);
 const FINAL_STATUSES = new Set(['resolved', 'dismissed']);
 const ALL_STATUSES = new Set([...ACTIVE_STATUSES, ...FINAL_STATUSES]);
 const CATEGORY_VALUES = new Set(REPORT_CATEGORIES.map(item => item.value));
-const ALLOWED_AUDIT_DETAIL_KEYS = new Set(['errorCode', 'fromStatus', 'toStatus']);
+const PRIORITIES = new Set(['normal', 'important', 'urgent']);
+const PRIORITY_SOURCES = new Set(['category', 'moderator']);
+const IMPORTANT_CATEGORIES = new Set(['harassment', 'spam_scam', 'inappropriate']);
+const PRIORITY_RANK = Object.freeze({ urgent: 0, important: 1, normal: 2 });
+const ALLOWED_AUDIT_DETAIL_KEYS = new Set([
+  'errorCode',
+  'fromPriority',
+  'fromStatus',
+  'toPriority',
+  'toStatus',
+]);
 const DELIVERY_STATUSES = new Set(['reserved', 'sending', 'delivered']);
 const MAX_EVIDENCE_BYTES = 8 * 1024 * 1024;
 
 class ReportStoreError extends Error {
-  constructor(code, userMessage) {
+  constructor(code, userMessage, diagnosticCode = null) {
     super(userMessage);
     this.name = 'ReportStoreError';
     this.code = code;
     this.userMessage = userMessage;
+    this.diagnosticCode = diagnosticCode;
   }
 }
 
 function defaultState() {
   return { reports: [], audit: [] };
+}
+
+function derivePriority(category) {
+  return IMPORTANT_CATEGORIES.has(category) ? 'important' : 'normal';
+}
+
+function migrateState(state) {
+  if (!state || typeof state !== 'object' || !Array.isArray(state.reports)) {
+    return { state, changed: false };
+  }
+  let changed = false;
+  const reports = state.reports.map(report => {
+    if (!report || typeof report !== 'object') return report;
+    const hasPriority = Object.hasOwn(report, 'priority');
+    const hasSource = Object.hasOwn(report, 'prioritySource');
+    if (hasPriority !== hasSource) throw new Error('record laporan tidak valid');
+    if (hasPriority) {
+      if (!PRIORITIES.has(report.priority) || !PRIORITY_SOURCES.has(report.prioritySource)) {
+        throw new Error('record laporan tidak valid');
+      }
+      return report;
+    }
+    if (!CATEGORY_VALUES.has(report.category)) throw new Error('record laporan tidak valid');
+    changed = true;
+    return {
+      ...report,
+      priority: derivePriority(report.category),
+      prioritySource: 'category',
+    };
+  });
+  return {
+    state: changed ? { ...state, reports } : state,
+    changed,
+  };
 }
 
 function validDate(value, nullable = false) {
@@ -99,6 +144,8 @@ function validateReportRecord(report) {
     || !Number.isSafeInteger(report.revision)
     || report.revision < 0
     || !CATEGORY_VALUES.has(report.category)
+    || !PRIORITIES.has(report.priority)
+    || !PRIORITY_SOURCES.has(report.prioritySource)
     || typeof report.details !== 'string'
     || report.details.length < 20
     || report.details.length > 1500
@@ -177,11 +224,18 @@ function validateState(state) {
 function readState() {
   if (!fs.existsSync(STATE_FILE)) return defaultState();
   try {
-    return validateState(JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')));
+    const migrated = migrateState(JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')));
+    const state = validateState(migrated.state);
+    if (migrated.changed) writeState(state);
+    return state;
   } catch (error) {
+    const diagnosticCode = typeof error?.code === 'string' && /^[A-Z0-9_]{1,32}$/.test(error.code)
+      ? error.code
+      : 'STATE_INVALID';
     throw new ReportStoreError(
       'STATE_CORRUPT',
-      `Report state tidak dapat dibaca: ${error.message}`,
+      'Data laporan sedang tidak tersedia. Hubungi owner.',
+      diagnosticCode,
     );
   }
 }
@@ -292,6 +346,8 @@ function createReport(input, options = {}) {
     revision: 0,
     status: 'open',
     ...normalized,
+    priority: derivePriority(normalized.category),
+    prioritySource: 'category',
     createdAt: new Date(nowMs).toISOString(),
     claimedBy: null,
     claimedAt: null,
@@ -327,6 +383,47 @@ function claimPanelDelivery(id, options = {}) {
 
 function getReport(id) {
   return readState().reports.find(report => report.id === id) || null;
+}
+
+function listActiveReports() {
+  return readState().reports
+    .filter(report => report.status === 'open' || report.status === 'claimed')
+    .sort((left, right) => (
+      Date.parse(left.createdAt) - Date.parse(right.createdAt)
+      || PRIORITY_RANK[left.priority] - PRIORITY_RANK[right.priority]
+      || left.id.localeCompare(right.id)
+    ));
+}
+
+function setPriority(id, actorId, priority, expectedRevision) {
+  const normalizedActor = String(actorId || '');
+  if (!DISCORD_ID.test(normalizedActor)) {
+    throw new ReportStoreError('INVALID_ID', 'Identitas moderator tidak valid.');
+  }
+  if (!PRIORITIES.has(priority)) {
+    throw new ReportStoreError('INVALID_PRIORITY', 'Prioritas laporan tidak valid.');
+  }
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+    throw new ReportStoreError('INVALID_REVISION', 'Revisi laporan tidak valid.');
+  }
+  const state = readState();
+  const report = state.reports.find(item => item.id === id);
+  const failure = transitionFailure(report, expectedRevision);
+  if (failure) return failure;
+  if (!['open', 'claimed', 'resolved', 'dismissed'].includes(report.status)) {
+    return { ok: false, reason: 'status', report };
+  }
+  const previousPriority = report.priority;
+  report.priority = priority;
+  report.prioritySource = 'moderator';
+  report.revision += 1;
+  report.messageSyncPending = true;
+  appendAudit(state, report.id, 'report_priority_changed', normalizedActor, {
+    fromPriority: previousPriority,
+    toPriority: priority,
+  });
+  writeState(state);
+  return { ok: true, reason: null, report };
 }
 
 function setPanel(id, panel) {
@@ -528,10 +625,12 @@ module.exports = {
   claimPanelDelivery,
   claimReport,
   createReport,
+  derivePriority,
   finalizePurge,
   finalizeReport,
   getAuditHistory,
   getReport,
+  listActiveReports,
   listRetentionDue,
   listSyncPending,
   listUnpanelledReports,
@@ -541,4 +640,5 @@ module.exports = {
   releaseClaim,
   reopenReport,
   setPanel,
+  setPriority,
 };

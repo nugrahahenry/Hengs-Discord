@@ -25,6 +25,7 @@ const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@disco
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
 const reportHub = require('./reports/hub');
+const reportQueue = require('./reports/queue');
 const { routeReportComponent } = require('./reports/router');
 const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
@@ -158,7 +159,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log('  /scrim on [game]  | /scrim off');
   console.log('  /announce [message]');
   console.log('  /fun quote | /fun 8ball | /fun roll | /fun flip | /fun meme');
-  console.log('  /ops draft | /event draft | /translate file | /report');
+  console.log('  /ops draft | /event draft | /translate file | /report | /reports');
   console.log('  Mention bot untuk AI chat!');
   console.log('─────────────────────────────────────\n');
 
@@ -384,13 +385,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (
     (interaction.isButton() || interaction.isModalSubmit())
-    && interaction.customId.startsWith('report:')
+    && (
+      interaction.customId.startsWith('report:')
+      || interaction.customId.startsWith('reports:')
+    )
   ) {
     try {
-      await routeReportComponent(interaction, reportHub);
+      await routeReportComponent(interaction, reportHub, reportQueue);
     } catch (error) {
       console.error('[report] component failed:', { code: error.code || 'COMPONENT_FAILED' });
-      const payload = { content: 'Aksi laporan gagal dijalankan.', flags: MessageFlags.Ephemeral };
+      const payload = {
+        content: 'Aksi laporan gagal dijalankan.',
+        flags: MessageFlags.Ephemeral,
+        allowedMentions: { parse: [] },
+      };
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp(payload).catch(() => {});
       } else {
@@ -442,7 +450,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
   // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
-  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event', 'report'];
+  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event', 'report', 'reports'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
   if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({
@@ -465,19 +473,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
       opsHub,
       eventHub,
       reportHub,
+      reportQueue,
       translation: translationService,
       runtimeHealth,
       version: packageMetadata.version,
     });
   } catch (err) {
-    console.error(`❌ Error di /${interaction.commandName}:`, err);
-    const errMsg = { content: '❌ Ada error saat menjalankan command ini.', ephemeral: true };
-    if (interaction.deferred && !interaction.replied) {
-      await interaction.editReply({ content: errMsg.content }).catch(() => {});
-    } else if (interaction.replied) {
-      await interaction.followUp(errMsg).catch(() => {});
+    if (interaction.commandName === 'reports') {
+      console.error('[reports] command failed:', { code: err.code || 'COMMAND_FAILED' });
     } else {
-      await interaction.reply(errMsg).catch(() => {});
+      console.error(`❌ Error di /${interaction.commandName}:`, err);
+    }
+    const errMsg = {
+      content: '❌ Ada error saat menjalankan command ini.',
+      allowedMentions: { parse: [] },
+    };
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply(errMsg).catch(() => {});
+    } else if (interaction.replied) {
+      await interaction.followUp({ ...errMsg, ephemeral: true }).catch(() => {});
+    } else {
+      await interaction.reply({ ...errMsg, ephemeral: true }).catch(() => {});
     }
   }
 });

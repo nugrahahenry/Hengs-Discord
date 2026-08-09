@@ -5,6 +5,52 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-09
+
+### Added
+- `/reports` sebagai antrean laporan aktif privat untuk owner dan role
+  `REPORT_MODERATOR_ROLE_IDS`, dengan maksimum 10 item per halaman serta kontrol
+  Refresh, Sebelumnya, dan Berikutnya.
+- Priority persisten Normal, Penting, dan Mendesak pada setiap laporan, lengkap dengan
+  sumber default category atau override moderator.
+
+### Changed
+- Laporan open/claimed diurutkan paling lama terlebih dahulu. Priority menjadi
+  tie-break deterministik bila waktu pembuatan sama.
+- Category harassment, spam/scam, dan inappropriate dimulai sebagai Penting; category
+  lain dimulai sebagai Normal. Reviewer dapat mengubah priority dari panel privat.
+- Panel laporan sekarang menampilkan priority aktif dan revision-safe controls.
+
+### Security
+- Queue hanya menampilkan Report ID, status, priority, category, usia relatif,
+  claimant, dan tautan panel tervalidasi. Detail, pelapor, target, link pesan, bukti,
+  final note, dan audit tidak dimasukkan.
+- Runtime owner/moderator authorization diperiksa pada command dan setiap tombol queue.
+  Respons selalu ephemeral, page dibatasi, dan mention parsing dimatikan.
+- Kegagalan `/reports` dicatat sebagai fixed error code tanpa raw exception yang dapat
+  membawa data laporan.
+
+### Fixed
+- Migrasi state legacy menambahkan kedua field priority secara atomik tanpa menaikkan
+  revision; state parsial atau priority invalid tetap gagal tertutup.
+- Perubahan priority memakai revision compare-and-set dan mempertahankan sync-pending
+  bila edit panel Discord gagal, sehingga recovery startup tetap dapat memperbaikinya.
+- Routing `report:` dan `reports:` dipisahkan agar forged component tidak berpindah
+  ke handler yang salah.
+
+### Tests
+- 134 test lulus, termasuk legacy migration, category default, two-moderator race,
+  forged component, queue privacy, pagination/clamping, permission recheck, panel-link
+  validation, sync recovery, command wiring, dan safe logger placement.
+- Semua 49 file JavaScript lulus syntax check, `git diff --check` lulus, dan
+  `npm audit --omit=dev` melaporkan 0 vulnerability.
+- Verifikasi Discord read-only dari main state lulus dengan 0 failure dan 0 warning.
+  Slash registration, restart, dan live acceptance sengaja belum dilakukan.
+
+### Next
+- Anti-Raid tetap fase terpisah v1.13.0. Checkpoint ini tidak menghapus pesan, memberi
+  timeout, kick, ban, atau mengambil tindakan moderasi otomatis.
+
 ## [1.11.0] - 2026-08-09
 
 ### Added
@@ -52,7 +98,16 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 ### Tests
 - 112 test lulus, termasuk privacy channel, anonimitas, forged interaction,
   claim race, stale modal, evidence bounds/signature/cleanup, dan retention recovery.
-- Slash registration dan live acceptance sengaja belum dilakukan tanpa izin baru Henry.
+### Operations
+- Sepuluh guild slash command berhasil didaftarkan; schema remote `/report` terverifikasi
+  memuat `category`, `details`, `member`, `message_link`, `evidence`, dan `anonymous`.
+- `MOD_LOG_CHANNEL_ID` diarahkan ke channel `mod-logs` privat dengan reviewer owner-only,
+  batas bukti 8 MiB, dan retention 30 hari.
+- Live acceptance sintetis membuat panel anonim privat, memastikan identitas pelapor
+  tersembunyi serta kontrol moderator tersedia, lalu menghapus kembali panel dan state uji.
+- Bot restart sebagai satu instance `v1.11.0` dengan runtime health `connected`.
+- Launcher lokal `restart.bat` dinormalkan ke ASCII/CRLF dan tidak lagi bergantung pada
+  `timeout` interaktif, sehingga dapat dipakai dari shell hidden.
 
 ## [1.10.0] - 2026-08-09
 
