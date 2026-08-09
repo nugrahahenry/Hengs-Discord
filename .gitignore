@@ -38,4 +38,5 @@ docs/*
 !docs/EVENT-HUB.md
 !docs/RUNTIME-HEALTH.md
 !docs/COMMUNITY-OPERATIONS.md
+!docs/REPORT-HUB.md
 /CHANGELOG.md

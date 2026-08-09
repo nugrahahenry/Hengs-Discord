@@ -12,6 +12,7 @@
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
+- **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -66,6 +67,7 @@ stop-bot.bat            # hentikan bot
 | `/ops draft` · `/ops status` · `/ops history` · `/ops overview` | Draft pengumuman, approval owner, audit, dan ringkasan operasi privat |
 | `/event draft` · `/event status` | Event komunitas dengan approval owner, RSVP, kapasitas, reminder, dan auto-close |
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
+| `/report category details [member] [message_link] [evidence] [anonymous]` | Kirim laporan insiden privat kepada owner/moderator |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
@@ -84,6 +86,7 @@ discord-bot/
 │   ├── events/             # event approval, RSVP, reminder, recovery
 │   ├── translation/        # DeepL client, validasi, antrean, cleanup
 │   ├── runtime/            # producer heartbeat dan kontrak health lokal
+│   ├── reports/            # intake privat, state machine, bukti, panel, recovery
 │   └── utils/
 │       ├── welcome-card.js # render welcome/leave card (canvas)
 │       └── role-store.js   # persistensi reaction roles
@@ -212,6 +215,28 @@ DeepL mendeteksi bahasa sumber otomatis. Bahasa tujuan dipilih lewat autocomplet
 Fitur ini memakai runtime allowlist `TRANSLATE_ALLOWED_USER_IDS`; `OWNER_ID` selalu otomatis diizinkan. Semua respons dan hasil bersifat ephemeral. File hanya berada di folder temp selama proses, tidak dicatat ke log, dan dihapus setelah hasil selesai di-upload.
 
 Karena key saat ini DeepL API Free, command hanya untuk dokumen **non-sensitif**. Jangan unggah data pribadi, kontrak, keuangan, credential, medis, atau rahasia kerja. DOCX/PPTX/PDF juga memakai minimum kuota 50.000 karakter per file. Detail validasi ada di `docs/DEEPL-DOCUMENT-VALIDATION.md`.
+
+### Incident Report Hub
+
+Semua member server dapat memakai `/report`. Hasil command selalu ephemeral dan panel
+review hanya dikirim ke `MOD_LOG_CHANNEL_ID`; tidak ada fallback berdasarkan nama
+channel. Sebelum fitur dipakai, pastikan `@everyone` tidak memiliki **View Channel**,
+bot memiliki View Channel, Send Messages, Embed Links, Attach Files, dan Read Message
+History, lalu isi `REPORT_MODERATOR_ROLE_IDS` bila reviewer selain owner diperlukan.
+Role ini sengaja terpisah dari `OPS_EDITOR_ROLE_IDS`.
+
+Pilihan `anonymous:true` menyembunyikan identitas pelapor dari panel bersama dan
+moderator. `OWNER_ID` tetap dapat memakai **Reveal Reporter** secara ephemeral; tindakan
+reveal dicatat tanpa menyalin identitas ke audit. Administrator Discord tetap merupakan
+pihak tepercaya karena permission Administrator dapat melewati overwrite channel.
+
+Bukti dibatasi ke PNG/JPEG/WEBP/GIF, MP4/WEBM, PDF, atau TXT, maksimum 8 MiB atau batas
+lebih kecil dari konfigurasi/Discord. File divalidasi sebelum diunggah ulang ke panel
+privat dan file sementara lokal selalu dibersihkan. Laporan selesai disimpan selama
+`REPORT_RETENTION_DAYS` (default 30 hari), lalu panel dan state dihapus dengan recovery
+jika Discord sementara gagal. Hengs tidak mengirim DM, pengumuman publik, atau hukuman
+otomatis; keputusan tetap pada manusia. Kontrak operator lengkap ada di
+[`docs/REPORT-HUB.md`](docs/REPORT-HUB.md).
 
 ---
 

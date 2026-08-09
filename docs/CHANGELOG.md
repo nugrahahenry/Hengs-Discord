@@ -5,6 +5,55 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-09
+
+### Added
+- `/report` sebagai intake laporan insiden privat untuk seluruh member dengan kategori,
+  detail, member terkait, link pesan satu server, bukti opsional, dan mode anonim.
+- Panel moderator privat dengan Claim, Release Claim, Resolve, Dismiss, serta kontrol
+  owner-only Reopen, Reveal Reporter, dan Purge.
+- State laporan atomik, idempotensi interaction ID, batas tiga laporan aktif per
+  pelapor, cooldown 60 detik, audit minim konten, dan retention default 30 hari.
+- Pipeline bukti terverifikasi untuk PNG/JPEG/WEBP/GIF, MP4/WEBM, PDF, dan TXT dengan
+  batas efektif maksimum 8 MiB, timeout, signature check, nama file aman, dan cleanup.
+
+### Security
+- Panel hanya dapat dibuat di `MOD_LOG_CHANNEL_ID` yang menutup View Channel untuk
+  `@everyone`; tidak ada fallback publik atau berbasis nama.
+- Intake juga gagal tertutup bila `OWNER_ID` belum diatur, role `@everyone` tidak pernah
+  dianggap reviewer, dan bukti tidak boleh mengikuti redirect keluar Discord CDN.
+- `REPORT_MODERATOR_ROLE_IDS` terpisah dari role Ops Hub. Semua tombol/modal mengecek
+  ulang izin runtime; Reveal dan Purge tetap owner-only.
+- Panel anonim tidak memuat ID pelapor, seluruh payload menonaktifkan mention parsing,
+  dan audit tidak menyimpan isi laporan, link pesan, bukti, atau catatan moderator.
+- Link pesan tidak hanya diperiksa bentuknya: Hengs mengambil pesan tersebut dari guild
+  yang sama tanpa menyimpan isi pesan. Error internal dan path lokal tidak diteruskan
+  kepada pelapor.
+- Tidak ada hukuman otomatis, AI judgment, DM, notifikasi publik, atau integrasi Canox/WA.
+
+### Fixed
+- Claim memakai revision compare-and-set sehingga dua moderator tidak dapat sama-sama
+  memiliki laporan yang sama.
+- Restart menyinkronkan panel tertinggal; purge hanya menghapus state setelah pesan
+  Discord berhasil dihapus atau sudah tidak ada, sedangkan kegagalan tetap retryable.
+- Panel yang sempat terkirim sebelum proses crash tetapi belum masuk state ditemukan
+  kembali lewat marker Report ID, sehingga retry/startup tidak mengirim panel ganda.
+- Delivery claim atomik memastikan dua request paralel tidak dapat sama-sama mengirim
+  panel. Respons kirim yang ambigu dipulihkan dengan pencarian marker sebelum retry.
+- Kegagalan upload panel melepaskan reservation idempotent dan startup membuang
+  reservation terputus yang tidak memiliki panel, sehingga tidak ada laporan aktif yatim.
+- Resolve, Dismiss, dan Purge mengakui modal sebelum operasi state/jaringan; request
+  paralel dari pelapor yang sama juga ditahan selama submission pertama berlangsung.
+- Purge memakai revision compare-and-set sehingga modal lama tidak dapat menghapus
+  laporan yang berubah ketika interaction sedang diakui.
+- Cleanup file sementara diisolasi agar kegagalannya tidak membatalkan panel yang sudah
+  tersimpan. State yang parseable tetapi tidak memenuhi schema lengkap kini gagal tertutup.
+
+### Tests
+- 112 test lulus, termasuk privacy channel, anonimitas, forged interaction,
+  claim race, stale modal, evidence bounds/signature/cleanup, dan retention recovery.
+- Slash registration dan live acceptance sengaja belum dilakukan tanpa izin baru Henry.
+
 ## [1.10.0] - 2026-08-09
 
 ### Added
@@ -25,6 +74,13 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - 59 test lulus, termasuk agregasi lintas-modul, privacy boundary, partial failure,
   permission command, respons ephemeral, dan snapshot antrean.
 - Semua 36 file JavaScript lulus syntax check dan Git whitespace validation lulus.
+
+### Operations
+- Sembilan guild slash command berhasil didaftarkan ulang; schema remote `/ops`
+  terverifikasi memuat `draft`, `status`, `overview`, dan `history`.
+- Bot restart sebagai satu instance `v1.10.0`, mencapai `CONNECTED`, memperbarui
+  heartbeat dan uptime setelah satu interval penuh, serta menolak instance kedua.
+- Read-only Discord server verification lulus dengan 0 failure dan 0 warning.
 
 ## [1.9.0] - 2026-08-09
 

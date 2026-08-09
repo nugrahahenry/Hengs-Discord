@@ -2,28 +2,52 @@
 
 Updated: 2026-08-09
 
-## Current checkpoint: v1.10.0
+## Current checkpoint: v1.11.0
 
-- Proposed version: **v1.10.0**.
-- Scope: read-only Community Operations Dashboard melalui `/ops overview`; tidak ada
-  perubahan Canox, tindakan moderasi otomatis, atau migrasi state.
-- Owner dan `OPS_EDITOR_ROLE_IDS` dapat melihat ringkasan ephemeral untuk runtime,
-  Ops Hub, Event Hub, antrean penerjemah, dan mode fokus.
-- Dashboard hanya membaca angka agregat dan enum allowlist. Isi draft/event, RSVP,
-  identitas anggota, nama file, topik fokus, credential, path, dan raw exception tidak
-  masuk embed atau state baru.
-- Kegagalan satu store terisolasi sebagai kode `*_UNAVAILABLE`; bagian lain tetap
-  tampil dan dashboard tidak mencoba mengubah state.
-- Slash command schema berubah karena subcommand baru. Registrasi dan live acceptance
-  belum dilakukan dan memerlukan izin eksplisit Henry.
+- Proposed version: **v1.11.0**.
+- Scope: Incident Report Hub privat untuk seluruh member melalui `/report`; tidak ada
+  hukuman otomatis, AI judgment, DM, publikasi, Canox, atau integrasi Hengs WA.
+- Intake mendukung kategori, detail 20-1.500 karakter, member terkait, link pesan satu
+  server, bukti terbatas, dan anonimitas opt-in.
+- Panel hanya masuk `MOD_LOG_CHANNEL_ID` bila `@everyone` tidak dapat melihatnya.
+  Administrator Discord tetap dipercaya karena dapat melewati overwrite channel.
+- `REPORT_MODERATOR_ROLE_IDS` dapat Claim/Release/Resolve/Dismiss. Owner juga dapat
+  Reopen, Reveal Reporter secara ephemeral, dan Purge permanen.
+- State `data/reports-state.json` atomik dan ignored. Revision menutup race, interaction
+  ID serta delivery claim mencegah panel ganda, dan audit tidak menyimpan konten sensitif.
+- Marker Report ID memulihkan panel yang diterima Discord sebelum state tersimpan;
+  startup membuang reservation terputus bila panel memang tidak pernah terkirim.
+- Bukti maksimum efektif 8 MiB memakai allowlist format, CDN/HTTPS, MIME/signature,
+  bounded stream, timeout, filename sanitization, larangan redirect, serta cleanup
+  terisolasi dalam `finally`.
+- Link pesan diverifikasi dengan fetch read-only dari guild yang sama tanpa menyimpan
+  isinya. State menjalani schema validation penuh dan error publik tidak memuat raw path.
+- Retention default 30 hari. Penghapusan panel yang gagal meninggalkan `purge_pending`
+  untuk retry; state tidak dianggap hilang sebelum panel Discord terhapus. Purge manual
+  memakai revision guard agar modal lama tidak dapat menghapus state yang lebih baru.
+- Dua catatan live acceptance v1.10.0 yang sebelumnya belum di-commit tetap digabung
+  dalam checkpoint ini atas instruksi Henry.
 
 Verification target:
-- `node --test`: 59 passed, 0 failed.
-- Semua 36 file JavaScript lulus syntax check dan `git diff --check` lulus.
-- Read-only Discord server verification harus tetap lulus sebelum registrasi.
+- `node --test`: 112 passed, 0 failed.
+- Seluruh file JavaScript harus lulus syntax check dan `git diff --check`.
+- `npm audit --omit=dev` dan read-only `verify:server` harus lulus sebelum live acceptance.
 
-Suggested commit after registration/live acceptance:
-`Hengs Discord v1.10.0: Add private community operations dashboard`
+Pending live acceptance (memerlukan izin eksplisit Henry):
+- Isi `MOD_LOG_CHANNEL_ID`; biarkan `REPORT_MODERATOR_ROLE_IDS` kosong untuk owner-only
+  atau isi role reviewer yang memang dipercaya.
+- Daftarkan ulang slash command, restart satu instance bot, lalu uji laporan non-sensitif.
+- Verifikasi anonimitas moderator/owner, Claim/Resolve, Reopen, dan Purge tanpa pesan
+  publik, duplikasi panel, file temp tertinggal, atau konten sensitif di log.
+
+Suggested commit after live acceptance:
+`Hengs Discord v1.11.0: Add private incident report hub`
+
+## Previous checkpoint: v1.10.0
+
+- Community Operations Dashboard `/ops overview` sudah didaftarkan dan live acceptance
+  lulus pada satu instance v1.10.0 dengan heartbeat bergerak serta server verification
+  0 failure/0 warning.
 
 ## Previous checkpoint: v1.9.0
 

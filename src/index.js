@@ -24,6 +24,8 @@ const { assignMemberRole } = require('./utils/member-onboarding');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
+const reportHub = require('./reports/hub');
+const { routeReportComponent } = require('./reports/router');
 const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
 const { InstanceLockError, createInstanceLock } = require('./runtime/instance-lock');
@@ -156,7 +158,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log('  /scrim on [game]  | /scrim off');
   console.log('  /announce [message]');
   console.log('  /fun quote | /fun 8ball | /fun roll | /fun flip | /fun meme');
-  console.log('  /ops draft | /event draft | /translate file');
+  console.log('  /ops draft | /event draft | /translate file | /report');
   console.log('  Mention bot untuk AI chat!');
   console.log('─────────────────────────────────────\n');
 
@@ -175,6 +177,12 @@ client.once(Events.ClientReady, async (c) => {
   }
   opsHub.startCanoxInbox(c);
   eventHub.start(c);
+  try {
+    await reportHub.start(c);
+    console.log('  → Report Hub privat siap menerima laporan member.');
+  } catch (error) {
+    console.error('[report] startup failed:', { code: error.code || 'STARTUP_FAILED' });
+  }
   const staleTranslationDirs = await translationService.cleanupStaleTempDirs();
   if (staleTranslationDirs > 0) {
     console.log(`🧹 ${staleTranslationDirs} folder sementara penerjemahan lama dibersihkan.`);
@@ -376,6 +384,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (
     (interaction.isButton() || interaction.isModalSubmit())
+    && interaction.customId.startsWith('report:')
+  ) {
+    try {
+      await routeReportComponent(interaction, reportHub);
+    } catch (error) {
+      console.error('[report] component failed:', { code: error.code || 'COMPONENT_FAILED' });
+      const payload = { content: 'Aksi laporan gagal dijalankan.', flags: MessageFlags.Ephemeral };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (
+    (interaction.isButton() || interaction.isModalSubmit())
     && interaction.customId.startsWith('ops:')
   ) {
     try {
@@ -416,7 +442,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
   // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
-  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event'];
+  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event', 'report'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
   if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({
@@ -438,6 +464,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       agent,
       opsHub,
       eventHub,
+      reportHub,
       translation: translationService,
       runtimeHealth,
       version: packageMetadata.version,
