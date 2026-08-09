@@ -30,14 +30,24 @@ Verification complete:
 - Read-only server verification from main local state: 0 failures, 0 warnings.
 - Focused security/correctness re-review of Task 4: PASS, no actionable findings.
 
-Pending live acceptance (requires explicit Henry approval):
-- Register the new `/reports` guild command and verify total command count 11.
-- Restart exactly one bot instance, then test owner access, outsider denial, pagination,
-  priority override, stale button rejection, and panel navigation.
-- Do not start Anti-Raid implementation in this checkpoint.
+Live acceptance completed:
+- Eleven guild slash commands, including `/reports`, are registered. The remote
+  `/reports` schema has no unexpected options.
+- Hengs Discord restarted as exactly one v1.12.0 instance and reached connected health
+  with an advancing heartbeat.
+- Owner UI acceptance passed for the empty queue, a non-sensitive technical test report,
+  private moderator panel delivery, Normal category default, moderator override to
+  Important, metadata-only queue rendering, and Claim.
+- The test panel was deleted and the report purged through the official store transition;
+  final live state contains zero reports and zero active reports.
+- Outsider denial cannot be exercised from Henry's owner account. Pagination/clamping,
+  stale-button rejection, permission recheck, and panel-link validation remain covered
+  by the 134-test suite instead of creating extra accounts or eleven live dummy reports.
+- Anti-Raid remains the separate v1.13.0 checkpoint.
 
-Suggested commit after live acceptance:
-`Hengs Discord v1.12.0: Add private moderation queue`
+Checkpoint status: committed as `f6d969a`.
+
+Commit: `Hengs Discord v1.12.0: Add private moderation queue`
 
 ## Previous checkpoint: v1.11.0
 

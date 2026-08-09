@@ -45,7 +45,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Semua 49 file JavaScript lulus syntax check, `git diff --check` lulus, dan
   `npm audit --omit=dev` melaporkan 0 vulnerability.
 - Verifikasi Discord read-only dari main state lulus dengan 0 failure dan 0 warning.
-  Slash registration, restart, dan live acceptance sengaja belum dilakukan.
+
+### Operations
+- Sebelas guild slash command, termasuk `/reports`, berhasil didaftarkan dan schema
+  remote `/reports` terverifikasi tanpa opsi tambahan.
+- Hengs Discord restart sebagai tepat satu instance v1.12.0 dan runtime health mencapai
+  status connected dengan heartbeat aktif.
+- Live owner acceptance lulus untuk empty queue, pembuatan laporan teknis non-sensitif,
+  panel privat, default priority Normal, override ke Penting, queue metadata-only,
+  Claim, serta penghapusan panel dan state uji.
+- Outsider denial, pagination lebih dari 10 item, stale-button rejection, dan validasi
+  target panel tetap diverifikasi oleh automated tests; acceptance live tidak membuat
+  akun atau laporan dummy tambahan hanya untuk mengulang cakupan tersebut.
 
 ### Next
 - Anti-Raid tetap fase terpisah v1.13.0. Checkpoint ini tidak menghapus pesan, memberi
