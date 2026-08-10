@@ -39,4 +39,5 @@ docs/*
 !docs/RUNTIME-HEALTH.md
 !docs/COMMUNITY-OPERATIONS.md
 !docs/REPORT-HUB.md
+!docs/ANTI-RAID.md
 /CHANGELOG.md

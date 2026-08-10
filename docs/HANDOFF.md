@@ -1,6 +1,46 @@
 # Hengs Discord Bot — Handoff
 
-Updated: 2026-08-09
+Updated: 2026-08-11
+
+
+## Current checkpoint: v1.13.0 - code and safe live acceptance complete
+
+- Scope: deterministic Anti-Raid dengan `/mod`, bounded tracked-deletion fallback,
+  private mod-log, state/recovery, allowlist, dan dokumentasi operator.
+- Pesan yang sudah match selalu berhenti di moderasi walau persistence/enforcement gagal;
+  kegagalan hanya menulis fixed code dan tidak pernah jatuh ke AI chat.
+- URL dengan credential atau port non-default tetap menyumbang sinyal perilaku dan tetap
+  cocok dengan blocked host, tetapi tidak memperoleh kepercayaan allowlist.
+- State memakai `schemaVersion: 1` dengan migrasi legacy, atomic write, dan kapasitas 500.
+  Hanya insiden final dengan panel persisten yang dapat dievakuasi.
+- Startup memulihkan status `detected` dan `enforcing`; panel yang belum tersimpan dicoba
+  ulang secara idempotent melalui maintenance single-flight.
+- Match pada window menit bersebelahan untuk member yang sama memakai satu incident agar
+  tidak terjadi ban atau card ganda.
+- Referensi pesan fallback memiliki TTL 120 detik, batas 2.000, dan dilepas setelah
+  finalisasi. Tidak ada konten, URL, attachment, atau raw error di state/panel/log normal.
+- `/mod incidents [page]` menampilkan 10 item per halaman dengan Previous/Refresh/Next,
+  authorization ulang, stale-page clamp, metadata terikat, dan panel link tervalidasi.
+- Kartu private mod-log menyatakan hasil ban dan penghapusan secara eksplisit.
+
+Verification complete:
+- Moderation suite: 95/95 lulus.
+- Full `npm test`: 229/229 lulus.
+- Syntax check seluruh JavaScript, `npm audit --omit=dev`, dan `git diff --check` wajib
+  tetap hijau pada final verification.
+
+Live acceptance complete (2026-08-11):
+- Discord API mengonfirmasi 12 guild command; `/mod` memuat `status`, `incidents`, dan
+  `allow`.
+- Runtime `main` v1.13.0 menggantikan proses lama dan terverifikasi tepat satu instance.
+- Owner smoke test lokal terhadap guild live lulus: status `monitor/monitor`, prasyarat
+  `Siap`, kontrol owner tersedia, dan antrean insiden dapat dibuka.
+- Tidak ada pesan publik, perubahan allowlist, atau live ban. Active auto-ban sengaja tidak
+  diuji tanpa akun dummy disposable; runtime dibiarkan dalam mode `monitor`.
+- Checkpoint v1.13.0 sudah di-merge ke `main`; checkout utama bersih dan menjadi sumber
+  runtime serta autostart.
+- Proposed SemVer: `v1.13.0`.
+- Suggested commit: `Hengs Discord v1.13.0: Add deterministic Anti-Raid`.
 
 ## Current checkpoint: v1.12.0
 

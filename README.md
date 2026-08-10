@@ -14,6 +14,7 @@
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
 - **Moderation Queue** - `/reports` memberi owner/moderator antrean privat metadata-only, urutan laporan tertua, pagination, dan prioritas revisi-aman
+- **Deterministic Anti-Raid** - `/mod` memantau atau menangani pola raid berkeyakinan tinggi tanpa klasifikasi AI; detail operator ada di [`docs/ANTI-RAID.md`](docs/ANTI-RAID.md)
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
@@ -70,6 +71,7 @@ stop-bot.bat            # hentikan bot
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/report category details [member] [message_link] [evidence] [anonymous]` | Kirim laporan insiden privat kepada owner/moderator |
 | `/reports` | Buka antrean laporan aktif privat untuk owner/moderator |
+| `/mod status` · `/mod incidents` · `/mod allow ...` | Lihat status/insiden Anti-Raid atau kelola pengecualian owner-only |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
@@ -89,6 +91,7 @@ discord-bot/
 │   ├── translation/        # DeepL client, validasi, antrean, cleanup
 │   ├── runtime/            # producer heartbeat dan kontrak health lokal
 │   ├── reports/            # intake privat, state machine, bukti, panel, recovery
+│   ├── moderation/         # policy deterministic Anti-Raid, tracker, enforcement, state privat
 │   └── utils/
 │       ├── welcome-card.js # render welcome/leave card (canvas)
 │       └── role-store.js   # persistensi reaction roles
@@ -240,6 +243,31 @@ jika Discord sementara gagal. Hengs tidak mengirim DM, pengumuman publik, atau h
 otomatis; keputusan tetap pada manusia. Kontrak operator lengkap ada di
 [`docs/REPORT-HUB.md`](docs/REPORT-HUB.md).
 
+### Deterministic Anti-Raid
+
+Anti-Raid bukan pengganti `/report`. Report Hub tetap jalur review manusia untuk
+harassment, percakapan ambigu, dan laporan komunitas; tidak ada hukuman otomatis dari
+laporan. Anti-Raid hanya bereaksi pada aturan deterministik berkeyakinan tinggi untuk
+domain yang diblokir, pengulangan lintas channel, atau banjir attachment. Ia tidak
+mengirim isi pesan, attachment, atau URL ke AI, layanan reputasi URL, Canox, maupun
+Hengs WhatsApp.
+
+Sebelum mode `active` dipakai, isi `OWNER_ID`, `MOD_LOG_CHANNEL_ID`, dan bila perlu
+`MODERATION_ROLE_IDS` / `ANTI_RAID_BLOCKED_DOMAINS`. `mod-logs` harus privat dari
+`@everyone`; bot memerlukan View Channel, Send Messages, Embed Links, Read Message
+History, Ban Members, dan Manage Messages. Bila salah satu prasyarat keamanan gagal,
+Hengs berubah menjadi monitor-only dan tidak melakukan penghapusan atau ban.
+
+`/mod status` menampilkan Mode tersimpan dan Mode efektif, label prasyarat aman,
+snapshot tracker (guild/member/observasi), serta hitungan final insiden. `/mod incidents`
+menampilkan hingga 10 insiden per halaman dengan usia, member ID non-mention,
+trigger/status, jumlah pesan/kanal yang dibatasi, dan link panel hanya bila ID valid.
+Tombol Sebelumnya, Segarkan, dan Berikutnya memeriksa ulang izin serta menjepit halaman
+yang sudah kedaluwarsa. Owner mengatur pengecualian melalui `/mod allow`; aksi `list`
+menampilkan maksimal 10 nilai aman. Moderator yang didaftarkan hanya dapat melihat
+status dan insiden. Panduan ambang, privasi, recovery, dan acceptance live tersedia di
+[`docs/ANTI-RAID.md`](docs/ANTI-RAID.md).
+
 ### Private moderation queue
 
 Gunakan `/reports` untuk melihat laporan berstatus open atau claimed. Command ini hanya
@@ -257,9 +285,7 @@ tautan panel yang tervalidasi. Detail laporan, pelapor, target, link pesan, bukt
 note, dan audit tidak masuk queue. Semua respons bersifat ephemeral, pagination dibatasi,
 dan mention parsing dimatikan.
 
-Anti-Raid tidak termasuk checkpoint ini. Deteksi mass promo/scam/pornografi, penghapusan
-pesan, dan auto-ban direncanakan sebagai boundary terpisah untuk v1.13.0 agar policy dan
-false-positive guard dapat diaudit sendiri.
+Anti-Raid adalah boundary terpisah v1.13.0 yang sudah tersedia secara lokal. Ia tidak mengubah alur Report Hub: laporan tetap human review, sedangkan enforcement Anti-Raid hanya mengikuti trigger deterministik dan prasyarat fail-closed.
 
 ---
 

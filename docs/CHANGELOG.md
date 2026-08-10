@@ -5,6 +5,62 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-11
+
+### Added
+- Deterministic Anti-Raid untuk blocked domain, repeated cross-channel content,
+  single-channel link/attachment burst, dan cross-channel attachment flood tanpa AI.
+- `/mod status`, `/mod incidents [page]`, dan owner-only `/mod allow` dengan respons
+  ephemeral mention-safe.
+- Kontrak operator publik di `docs/ANTI-RAID.md`.
+
+### Changed
+- `/mod incidents` sekarang memuat hingga 10 item per halaman dengan Previous, Refresh,
+  Next, runtime authorization ulang, dan stale-page clamping.
+- State menggunakan `schemaVersion: 1`; state legacy `schema: 1` divalidasi dan dimigrasi.
+- Private incident card menampilkan hasil ban dan penghapusan secara eksplisit.
+
+### Fixed
+- Pesan raid yang sudah match tetap dihentikan sebelum AI saat persistence, capacity,
+  enforcement, finalization, atau card delivery gagal.
+- Capacity hanya mengevakuasi insiden final yang panel privatnya sudah persisten;
+  evidence recovery tanpa panel dipertahankan atau creation gagal dengan fixed code.
+- URL dengan credential atau port non-default tetap terdeteksi sebagai link dan dapat
+  memicu blocked-host/burst, tanpa memakai domain allowlist sebagai trust bypass.
+- Startup memulihkan insiden `detected` maupun `enforcing`; maintenance panel terus retry
+  secara idempotent tanpa duplicate ban atau duplicate card.
+- Referensi pesan fallback memiliki TTL 120 detik yang independen dari traffic dan
+  dibersihkan setelah insiden selesai.
+- Match pada window menit bersebelahan untuk member yang sama memakai satu incident,
+  sehingga handler paralel tidak menghasilkan ban atau card ganda.
+
+### Security
+- State, audit, kartu, queue, dan log normal tidak menyimpan atau menampilkan content,
+  URL/domain, attachment metadata, raw exception, atau mention aktif.
+- System message, bot, webhook, DM, owner, administrator, reviewer, serta allowlist
+  tervalidasi tetap exempt. Prasyarat permission/hierarchy gagal menjadi monitor-only.
+
+### Verification
+- `package.json` dan lockfile: `1.13.0`.
+- Moderation tests: 95 lulus, 0 gagal.
+- Full `npm test`: 229 lulus, 0 gagal.
+- Syntax check seluruh JavaScript: lulus.
+- `npm audit --omit=dev`: 0 vulnerability.
+- `git diff --check`: lulus; warning LF/CRLF hanya normalisasi line ending.
+
+### Live Acceptance
+- Lulus 11 Agustus 2026: 12 guild command terdaftar dan `/mod` tersedia dengan
+  `status`, `incidents`, serta `allow`.
+- Runtime v1.13.0 online sebagai tepat satu instance. Owner smoke test membuka status
+  `monitor/monitor`, prasyarat `Siap`, kontrol owner, dan antrean insiden.
+- Smoke test tidak mengirim pesan publik, tidak menjalankan ban, dan tidak mengubah
+  allowlist. Active auto-ban tetap tidak diuji tanpa akun dummy disposable.
+
+### Next
+- Jalankan mode `monitor` selama 1-2 hari dan tinjau `/mod incidents` untuk false positive.
+- Aktifkan enforcement produksi hanya setelah hasil monitor dinilai aman.
+- Checkpoint: `Hengs Discord v1.13.0: Add deterministic Anti-Raid`.
+
 ## [1.12.0] - 2026-08-09
 
 ### Added

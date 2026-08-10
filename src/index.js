@@ -26,6 +26,7 @@ const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
 const reportHub = require('./reports/hub');
 const reportQueue = require('./reports/queue');
+const moderationHub = require('./moderation/hub');
 const { routeReportComponent } = require('./reports/router');
 const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
@@ -184,6 +185,11 @@ client.once(Events.ClientReady, async (c) => {
   } catch (error) {
     console.error('[report] startup failed:', { code: error.code || 'STARTUP_FAILED' });
   }
+  try {
+    await moderationHub.start(c);
+  } catch (error) {
+    console.error('[moderation] startup failed:', { code: error.code || 'STARTUP_FAILED' });
+  }
   const staleTranslationDirs = await translationService.cleanupStaleTempDirs();
   if (staleTranslationDirs > 0) {
     console.log(`🧹 ${staleTranslationDirs} folder sementara penerjemahan lama dibersihkan.`);
@@ -341,6 +347,12 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
 // ── AI Chat via mention ──────────────────────────────────────────────────────
 client.on(Events.MessageCreate, async (msg) => {
   if (msg.author.bot) return;
+  try {
+    const moderationMatched = await moderationHub.handleMessage(msg);
+    if (moderationMatched) return;
+  } catch (error) {
+    console.error('[moderation] message failed:', { code: error.code || 'MESSAGE_FAILED' });
+  }
   if (!msg.mentions.has(client.user)) return;
 
   // Bersihkan mention dari teks
@@ -379,6 +391,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
     } catch (error) {
       console.error(`Autocomplete /${interaction.commandName} gagal:`, error.message);
       await interaction.respond([]).catch(() => {});
+    }
+    return;
+  }
+
+  if (interaction.isButton() && interaction.customId.startsWith('mod:')) {
+    try {
+      await moderationHub.handleComponent(interaction);
+    } catch (error) {
+      console.error('[moderation] component failed:', { code: error.code || 'COMPONENT_FAILED' });
     }
     return;
   }
@@ -450,7 +471,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
   // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
-  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event', 'report', 'reports'];
+  const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event', 'report', 'reports', 'mod'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
   if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({
@@ -474,6 +495,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       eventHub,
       reportHub,
       reportQueue,
+      moderationHub,
       translation: translationService,
       runtimeHealth,
       version: packageMetadata.version,

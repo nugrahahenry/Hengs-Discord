@@ -4,6 +4,15 @@
 insiden kepada owner dan reviewer yang dipercaya. Fitur ini membantu manusia melakukan
 triase; Hengs tidak menentukan kebenaran laporan dan tidak memberi hukuman otomatis.
 
+## Batas Dengan Anti-Raid
+
+Report Hub tetap jalur review manusia untuk harassment, konteks ambigu, dan laporan
+komunitas. Anti-Raid adalah surface `/mod` terpisah untuk trigger deterministik; ia tidak
+membuat, mengubah, atau menghukum berdasarkan laporan `/report`. Antrean Anti-Raid hanya
+menampilkan 10 insiden terbaru yang metadata-only, sedangkan `/reports` tetap antrean
+reviewer aktif yang paling lama terlebih dahulu seperti dijelaskan di bawah.
+
+
 ## Konfigurasi
 
 ```dotenv
@@ -90,10 +99,11 @@ konteks dan bukti secara manusiawi.
 
 ## Batas Anti-Raid
 
-Checkpoint v1.12.0 tidak membaca semua pesan untuk melakukan klasifikasi massal dan
-tidak menghapus pesan, timeout, kick, atau ban otomatis. Anti-Raid untuk promo/scam/
-pornografi lintas-channel direncanakan sebagai v1.13.0 terpisah dengan policy,
-allowlist, false-positive guard, audit, dan recovery sendiri.
+`/report` tetap jalur review manusia untuk harassment, percakapan ambigu, dan kategori
+insiden komunitas. Laporan tidak menghapus pesan atau memberi timeout, kick, maupun ban
+otomatis. Anti-Raid adalah boundary terpisah untuk pola promo/scam/domain atau banjir
+attachment berkeyakinan tinggi yang ditentukan aturan, bukan AI. Konfigurasi, ambang,
+pengecualian, dan recovery operator tersedia di [`ANTI-RAID.md`](ANTI-RAID.md).
 
 ## Recovery
 
