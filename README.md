@@ -2,6 +2,8 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
+**Current checkpoint:** v1.14.0
+
 ## ✨ Fitur Utama
 
 - **AI chat via mention** — tinggal mention bot, dia bales kontekstual (history per user)
@@ -10,6 +12,7 @@
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
 - **Community Event Hub** — `/event draft` membuat event ber-approval dengan RSVP, kapasitas, reminder, cancel, dan auto-close
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
+- **Private WhatsApp recovery alerts** - owner DM first, exact private `BOT_SETTINGS_CHANNEL_ID` fallback, with deduplication and bounded retry
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
@@ -89,7 +92,7 @@ discord-bot/
 │   ├── ops/                # draft store, owner approval, inbox Canox
 │   ├── events/             # event approval, RSVP, reminder, recovery
 │   ├── translation/        # DeepL client, validasi, antrean, cleanup
-│   ├── runtime/            # producer heartbeat dan kontrak health lokal
+│   ├── runtime/            # health lokal dan konsumer recovery alert WhatsApp
 │   ├── reports/            # intake privat, state machine, bukti, panel, recovery
 │   ├── moderation/         # policy deterministic Anti-Raid, tracker, enforcement, state privat
 │   └── utils/
@@ -242,6 +245,21 @@ privat dan file sementara lokal selalu dibersihkan. Laporan selesai disimpan sel
 jika Discord sementara gagal. Hengs tidak mengirim DM, pengumuman publik, atau hukuman
 otomatis; keputusan tetap pada manusia. Kontrak operator lengkap ada di
 [`docs/REPORT-HUB.md`](docs/REPORT-HUB.md).
+
+### Private WhatsApp recovery alerts
+
+Hengs Discord membaca antrean lokal atomik dari Hengs WhatsApp. Alert dikirim ke DM
+`OWNER_ID` terlebih dahulu; bila DM gagal, fallback hanya boleh ke channel persis
+`BOT_SETTINGS_CHANNEL_ID` di `DISCORD_GUILD_ID`. Bot tidak mencari channel berdasarkan
+nama dan tidak pernah jatuh ke channel publik.
+
+Event yang didukung hanya `QR_REQUIRED`, `AUTH_FAILED`, `RECOVERY_RESTART`, dan
+`CONNECTED`. Konsumer menggabungkan event yang terselesaikan saat Discord offline,
+menahan duplikat, memakai retry terbatas, dan hanya mengirim notifikasi pulih setelah
+masalah sebelumnya benar-benar terkirim. Gambar QR, isi chat, nomor kontak, token, path,
+dan raw error tidak pernah masuk antrean atau pesan Discord. Lokasi default bersama adalah
+`HenryLabs/Hengs/.runtime/wa-recovery-alerts`; `HENGS_ALERT_BRIDGE_DIR` hanya untuk
+override lokal lanjutan.
 
 ### Deterministic Anti-Raid
 

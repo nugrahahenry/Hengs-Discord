@@ -31,6 +31,7 @@ const { routeReportComponent } = require('./reports/router');
 const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
 const { InstanceLockError, createInstanceLock } = require('./runtime/instance-lock');
+const { createWaRecoveryAlertConsumer } = require('./runtime/wa-recovery-alerts');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -70,6 +71,8 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User, Partials.GuildMember],
 });
 
+const waRecoveryAlerts = createWaRecoveryAlertConsumer({ client });
+
 let shutdownStarted = false;
 let fatalExitStarted = false;
 
@@ -78,6 +81,7 @@ function gracefulShutdown(signal) {
   shutdownStarted = true;
   console.log(`\nHengs Discord menerima ${signal}; menutup koneksi...`);
   runtimeHealth.setConnection('STOPPING');
+  waRecoveryAlerts.stop();
   try { client.destroy(); } catch {}
   process.exit(0);
 }
@@ -87,6 +91,7 @@ function fatalExit(issueCode, error) {
   fatalExitStarted = true;
   runtimeHealth.setConnection('FAILED', issueCode);
   console.error(`[fatal] ${issueCode}:`, error);
+  waRecoveryAlerts.stop();
   try { client.destroy(); } catch {}
   process.exit(1);
 }
@@ -172,6 +177,8 @@ client.once(Events.ClientReady, async (c) => {
     activities: [{ name: 'mention aku buat ngobrol 🤖 | /fun', type: ActivityType.Listening }],
     status: 'online',
   });
+
+  waRecoveryAlerts.start();
 
   // Update server stats sekali saat bot nyala
   for (const guild of c.guilds.cache.values()) {

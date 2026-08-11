@@ -5,6 +5,27 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-11
+
+### Added
+- Private owner-first recovery alerts for Hengs WhatsApp lifecycle events.
+- Exact private bot-settings fallback when owner DM delivery fails.
+- Atomic local queue consumer with schema validation, stale-claim recovery, bounded retry, handled-ID deduplication, and rejected-event quarantine.
+
+### Changed
+- Discord lifecycle now starts the WhatsApp recovery consumer after ClientReady and stops it before graceful or fatal client destruction.
+
+### Security
+- Alerts are fixed mention-safe messages and accept only the four allowlisted lifecycle codes.
+- Fallback fails closed unless the configured channel exactly matches `BOT_SETTINGS_CHANNEL_ID` and `DISCORD_GUILD_ID`.
+- QR images, chat content, contact identifiers, tokens, paths, and raw errors are excluded.
+
+### Verification
+- Recovery state and consumer tests: 16 passed, 0 failed.
+- Full Discord suite: 245 passed, 0 failed; all 66 JavaScript source/test files passed syntax checks.
+- No Discord restart, command registration, live message, or live event injection was performed.
+
+
 ## [1.13.0] - 2026-08-11
 
 ### Added

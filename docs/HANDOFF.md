@@ -1,9 +1,46 @@
-# Hengs Discord Bot — Handoff
+# Hengs Discord Bot - Handoff
 
 Updated: 2026-08-11
 
+## Current checkpoint: v1.14.0 - private WhatsApp recovery alerts
 
-## Current checkpoint: v1.13.0 - code and safe live acceptance complete
+- Proposed version: **v1.14.0**.
+- Latest committed release: **v1.13.0** as `8454e43`.
+- Hengs Discord consumes the local WhatsApp lifecycle queue after Discord reaches Ready.
+- Delivery is owner DM first, then the exact private `BOT_SETTINGS_CHANNEL_ID` in `DISCORD_GUILD_ID`.
+- Missing or wrong-guild fallback configuration fails closed; no channel-name search or public fallback exists.
+- The reducer suppresses healthy startup, collapses incidents resolved while Discord was offline, prevents duplicate QR/auth alerts, and sends recovery only after a problem was delivered.
+- Restart-only notices have a 30-minute cooldown and never override QR/auth states.
+- State writes are atomic, handled IDs and retry metadata are bounded to 500, retry backoff is 30 seconds to 5 minutes, and malformed events are quarantined with fixed-code logs.
+- Oversized event files are rejected before their payload is read into memory.
+- QR images, chat content, identifiers, tokens, paths, and raw errors never enter Discord payloads.
+- No slash-command schema changed, so command registration is not required.
+
+## Implementation
+
+- `src/runtime/wa-recovery-alerts.js`: contract validator, reducer, delivery boundary, persistent state, retry, recovery, and poller.
+- `src/index.js`: one lifecycle-managed consumer instance.
+- `test/wa-recovery-alerts.test.js`: contract, reducer, path, and lifecycle wiring tests.
+- `test/wa-recovery-consumer.test.js`: filesystem, delivery, fallback, retry, recovery, retention, and oversized-event tests.
+- Shared default directory: `HenryLabs/Hengs/.runtime/wa-recovery-alerts`.
+
+## Verification
+
+- Recovery tests: 16/16 passed.
+- Full `npm test`: 245/245 passed.
+- All 66 JavaScript source/test files passed `node --check`; `npm audit --omit=dev` found 0 vulnerabilities; `git diff --check` passed.
+- No Discord restart, command registration, live message, or live event injection was performed.
+
+## Next point
+
+1. Review and commit Discord v1.14.0.
+2. Commit the paired WA v0.17.0 checkpoint.
+3. Restart both bots only with Henry's explicit permission, then perform a controlled local acceptance test.
+
+Proposed commit: `Hengs Discord v1.14.0: Deliver WhatsApp recovery alerts`
+
+
+## Previous checkpoint: v1.13.0 - code and safe live acceptance complete
 
 - Scope: deterministic Anti-Raid dengan `/mod`, bounded tracked-deletion fallback,
   private mod-log, state/recovery, allowlist, dan dokumentasi operator.
