@@ -56,7 +56,7 @@ function validateAcquisitionConfig(value, fsImpl = fs) {
     && /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/.test(value.regionAlias)
     && typeof value.region === 'string'
     && /^[a-z]{2}-[a-z0-9-]+-\d+$/.test(value.region)
-    && isOcid(value.compartmentId, 'compartment')
+    && (isOcid(value.compartmentId, 'compartment') || isOcid(value.compartmentId, 'tenancy'))
     && isOcid(value.subnetId, 'subnet')
     && isOcid(value.imageId, 'image')
     && Array.isArray(value.availabilityDomains)
@@ -218,4 +218,3 @@ module.exports = {
   runOci,
   validateAcquisitionConfig,
 };
-

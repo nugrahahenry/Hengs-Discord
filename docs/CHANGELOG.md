@@ -5,6 +5,23 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-08-12
+
+### Fixed
+- OCI acquisition config now accepts either a regular compartment OCID or the root
+  tenancy OCID, matching Oracle's valid compartment target behavior.
+- Release metadata and archive naming are aligned to `1.15.1`.
+
+### Security
+- OCI CLI can use a dedicated trusted CA bundle for antivirus/proxy interception;
+  TLS verification remains enabled and no bypass is introduced.
+
+### Verification
+- Real read-only OCI preflight passed against the configured home region, subnet,
+  Ubuntu ARM image, availability domain, and A1 Flex shape.
+- Acquisition remains `NOT_STARTED` with zero attempts; no VM or provider resource
+  was created.
+
 ## [1.15.0] - 2026-08-12
 
 ### Added

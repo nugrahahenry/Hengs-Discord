@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync: defaultSpawnSync } = require('node:child_process');
 
-const RELEASE_VERSION = '1.15.0';
+const RELEASE_VERSION = '1.15.1';
 const TEXT_SCAN_LIMIT = 10 * 1024 * 1024;
 
 class ReleaseBuildError extends Error {
@@ -165,4 +165,3 @@ if (require.main === module) {
 }
 
 module.exports = { ReleaseBuildError, buildRelease, validateTrackedFiles };
-

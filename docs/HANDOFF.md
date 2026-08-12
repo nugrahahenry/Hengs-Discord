@@ -2,9 +2,15 @@
 
 Updated: 2026-08-12
 
-## Current checkpoint: v1.15.0 - bounded Always Free deployment
+## Current checkpoint: v1.15.1 - root-tenancy OCI preflight compatibility
 
-- Proposed release: **v1.15.0**.
+- Proposed release: **v1.15.1**.
+- Base deployment checkpoint `v1.15.0` is committed as `09c2eff`.
+- OCI config now accepts either a regular compartment or the root tenancy as the
+  provider-supported launch target.
+- Local OCI identity, home region, availability domain, public subnet with internet
+  and SSH, Ubuntu 24.04 ARM image, and A1 Flex visibility passed read-only validation.
+- A dedicated OCI CA bundle is configured without disabling TLS verification.
 - Oracle-first acquisition is bounded to eight capacity attempts per day, at least 90 minutes plus jitter apart, and seven days total. Only trusted structured host-capacity failures retry.
 - Release archives are built only from committed `HEAD`; secrets, runtime state, internal docs, identifiers, keys, and dirty tracked changes are rejected.
 - Linux uses Node 22, dedicated user `hengs-discord`, immutable releases, persistent state, root-owned secret, single-instance lock, systemd hardening, health inspection, and fail-stopped rollback.
@@ -12,22 +18,25 @@ Updated: 2026-08-12
 - Local Windows defaults remain unchanged. Cloud disables the local WhatsApp recovery-alert bridge until the separate Tailscale bridge checkpoint.
 - Anti-Raid remains `monitor`; slash command schema is unchanged.
 
-## v1.15.0 verification status
+## v1.15.1 verification status
 
-- Full `npm test`: 308/308 passed after the integrated security fix wave.
+- Focused OCI config regression: 10/10 passed after reproducing the root-tenancy failure.
+- Live read-only OCI preflight returned `SUCCESS`; acquisition status remains
+  `NOT_STARTED` with zero attempts.
+- Full `npm test`: 309/309 passed; all 234 JavaScript files passed syntax checks;
+  production dependency audit found 0 vulnerabilities; `git diff --check` passed.
 - Focused cloud tests and all JavaScript syntax checks pass; all four Linux scripts pass `bash -n` through Git Bash.
 - ShellCheck, `systemd-analyze verify`, real systemd sandbox compatibility, and Linux UID/GID acceptance remain pending on Ubuntu.
 - Security review fixes and regression tests closed restore ownership/modes, pre-cutover enablement, production-state exposure during dependency scripts, and credential scanner coverage.
 - No VM was created, no service was started, no token was transferred, and no production cutover occurred.
 
-## v1.15.0 next point
+## v1.15.1 next point
 
-1. Henry reviews and commits the code checkpoint.
-2. Run read-only OCI identity/config preflight with redacted results.
-3. Obtain fresh approval before any VM creation attempt.
-4. After capacity succeeds, run Ubuntu syntax/install acceptance while local Discord remains authoritative.
+1. Henry reviews and commits the verified patch checkpoint.
+2. Obtain fresh approval before any VM creation attempt.
+3. After capacity succeeds, run Ubuntu syntax/install acceptance while local Discord remains authoritative.
 
-Suggested commit: `Hengs Discord v1.15.0: Add bounded Always Free deployment`
+Suggested commit: `Hengs Discord v1.15.1: Support root-tenancy OCI preflight`
 
 ## Previous checkpoint: v1.14.0 - private WhatsApp recovery alerts
 

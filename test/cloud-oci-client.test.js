@@ -74,6 +74,23 @@ test('config loader accepts only the exact Always Free acquisition schema', () =
   );
 });
 
+test('config loader accepts the root tenancy as an OCI compartment target', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-oci-root-tenancy-'));
+  const config = {
+    ...validConfig(dir),
+    compartmentId: `${OCI_PREFIX}tenancy.oc1..testonly`,
+  };
+
+  assert.deepEqual(loadAcquisitionConfig(writeConfig(dir, config)), config);
+  assert.throws(
+    () => loadAcquisitionConfig(writeConfig(dir, {
+      ...config,
+      compartmentId: `${OCI_PREFIX}user.oc1..testonly`,
+    })),
+    /CONFIG_INVALID/,
+  );
+});
+
 test('OCI process uses a literal executable, argument array, no shell, and a timeout', () => {
   let captured;
   const spawnSync = (command, args, options) => {
