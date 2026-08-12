@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** v1.14.0
+**Current checkpoint:** v1.15.0
 
 ## ✨ Fitur Utama
 
@@ -13,6 +13,7 @@
 - **Community Event Hub** — `/event draft` membuat event ber-approval dengan RSVP, kapasitas, reminder, cancel, dan auto-close
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Private WhatsApp recovery alerts** - owner DM first, exact private `BOT_SETTINGS_CHANNEL_ID` fallback, with deduplication and bounded retry
+- **Always Free deployment support** - bounded OCI acquisition, immutable Linux releases, persistent state, systemd hardening, health inspection, and rollback; operator guide: [`docs/CLOUD-DEPLOY.md`](docs/CLOUD-DEPLOY.md)
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
@@ -61,6 +62,10 @@ install-autostart.bat   # pasang sekali -> bot nyala sendiri tiap login
 start-hidden.vbs        # nyalain manual sekarang (tanpa window)
 stop-bot.bat            # hentikan bot
 ```
+
+### Cloud deployment (belum live)
+
+Checkpoint v1.15.0 menyiapkan deployment Always Free untuk Ubuntu tanpa mengubah slash command. Tidak ada VM production yang diklaim aktif dari repository ini. Pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands
 

@@ -5,6 +5,29 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-12
+
+### Added
+- Bounded Oracle Always Free acquisition policy with privacy-safe atomic state, strict lock ownership, read-only preflight, and structured capacity-only retry.
+- Reproducible release builder from committed `HEAD`, persistent-state snapshot/restore, encrypted export, hardened systemd unit, immutable deploy, health inspection, and rollback scripts.
+- Public operator runbook in `docs/CLOUD-DEPLOY.md`.
+
+### Changed
+- Runtime target is pinned to Node.js 22 and release metadata is aligned at `1.15.0`.
+- Instance-lock path and WhatsApp recovery-alert consumer can be configured for Linux while local Windows defaults remain unchanged.
+
+### Security
+- Releases reject secret/private paths, credential signatures, OCI identifiers, unsafe archive entries, symlinks, checksum mismatch, and dirty tracked trees.
+- Cloud secrets remain outside release archives at `/etc/hengs/discord.env`; state is isolated under `/var/lib/hengs-discord/data` and off-VM backups require `age` encryption.
+- Cutover requires one Discord token consumer. Anti-Raid remains in `monitor` mode and slash-command registration is unchanged.
+
+### Verification
+- Full `npm test`: 308 passed, 0 failed; focused cloud suite and all JavaScript syntax checks pass.
+- All four Linux scripts pass `bash -n` through Git Bash. ShellCheck and `systemd-analyze verify` remain Ubuntu-host validation gates.
+- Security review identified four High findings; all were closed with regression tests: restore ownership/modes, pre-cutover service enablement, dependency access to production state, and credential scan coverage.
+- No VM, provider resource, deployment, Discord restart, command registration, or production cutover was performed in this checkpoint.
+
+
 ## [1.14.0] - 2026-08-11
 
 ### Added

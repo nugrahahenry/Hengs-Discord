@@ -16,7 +16,7 @@ test('Discord lifecycle starts one WA recovery consumer and stops it before dest
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
   const factoryImport = source.indexOf("require('./runtime/wa-recovery-alerts')");
   const clientCreation = source.indexOf('const client = new Client({');
-  const consumerCreation = source.indexOf('const waRecoveryAlerts = createWaRecoveryAlertConsumer({ client });');
+  const consumerCreation = source.indexOf('const waRecoveryAlerts = createWaRecoveryAlertConsumer({ client, enabled: waRecoveryEnabled });');
   const readyHandler = source.indexOf('client.once(Events.ClientReady');
   const readyStart = source.indexOf('waRecoveryAlerts.start();', readyHandler);
   const gracefulStart = source.indexOf('function gracefulShutdown');
@@ -28,7 +28,7 @@ test('Discord lifecycle starts one WA recovery consumer and stops it before dest
 
   assert.ok(factoryImport >= 0, 'recovery consumer factory must be imported');
   assert.ok(consumerCreation > clientCreation, 'consumer must be created after the Discord client');
-  assert.equal(source.match(/createWaRecoveryAlertConsumer\(\{ client \}\)/g)?.length, 1);
+  assert.equal(source.match(/createWaRecoveryAlertConsumer\(\{ client, enabled: waRecoveryEnabled \}\)/g)?.length, 1);
   assert.ok(readyStart > readyHandler, 'consumer must start inside ClientReady');
   assert.ok(gracefulStop > gracefulStart && gracefulStop < gracefulDestroy);
   assert.ok(fatalStop > fatalStart && fatalStop < fatalDestroy);

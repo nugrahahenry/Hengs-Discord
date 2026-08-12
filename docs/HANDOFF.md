@@ -1,11 +1,38 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
-## Current checkpoint: v1.14.0 - private WhatsApp recovery alerts
+## Current checkpoint: v1.15.0 - bounded Always Free deployment
 
-- Proposed version: **v1.14.0**.
-- Latest committed release: **v1.13.0** as `8454e43`.
+- Proposed release: **v1.15.0**.
+- Oracle-first acquisition is bounded to eight capacity attempts per day, at least 90 minutes plus jitter apart, and seven days total. Only trusted structured host-capacity failures retry.
+- Release archives are built only from committed `HEAD`; secrets, runtime state, internal docs, identifiers, keys, and dirty tracked changes are rejected.
+- Linux uses Node 22, dedicated user `hengs-discord`, immutable releases, persistent state, root-owned secret, single-instance lock, systemd hardening, health inspection, and fail-stopped rollback.
+- State transfer validates JSON, paths, archive types, duplicate entries, size, and SHA-256 before atomic restore. Off-VM backup has no plaintext fallback when `age` is unavailable.
+- Local Windows defaults remain unchanged. Cloud disables the local WhatsApp recovery-alert bridge until the separate Tailscale bridge checkpoint.
+- Anti-Raid remains `monitor`; slash command schema is unchanged.
+
+## v1.15.0 verification status
+
+- Full `npm test`: 308/308 passed after the integrated security fix wave.
+- Focused cloud tests and all JavaScript syntax checks pass; all four Linux scripts pass `bash -n` through Git Bash.
+- ShellCheck, `systemd-analyze verify`, real systemd sandbox compatibility, and Linux UID/GID acceptance remain pending on Ubuntu.
+- Security review fixes and regression tests closed restore ownership/modes, pre-cutover enablement, production-state exposure during dependency scripts, and credential scanner coverage.
+- No VM was created, no service was started, no token was transferred, and no production cutover occurred.
+
+## v1.15.0 next point
+
+1. Henry reviews and commits the code checkpoint.
+2. Run read-only OCI identity/config preflight with redacted results.
+3. Obtain fresh approval before any VM creation attempt.
+4. After capacity succeeds, run Ubuntu syntax/install acceptance while local Discord remains authoritative.
+
+Suggested commit: `Hengs Discord v1.15.0: Add bounded Always Free deployment`
+
+## Previous checkpoint: v1.14.0 - private WhatsApp recovery alerts
+
+- Current release: **v1.14.0**.
+- Committed as `11103b6`.
 - Hengs Discord consumes the local WhatsApp lifecycle queue after Discord reaches Ready.
 - Delivery is owner DM first, then the exact private `BOT_SETTINGS_CHANNEL_ID` in `DISCORD_GUILD_ID`.
 - Missing or wrong-guild fallback configuration fails closed; no channel-name search or public fallback exists.
@@ -29,15 +56,13 @@ Updated: 2026-08-11
 - Recovery tests: 16/16 passed.
 - Full `npm test`: 245/245 passed.
 - All 66 JavaScript source/test files passed `node --check`; `npm audit --omit=dev` found 0 vulnerabilities; `git diff --check` passed.
-- No Discord restart, command registration, live message, or live event injection was performed.
+- Live acceptance passed: restart and recovered events reached the owner DM, reducer state returned to `HEALTHY`, no public fallback was used, and the synthetic queue was cleaned.
 
 ## Next point
 
-1. Review and commit Discord v1.14.0.
-2. Commit the paired WA v0.17.0 checkpoint.
-3. Restart both bots only with Henry's explicit permission, then perform a controlled local acceptance test.
-
-Proposed commit: `Hengs Discord v1.14.0: Deliver WhatsApp recovery alerts`
+1. Keep Anti-Raid in `monitor` for 1-2 days and inspect `/mod incidents` for false positives.
+2. Activate enforcement only after monitor evidence is acceptable.
+3. Treat v1.14.0 as the stable Discord baseline for the next explicitly scoped feature.
 
 
 ## Previous checkpoint: v1.13.0 - code and safe live acceptance complete

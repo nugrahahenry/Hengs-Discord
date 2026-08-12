@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "profile": "DEFAULT",
+  "regionAlias": "home",
+  "region": "replace-with-home-region",
+  "compartmentId": "replace-with-compartment-ocid",
+  "subnetId": "replace-with-subnet-ocid",
+  "imageId": "replace-with-image-ocid",
+  "availabilityDomains": [
+    "replace-with-availability-domain"
+  ],
+  "shape": "VM.Standard.A1.Flex",
+  "ocpus": 2,
+  "memoryInGBs": 12,
+  "sshPublicKeyPath": "/absolute/path/to/id_ed25519.pub"
+}

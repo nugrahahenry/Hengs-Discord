@@ -1,0 +1,43 @@
+[Unit]
+Description=Hengs Discord Bot
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=hengs-discord
+Group=hengs-discord
+WorkingDirectory=/opt/hengs/discord-bot/current
+EnvironmentFile=/etc/hengs/discord.env
+ExecStart=/usr/bin/node src/index.js --hengs-dc
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+RuntimeDirectory=hengs-discord
+RuntimeDirectoryMode=0750
+StateDirectory=hengs-discord
+StateDirectoryMode=0750
+UMask=0027
+LimitNOFILE=4096
+MemoryMax=1G
+TasksMax=256
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadOnlyPaths=/opt/hengs/discord-bot/current
+ReadWritePaths=/var/lib/hengs-discord /run/hengs-discord
+
+[Install]
+WantedBy=multi-user.target

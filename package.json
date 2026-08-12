@@ -1,6 +1,6 @@
 {
   "name": "discord-bot-henzzz",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
@@ -17,5 +17,8 @@
     "libsodium-wrappers": "^0.8.4",
     "openai": "^4.67.0",
     "tweetnacl": "^1.0.3"
+  },
+  "engines": {
+    "node": ">=22 <23"
   }
 }

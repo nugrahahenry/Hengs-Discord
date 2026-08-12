@@ -30,13 +30,13 @@ const moderationHub = require('./moderation/hub');
 const { routeReportComponent } = require('./reports/router');
 const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
-const { InstanceLockError, createInstanceLock } = require('./runtime/instance-lock');
-const { createWaRecoveryAlertConsumer } = require('./runtime/wa-recovery-alerts');
+const { InstanceLockError, createInstanceLock, resolveInstanceLockFile } = require('./runtime/instance-lock');
+const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtime/wa-recovery-alerts');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
 // event dobel, ini menutup kemungkinan dua instance mem-publish draft yang sama.
-const INSTANCE_LOCK = path.join(__dirname, '..', '.dc-bot.lock');
+const INSTANCE_LOCK = resolveInstanceLockFile(process.env);
 const instanceLock = createInstanceLock({ filePath: INSTANCE_LOCK });
 try {
   instanceLock.acquire();
@@ -71,7 +71,12 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User, Partials.GuildMember],
 });
 
-const waRecoveryAlerts = createWaRecoveryAlertConsumer({ client });
+const waRecoveryRaw = String(process.env.HENGS_WA_RECOVERY_ALERTS_ENABLED || '').trim().toLowerCase();
+const waRecoveryEnabled = isWaRecoveryEnabled(process.env);
+if (waRecoveryRaw && !['true', 'false'].includes(waRecoveryRaw)) {
+  console.error('[wa-alert] WA_RECOVERY_CONFIG_INVALID');
+}
+const waRecoveryAlerts = createWaRecoveryAlertConsumer({ client, enabled: waRecoveryEnabled });
 
 let shutdownStarted = false;
 let fatalExitStarted = false;

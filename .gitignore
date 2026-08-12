@@ -27,6 +27,7 @@ desktop.ini
 *.vbs
 .wa-bot.lock
 .dc-bot.lock
+.cloud/
 
 # ─── Docs checkpoint yang boleh masuk Git ───
 docs/*
@@ -40,4 +41,5 @@ docs/*
 !docs/COMMUNITY-OPERATIONS.md
 !docs/REPORT-HUB.md
 !docs/ANTI-RAID.md
+!docs/CLOUD-DEPLOY.md
 /CHANGELOG.md

@@ -73,6 +73,12 @@ function resolveBridgeDir(env = process.env) {
   return path.resolve(__dirname, '..', '..', '..', '.runtime', 'wa-recovery-alerts');
 }
 
+function isWaRecoveryEnabled(env = process.env) {
+  const configured = String(env.HENGS_WA_RECOVERY_ALERTS_ENABLED || '').trim().toLowerCase();
+  if (!configured) return true;
+  return configured === 'true';
+}
+
 function createDefaultState() {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -246,6 +252,7 @@ async function deliverFixedAlert({ client, code, ownerId, settingsChannelId, gui
 
 function createWaRecoveryAlertConsumer({
   client,
+  enabled = true,
   queueDir = resolveBridgeDir(),
   ownerId = process.env.OWNER_ID,
   settingsChannelId = process.env.BOT_SETTINGS_CHANNEL_ID,
@@ -322,7 +329,7 @@ function createWaRecoveryAlertConsumer({
   }
 
   async function pollOnce() {
-    if (busy) return;
+    if (!enabled || busy) return;
     busy = true;
     try {
       if (!ownerId) {
@@ -423,7 +430,7 @@ function createWaRecoveryAlertConsumer({
   }
 
   function start() {
-    if (timer) return;
+    if (!enabled || timer) return;
     if (!ownerId) {
       logger.error('[wa-alert] CONFIG_INVALID');
       return;
@@ -456,6 +463,7 @@ module.exports = {
   createDefaultState,
   createWaRecoveryAlertConsumer,
   deliverFixedAlert,
+  isWaRecoveryEnabled,
   reduceBatch,
   resolveBridgeDir,
   validateEvent,

@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 
 const DEFAULT_HEARTBEAT_MS = 30_000;
 const DEFAULT_STALE_MS = 300_000;
@@ -19,6 +20,13 @@ function defaultIsPidAlive(pid) {
   } catch (error) {
     return error?.code === 'EPERM';
   }
+}
+
+function resolveInstanceLockFile(env = process.env) {
+  const configured = String(env.HENGS_INSTANCE_LOCK_FILE || '').trim();
+  if (!configured) return path.resolve(__dirname, '..', '..', '.dc-bot.lock');
+  if (!path.isAbsolute(configured)) throw new InstanceLockError('LOCK_PATH_INVALID');
+  return path.resolve(configured);
 }
 
 function createInstanceLock(options) {
@@ -112,4 +120,5 @@ function createInstanceLock(options) {
 module.exports = {
   InstanceLockError,
   createInstanceLock,
+  resolveInstanceLockFile,
 };
