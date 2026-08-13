@@ -112,8 +112,8 @@ runuser -u "${SERVICE_USER}" -- env HOME="${NPM_CACHE_DIR}" npm_config_cache="${
 runuser -u "${SERVICE_USER}" -- env HOME="${NPM_CACHE_DIR}" npm_config_cache="${NPM_CACHE_DIR}" npm --prefix "${STAGING_DIR}" test
 runuser -u "${SERVICE_USER}" -- env HOME="${NPM_CACHE_DIR}" npm_config_cache="${NPM_CACHE_DIR}" npm --prefix "${STAGING_DIR}" prune --omit=dev
 
-find -P "${STAGING_DIR}" -type d -exec chown root:root {} +
-find -P "${STAGING_DIR}" -type f -exec chown root:root {} +
+find -P "${STAGING_DIR}" -type d -exec chown root:"${SERVICE_GROUP}" {} +
+find -P "${STAGING_DIR}" -type f -exec chown root:"${SERVICE_GROUP}" {} +
 find -P "${STAGING_DIR}" \( -type d -o -type f \) -exec chmod go-w {} +
 ln -s "${STATE_DIR}" "${STAGING_DIR}/data"
 chown -h root:root "${STAGING_DIR}/data"

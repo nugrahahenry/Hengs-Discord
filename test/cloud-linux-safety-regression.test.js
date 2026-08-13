@@ -19,13 +19,14 @@ test('release deploy refuses an active service and validates package version', (
   assert.match(deploy, /RELEASE_ID="1\.18\.0-/);
 });
 
-test('deployed release becomes root-owned after dependency installation', () => {
+test('deployed release becomes root-owned and service-group-readable after dependency installation', () => {
   const prune = deploy.indexOf('npm --prefix "${STAGING_DIR}" prune --omit=dev');
   const immutable = deploy.indexOf('find -P "${STAGING_DIR}"');
   const activate = deploy.indexOf('mv -- "${STAGING_DIR}" "${RELEASE_DIR}"');
   assert.notEqual(immutable, -1);
   assert.equal(prune < immutable && immutable < activate, true);
-  assert.match(deploy, /chown root:root/);
+  assert.match(deploy, /chown root:"\$\{SERVICE_GROUP\}"/);
+  assert.doesNotMatch(deploy, /find -P "\$\{STAGING_DIR\}"[^\n]*chown root:root/);
   assert.match(deploy, /chmod go-w/);
 });
 

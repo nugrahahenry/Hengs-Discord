@@ -31,6 +31,11 @@ Updated: 2026-08-14
   `.git` is intentionally absent; and the WA bridge keeps a portable explicit-path test while its
   local-layout assertion remains workspace-only. Post-failure audit again confirmed no active
   service, release pointer, secret, or production state.
+- The first `READY` release audit found its root directory was `root:root` mode 0750, so the
+  non-login service user could not traverse it. The service was still disabled/inactive with an
+  empty env and zero production state files. Immutable release files/directories now remain
+  root-owned but use the dedicated `hengs-discord` group, preserving read/traverse access while
+  removing group/world write permission; focused Linux safety tests pass 14/14.
 - The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
   local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 
