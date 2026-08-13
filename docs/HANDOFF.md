@@ -17,6 +17,9 @@ Updated: 2026-08-14
   integration gate verifies every tracked file so credential-shaped test sentinels cannot block
   packaging again. Focused release/OCI/overview tests pass 29/29; full `npm test` passes 340/340;
   JavaScript syntax checks, `git diff --check`, and the production dependency audit pass.
+- Pre-deployment review caught the Linux deployer still pinned to v1.15.0 before any release
+  transfer. Its archive-name, release-ID, and package-version gates are now aligned to v1.18.0;
+  focused Linux safety tests pass 13/13, and the service-start prohibition is unchanged.
 - The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
   local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 

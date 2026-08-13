@@ -14,7 +14,9 @@ test('release deploy refuses an active service and validates package version', (
   assert.equal(activeCheck < extraction, true);
   assert.match(deploy, /SERVICE_MUST_BE_STOPPED/);
   assert.match(deploy, /PACKAGE_VERSION/);
-  assert.match(deploy, /"\$\{PACKAGE_VERSION\}" != '1\.15\.0'/);
+  assert.match(deploy, /"\$\{PACKAGE_VERSION\}" != '1\.18\.0'/);
+  assert.match(deploy, /hengs-discord-1\\\.18\\\.0-/);
+  assert.match(deploy, /RELEASE_ID="1\.18\.0-/);
 });
 
 test('deployed release becomes root-owned after dependency installation', () => {
@@ -36,4 +38,3 @@ test('rollback cannot accept an old health snapshot and waits only a bounded tim
   assert.match(rollback, /sleep 10/);
   assert.match(rollback, /ROLLBACK_HEALTH_FAILED/);
 });
-
