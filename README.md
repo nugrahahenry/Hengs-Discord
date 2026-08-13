@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** v1.17.1
+**Current checkpoint:** v1.17.2
 
 ## ✨ Fitur Utama
 
@@ -65,7 +65,13 @@ stop-bot.bat            # hentikan bot
 
 ### Cloud deployment (belum live)
 
-Dukungan deployment Always Free untuk Ubuntu tetap tersedia. Checkpoint v1.17.1 membedakan timeout, error CLI tidak terstruktur, dan output JSON rusak tanpa menyimpan output mentah. Schema slash command tidak berubah, jadi registrasi ulang command tidak diperlukan. Tidak ada VM production yang diklaim aktif dari repository ini. Restart bot, pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
+Dukungan deployment Always Free untuk Ubuntu tetap tersedia. Checkpoint v1.17.2
+menonaktifkan retry internal OCI CLI khusus `LaunchInstance` dan mengelompokkan error
+provider terstruktur yang belum dikenal tanpa menyimpan output mentah. Schema slash command
+tidak berubah, jadi registrasi ulang command tidak diperlukan. Tidak ada VM production yang
+diklaim aktif dari repository ini. Restart bot, pembuatan VM, transfer secret, dan cutover
+memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus
+dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands
 

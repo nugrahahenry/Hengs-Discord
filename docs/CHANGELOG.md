@@ -5,6 +5,31 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.17.2] - 2026-08-13
+
+### Fixed
+- Mutating `LaunchInstance` calls now pass OCI CLI `--no-retry`, preventing one acquisition
+  invocation from being resubmitted implicitly by the CLI.
+- Unmapped structured provider failures now become fixed non-retryable
+  `PROVIDER_UNAVAILABLE` or `PROVIDER_ERROR` results instead of another ambiguous `UNKNOWN`.
+
+### Security
+- Provider codes, messages, stdout, stderr, identifiers, and request metadata remain absent
+  from operator output and persisted acquisition state.
+- Only trusted structured `OutOfHostCapacity` remains retryable. New provider buckets stop
+  acquisition and require review; legacy `UNKNOWN` entries remain readable.
+
+### Verification
+- TDD regression started with four expected failures, then the focused OCI suite passed
+  27/27 and the full suite passed 334/334.
+- All 87 JavaScript files passed syntax checks; `git diff --check` passed and the production
+  dependency audit found 0 vulnerabilities.
+- Read-only Oracle Audit evidence showed that the previous second authorized CLI invocation
+  produced three `LaunchInstance.begin` events under the old default retry behavior. A fresh
+  instance list still found zero `hengs-discord` instances.
+- No third acquisition attempt, VM creation, command registration, runtime restart, secret
+  transfer, deployment, or cutover was performed in this checkpoint.
+
 ## [1.17.1] - 2026-08-13
 
 ### Fixed

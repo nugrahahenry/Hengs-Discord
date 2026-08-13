@@ -2,46 +2,53 @@
 
 Updated: 2026-08-13
 
-## Current checkpoint: v1.17.1 - safe OCI diagnostics
+## Current checkpoint: v1.17.2 - single-request OCI launch diagnostics
 
-- Proposed release: **v1.17.1**.
-- Base v1.17.0 Report Center is committed as `7269462` on `main` and `origin/main`.
-- OCI process failures now distinguish `TIMEOUT`, `CLI_ERROR_UNSTRUCTURED`, and
-  `CLI_OUTPUT_INVALID`; only fixed codes reach operator output or acquisition state.
-- Raw stdout, stderr, and exception messages are discarded. Legacy `UNKNOWN` state remains
-  readable for backward compatibility.
+- Proposed release: **v1.17.2**.
+- Base v1.17.1 is committed as `4630d79` on `main` and `origin/main`.
+- Mutating `LaunchInstance` calls now pass `--no-retry`; retryable capacity handling remains
+  controlled only by the persisted acquisition policy.
+- Unmapped structured provider failures become non-retryable `PROVIDER_UNAVAILABLE` for 5xx
+  or `PROVIDER_ERROR` for other statuses instead of another ambiguous `UNKNOWN`.
+- Raw stdout, stderr, exception messages, provider codes, and request metadata remain discarded.
+  Legacy `UNKNOWN` state remains readable for backward compatibility.
 
-## v1.17.1 verification status
+## v1.17.2 verification status
 
-- Full `npm test`: 333 passed, 0 failed. Focused OCI diagnostics: 26 passed, 0 failed.
-- All 86 JavaScript files passed syntax checks; `git diff --check` passed.
-- Production dependency audit found 0 vulnerabilities.
-- New regression coverage proves timeout, unstructured stderr, and invalid stdout remain
-  distinguishable while raw output and exception messages stay out of results and state.
-- Both Hengs processes are currently running. WhatsApp is connected in mode Off; Discord is
-  online on the previous v1.16.0 runtime because the bot-cek procedure forbids an unrequested
-  automatic restart.
-- No command registration, public message, report state mutation, token transfer, or deployment
-  was performed.
-- Oracle read-only preflight returned `SUCCESS`. The separately authorized first capacity attempt
-  ended as `UNKNOWN`; acquisition is now `STOPPED` with attempt count 1.
-- A fresh read-only OCI instance list found zero `hengs-discord` instances. No VM was created,
-  and no acquisition process or lock remains.
-- The first launch happened before the diagnostic split, so its provider-level cause is not
-  proven and its historical code correctly remains `UNKNOWN`.
-- The new privacy-safe diagnostic is implemented and tested. It cannot retroactively classify
-  that attempt; no state reset or second attempt was performed.
+- TDD RED produced four expected failures for the missing provider buckets, state allowlist, and
+  `--no-retry`; focused OCI diagnostics then passed 27/27.
+- Full `npm test`: 334 passed, 0 failed.
+- All 87 JavaScript files passed syntax checks; `git diff --check` passed and the production
+  dependency audit found 0 vulnerabilities.
+- Read-only Oracle Audit evidence for the second authorized attempt showed three
+  `LaunchInstance.begin` events from the old OCI CLI retry behavior. No completion event was
+  established, and a fresh read-only instance list found zero `hengs-discord` instances.
+- Acquisition is `STOPPED` with two historical `UNKNOWN` attempts, no lock or process, and no
+  third attempt. The patch did not reset state or make any cloud write.
+- Both Hengs processes remain local. Discord still runs v1.16.0 because no runtime restart was
+  approved; the command schema remains unchanged.
+- The Windows sandbox ACL blocker was unrelated to project skills: a 22-byte NUL-filled
+  `deny_read_acl_state.json` was quarantined, Codex regenerated valid state, and normal sandbox
+  plus `apply_patch` verification passed.
 
-## v1.17.1 next point
+## v1.17.2 next point
 
 1. Restart the local Discord bot once Henry approves, then open `/reports` as Owner and use
    **Lihat Contoh** for the live ephemeral acceptance check. Command registration is unnecessary.
-2. Keep the `STOPPED` state unchanged. Before any deliberate reset or second Oracle attempt,
-   review the historical `UNKNOWN` result and obtain fresh explicit approval for exactly one
-   additional resource-creation attempt.
-3. Henry reviews and commits the v1.17.1 diagnostic patch.
+2. Keep the `STOPPED` state unchanged. Before any deliberate reset or third Oracle attempt,
+   review both historical `UNKNOWN` results and obtain fresh explicit approval for exactly one
+   additional resource-creation attempt after v1.17.2 is committed.
+3. Henry reviews and commits the v1.17.2 diagnostic patch.
 
-Suggested commit: `Hengs Discord v1.17.1: Harden OCI diagnostics`
+Suggested commit: `Hengs Discord v1.17.2: Prevent implicit OCI launch retries`
+
+## Previous checkpoint: v1.17.1 - safe OCI diagnostics
+
+- Committed as `4630d79` on `main` and `origin/main`.
+- OCI failures distinguish `TIMEOUT`, `CLI_ERROR_UNSTRUCTURED`, and `CLI_OUTPUT_INVALID` while
+  discarding raw stdout, stderr, and exception messages.
+- Full `npm test`: 333 passed, 0 failed; focused OCI diagnostics: 26 passed, 0 failed.
+- The first authorized launch remained a legacy `UNKNOWN`; no VM was found.
 
 ## Previous checkpoint: v1.17.0 - Report Center humanization
 

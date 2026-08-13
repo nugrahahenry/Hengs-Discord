@@ -208,6 +208,7 @@ async function launch(config, availabilityDomain, options = {}) {
     '--display-name', 'hengs-discord',
     '--ssh-authorized-keys-file', config.sshPublicKeyPath,
     '--assign-public-ip', 'true',
+    '--no-retry',
     ...commonArgs(config),
   ];
   const result = await runOciImpl(args);

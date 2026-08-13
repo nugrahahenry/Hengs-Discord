@@ -18,6 +18,8 @@ const FIXED_CODES = new Set([
   'TIMEOUT',
   'CLI_ERROR_UNSTRUCTURED',
   'CLI_OUTPUT_INVALID',
+  'PROVIDER_UNAVAILABLE',
+  'PROVIDER_ERROR',
   'UNKNOWN',
   'SUCCESS',
 ]);
@@ -40,8 +42,19 @@ function classifyOciFailure(input = {}) {
     return { code: 'CAPACITY_UNAVAILABLE', retryable: true };
   }
 
+  const mappedCode = OCI_CODE_MAP.get(input.code);
+  if (mappedCode) return { code: mappedCode, retryable: false };
+  if (typeof input.code === 'string' && input.code) {
+    return {
+      code: Number.isInteger(input.status) && input.status >= 500
+        ? 'PROVIDER_UNAVAILABLE'
+        : 'PROVIDER_ERROR',
+      retryable: false,
+    };
+  }
+
   return {
-    code: OCI_CODE_MAP.get(input.code) || 'UNKNOWN',
+    code: 'UNKNOWN',
     retryable: false,
   };
 }

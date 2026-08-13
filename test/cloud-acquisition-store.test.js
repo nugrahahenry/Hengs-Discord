@@ -93,14 +93,19 @@ test('non-retryable CLI diagnostics persist as fixed safe metadata', () => {
   const { store, clock } = fixture();
   store.write(createInitialState(new Date(clock.value).toISOString(), 'home', 'a1-flex'));
 
-  for (const code of ['CLI_ERROR_UNSTRUCTURED', 'CLI_OUTPUT_INVALID']) {
+  for (const code of [
+    'CLI_ERROR_UNSTRUCTURED',
+    'CLI_OUTPUT_INVALID',
+    'PROVIDER_UNAVAILABLE',
+    'PROVIDER_ERROR',
+  ]) {
     clock.value += 1000;
     store.recordAttempt({ code, rawError: 'sentinel-cli-secret' });
   }
 
   const state = store.read();
   assert.deepEqual(state.attempts.map(entry => entry.code), [
-    'CLI_ERROR_UNSTRUCTURED', 'CLI_OUTPUT_INVALID',
+    'CLI_ERROR_UNSTRUCTURED', 'CLI_OUTPUT_INVALID', 'PROVIDER_UNAVAILABLE', 'PROVIDER_ERROR',
   ]);
   assert.equal(state.status, 'STOPPED');
   assert.equal(fs.readFileSync(store.stateFile, 'utf8').includes('sentinel-cli-secret'), false);

@@ -130,6 +130,35 @@ test('OCI process trusts only structured JSON errors', () => {
   assert.equal(JSON.stringify(raw).includes('OutOfHostCapacity'), false);
 });
 
+test('OCI process gives unmapped structured provider failures a safe actionable bucket', () => {
+  const unavailable = runOci(['compute', 'instance', 'launch'], {
+    spawnSync: () => ({
+      status: 1,
+      stdout: '',
+      stderr: JSON.stringify({
+        code: 'SyntheticUnmappedProviderCode',
+        status: 503,
+        message: 'sentinel-provider-private-message',
+      }),
+    }),
+  });
+  const other = runOci(['compute', 'instance', 'launch'], {
+    spawnSync: () => ({
+      status: 1,
+      stdout: '',
+      stderr: JSON.stringify({
+        code: 'SyntheticUnmappedProviderCode',
+        status: 409,
+        message: 'sentinel-provider-private-message',
+      }),
+    }),
+  });
+
+  assert.deepEqual(unavailable.failure, { code: 'PROVIDER_UNAVAILABLE', retryable: false });
+  assert.deepEqual(other.failure, { code: 'PROVIDER_ERROR', retryable: false });
+  assert.equal(JSON.stringify({ unavailable, other }).includes('sentinel-provider-private-message'), false);
+});
+
 test('OCI process distinguishes timeout, unstructured stderr, and invalid stdout without leaking raw output', () => {
   const timeout = runOci(['compute', 'instance', 'launch'], {
     spawnSync: () => ({
@@ -221,6 +250,7 @@ test('launch uses direct compute launch and returns only a fixed failure code', 
   assert.deepEqual(command.slice(0, 3), ['compute', 'instance', 'launch']);
   assert.equal(command.includes('resource-manager'), false);
   assert.equal(command.includes(config.compartmentId), true);
+  assert.equal(command.filter(value => value === '--no-retry').length, 1);
 });
 
 test('one attempt records capacity safely and rotates the availability domain', async () => {

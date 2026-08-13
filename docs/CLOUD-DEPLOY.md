@@ -1,6 +1,6 @@
 # Hengs Discord Always Free Deployment
 
-Panduan ini adalah kontrak operasi untuk Hengs Discord v1.17.1 di Ubuntu. Kode
+Panduan ini adalah kontrak operasi untuk Hengs Discord v1.17.2 di Ubuntu. Kode
 deployment sudah tersedia, tetapi dokumen ini tidak menyatakan bahwa VM produksi sudah
 aktif. Pembuatan resource, perubahan billing, dan cutover tetap memerlukan persetujuan
 Henry pada saat tindakan dilakukan.
@@ -22,7 +22,7 @@ cloud, yang boleh memakai token Discord pada satu waktu. Anti-Raid tetap dalam m
 
 ## Prerequisites
 
-- Checkout Git yang bersih dan checkpoint `1.17.1` sudah di-commit.
+- Checkout Git yang bersih dan checkpoint `1.17.2` sudah di-commit.
 - Node.js 22 untuk membuat release lokal.
 - Akun Oracle Cloud dengan home region dan entitlement Always Free yang telah dicek
   ulang di Console. Hentikan proses bila label biaya atau entitlement tidak jelas.
@@ -58,6 +58,8 @@ Hasil operator dibatasi ke kode tetap berikut untuk kegagalan proses CLI:
 - `TIMEOUT`: proses OCI CLI melewati batas waktu;
 - `CLI_ERROR_UNSTRUCTURED`: CLI keluar gagal tanpa error JSON terstruktur yang dipercaya;
 - `CLI_OUTPUT_INVALID`: CLI keluar sukses tetapi stdout bukan JSON yang valid.
+- `PROVIDER_UNAVAILABLE`: provider mengembalikan error terstruktur 5xx yang belum dikenal;
+- `PROVIDER_ERROR`: provider mengembalikan kode terstruktur non-5xx yang belum dikenal.
 
 Raw stdout, stderr, dan pesan error tidak ditampilkan atau disimpan ke state. Entri `UNKNOWN`
 yang sudah ada adalah catatan legacy dan tidak membuktikan penyebab provider tertentu. Jangan
@@ -73,6 +75,10 @@ Hanya kode OCI terstruktur `OutOfHostCapacity` yang boleh dicoba ulang. Kebijaka
 - berhenti langsung saat berhasil atau saat menerima kegagalan non-capacity;
 - state dan lock berada di `.cloud/` dan tidak boleh dihapus untuk mengakali batas;
 - status `STOPPED` hanya boleh di-reset setelah diagnosis ditinjau dan approval baru diberikan.
+
+`LaunchInstance` selalu dipanggil dengan `--no-retry`, sehingga satu invocation acquisition
+tidak disubmit ulang secara implisit oleh OCI CLI. Retry kapasitas hanya boleh terjadi sebagai
+attempt baru yang tercatat, melewati interval kebijakan, dan memiliki approval yang sesuai.
 
 Setelah persetujuan resource creation diberikan, jalankan salah satu mode berikut:
 
@@ -158,8 +164,8 @@ Transfer arsip dan file `.sha256` yang dihasilkan ke VM. Dengan service masih be
 
 ```bash
 sudo bash deploy/linux/deploy-release.sh \
-  /root/hengs-discord-1.17.1-<commit>.tar.gz \
-  /root/hengs-discord-1.17.1-<commit>.tar.gz.sha256
+  /root/hengs-discord-1.17.2-<commit>.tar.gz \
+  /root/hengs-discord-1.17.2-<commit>.tar.gz.sha256
 ```
 
 Deployer memvalidasi checksum dan path archive, menolak symlink/hardlink, menjalankan
@@ -212,7 +218,7 @@ satu tahap berarti service cloud dihentikan dan prosedur rollback dijalankan.
 Rollback cloud ke sibling release yang sudah ada:
 
 ```bash
-sudo bash deploy/linux/rollback.sh 1.17.1-<12-char-commit>
+sudo bash deploy/linux/rollback.sh 1.17.2-<12-char-commit>
 ```
 
 Script menghentikan service, mengganti pointer, menyalakan release tujuan, lalu memeriksa

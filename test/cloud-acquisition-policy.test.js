@@ -45,6 +45,8 @@ test('classification maps process and OCI failures to fixed safe codes', () => {
   assert.equal(classifyOciFailure({ code: 'LimitExceeded' }).code, 'LIMIT_EXCEEDED');
   assert.equal(classifyOciFailure({ code: 'TooManyRequests' }).code, 'THROTTLED');
   assert.equal(classifyOciFailure({ code: 'InvalidParameter' }).code, 'CONFIG_INVALID');
+  assert.equal(classifyOciFailure({ code: 'SyntheticUnmappedProviderCode', status: 503 }).code, 'PROVIDER_UNAVAILABLE');
+  assert.equal(classifyOciFailure({ code: 'SyntheticUnmappedProviderCode', status: 409 }).code, 'PROVIDER_ERROR');
 });
 
 test('initial state contains only safe acquisition metadata', () => {
@@ -115,4 +117,3 @@ test('clock rollback beyond five minutes fails closed', () => {
     waitMs: 0,
   });
 });
-
