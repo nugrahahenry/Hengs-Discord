@@ -29,6 +29,15 @@ test('deployed release becomes root-owned after dependency installation', () => 
   assert.match(deploy, /chmod go-w/);
 });
 
+test('release deploy gives the non-login service user a temporary npm home', () => {
+  assert.match(deploy, /NPM_CACHE_DIR="\$\(mktemp -d\)"/);
+  assert.match(
+    deploy,
+    /runuser -u "\$\{SERVICE_USER\}" -- env HOME="\$\{NPM_CACHE_DIR\}" npm_config_cache="\$\{NPM_CACHE_DIR\}" npm/,
+  );
+  assert.match(deploy, /rm -rf -- "\$\{NPM_CACHE_DIR\}"/);
+});
+
 test('rollback cannot accept an old health snapshot and waits only a bounded time', () => {
   const removeHealth = rollback.indexOf('rm -f -- "${HEALTH_FILE}"');
   const startService = rollback.indexOf('systemctl start hengs-discord.service');

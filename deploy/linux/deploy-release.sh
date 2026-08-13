@@ -48,9 +48,13 @@ STAGING_DIR="${RELEASES_DIR}/.staging-${RELEASE_ID}-$$"
 CURRENT_TEMP="${CURRENT_LINK}.new.$$"
 LIST_FILE="$(mktemp)"
 TYPE_FILE="$(mktemp)"
+NPM_CACHE_DIR="$(mktemp -d)"
 
 cleanup() {
   rm -f -- "${LIST_FILE}" "${TYPE_FILE}" "${CURRENT_TEMP}"
+  if [[ -n "${NPM_CACHE_DIR}" && -d "${NPM_CACHE_DIR}" ]]; then
+    rm -rf -- "${NPM_CACHE_DIR}"
+  fi
   if [[ -n "${STAGING_DIR}" && -d "${STAGING_DIR}" ]]; then
     rm -rf -- "${STAGING_DIR}"
   fi
@@ -103,9 +107,10 @@ if [[ -e "${STAGING_DIR}/data" || -L "${STAGING_DIR}/data" ]]; then
   exit 1
 fi
 chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${STAGING_DIR}"
-runuser -u "${SERVICE_USER}" -- npm --prefix "${STAGING_DIR}" ci
-runuser -u "${SERVICE_USER}" -- npm --prefix "${STAGING_DIR}" test
-runuser -u "${SERVICE_USER}" -- npm --prefix "${STAGING_DIR}" prune --omit=dev
+chown "${SERVICE_USER}:${SERVICE_GROUP}" "${NPM_CACHE_DIR}"
+runuser -u "${SERVICE_USER}" -- env HOME="${NPM_CACHE_DIR}" npm_config_cache="${NPM_CACHE_DIR}" npm --prefix "${STAGING_DIR}" ci
+runuser -u "${SERVICE_USER}" -- env HOME="${NPM_CACHE_DIR}" npm_config_cache="${NPM_CACHE_DIR}" npm --prefix "${STAGING_DIR}" test
+runuser -u "${SERVICE_USER}" -- env HOME="${NPM_CACHE_DIR}" npm_config_cache="${NPM_CACHE_DIR}" npm --prefix "${STAGING_DIR}" prune --omit=dev
 
 find -P "${STAGING_DIR}" -type d -exec chown root:root {} +
 find -P "${STAGING_DIR}" -type f -exec chown root:root {} +

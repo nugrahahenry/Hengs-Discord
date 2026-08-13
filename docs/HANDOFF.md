@@ -15,11 +15,16 @@ Updated: 2026-08-14
 - Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
   `1.18.0`. The release content scanner now keeps credential assignments line-bounded, and an
   integration gate verifies every tracked file so credential-shaped test sentinels cannot block
-  packaging again. Focused release/OCI/overview tests pass 29/29; full `npm test` passes 340/340;
+  packaging again. Focused release/OCI/overview tests pass 29/29; full `npm test` passes 341/341;
   JavaScript syntax checks, `git diff --check`, and the production dependency audit pass.
 - Pre-deployment review caught the Linux deployer still pinned to v1.15.0 before any release
   transfer. Its archive-name, release-ID, and package-version gates are now aligned to v1.18.0;
   focused Linux safety tests pass 13/13, and the service-start prohibition is unchanged.
+- The first Ubuntu dependency-install rehearsal stopped before release activation because the
+  non-login service identity has no writable home for npm cache. Post-failure audit confirmed the
+  service disabled/inactive, empty env, no release/current pointer, and zero production state
+  files. The deployer now supplies a per-run temporary npm home/cache and deletes it on exit;
+  focused Linux tests pass 14/14 and `bash -n` passes on the target Ubuntu host.
 - The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
   local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 
