@@ -15,7 +15,7 @@ Updated: 2026-08-14
 - Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
   `1.18.0`. The release content scanner now keeps credential assignments line-bounded, and an
   integration gate verifies every tracked file so credential-shaped test sentinels cannot block
-  packaging again. Focused release/OCI/overview tests pass 29/29; full `npm test` passes 341/341;
+  packaging again. Focused release/OCI/overview tests pass 29/29; full `npm test` passes 343/343;
   JavaScript syntax checks, `git diff --check`, and the production dependency audit pass.
 - Pre-deployment review caught the Linux deployer still pinned to v1.15.0 before any release
   transfer. Its archive-name, release-ID, and package-version gates are now aligned to v1.18.0;
@@ -25,6 +25,12 @@ Updated: 2026-08-14
   service disabled/inactive, empty env, no release/current pointer, and zero production state
   files. The deployer now supplies a per-run temporary npm home/cache and deletes it on exit;
   focused Linux tests pass 14/14 and `bash -n` passes on the target Ubuntu host.
+- A subsequent Ubuntu run reached the full suite and exposed three archive-only assumptions before
+  activation: shell export line endings, repository-only Git metadata, and the local Hengs workspace
+  path. Shell files are now exported as LF via `.gitattributes`; repository-only gates skip when
+  `.git` is intentionally absent; and the WA bridge keeps a portable explicit-path test while its
+  local-layout assertion remains workspace-only. Post-failure audit again confirmed no active
+  service, release pointer, secret, or production state.
 - The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
   local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 

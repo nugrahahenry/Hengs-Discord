@@ -11,6 +11,9 @@ const {
   validateTrackedFiles,
 } = require('../scripts/cloud/build-release');
 
+const repositoryRoot = path.join(__dirname, '..');
+const repositoryMetadataAvailable = fs.existsSync(path.join(repositoryRoot, '.git'));
+
 test('tracked-file validation rejects private paths and credential content', () => {
   const privateMarker = ['-----BEGIN OPENSSH ', 'PRIVATE KEY-----'].join('');
   const discordToken = ['ABCDEFGHIJKLMNOPQRSTUVWX', 'abcdef', 'abcdefghijklmnopqrstuvwx'].join('.');
@@ -52,18 +55,31 @@ test('tracked-file validation keeps empty credential placeholders line-bounded',
   }]), { ok: true, forbidden: [] });
 });
 
-test('repository tracked files satisfy release content policy', () => {
-  const root = path.join(__dirname, '..');
+test('repository tracked files satisfy release content policy', {
+  skip: !repositoryMetadataAvailable,
+}, () => {
   const names = execFileSync('git', ['ls-files', '-z'], {
-    cwd: root,
+    cwd: repositoryRoot,
     encoding: 'utf8',
   }).split('\0').filter(Boolean);
   const trackedFiles = names.map(name => ({
     path: name.replaceAll('\\', '/'),
-    content: fs.readFileSync(path.join(root, name), 'utf8'),
+    content: fs.readFileSync(path.join(repositoryRoot, name), 'utf8'),
   }));
 
   assert.deepEqual(validateTrackedFiles(trackedFiles), { ok: true, forbidden: [] });
+});
+
+test('repository exports shell scripts with LF line endings', {
+  skip: !repositoryMetadataAvailable,
+}, () => {
+  const attribute = execFileSync(
+    'git',
+    ['check-attr', 'eol', '--', 'deploy/linux/deploy-release.sh'],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  );
+
+  assert.match(attribute, /: eol: lf\s*$/);
 });
 
 function createGitFixture(options = {}) {

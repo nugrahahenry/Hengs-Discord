@@ -12,6 +12,9 @@ const {
   validateEvent,
 } = require('../src/runtime/wa-recovery-alerts');
 
+const projectRoot = path.join(__dirname, '..');
+const isHengsWorkspace = /\/HenryLabs\/Hengs\/discord-bot$/i.test(projectRoot.replaceAll('\\', '/'));
+
 test('Discord lifecycle starts one WA recovery consumer and stops it before destroying the client', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
   const factoryImport = source.indexOf("require('./runtime/wa-recovery-alerts')");
@@ -131,11 +134,16 @@ test('restart reminders use cooldown and never override QR or auth states', () =
   assert.equal(reduceBatch([restart], deliveredState('QR_REQUIRED'), NOW).notification, null);
 });
 
-test('Discord and WhatsApp resolve the same shared runtime directory', () => {
+test('Discord and WhatsApp local checkout resolve the same shared runtime directory', {
+  skip: !isHengsWorkspace,
+}, () => {
   assert.match(
     resolveBridgeDir({}).replaceAll('\\', '/'),
     /\/HenryLabs\/Hengs\/\.runtime\/wa-recovery-alerts$/,
   );
+});
+
+test('Discord recovery bridge accepts an explicit portable runtime directory', () => {
   assert.equal(
     resolveBridgeDir({ HENGS_ALERT_BRIDGE_DIR: 'C:\\custom\\alerts' }),
     path.resolve('C:\\custom\\alerts'),
