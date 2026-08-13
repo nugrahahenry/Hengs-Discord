@@ -67,6 +67,13 @@ memakai permission tampilan Discord sebagai satu-satunya guard: `OWNER_ID` atau 
 `REPORT_MODERATOR_ROLE_IDS` diverifikasi ulang saat membuka antrean dan pada setiap
 tombol pagination/refresh.
 
+Bila antrean kosong, owner melihat tombol **Lihat Contoh**. Tombol ini merender satu
+laporan sintetis tetap di respons ephemeral yang sama agar alur review dapat dipahami
+meski server sedang tenang. Preview memakai renderer embed produksi, tetapi tidak memiliki
+tombol Claim/Resolve/Dismiss/Purge, tidak membaca atau menulis report store, tidak masuk
+audit/statistik, dan tidak mengirim pesan ke mod-log. Reviewer non-owner tidak melihat
+tombol preview dan forged custom ID ditolak secara privat.
+
 Setiap halaman memuat maksimum 10 laporan, paling lama terlebih dahulu. Priority hanya
 memecah urutan jika timestamp sama. Page maksimum dibatasi dan request ke halaman yang
 sudah kosong di-clamp ke halaman aktif terakhir.

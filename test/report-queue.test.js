@@ -181,7 +181,7 @@ test('queue permission allows owner and configured moderator only', async () => 
   assert.deepEqual(owner.lastReply.allowedMentions, { parse: [] });
 });
 
-test('queue refresh reads fresh state and shows the empty view', async () => {
+test('queue refresh reads fresh state and explains the quiet empty view', async () => {
   const report = createActiveReports(1)[0];
   store.claimReport(report.id, '700000000000000010', 0);
   store.finalizeReport(
@@ -195,7 +195,8 @@ test('queue refresh reads fresh state and shows the empty view', async () => {
   const refresh = fakeInteraction({ customId: 'reports:refresh:0' });
   assert.equal(await queue.handleQueueComponent(refresh), true);
   assert.ok(refresh.lastUpdate);
-  assert.match(JSON.stringify(refresh.lastUpdate), /Tidak ada laporan aktif/);
+  assert.match(JSON.stringify(refresh.lastUpdate), /Belum ada laporan yang perlu ditinjau/);
+  assert.match(JSON.stringify(refresh.lastUpdate), /Cek Lagi/);
   assert.deepEqual(refresh.lastUpdate.allowedMentions, { parse: [] });
 });
 
@@ -214,14 +215,79 @@ test('queue refresh clamps a stale last page after active reports shrink', async
   const next = fakeInteraction({ customId: 'reports:page:1' });
   assert.equal(await queue.handleQueueComponent(next), true);
   assert.ok(next.lastUpdate);
-  assert.match(JSON.stringify(next.lastUpdate), /Halaman 1\/1/);
+  assert.match(JSON.stringify(next.lastUpdate), /Halaman 1 dari 1/);
   assert.equal(next.lastUpdate.embeds[0].toJSON().fields.length, 10);
 });
 
-test('queue empty state and malformed components fail safely', async () => {
+test('queue empty state guides moderators without exposing the owner preview', async () => {
+  const moderator = fakeInteraction({
+    userId: '700000000000000010',
+    roleIds: ['800000000000000001'],
+  });
+  await queue.showQueue(moderator);
+  const serialized = JSON.stringify(moderator.lastReply);
+
+  assert.match(serialized, /Belum ada laporan yang perlu ditinjau/);
+  assert.match(serialized, /laporan baru akan muncul/i);
+  assert.match(serialized, /reports:refresh:0/);
+  assert.doesNotMatch(serialized, /reports:preview/);
+});
+
+test('owner sees a synthetic preview entry point only while the queue is empty', async () => {
   const empty = fakeInteraction();
   await queue.showQueue(empty);
-  assert.match(JSON.stringify(empty.lastReply), /Tidak ada laporan aktif/);
+  assert.match(JSON.stringify(empty.lastReply), /Belum ada laporan yang perlu ditinjau/);
+  assert.match(JSON.stringify(empty.lastReply), /reports:preview/);
+
+  createActiveReports(1);
+  const active = fakeInteraction();
+  await queue.showQueue(active);
+  assert.doesNotMatch(JSON.stringify(active.lastReply), /reports:preview/);
+});
+
+test('owner preview stays private, mention-safe, and never creates report state', async () => {
+  assert.equal(fs.existsSync(stateFile()), false);
+  const preview = fakeInteraction({ customId: 'reports:preview' });
+  const originalListActiveReports = store.listActiveReports;
+  store.listActiveReports = () => {
+    throw new Error('Preview must not read report state');
+  };
+
+  try {
+    assert.equal(await queue.handleQueueComponent(preview), true);
+  } finally {
+    store.listActiveReports = originalListActiveReports;
+  }
+  assert.ok(preview.lastUpdate);
+  const serialized = JSON.stringify(preview.lastUpdate);
+  assert.match(serialized, /Pratinjau Laporan/);
+  assert.match(serialized, /data contoh/i);
+  assert.match(serialized, /tautan promosi/i);
+  assert.match(serialized, /reports:refresh:0/);
+  assert.doesNotMatch(serialized, /report:(claim|release|resolve|dismiss|reopen|reveal|purge|priority_)/);
+  assert.doesNotMatch(serialized, /<@\\d+>/);
+  assert.deepEqual(preview.lastUpdate.allowedMentions, { parse: [] });
+  assert.equal(fs.existsSync(stateFile()), false);
+
+  const second = JSON.stringify(queue.buildPreviewPayload());
+  assert.equal(second, JSON.stringify(queue.buildPreviewPayload()));
+});
+
+test('configured moderator cannot forge the owner preview control', async () => {
+  const moderator = fakeInteraction({
+    customId: 'reports:preview',
+    userId: '700000000000000010',
+    roleIds: ['800000000000000001'],
+  });
+
+  assert.equal(await queue.handleQueueComponent(moderator), true);
+  assert.equal(moderator.lastUpdate, null);
+  assert.equal(moderator.lastReply.ephemeral, true);
+  assert.match(moderator.lastReply.content, /tidak valid atau tidak tersedia/i);
+  assert.equal(fs.existsSync(stateFile()), false);
+});
+
+test('malformed queue components fail safely', async () => {
 
   const malformed = fakeInteraction({ customId: 'reports:page:50' });
   assert.equal(await queue.handleQueueComponent(malformed), true);

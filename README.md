@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** v1.16.0
+**Current checkpoint:** v1.17.0
 
 ## ✨ Fitur Utama
 
@@ -17,7 +17,7 @@
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
-- **Moderation Queue** - `/reports` memberi owner/moderator antrean privat metadata-only, urutan laporan tertua, pagination, dan prioritas revisi-aman
+- **Moderation Queue** - `/reports` memberi owner/moderator antrean privat metadata-only dan panduan tindakan yang jelas; owner dapat membuka contoh sintetis saat antrean kosong
 - **Deterministic Anti-Raid** - `/mod` memantau atau menangani pola raid berkeyakinan tinggi tanpa klasifikasi AI; detail operator ada di [`docs/ANTI-RAID.md`](docs/ANTI-RAID.md)
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
@@ -65,7 +65,7 @@ stop-bot.bat            # hentikan bot
 
 ### Cloud deployment (belum live)
 
-Dukungan deployment Always Free untuk Ubuntu tetap tersedia, tetapi checkpoint v1.16.0 berfokus pada Moderation Center dan menambah `/mod preview`. Tidak ada VM production yang diklaim aktif dari repository ini. Pendaftaran command, restart bot, pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
+Dukungan deployment Always Free untuk Ubuntu tetap tersedia. Checkpoint v1.17.0 merapikan Report Center tanpa mengubah schema slash command, jadi registrasi ulang command tidak diperlukan. Tidak ada VM production yang diklaim aktif dari repository ini. Restart bot, pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands
 
@@ -295,7 +295,11 @@ status dan insiden. Panduan ambang, privasi, recovery, dan acceptance live terse
 
 Gunakan `/reports` untuk melihat laporan berstatus open atau claimed. Command ini hanya
 dapat dipakai `OWNER_ID` dan role dalam `REPORT_MODERATOR_ROLE_IDS`; izin diperiksa
-lagi pada setiap Refresh, Sebelumnya, dan Berikutnya.
+lagi pada setiap Cek Lagi, Sebelumnya, dan Berikutnya. Saat antrean kosong, copy menjelaskan
+bahwa belum ada laporan dan apa yang perlu dilakukan berikutnya. Hanya owner yang melihat
+**Lihat Contoh**. Preview tersebut memakai data sintetis tetap, tetap ephemeral, tidak
+membaca atau menulis state laporan, tidak mengirim panel ke mod-log, dan tidak menyediakan
+tombol tindakan moderator.
 
 Antrean menampilkan maksimum 10 laporan per halaman, diurutkan dari yang paling lama.
 Priority hanya menjadi tie-break untuk waktu yang sama: Mendesak, Penting, lalu Normal.

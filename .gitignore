@@ -28,6 +28,7 @@ desktop.ini
 .wa-bot.lock
 .dc-bot.lock
 .cloud/
+/graphify-out/
 
 # ─── Docs checkpoint yang boleh masuk Git ───
 docs/*

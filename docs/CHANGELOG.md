@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-13
+
+### Added
+- Owner-only **Lihat Contoh** pada antrean `/reports` yang kosong. Preview memakai data
+  sintetis tetap dan renderer embed produksi tanpa kontrol tindakan moderator.
+
+### Changed
+- Empty state menjelaskan bahwa server sedang tenang, tempat laporan baru muncul, dan aksi
+  **Cek Lagi**. Antrean aktif merangkum jumlah menunggu/ditangani serta langkah berikutnya.
+- Label metadata antrean menggunakan bahasa yang lebih natural tanpa menambah detail privat.
+- Metadata package, release builder, test fixture, README, dan cloud runbook disinkronkan ke
+  v1.17.0. Schema slash command tetap sama sehingga registrasi ulang tidak diperlukan.
+
+### Security
+- `reports:preview` dicocokkan secara persis dan memeriksa ulang `OWNER_ID` saat tombol
+  dikirim. Forged moderator preview gagal secara privat.
+- Preview hanya memperbarui respons ephemeral yang sudah ada, menonaktifkan mention parsing,
+  tidak membaca/menulis report store, tidak masuk audit/statistik, dan tidak mengirim panel
+  publik atau mod-log.
+
+### Verification
+- Full `npm test`: 330 passed, 0 failed; focused Report Center: 14 passed, 0 failed; seluruh
+  empat file JavaScript yang berubah lulus syntax check.
+- Production dependency audit found 0 vulnerabilities.
+- `git diff --check` lulus dan Impeccable interface detector melaporkan nol temuan.
+- Targeted code/security review tidak menemukan Critical atau Important issue. Dua temuan
+  minor ditutup dengan timestamp sintetis tetap dan test yang memaksa preview bebas store-read.
+- Tidak ada command registration, runtime restart, public message, state mutation, atau cloud
+  deployment dalam checkpoint ini.
+
 ## [1.16.0] - 2026-08-13
 
 ### Added
@@ -40,8 +70,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   accepted all 14 changed tracked files, and `git diff --check` passed.
 - Impeccable interface detector reported no findings. Targeted code and security re-review
   reported no remaining Critical or Important findings.
-- Command registration, bot restart, deployment, and live Active-mode testing were not
-  performed in this checkpoint.
+- Discord registered 12 guild commands; remote `/mod` includes `status`, `incidents`,
+  `preview`, and `allow`. The runtime restarted as one connected v1.16.0 process with an
+  advancing heartbeat and Anti-Raid still at Monitor revision 0.
+- Read-only server verification passed with 0 failures and 0 warnings. No deployment, public
+  message, allowlist mutation, or live Active-mode testing was performed.
 
 ## [1.15.1] - 2026-08-12
 

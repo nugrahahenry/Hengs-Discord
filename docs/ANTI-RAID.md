@@ -164,8 +164,9 @@ runtime satu instance, `/mod status` dan `/mod incidents` owner-only berhasil di
 prasyarat dilaporkan `Siap`, dan runtime ditinggalkan pada Monitor. Tidak ada pesan
 publik, perubahan allowlist, atau live ban.
 
-v1.16.0 menambah subcommand `/mod preview`, sehingga command registration dan restart
-runtime tetap memerlukan persetujuan eksplisit Henry. Smoke test yang aman cukup membuka
-status, empty incidents, dan preview sambil mempertahankan Monitor. Uji Active auto-ban
-hanya boleh memakai akun dummy disposable yang disediakan dan disetujui Henry; jangan
-memban member nyata untuk acceptance.
+v1.16.0 sudah terdaftar sebagai 12 guild commands dan runtime lokal sudah direstart menjadi
+tepat satu proses connected. Discord API mengonfirmasi `/mod` berisi `status`, `incidents`,
+`preview`, dan `allow`; heartbeat bergerak dan mode tetap Monitor revision 0. Smoke visual
+Owner untuk status, empty incidents, dan preview bersifat opsional. Uji Active auto-ban hanya
+boleh memakai akun dummy disposable yang disediakan dan disetujui Henry; jangan memban
+member nyata untuk acceptance.

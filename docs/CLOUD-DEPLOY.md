@@ -1,6 +1,6 @@
 # Hengs Discord Always Free Deployment
 
-Panduan ini adalah kontrak operasi untuk Hengs Discord v1.16.0 di Ubuntu. Kode
+Panduan ini adalah kontrak operasi untuk Hengs Discord v1.17.0 di Ubuntu. Kode
 deployment sudah tersedia, tetapi dokumen ini tidak menyatakan bahwa VM produksi sudah
 aktif. Pembuatan resource, perubahan billing, dan cutover tetap memerlukan persetujuan
 Henry pada saat tindakan dilakukan.
@@ -22,7 +22,7 @@ cloud, yang boleh memakai token Discord pada satu waktu. Anti-Raid tetap dalam m
 
 ## Prerequisites
 
-- Checkout Git yang bersih dan checkpoint `1.16.0` sudah di-commit.
+- Checkout Git yang bersih dan checkpoint `1.17.0` sudah di-commit.
 - Node.js 22 untuk membuat release lokal.
 - Akun Oracle Cloud dengan home region dan entitlement Always Free yang telah dicek
   ulang di Console. Hentikan proses bila label biaya atau entitlement tidak jelas.
@@ -149,8 +149,8 @@ Transfer arsip dan file `.sha256` yang dihasilkan ke VM. Dengan service masih be
 
 ```bash
 sudo bash deploy/linux/deploy-release.sh \
-  /root/hengs-discord-1.16.0-<commit>.tar.gz \
-  /root/hengs-discord-1.16.0-<commit>.tar.gz.sha256
+  /root/hengs-discord-1.17.0-<commit>.tar.gz \
+  /root/hengs-discord-1.17.0-<commit>.tar.gz.sha256
 ```
 
 Deployer memvalidasi checksum dan path archive, menolak symlink/hardlink, menjalankan
@@ -203,7 +203,7 @@ satu tahap berarti service cloud dihentikan dan prosedur rollback dijalankan.
 Rollback cloud ke sibling release yang sudah ada:
 
 ```bash
-sudo bash deploy/linux/rollback.sh 1.16.0-<12-char-commit>
+sudo bash deploy/linux/rollback.sh 1.17.0-<12-char-commit>
 ```
 
 Script menghentikan service, mengganti pointer, menyalakan release tujuan, lalu memeriksa

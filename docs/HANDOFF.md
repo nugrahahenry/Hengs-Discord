@@ -2,7 +2,47 @@
 
 Updated: 2026-08-13
 
-## Current checkpoint: v1.16.0 - Moderation Center UX and safety
+## Current checkpoint: v1.17.0 - Report Center humanization
+
+- Proposed release: **v1.17.0**.
+- `/reports` keeps its existing guild-only command schema and private owner/reviewer queue.
+- Empty queues now explain that the server is quiet, where new reports appear, and that
+  **Cek Lagi** refreshes the view. Active queues explain the reviewer's next action.
+- Only `OWNER_ID` sees **Lihat Contoh**, and only while the queue is empty.
+- Preview data and timestamp are fixed, reuse the production report embed, expose no report
+  action controls, and update only the existing ephemeral response.
+- Preview authorization is rechecked at click time. It does not read or write report state,
+  enter audit/statistics, parse mentions, or send a public/mod-log panel.
+- No report schema, moderator permission, slash command schema, or enforcement behavior changed.
+
+## v1.17.0 verification status
+
+- Full `npm test`: 330 passed, 0 failed. Focused Report Center suite: 14 passed, 0 failed.
+- All four changed JavaScript files passed syntax checks; `git diff --check` passed.
+- Impeccable UI detector returned no findings.
+- Targeted code and security reviews reported no Critical or Important findings. The two minor
+  findings were fixed, then the focused suite passed again.
+- Production dependency audit found 0 vulnerabilities.
+- Both Hengs processes are currently running. WhatsApp is connected in mode Off; Discord is
+  online on the previous v1.16.0 runtime because the bot-cek procedure forbids an unrequested
+  automatic restart.
+- No command registration, public message, report state mutation, server acquisition attempt,
+  token transfer, or deployment was performed.
+- Oracle acquisition status is still `NOT_STARTED` with 0 attempts. Fresh read-only preflight
+  returned `SUCCESS`; the first resource-creating attempt was rejected before execution until
+  Henry explicitly approves the VM creation risk.
+
+## v1.17.0 next point
+
+1. Restart the local Discord bot once Henry approves, then open `/reports` as Owner and use
+   **Lihat Contoh** for the live ephemeral acceptance check. Command registration is unnecessary.
+2. Oracle status/preflight already pass. After Henry explicitly approves creating one Always
+   Free VM attempt, run exactly one bounded capacity attempt and inspect its recorded result.
+3. Henry reviews and commits the combined v1.16.0 live-acceptance docs plus v1.17.0 code.
+
+Suggested commit: `Hengs Discord v1.17.0: Humanize Report Center`
+
+## Previous checkpoint: v1.16.0 - Moderation Center UX and safety
 
 - Proposed release: **v1.16.0**.
 - `/mod preview` gives the Owner a fixed, ephemeral incident example without persistence,
@@ -16,9 +56,9 @@ Updated: 2026-08-13
 - Allowlist output is limited to ten validated values and split within Discord's field budget.
 - Mode-store failures receive sanitized, mention-safe guidance instead of an unanswered button.
 - No moderation store schema migration was introduced.
-- This is a local code checkpoint. Command registration, bot restart, deployment, and live
-  Active-mode testing were not performed. The previously recorded runtime remains the source
-  of truth until Henry explicitly approves registration and restart; keep it in Monitor.
+- The guild command schema is registered and the local runtime now runs v1.16.0 as exactly
+  one connected process. Anti-Raid remained Monitor revision 0 through restart. No deployment
+  or live Active-mode testing was performed.
 
 ## v1.16.0 verification status
 
@@ -30,14 +70,19 @@ Updated: 2026-08-13
   workspace. Production remains pinned to Node >=22 <23, so the engine warning is expected.
 - Impeccable UI detector returned no findings. Targeted code and security re-review reported
   no remaining Critical or Important findings.
-- No command registration, restart, deployment, VM action, token transfer, or live ban occurred.
+- Discord API confirms 12 guild commands and `/mod` exposes `status`, `incidents`, `preview`,
+  and `allow`. Read-only server verification passed with 0 failures and 0 warnings.
+- Restart replaced the v1.15.1 process with exactly one connected v1.16.0 process; its heartbeat
+  advanced normally and Anti-Raid remained Monitor revision 0.
+- No deployment, VM action, token transfer, public message, allowlist mutation, or live ban occurred.
 
 ## v1.16.0 next point
 
-1. Henry reviews and commits the local v1.16.0 checkpoint.
-2. With separate approval, register the updated `/mod` schema and restart the Discord bot.
-3. Run a safe Monitor-only smoke test for status, empty incidents, and preview. Active ban
-   acceptance requires a separately approved disposable dummy account.
+1. Henry can optionally open `/mod status`, `/mod incidents`, and `/mod preview` to inspect
+   the final ephemeral UI from the Owner account.
+2. Keep Anti-Raid in Monitor and review real incidents before considering enforcement.
+3. Henry reviews and commits the local v1.16.0 checkpoint. Active ban acceptance requires a
+   separately approved disposable dummy account.
 
 Suggested commit: `Hengs Discord v1.16.0: Improve Moderation Center UX`
 
