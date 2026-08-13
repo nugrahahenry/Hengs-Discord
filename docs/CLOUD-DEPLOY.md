@@ -1,6 +1,6 @@
 # Hengs Discord Always Free Deployment
 
-Panduan ini adalah kontrak operasi untuk Hengs Discord v1.17.2 di Ubuntu. Kode
+Panduan ini adalah kontrak operasi untuk Hengs Discord v1.18.0 di Ubuntu. Kode
 deployment sudah tersedia, tetapi dokumen ini tidak menyatakan bahwa VM produksi sudah
 aktif. Pembuatan resource, perubahan billing, dan cutover tetap memerlukan persetujuan
 Henry pada saat tindakan dilakukan.
@@ -22,12 +22,13 @@ cloud, yang boleh memakai token Discord pada satu waktu. Anti-Raid tetap dalam m
 
 ## Prerequisites
 
-- Checkout Git yang bersih dan checkpoint `1.17.2` sudah di-commit.
+- Checkout Git yang bersih dan checkpoint `1.18.0` sudah di-commit.
 - Node.js 22 untuk membuat release lokal.
 - Akun Oracle Cloud dengan home region dan entitlement Always Free yang telah dicek
   ulang di Console. Hentikan proses bila label biaya atau entitlement tidak jelas.
-- OCI CLI yang sudah terautentikasi, SSH public key, dan konfigurasi acquisition lokal
-  di `.cloud/oracle-acquisition.json`.
+- OCI CLI yang sudah terautentikasi, SSH public key, dan konfigurasi acquisition lokal.
+  A1 memakai `.cloud/oracle-acquisition.json`; E2 Micro memakai direktori terpisah
+  `.cloud/e2/oracle-acquisition.json` agar state dan lock kedua shape tidak bercampur.
 - Ubuntu VM dengan akses SSH berbasis key. Password SSH dan TLS bypass dilarang.
 - `age` recipient untuk setiap backup yang akan disimpan di luar VM.
 
@@ -36,8 +37,14 @@ Git, issue, chat, screenshot, maupun log acceptance.
 
 ## OCI Preflight
 
-Salin template `deploy/cloud/oracle-acquisition.example.json` ke lokasi `.cloud/` yang
-di-ignore, lalu isi referensi akun secara lokal. Jalankan pemeriksaan read-only:
+Pilih tepat satu template lalu salin ke lokasi `.cloud/` yang di-ignore:
+
+- `deploy/cloud/oracle-acquisition.example.json` untuk A1 Flex;
+- `deploy/cloud/oracle-e2-acquisition.example.json` untuk E2 Micro.
+
+A1 adalah flexible shape sehingga config menyertakan OCPU dan RAM. E2 Micro adalah fixed shape;
+config E2 tidak boleh memuat `ocpus` atau `memoryInGBs`, dan launch E2 tidak mengirim
+`--shape-config`. Isi referensi akun secara lokal, lalu jalankan pemeriksaan read-only:
 
 Jika antivirus atau proxy lokal memakai CA tepercaya tambahan, arahkan OCI CLI ke CA
 bundle tersebut melalui `OCI_CLI_CERT_BUNDLE`. Jangan pernah memakai TLS bypass:
@@ -49,10 +56,14 @@ bundle tersebut melalui `OCI_CLI_CERT_BUNDLE`. Jangan pernah memakai TLS bypass:
 ```powershell
 node scripts/cloud/oci-acquire.js preflight --config .cloud/oracle-acquisition.json
 node scripts/cloud/oci-acquire.js status --config .cloud/oracle-acquisition.json
+
+node scripts/cloud/oci-acquire.js preflight --config .cloud/e2/oracle-acquisition.json
+node scripts/cloud/oci-acquire.js status --config .cloud/e2/oracle-acquisition.json
 ```
 
-Preflight dan acquisition harus berhenti untuk kegagalan autentikasi, permission, quota,
-billing, shape, image, subnet, public key, throttling, timeout, atau error tidak dikenal.
+Preflight memfilter shape berdasarkan image yang dipilih agar kompatibilitas image/shape ikut
+diperiksa secara read-only. Preflight dan acquisition harus berhenti untuk kegagalan autentikasi,
+permission, quota, billing, shape, image, subnet, public key, throttling, timeout, atau error tidak dikenal.
 Hasil operator dibatasi ke kode tetap berikut untuk kegagalan proses CLI:
 
 - `TIMEOUT`: proses OCI CLI melewati batas waktu;
@@ -74,6 +85,8 @@ Hanya kode OCI terstruktur `OutOfHostCapacity` yang boleh dicoba ulang. Kebijaka
 - berhenti setelah 7 hari;
 - berhenti langsung saat berhasil atau saat menerima kegagalan non-capacity;
 - state dan lock berada di `.cloud/` dan tidak boleh dihapus untuk mengakali batas;
+- setiap shape memakai direktori config/state sendiri; `STATE_CONFIG_MISMATCH` menghentikan
+  acquisition sebelum preflight atau launch bila alias region/shape tidak cocok;
 - status `STOPPED` hanya boleh di-reset setelah diagnosis ditinjau dan approval baru diberikan.
 
 `LaunchInstance` selalu dipanggil dengan `--no-retry`, sehingga satu invocation acquisition
@@ -85,6 +98,9 @@ Setelah persetujuan resource creation diberikan, jalankan salah satu mode beriku
 ```powershell
 node scripts/cloud/oci-acquire.js attempt --config .cloud/oracle-acquisition.json
 node scripts/cloud/oci-acquire.js run --config .cloud/oracle-acquisition.json
+
+node scripts/cloud/oci-acquire.js attempt --config .cloud/e2/oracle-acquisition.json
+node scripts/cloud/oci-acquire.js run --config .cloud/e2/oracle-acquisition.json
 ```
 
 Sesudah instance tersedia, cek di Console bahwa instance dan boot volume benar-benar
@@ -164,8 +180,8 @@ Transfer arsip dan file `.sha256` yang dihasilkan ke VM. Dengan service masih be
 
 ```bash
 sudo bash deploy/linux/deploy-release.sh \
-  /root/hengs-discord-1.17.2-<commit>.tar.gz \
-  /root/hengs-discord-1.17.2-<commit>.tar.gz.sha256
+  /root/hengs-discord-1.18.0-<commit>.tar.gz \
+  /root/hengs-discord-1.18.0-<commit>.tar.gz.sha256
 ```
 
 Deployer memvalidasi checksum dan path archive, menolak symlink/hardlink, menjalankan
@@ -218,7 +234,7 @@ satu tahap berarti service cloud dihentikan dan prosedur rollback dijalankan.
 Rollback cloud ke sibling release yang sudah ada:
 
 ```bash
-sudo bash deploy/linux/rollback.sh 1.17.2-<12-char-commit>
+sudo bash deploy/linux/rollback.sh 1.18.0-<12-char-commit>
 ```
 
 Script menghentikan service, mengganti pointer, menyalakan release tujuan, lalu memeriksa

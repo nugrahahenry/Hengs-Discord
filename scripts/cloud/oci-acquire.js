@@ -9,7 +9,12 @@ const {
   evaluateAttemptWindow,
 } = require('./acquisition-policy');
 const { createAcquisitionStore } = require('./acquisition-store');
-const { launch, loadAcquisitionConfig, preflight } = require('./oci-client');
+const {
+  launch,
+  loadAcquisitionConfig,
+  preflight,
+  shapeAliasForConfig,
+} = require('./oci-client');
 
 function safeStatus(state) {
   if (!state) {
@@ -101,8 +106,18 @@ async function executeMode(options) {
   try {
     let state = store.read();
     if (!state) {
-      state = createInitialState(new Date(now()).toISOString(), config.regionAlias, 'a1-flex');
+      state = createInitialState(
+        new Date(now()).toISOString(),
+        config.regionAlias,
+        shapeAliasForConfig(config),
+      );
       store.write(state);
+    }
+    if (state.regionAlias !== config.regionAlias
+        || state.shapeAlias !== shapeAliasForConfig(config)) {
+      const result = { ok: false, code: 'STATE_CONFIG_MISMATCH' };
+      emit(output, result);
+      return result;
     }
 
     if (mode === 'attempt') {
@@ -187,4 +202,3 @@ if (require.main === module) {
 }
 
 module.exports = { executeMode, main, parseCliArgs, safeStatus };
-

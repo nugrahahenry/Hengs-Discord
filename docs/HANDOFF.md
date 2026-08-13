@@ -1,11 +1,25 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
-## Current checkpoint: v1.17.2 - single-request OCI launch diagnostics
+## Current working checkpoint: v1.18.0 - Oracle E2 Micro acquisition and safe host bootstrap
 
-- Proposed release: **v1.17.2**.
-- Base v1.17.1 is committed as `4630d79` on `main` and `origin/main`.
+- Added fixed-shape `VM.Standard.E2.1.Micro` acquisition support without A1-only flexible sizing,
+  plus a fail-closed region/shape state-mismatch gate and isolated E2 example configuration.
+- Henry authorized exactly one E2 attempt. It succeeded once, and read-only verification confirms
+  exactly one `RUNNING` E2 Micro instance; the A1 state remains `STOPPED` with all three attempts.
+- Ubuntu host bootstrap completed with Node 22, UFW, Tailscale, the service identity, persistent
+  directories, and a verified systemd unit. The Hengs service remains disabled/inactive, its
+  environment file is empty, no current release exists, and Tailscale is not enrolled.
+- Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
+  `1.18.0`. Focused version/cloud tests pass 34/34; full `npm test` passes 338/338; JavaScript
+  syntax checks and `git diff --check` pass.
+- All v1.18.0 changes remain uncommitted at Henry's request. The committed `HEAD` is still
+  v1.17.2 (`4a71721`), and the connected local v1.17.2 bot remains authoritative.
+
+## Previous checkpoint: v1.17.2 - single-request OCI launch diagnostics
+
+- Released as **v1.17.2** in `4a71721` on `main` and `origin/main`.
 - Mutating `LaunchInstance` calls now pass `--no-retry`; retryable capacity handling remains
   controlled only by the persisted acquisition policy.
 - Unmapped structured provider failures become non-retryable `PROVIDER_UNAVAILABLE` for 5xx
@@ -23,24 +37,77 @@ Updated: 2026-08-13
 - Read-only Oracle Audit evidence for the second authorized attempt showed three
   `LaunchInstance.begin` events from the old OCI CLI retry behavior. No completion event was
   established, and a fresh read-only instance list found zero `hengs-discord` instances.
-- Acquisition is `STOPPED` with two historical `UNKNOWN` attempts, no lock or process, and no
-  third attempt. The patch did not reset state or make any cloud write.
-- Both Hengs processes remain local. Discord still runs v1.16.0 because no runtime restart was
-  approved; the command schema remains unchanged.
+- The third explicitly authorized attempt ran after the maximum 105-minute interval on committed
+  v1.17.2. Its final preflight returned `SUCCESS`, state reset changed only `STOPPED` to `PENDING`,
+  and exactly one `attempt` invocation returned non-retryable `PROVIDER_UNAVAILABLE`.
+- The post-attempt read-only instance list found zero `hengs-discord` instances. Acquisition is
+  `STOPPED` with three historical attempts, no lock or process, and no fourth attempt. No secret,
+  deploy, service start, or cutover action occurred.
+- Both Hengs processes remain local. The approved local restart replaced the previous Discord
+  process with exactly one v1.17.2 process while the separate WhatsApp process stayed running.
+  Runtime health reports `CONNECTED`, advancing heartbeats, and no last issue. The command schema
+  remains unchanged.
+- Live owner acceptance passed in the existing private `bot-settings` channel: `/reports` showed
+  the humanized empty queue, and **Lihat Contoh** rendered the fixed owner-only ephemeral preview.
+  The report queue remained at zero, `reports-state.json` was not modified, no moderation state
+  file was created, and Anti-Raid remained configured as `monitor`.
+- The live interaction also emitted a non-blocking discord.js deprecation warning for the
+  `ephemeral` response option. Privacy and behavior were correct; migrate applicable responses to
+  `MessageFlags.Ephemeral` in a later compatibility patch before the next discord.js upgrade.
 - The Windows sandbox ACL blocker was unrelated to project skills: a 22-byte NUL-filled
   `deny_read_acl_state.json` was quarantined, Codex regenerated valid state, and normal sandbox
   plus `apply_patch` verification passed.
 
-## v1.17.2 next point
+## Current operational state and next point
 
-1. Restart the local Discord bot once Henry approves, then open `/reports` as Owner and use
-   **Lihat Contoh** for the live ephemeral acceptance check. Command registration is unnecessary.
-2. Keep the `STOPPED` state unchanged. Before any deliberate reset or third Oracle attempt,
-   review both historical `UNKNOWN` results and obtain fresh explicit approval for exactly one
-   additional resource-creation attempt after v1.17.2 is committed.
-3. Henry reviews and commits the v1.17.2 diagnostic patch.
+Hosting research was refreshed on 2026-08-13 in
+`docs/research/2026-08-13-hengs-hosting-24-7.md`. No resource, billing account, deployment,
+secret transfer, or cutover was created during the research.
 
-Suggested commit: `Hengs Discord v1.17.2: Prevent implicit OCI launch retries`
+1. Henry set a hard USD 0 recurring-cost constraint. DigitalOcean, Google Cloud with paid IPv4,
+   Railway, and other paid hosts are not eligible.
+2. The zero-cost E2 preparation checkpoint is complete locally. The acquisition client treats
+   `VM.Standard.E2.1.Micro` as a fixed AMD/x86 shape, omits A1-only `shape-config`, filters the
+   selected image during shape preflight, and rejects region/shape state mismatches before any
+   provider call.
+3. A current Canonical Ubuntu 24.04 x86 image was `AVAILABLE`, and the live read-only E2 preflight
+   returned `SUCCESS` for identity, region, one availability domain, image/shape compatibility,
+   and subnet. E2 config/state is isolated under ignored `.cloud/e2/`.
+4. On 2026-08-14 Henry explicitly authorized exactly one E2 Micro attempt. Final preflight returned
+   `SUCCESS`; the single `attempt` invocation returned `SUCCESS`; post-launch read-only status is
+   `SUCCEEDED` with exactly one attempt. Instance verification found exactly one active instance,
+   `RUNNING`, with shape `VM.Standard.E2.1.Micro`. No second attempt or `run` invocation occurred.
+5. Keep A1 acquisition `STOPPED` and preserve all three historical A1 attempts. The E2 VM is
+   infrastructure only: no Hengs release, secret, state, service start, token cutover, public
+   message, or moderation action occurred. Capacity and idle reclamation remain provider risks;
+   do not create artificial idle-avoidance traffic.
+6. E2 host bootstrap completed on 2026-08-14. Read-only resource acceptance confirmed one
+   `RUNNING` E2 Micro instance, one 47 GB boot volume, a public IPv4, and reachable SSH.
+   First-login acceptance confirmed Ubuntu 24.04 x86_64, completed cloud-init, and passwordless
+   sudo for the default Ubuntu operator.
+7. Five Linux bootstrap assets were transferred to a new staging directory and matched SHA-256
+   5/5 before execution. `install-host.sh` returned `HOST_INSTALL_READY`. Acceptance confirmed
+   Node 22.23.2, npm 10.9.8, Tailscale 1.102.2 with `tailscaled` active, UFW active with OpenSSH
+   allowed, and the installed systemd unit matching the reviewed repository asset.
+8. The cloud service remains disabled/inactive. `/etc/hengs/discord.env` is empty, mode 0640,
+   owned by root and the service group; persistent state is mode 0750 under the service identity;
+   no current release exists. Tailscale enrollment was not performed because no approved auth
+   mechanism was supplied. The local v1.17.2 bot remains connected and authoritative.
+9. Azure for Students is no longer the active path while the E2 VM remains healthy. It stays a
+   fail-closed temporary fallback only: Microsoft currently offers USD 100
+   credit for up to 12 months without a card and disables resources at depletion unless the user
+   deliberately upgrades. It is not permanent hosting.
+10. If Oracle reclaims E2 and student credit is unavailable, continue local-only. No verified
+   cloud platform guarantees a persistent non-sleeping Discord worker forever at zero cost.
+11. Keep the local v1.17.2 runtime as the authoritative Discord token consumer. Next checkpoints
+   are (a) interactive Tailscale enrollment and private-path acceptance, (b) Henry's v1.18.0
+   commit so the fail-closed release builder accepts `HEAD`, (c) release/state staging with the
+   cloud service stopped, then (d) a separately approved single-consumer cutover. Command
+   registration is unnecessary.
+12. The tracked E2 acquisition support is a new operational capability; the working checkpoint
+   version is v1.18.0. Henry requested that all changes remain uncommitted until the next checkpoint.
+
+Suggested future checkpoint commit: `Hengs Discord v1.18.0: Add Oracle E2 Micro acquisition support`
 
 ## Previous checkpoint: v1.17.1 - safe OCI diagnostics
 

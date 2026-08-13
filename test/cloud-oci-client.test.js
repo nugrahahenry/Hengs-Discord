@@ -37,6 +37,16 @@ function validConfig(dir) {
   };
 }
 
+function validE2MicroConfig(dir) {
+  const config = validConfig(dir);
+  delete config.ocpus;
+  delete config.memoryInGBs;
+  return {
+    ...config,
+    shape: 'VM.Standard.E2.1.Micro',
+  };
+}
+
 function writeConfig(dir, value) {
   const file = path.join(dir, 'config.json');
   fs.writeFileSync(file, JSON.stringify(value));
@@ -128,6 +138,17 @@ test('OCI process trusts only structured JSON errors', () => {
   });
   assert.deepEqual(raw.failure, { code: 'CLI_ERROR_UNSTRUCTURED', retryable: false });
   assert.equal(JSON.stringify(raw).includes('OutOfHostCapacity'), false);
+});
+
+test('config loader accepts E2 Micro only as a fixed Always Free shape', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-oci-e2-config-'));
+  const config = validE2MicroConfig(dir);
+
+  assert.deepEqual(loadAcquisitionConfig(writeConfig(dir, config)), config);
+  assert.throws(
+    () => loadAcquisitionConfig(writeConfig(dir, { ...config, ocpus: 1, memoryInGBs: 1 })),
+    /CONFIG_INVALID/,
+  );
 });
 
 test('OCI process gives unmapped structured provider failures a safe actionable bucket', () => {
@@ -229,6 +250,11 @@ test('preflight performs read-only checks and accepts matching resources', async
   assert.equal(commands.some(args => args.includes('launch')), false);
   assert.equal(commands.some(args => args.slice(0, 3).join(' ') === 'iam region-subscription list'), true);
   assert.equal(commands.some(args => args.slice(0, 3).join(' ') === 'network subnet get'), true);
+  const shapeCheck = commands.find(args => args.slice(0, 3).join(' ') === 'compute shape list');
+  assert.equal(shapeCheck.includes('--image-id'), true);
+  assert.equal(shapeCheck.includes(config.imageId), true);
+  assert.equal(shapeCheck.includes('--shape'), true);
+  assert.equal(shapeCheck.includes(config.shape), true);
 });
 
 test('launch uses direct compute launch and returns only a fixed failure code', async () => {
@@ -250,6 +276,23 @@ test('launch uses direct compute launch and returns only a fixed failure code', 
   assert.deepEqual(command.slice(0, 3), ['compute', 'instance', 'launch']);
   assert.equal(command.includes('resource-manager'), false);
   assert.equal(command.includes(config.compartmentId), true);
+  assert.equal(command.filter(value => value === '--no-retry').length, 1);
+});
+
+test('E2 Micro launch omits flexible shape configuration', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-oci-e2-launch-'));
+  const config = validE2MicroConfig(dir);
+  let command;
+
+  const result = await launch(config, config.availabilityDomains[0], {
+    runOciImpl(args) {
+      command = args;
+      return { ok: true, data: { data: {} }, failure: null };
+    },
+  });
+
+  assert.deepEqual(result, { ok: true, code: 'SUCCESS', retryable: false });
+  assert.equal(command.includes('--shape-config'), false);
   assert.equal(command.filter(value => value === '--no-retry').length, 1);
 });
 
@@ -286,6 +329,58 @@ test('one attempt records capacity safely and rotates the availability domain', 
   assert.equal(store.read().attempts.length, 1);
   assert.equal(store.read().nextEligibleAt, '2026-08-12T01:30:00.000Z');
   assert.equal(JSON.stringify(output).includes(OCI_PREFIX), false);
+});
+
+test('the first E2 Micro attempt persists its own shape alias', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-oci-e2-state-'));
+  const nowMs = Date.UTC(2026, 7, 13, 0, 0, 0);
+  const store = createAcquisitionStore({
+    stateFile: path.join(dir, 'state.json'),
+    lockFile: path.join(dir, 'state.lock'),
+    now: () => nowMs,
+    pid: 5432,
+    isPidAlive: () => false,
+  });
+
+  await executeMode({
+    mode: 'attempt',
+    config: validE2MicroConfig(dir),
+    store,
+    now: () => nowMs,
+    random: () => 0,
+    preflightImpl: async () => ({ ok: true, code: 'SUCCESS' }),
+    launchImpl: async () => ({ ok: false, code: 'CAPACITY_UNAVAILABLE', retryable: true }),
+    output: () => {},
+  });
+
+  assert.equal(store.read().shapeAlias, 'e2-micro');
+});
+
+test('an E2 Micro attempt refuses an existing A1 acquisition state', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-oci-shape-mismatch-'));
+  const nowMs = Date.UTC(2026, 7, 13, 0, 0, 0);
+  const store = createAcquisitionStore({
+    stateFile: path.join(dir, 'state.json'),
+    lockFile: path.join(dir, 'state.lock'),
+    now: () => nowMs,
+    pid: 6543,
+    isPidAlive: () => false,
+  });
+  const original = createInitialState(new Date(nowMs).toISOString(), 'home', 'a1-flex');
+  store.write(original);
+
+  const result = await executeMode({
+    mode: 'attempt',
+    config: validE2MicroConfig(dir),
+    store,
+    now: () => nowMs,
+    preflightImpl: async () => assert.fail('preflight must not run for mismatched state'),
+    launchImpl: async () => assert.fail('launch must not run for mismatched state'),
+    output: () => {},
+  });
+
+  assert.deepEqual(result, { ok: false, code: 'STATE_CONFIG_MISMATCH' });
+  assert.deepEqual(store.read(), original);
 });
 
 test('authentication failure stops acquisition and a live lock denies a second process', async () => {

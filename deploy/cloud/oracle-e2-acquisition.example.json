@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "profile": "DEFAULT",
+  "regionAlias": "home",
+  "region": "replace-with-home-region",
+  "compartmentId": "replace-with-compartment-or-tenancy-ocid",
+  "subnetId": "replace-with-public-subnet-ocid",
+  "imageId": "replace-with-e2-compatible-ubuntu-image-ocid",
+  "availabilityDomains": [
+    "replace-with-e2-eligible-availability-domain"
+  ],
+  "shape": "VM.Standard.E2.1.Micro",
+  "sshPublicKeyPath": "replace-with-absolute-public-key-path"
+}

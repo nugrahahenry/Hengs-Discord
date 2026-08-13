@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** v1.17.2
+**Current checkpoint:** v1.18.0
 
 ## ✨ Fitur Utama
 
@@ -65,13 +65,16 @@ stop-bot.bat            # hentikan bot
 
 ### Cloud deployment (belum live)
 
-Dukungan deployment Always Free untuk Ubuntu tetap tersedia. Checkpoint v1.17.2
-menonaktifkan retry internal OCI CLI khusus `LaunchInstance` dan mengelompokkan error
-provider terstruktur yang belum dikenal tanpa menyimpan output mentah. Schema slash command
-tidak berubah, jadi registrasi ulang command tidak diperlukan. Tidak ada VM production yang
-diklaim aktif dari repository ini. Restart bot, pembuatan VM, transfer secret, dan cutover
-memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus
-dihentikan sebelum service cloud memakai token Discord.
+Dukungan deployment Always Free untuk Ubuntu tersedia bagi A1 Flex dan E2 Micro. A1 memakai
+sizing fleksibel, sedangkan E2 adalah fixed shape dan memiliki config/state terpisah agar histori
+acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInstance`; error
+provider dipetakan ke kode tetap tanpa menyimpan output mentah. Schema slash command tidak
+berubah, jadi registrasi ulang command tidak diperlukan. Satu E2 Micro Always Free berhasil
+dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
+UFW, Tailscale, user layanan, dan unit systemd; service Hengs tetap disabled/inactive tanpa release,
+secret, atau state produksi. VM belum menjadi production. Transfer secret/state, deployment, dan
+cutover tetap memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal
+harus dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands
 

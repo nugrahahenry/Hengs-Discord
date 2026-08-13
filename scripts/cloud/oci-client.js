@@ -5,11 +5,35 @@ const path = require('node:path');
 const { spawnSync: defaultSpawnSync } = require('node:child_process');
 const { classifyOciFailure } = require('./acquisition-policy');
 
-const CONFIG_KEYS = [
+const FIXED_CONFIG_KEYS = [
   'schemaVersion', 'profile', 'regionAlias', 'region', 'compartmentId',
-  'subnetId', 'imageId', 'availabilityDomains', 'shape', 'ocpus',
-  'memoryInGBs', 'sshPublicKeyPath',
+  'subnetId', 'imageId', 'availabilityDomains', 'shape', 'sshPublicKeyPath',
 ];
+const FLEX_CONFIG_KEYS = [...FIXED_CONFIG_KEYS, 'ocpus', 'memoryInGBs'];
+
+const SHAPE_PROFILES = Object.freeze({
+  'VM.Standard.A1.Flex': Object.freeze({
+    alias: 'a1-flex',
+    configKeys: FLEX_CONFIG_KEYS,
+    usesShapeConfig: true,
+    validateSizing(value) {
+      return Number.isInteger(value.ocpus)
+        && value.ocpus >= 1
+        && value.ocpus <= 2
+        && Number.isFinite(value.memoryInGBs)
+        && value.memoryInGBs >= 1
+        && value.memoryInGBs <= 12;
+    },
+  }),
+  'VM.Standard.E2.1.Micro': Object.freeze({
+    alias: 'e2-micro',
+    configKeys: FIXED_CONFIG_KEYS,
+    usesShapeConfig: false,
+    validateSizing() {
+      return true;
+    },
+  }),
+});
 
 function configError() {
   return new Error('CONFIG_INVALID');
@@ -48,7 +72,9 @@ function validatePublicKeyFile(file, fsImpl = fs) {
 }
 
 function validateAcquisitionConfig(value, fsImpl = fs) {
-  const valid = hasExactKeys(value, CONFIG_KEYS)
+  const shapeProfile = value && SHAPE_PROFILES[value.shape];
+  const valid = Boolean(shapeProfile)
+    && hasExactKeys(value, shapeProfile.configKeys)
     && value.schemaVersion === 1
     && typeof value.profile === 'string'
     && /^[A-Za-z0-9_-]{1,64}$/.test(value.profile)
@@ -66,13 +92,7 @@ function validateAcquisitionConfig(value, fsImpl = fs) {
       typeof domain === 'string' && /^[A-Za-z0-9:_-]{1,128}$/.test(domain)
     ))
     && new Set(value.availabilityDomains).size === value.availabilityDomains.length
-    && value.shape === 'VM.Standard.A1.Flex'
-    && Number.isInteger(value.ocpus)
-    && value.ocpus >= 1
-    && value.ocpus <= 2
-    && Number.isFinite(value.memoryInGBs)
-    && value.memoryInGBs >= 1
-    && value.memoryInGBs <= 12;
+    && shapeProfile.validateSizing(value);
   if (!valid) throw configError();
   validatePublicKeyFile(value.sshPublicKeyPath, fsImpl);
   return value;
@@ -87,6 +107,12 @@ function loadAcquisitionConfig(file, options = {}) {
     throw configError();
   }
   return validateAcquisitionConfig(value, fsImpl);
+}
+
+function shapeAliasForConfig(config) {
+  const shapeProfile = config && SHAPE_PROFILES[config.shape];
+  if (!shapeProfile) throw configError();
+  return shapeProfile.alias;
 }
 
 function parseStructuredError(stderr) {
@@ -166,7 +192,8 @@ async function preflight(config, options = {}) {
     ['iam', 'availability-domain', 'list', '--compartment-id', config.compartmentId, ...commonArgs(config)],
     ['compute', 'image', 'get', '--image-id', config.imageId, ...commonArgs(config)],
     ['compute', 'shape', 'list', '--compartment-id', config.compartmentId,
-      '--availability-domain', config.availabilityDomains[0], ...commonArgs(config)],
+      '--availability-domain', config.availabilityDomains[0],
+      '--image-id', config.imageId, '--shape', config.shape, ...commonArgs(config)],
     ['network', 'subnet', 'get', '--subnet-id', config.subnetId, ...commonArgs(config)],
   ];
   const results = [];
@@ -197,12 +224,16 @@ async function launch(config, availabilityDomain, options = {}) {
   }
 
   const runOciImpl = options.runOciImpl || runOci;
+  const shapeProfile = SHAPE_PROFILES[config.shape];
+  const shapeConfigArgs = shapeProfile.usesShapeConfig
+    ? ['--shape-config', JSON.stringify({ ocpus: config.ocpus, memoryInGBs: config.memoryInGBs })]
+    : [];
   const args = [
     'compute', 'instance', 'launch',
     '--compartment-id', config.compartmentId,
     '--availability-domain', availabilityDomain,
     '--shape', config.shape,
-    '--shape-config', JSON.stringify({ ocpus: config.ocpus, memoryInGBs: config.memoryInGBs }),
+    ...shapeConfigArgs,
     '--subnet-id', config.subnetId,
     '--image-id', config.imageId,
     '--display-name', 'hengs-discord',
@@ -223,5 +254,6 @@ module.exports = {
   loadAcquisitionConfig,
   preflight,
   runOci,
+  shapeAliasForConfig,
   validateAcquisitionConfig,
 };
