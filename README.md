@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** v1.17.0
+**Current checkpoint:** v1.17.1
 
 ## ✨ Fitur Utama
 
@@ -13,7 +13,7 @@
 - **Community Event Hub** — `/event draft` membuat event ber-approval dengan RSVP, kapasitas, reminder, cancel, dan auto-close
 - **Restricted document translation** — `/translate` menerjemahkan PDF, DOCX, PPTX, HTML, atau TXT non-sensitif melalui DeepL, khusus owner/VIP
 - **Private WhatsApp recovery alerts** - owner DM first, exact private `BOT_SETTINGS_CHANNEL_ID` fallback, with deduplication and bounded retry
-- **Always Free deployment support** - bounded OCI acquisition, immutable Linux releases, persistent state, systemd hardening, health inspection, and rollback; operator guide: [`docs/CLOUD-DEPLOY.md`](docs/CLOUD-DEPLOY.md)
+- **Always Free deployment support** - bounded OCI acquisition, privacy-safe fixed diagnostics, immutable Linux releases, persistent state, systemd hardening, health inspection, and rollback; operator guide: [`docs/CLOUD-DEPLOY.md`](docs/CLOUD-DEPLOY.md)
 - **Runtime health contract** — heartbeat lokal atomik untuk status connected, reconnecting, stale, failed, dan recovery tanpa data privat
 - **Community Operations Dashboard** — `/ops overview` merangkum health, draft, event, antrean terjemahan, dan mode fokus secara privat
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
@@ -65,7 +65,7 @@ stop-bot.bat            # hentikan bot
 
 ### Cloud deployment (belum live)
 
-Dukungan deployment Always Free untuk Ubuntu tetap tersedia. Checkpoint v1.17.0 merapikan Report Center tanpa mengubah schema slash command, jadi registrasi ulang command tidak diperlukan. Tidak ada VM production yang diklaim aktif dari repository ini. Restart bot, pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
+Dukungan deployment Always Free untuk Ubuntu tetap tersedia. Checkpoint v1.17.1 membedakan timeout, error CLI tidak terstruktur, dan output JSON rusak tanpa menyimpan output mentah. Schema slash command tidak berubah, jadi registrasi ulang command tidak diperlukan. Tidak ada VM production yang diklaim aktif dari repository ini. Restart bot, pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands
 

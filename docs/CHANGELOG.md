@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-08-13
+
+### Fixed
+- Diagnostik OCI sekarang membedakan `TIMEOUT`, `CLI_ERROR_UNSTRUCTURED`, dan
+  `CLI_OUTPUT_INVALID`; error CLI tidak terstruktur dan output JSON rusak tidak lagi
+  digabung menjadi `UNKNOWN`.
+
+### Security
+- Raw stdout, stderr, dan pesan error OCI tidak masuk ke hasil operator atau state acquisition;
+  hanya kode tetap yang disimpan.
+- Kode legacy `UNKNOWN` tetap diterima agar state attempt historis dapat dibaca tanpa reset
+  atau migrasi yang berisiko.
+
+### Verification
+- Full `npm test`: 333 passed, 0 failed; focused OCI diagnostics: 26 passed, 0 failed.
+- Seluruh 86 file JavaScript lulus syntax check; production dependency audit menemukan
+  0 vulnerability; `git diff --check` lulus.
+- Tidak ada command registration, runtime restart, public message, report-state mutation,
+  attempt OCI kedua, pembuatan VM, token transfer, atau deployment dalam patch ini.
+
 ## [1.17.0] - 2026-08-13
 
 ### Added

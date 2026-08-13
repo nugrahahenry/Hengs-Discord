@@ -121,7 +121,10 @@ function runOci(args, options = {}) {
       windowsHide: true,
     });
   } catch (error) {
-    const failure = classifyOciFailure({ spawnCode: error && error.code });
+    const failure = classifyOciFailure({
+      spawnCode: error && error.code,
+      timedOut: Boolean(error && error.code === 'ETIMEDOUT'),
+    });
     return { ok: false, data: null, failure };
   }
 
@@ -133,14 +136,17 @@ function runOci(args, options = {}) {
     return { ok: false, data: null, failure };
   }
   if (result.status !== 0) {
-    const failure = classifyOciFailure(parseStructuredError(result.stderr));
+    const structuredError = parseStructuredError(result.stderr);
+    const failure = structuredError.code
+      ? classifyOciFailure(structuredError)
+      : { code: 'CLI_ERROR_UNSTRUCTURED', retryable: false };
     return { ok: false, data: null, failure };
   }
 
   try {
     return { ok: true, data: JSON.parse(result.stdout || '{}'), failure: null };
   } catch {
-    return { ok: false, data: null, failure: { code: 'UNKNOWN', retryable: false } };
+    return { ok: false, data: null, failure: { code: 'CLI_OUTPUT_INVALID', retryable: false } };
   }
 }
 

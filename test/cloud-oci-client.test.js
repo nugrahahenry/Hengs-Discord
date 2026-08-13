@@ -126,8 +126,59 @@ test('OCI process trusts only structured JSON errors', () => {
   const raw = runOci(['compute', 'instance', 'launch'], {
     spawnSync: () => ({ status: 1, stdout: '', stderr: 'Error: OutOfHostCapacity' }),
   });
-  assert.deepEqual(raw.failure, { code: 'UNKNOWN', retryable: false });
+  assert.deepEqual(raw.failure, { code: 'CLI_ERROR_UNSTRUCTURED', retryable: false });
   assert.equal(JSON.stringify(raw).includes('OutOfHostCapacity'), false);
+});
+
+test('OCI process distinguishes timeout, unstructured stderr, and invalid stdout without leaking raw output', () => {
+  const timeout = runOci(['compute', 'instance', 'launch'], {
+    spawnSync: () => ({
+      status: null,
+      stdout: '',
+      stderr: '',
+      error: Object.assign(new Error('timed out with sentinel-timeout-secret'), { code: 'ETIMEDOUT' }),
+    }),
+  });
+  const unstructured = runOci(['compute', 'instance', 'launch'], {
+    spawnSync: () => ({
+      status: 1,
+      stdout: '',
+      stderr: 'provider rejected ocid1.instance.sentinel and sentinel-stderr-secret',
+    }),
+  });
+  const invalidOutput = runOci(['compute', 'instance', 'launch'], {
+    spawnSync: () => ({
+      status: 0,
+      stdout: 'not-json sentinel-stdout-secret',
+      stderr: '',
+    }),
+  });
+
+  assert.deepEqual(timeout.failure, { code: 'TIMEOUT', retryable: false });
+  assert.deepEqual(unstructured.failure, { code: 'CLI_ERROR_UNSTRUCTURED', retryable: false });
+  assert.deepEqual(invalidOutput.failure, { code: 'CLI_OUTPUT_INVALID', retryable: false });
+  const serialized = JSON.stringify({ timeout, unstructured, invalidOutput });
+  for (const sentinel of [
+    'sentinel-timeout-secret',
+    'ocid1.instance.sentinel',
+    'sentinel-stderr-secret',
+    'sentinel-stdout-secret',
+  ]) {
+    assert.equal(serialized.includes(sentinel), false, sentinel);
+  }
+});
+
+test('OCI process maps a thrown timeout to a safe fixed code', () => {
+  const result = runOci(['compute', 'instance', 'launch'], {
+    spawnSync() {
+      const error = new Error('sentinel-thrown-timeout-secret');
+      error.code = 'ETIMEDOUT';
+      throw error;
+    },
+  });
+
+  assert.deepEqual(result.failure, { code: 'TIMEOUT', retryable: false });
+  assert.equal(JSON.stringify(result).includes('sentinel-thrown-timeout-secret'), false);
 });
 
 test('preflight performs read-only checks and accepts matching resources', async () => {

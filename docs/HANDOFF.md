@@ -2,45 +2,57 @@
 
 Updated: 2026-08-13
 
-## Current checkpoint: v1.17.0 - Report Center humanization
+## Current checkpoint: v1.17.1 - safe OCI diagnostics
 
-- Proposed release: **v1.17.0**.
-- `/reports` keeps its existing guild-only command schema and private owner/reviewer queue.
-- Empty queues now explain that the server is quiet, where new reports appear, and that
-  **Cek Lagi** refreshes the view. Active queues explain the reviewer's next action.
-- Only `OWNER_ID` sees **Lihat Contoh**, and only while the queue is empty.
-- Preview data and timestamp are fixed, reuse the production report embed, expose no report
-  action controls, and update only the existing ephemeral response.
-- Preview authorization is rechecked at click time. It does not read or write report state,
-  enter audit/statistics, parse mentions, or send a public/mod-log panel.
-- No report schema, moderator permission, slash command schema, or enforcement behavior changed.
+- Proposed release: **v1.17.1**.
+- Base v1.17.0 Report Center is committed as `7269462` on `main` and `origin/main`.
+- OCI process failures now distinguish `TIMEOUT`, `CLI_ERROR_UNSTRUCTURED`, and
+  `CLI_OUTPUT_INVALID`; only fixed codes reach operator output or acquisition state.
+- Raw stdout, stderr, and exception messages are discarded. Legacy `UNKNOWN` state remains
+  readable for backward compatibility.
 
-## v1.17.0 verification status
+## v1.17.1 verification status
 
-- Full `npm test`: 330 passed, 0 failed. Focused Report Center suite: 14 passed, 0 failed.
-- All four changed JavaScript files passed syntax checks; `git diff --check` passed.
-- Impeccable UI detector returned no findings.
-- Targeted code and security reviews reported no Critical or Important findings. The two minor
-  findings were fixed, then the focused suite passed again.
+- Full `npm test`: 333 passed, 0 failed. Focused OCI diagnostics: 26 passed, 0 failed.
+- All 86 JavaScript files passed syntax checks; `git diff --check` passed.
 - Production dependency audit found 0 vulnerabilities.
+- New regression coverage proves timeout, unstructured stderr, and invalid stdout remain
+  distinguishable while raw output and exception messages stay out of results and state.
 - Both Hengs processes are currently running. WhatsApp is connected in mode Off; Discord is
   online on the previous v1.16.0 runtime because the bot-cek procedure forbids an unrequested
   automatic restart.
-- No command registration, public message, report state mutation, server acquisition attempt,
-  token transfer, or deployment was performed.
-- Oracle acquisition status is still `NOT_STARTED` with 0 attempts. Fresh read-only preflight
-  returned `SUCCESS`; the first resource-creating attempt was rejected before execution until
-  Henry explicitly approves the VM creation risk.
+- No command registration, public message, report state mutation, token transfer, or deployment
+  was performed.
+- Oracle read-only preflight returned `SUCCESS`. The separately authorized first capacity attempt
+  ended as `UNKNOWN`; acquisition is now `STOPPED` with attempt count 1.
+- A fresh read-only OCI instance list found zero `hengs-discord` instances. No VM was created,
+  and no acquisition process or lock remains.
+- The first launch happened before the diagnostic split, so its provider-level cause is not
+  proven and its historical code correctly remains `UNKNOWN`.
+- The new privacy-safe diagnostic is implemented and tested. It cannot retroactively classify
+  that attempt; no state reset or second attempt was performed.
 
-## v1.17.0 next point
+## v1.17.1 next point
 
 1. Restart the local Discord bot once Henry approves, then open `/reports` as Owner and use
    **Lihat Contoh** for the live ephemeral acceptance check. Command registration is unnecessary.
-2. Oracle status/preflight already pass. After Henry explicitly approves creating one Always
-   Free VM attempt, run exactly one bounded capacity attempt and inspect its recorded result.
-3. Henry reviews and commits the combined v1.16.0 live-acceptance docs plus v1.17.0 code.
+2. Keep the `STOPPED` state unchanged. Before any deliberate reset or second Oracle attempt,
+   review the historical `UNKNOWN` result and obtain fresh explicit approval for exactly one
+   additional resource-creation attempt.
+3. Henry reviews and commits the v1.17.1 diagnostic patch.
 
-Suggested commit: `Hengs Discord v1.17.0: Humanize Report Center`
+Suggested commit: `Hengs Discord v1.17.1: Harden OCI diagnostics`
+
+## Previous checkpoint: v1.17.0 - Report Center humanization
+
+- Committed as `7269462` on `main` and `origin/main`.
+- `/reports` keeps its guild-only private queue, adds clearer empty/active copy, and shows
+  **Lihat Contoh** only to `OWNER_ID` while the queue is empty.
+- Preview data is fixed, ephemeral, mention-safe, store-free, and has no moderator controls or
+  report/mod-log side effects. Slash command schema did not change.
+- Full `npm test`: 330 passed, 0 failed. Focused Report Center: 14 passed, 0 failed.
+- Local Discord runtime remains v1.16.0 until Henry approves a restart and live UI acceptance.
+
 
 ## Previous checkpoint: v1.16.0 - Moderation Center UX and safety
 

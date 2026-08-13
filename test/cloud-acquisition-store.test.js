@@ -89,6 +89,23 @@ test('recorded attempts are bounded and discard sensitive input', () => {
   }
 });
 
+test('non-retryable CLI diagnostics persist as fixed safe metadata', () => {
+  const { store, clock } = fixture();
+  store.write(createInitialState(new Date(clock.value).toISOString(), 'home', 'a1-flex'));
+
+  for (const code of ['CLI_ERROR_UNSTRUCTURED', 'CLI_OUTPUT_INVALID']) {
+    clock.value += 1000;
+    store.recordAttempt({ code, rawError: 'sentinel-cli-secret' });
+  }
+
+  const state = store.read();
+  assert.deepEqual(state.attempts.map(entry => entry.code), [
+    'CLI_ERROR_UNSTRUCTURED', 'CLI_OUTPUT_INVALID',
+  ]);
+  assert.equal(state.status, 'STOPPED');
+  assert.equal(fs.readFileSync(store.stateFile, 'utf8').includes('sentinel-cli-secret'), false);
+});
+
 test('atomic rename failure cleans its temporary file and preserves current state', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-acquisition-'));
   const stateFile = path.join(dir, 'state.json');
