@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { execFileSync } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -42,6 +43,27 @@ test('tracked-file validation permits sanitized public project files', () => {
     { path: 'src/index.js', content: "console.log('ready');\n" },
     { path: 'docs/CLOUD-DEPLOY.md', content: 'No account identifiers.\n' },
   ]), { ok: true, forbidden: [] });
+});
+
+test('tracked-file validation keeps empty credential placeholders line-bounded', () => {
+  assert.deepEqual(validateTrackedFiles([{
+    path: '.env.example',
+    content: 'GROQ_API_KEY=\nOPENROUTER_API_KEY=\n',
+  }]), { ok: true, forbidden: [] });
+});
+
+test('repository tracked files satisfy release content policy', () => {
+  const root = path.join(__dirname, '..');
+  const names = execFileSync('git', ['ls-files', '-z'], {
+    cwd: root,
+    encoding: 'utf8',
+  }).split('\0').filter(Boolean);
+  const trackedFiles = names.map(name => ({
+    path: name.replaceAll('\\', '/'),
+    content: fs.readFileSync(path.join(root, name), 'utf8'),
+  }));
+
+  assert.deepEqual(validateTrackedFiles(trackedFiles), { ok: true, forbidden: [] });
 });
 
 function createGitFixture(options = {}) {

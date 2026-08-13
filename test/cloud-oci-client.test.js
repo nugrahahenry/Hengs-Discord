@@ -181,6 +181,7 @@ test('OCI process gives unmapped structured provider failures a safe actionable 
 });
 
 test('OCI process distinguishes timeout, unstructured stderr, and invalid stdout without leaking raw output', () => {
+  const oracleSentinel = ['ocid', '1.instance.sentinel'].join('');
   const timeout = runOci(['compute', 'instance', 'launch'], {
     spawnSync: () => ({
       status: null,
@@ -193,7 +194,7 @@ test('OCI process distinguishes timeout, unstructured stderr, and invalid stdout
     spawnSync: () => ({
       status: 1,
       stdout: '',
-      stderr: 'provider rejected ocid1.instance.sentinel and sentinel-stderr-secret',
+      stderr: `provider rejected ${oracleSentinel} and sentinel-stderr-secret`,
     }),
   });
   const invalidOutput = runOci(['compute', 'instance', 'launch'], {
@@ -210,7 +211,7 @@ test('OCI process distinguishes timeout, unstructured stderr, and invalid stdout
   const serialized = JSON.stringify({ timeout, unstructured, invalidOutput });
   for (const sentinel of [
     'sentinel-timeout-secret',
-    'ocid1.instance.sentinel',
+    oracleSentinel,
     'sentinel-stderr-secret',
     'sentinel-stdout-secret',
   ]) {

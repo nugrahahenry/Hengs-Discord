@@ -54,7 +54,7 @@ function forbiddenContentReason(content) {
     return 'API_CREDENTIAL';
   }
   if (/\bBearer\s+[A-Za-z0-9._~-]{20,}/i.test(content)) return 'API_CREDENTIAL';
-  if (/\b(?:[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)|API_KEY|TOKEN|SECRET|PASSWORD)\s*[:=]\s*["']?[A-Za-z0-9._~:+/-]{16,}/i.test(content)) {
+  if (/\b(?:[A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD)|API_KEY|TOKEN|SECRET|PASSWORD)[ \t]*[:=][ \t]*["']?[A-Za-z0-9._~:+/-]{16,}/i.test(content)) {
     return 'API_CREDENTIAL';
   }
   return null;

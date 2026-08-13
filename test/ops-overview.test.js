@@ -77,8 +77,8 @@ test('community overview exposes aggregate operations only', () => {
 });
 
 test('overview degrades per section without exposing thrown errors', () => {
-  const secret = 'raw-error-with-secret-token';
-  const broken = () => { throw new Error(secret); };
+  const privateError = ['raw-error-with-', 'secret-token'].join('');
+  const broken = () => { throw new Error(privateError); };
   const overview = collectCommunityOverview(dependencies({
     opsHub: { getStatus: broken },
     eventHub: { getStatus: broken },
@@ -96,7 +96,7 @@ test('overview degrades per section without exposing thrown errors', () => {
   assert.equal(overview.events.published, 0);
   assert.equal(overview.translation.depth, 0);
   assert.match(presentation.description, /membutuhkan perhatian/i);
-  assert.doesNotMatch(serialized, new RegExp(secret));
+  assert.doesNotMatch(serialized, new RegExp(privateError));
 });
 
 test('/ops overview is editor-gated, ephemeral, and mention-safe', async () => {

@@ -13,8 +13,10 @@ Updated: 2026-08-14
   environment file is empty, and no current release exists. Laptop and VM Tailscale enrollment
   plus private SSH acceptance completed on 2026-08-14; public SSH remains available for recovery.
 - Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
-  `1.18.0`. Focused version/cloud tests pass 34/34; full `npm test` passes 338/338; JavaScript
-  syntax checks and `git diff --check` pass.
+  `1.18.0`. The release content scanner now keeps credential assignments line-bounded, and an
+  integration gate verifies every tracked file so credential-shaped test sentinels cannot block
+  packaging again. Focused release/OCI/overview tests pass 29/29; full `npm test` passes 340/340;
+  JavaScript syntax checks, `git diff --check`, and the production dependency audit pass.
 - The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
   local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 
