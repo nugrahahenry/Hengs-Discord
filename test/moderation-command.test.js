@@ -27,6 +27,9 @@ function fakeHub({ moderators = [OWNER_ID, MODERATOR_ID], failure = null } = {})
     showIncidents(interaction, page) {
       return invoke('showIncidents', [interaction, page]);
     },
+    showPreview(interaction) {
+      return invoke('showPreview', [interaction]);
+    },
     mutateAllowlist(interaction, kind, action, value) {
       return invoke('mutateAllowlist', [interaction, kind, action, value]);
     },
@@ -124,7 +127,7 @@ test('/mod schema is guild-only, bounded, and has no default Administrator hint'
   assert.equal(data.name, 'mod');
   assert.equal(data.dm_permission, false);
   assert.equal(data.default_member_permissions, undefined);
-  assert.deepEqual(data.options.map(option => option.name), ['status', 'incidents', 'allow']);
+  assert.deepEqual(data.options.map(option => option.name), ['status', 'incidents', 'preview', 'allow']);
 
   const incidents = data.options[1];
   assert.equal(incidents.type, 1);
@@ -136,7 +139,7 @@ test('/mod schema is guild-only, bounded, and has no default Administrator hint'
     max: option.max_value,
   })), [{ name: 'page', type: 4, required: false, min: 1, max: 50 }]);
 
-  const allow = data.options[2];
+  const allow = data.options[3];
   assert.equal(allow.type, 2);
   assert.deepEqual(allow.options.map(option => option.name), ['role', 'channel', 'domain']);
   for (const option of allow.options) {
@@ -144,9 +147,9 @@ test('/mod schema is guild-only, bounded, and has no default Administrator hint'
     assert.equal(action.type, 3);
     assert.equal(action.required, true);
     assert.deepEqual(action.choices.map(choice => ({ name: choice.name, value: choice.value })), [
-      { name: 'Add', value: 'add' },
-      { name: 'Remove', value: 'remove' },
-      { name: 'List', value: 'list' },
+      { name: 'Tambahkan', value: 'add' },
+      { name: 'Hapus', value: 'remove' },
+      { name: 'Lihat', value: 'list' },
     ]);
     const target = option.options.find(item => item.name === option.name);
     assert.equal(target.required, false);
@@ -333,4 +336,17 @@ test('/mod rejects forged options and does not expose raw values or internal err
   assert.deepEqual(hub.calls.map(call => [call.method, ...call.args.slice(1)]), [
     ['mutateAllowlist', 'domain', 'add', '@everyone RAW_DOMAIN_VALUE'],
   ]);
+});
+test('/mod preview is owner-only and delegates only for the owner', async t => {
+  withOwner(t);
+  const hub = fakeHub();
+  const owner = interaction({ userId: OWNER_ID, subcommand: 'preview' });
+  const moderator = interaction({ userId: MODERATOR_ID, subcommand: 'preview' });
+
+  await modCommand.execute(owner, { moderationHub: hub });
+  await modCommand.execute(moderator, { moderationHub: hub });
+
+  assert.deepEqual(hub.calls.map(call => call.method), ['showPreview']);
+  assertPrivateSafeReply(moderator.replyPayload);
+  assert.match(moderator.replyPayload.content, /hanya tersedia untuk owner/i);
 });

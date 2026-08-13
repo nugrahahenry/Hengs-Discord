@@ -48,11 +48,11 @@ batas kepercayaan karena dapat melewati overwrite channel.
 - `off`: tidak mengamati maupun menegakkan policy.
 
 `ANTI_RAID_MODE` hanya menentukan mode awal. Setelah state disimpan, pilihan owner
-menjadi sumber mode runtime. Default adalah `active`, tetapi Hengs memaksa
-monitor-only bila owner/configuration/state tidak valid, mod-log hilang atau terlihat
-oleh `@everyone`, permission mod-log atau ban tidak tersedia, Manage Messages hilang,
-atau target tidak dapat diban karena hierarchy. Mode aman ini dicatat dengan fixed
-issue code, bukan error mentah.
+menjadi sumber mode runtime. Default adalah `active`. Saat Active diminta, Hengs memaksa monitor-only bila
+owner/configuration/state tidak valid, mod-log hilang atau terlihat oleh `@everyone`,
+permission mod-log atau ban tidak tersedia, Manage Messages hilang, atau target tidak
+dapat diban karena hierarchy. Off tetap benar-benar Off meski prasyarat penegakan tidak
+tersedia. Mode aman ini dicatat dengan fixed issue code, bukan error mentah.
 
 ## Aturan Deterministik
 
@@ -92,22 +92,34 @@ Pengecualian dibaca ulang pada setiap pesan dan sebelum enforcement atau interak
 `/mod` hanya tersedia di dalam guild. Semua respons ephemeral dan menonaktifkan mention
 parsing.
 
-- `/mod status`: owner dan role `MODERATION_ROLE_IDS` melihat Mode tersimpan, Mode efektif,
-  label prasyarat yang telah disanitasi, snapshot tracker saat ini (guild, member,
-  observasi), serta jumlah final Diblokir, Dipantau, Tindakan sebagian, dan Perlu tindak
-  lanjut. Hanya owner yang dapat mengubah mode Active, Monitor, atau Off melalui tombol
-  revision-safe.
-- `/mod incidents [page]`: owner dan moderator melihat hingga 10 insiden per halaman,
-  diurutkan dari yang terbaru. Setiap item hanya memuat ID insiden, usia terikat, member
-  ID non-mention, trigger dan status terikat, jumlah pesan/kanal maksimum 9.999, serta
-  link panel privat bila semua ID panel valid. Tombol Sebelumnya, Segarkan, dan
-  Berikutnya memeriksa ulang izin serta menjepit halaman lama ke rentang 1-50 yang masih
-  tersedia. Pesan, URL, domain, attachment, dan error mentah tidak ditampilkan.
-- `/mod allow role add|remove|list`, `/mod allow channel add|remove|list`, dan
-  `/mod allow domain add|remove|list`: hanya owner. Aksi `list` mengembalikan maksimal
-  10 nilai tersimpan yang lolos validasi tampilan, beserta jumlah aman; nilai mentah
-  atau tidak valid tidak dikirim ke Discord. Role/channel memakai pilihan Discord
-  bertipe; domain divalidasi dan dinormalisasi sebelum state ditulis.
+- `/mod status`: owner dan role `MODERATION_ROLE_IDS` melihat konsekuensi mode efektif
+  terlebih dahulu, kesiapan penegakan, aktivitas sesi, riwayat tindakan, serta mode
+  tersimpan dan efektif dalam label Indonesia. Jika Active diminta tetapi prasyarat tidak
+  aman, Hengs menjelaskan fallback ke Monitor. Hanya owner yang melihat tombol
+  **Aktifkan Penegakan**, **Pantau Saja**, dan **Matikan Anti-Raid**.
+- Mengaktifkan penegakan membutuhkan konfirmasi kedua **Ya, Aktifkan**. Klik pertama
+  tidak menulis state. Konfirmasi, pembatalan, Monitor, dan Off tetap memeriksa Owner
+  serta revision terbaru; kontrol stale gagal tertutup. Setelah Active disimpan, Hengs
+  menilai ulang mode efektif dan tidak mengklaim penegakan aktif bila prasyarat memaksa
+  fallback Monitor. Kegagalan store dibalas dengan panduan aman tanpa raw error.
+- `/mod incidents [page]`: owner dan moderator melihat hingga 10 insiden terbaru per
+  halaman. Empty state mengikuti mode efektif dan tidak menampilkan statistik halaman
+  palsu; tombolnya hanya **Cek Lagi**. Queue berisi metadata aman, link panel privat yang
+  tervalidasi, serta navigasi yang memeriksa ulang izin dan menjepit halaman stale.
+- `/mod preview`: hanya owner. Hengs menampilkan kartu contoh privat berlabel
+  **Pratinjau** untuk menilai hierarchy informasi saat server sepi. Data dibuat tetap di
+  memori, tidak disimpan, tidak dikirim ke mod-log, tidak masuk statistik, dan tidak dapat
+  memicu deteksi, penghapusan, atau ban.
+- `/mod allow role|channel|domain`: hanya owner. Pilihan tampilan **Tambahkan**,
+  **Hapus**, dan **Lihat** mempertahankan nilai internal `add`, `remove`, dan `list`.
+  Daftar ditampilkan sebagai embed terikat dengan maksimal 10 nilai aman dan dipecah
+  ke field yang tetap berada dalam batas Discord. Input mentah yang tidak valid tidak
+  dipantulkan kembali ke Discord.
+
+Kartu mod-log menjelaskan akibat insiden dan langkah moderator sebelum metadata teknis.
+Insiden Monitor menyatakan bahwa penegakan tidak dijalankan, bukan menampilkan ban atau
+penghapusan sebagai kegagalan. Incident marker yang dipakai recovery tetap dipertahankan. Pesan, URL, domain, attachment,
+filename, raw error, dan mention aktif tidak pernah ditampilkan.
 
 ## Privasi, State, Dan Recovery
 
@@ -147,10 +159,13 @@ dirancang.
 
 ## Acceptance Live
 
-Acceptance live masih pending dan membutuhkan persetujuan eksplisit Henry untuk
-mendaftarkan slash command `/mod` dan me-restart tepat satu instance bot. Setelah itu,
-verifikasi `/mod status`, queue insiden privat, dan pesan owner yang exempt. Uji auto-ban
-mode `active` hanya boleh memakai akun dummy disposable yang disediakan dan disetujui
-Henry. Jangan memban member nyata untuk acceptance; gunakan mode `monitor` dan fixture
-sintetis bila akun dummy belum tersedia. Hapus state/kartu uji dan pastikan tidak ada
-insiden uji aktif setelah selesai.
+Safe live acceptance v1.13.0 selesai pada 2026-08-11: schema `/mod` terdaftar,
+runtime satu instance, `/mod status` dan `/mod incidents` owner-only berhasil dibuka,
+prasyarat dilaporkan `Siap`, dan runtime ditinggalkan pada Monitor. Tidak ada pesan
+publik, perubahan allowlist, atau live ban.
+
+v1.16.0 menambah subcommand `/mod preview`, sehingga command registration dan restart
+runtime tetap memerlukan persetujuan eksplisit Henry. Smoke test yang aman cukup membuka
+status, empty incidents, dan preview sambil mempertahankan Monitor. Uji Active auto-ban
+hanya boleh memakai akun dummy disposable yang disediakan dan disetujui Henry; jangan
+memban member nyata untuk acceptance.

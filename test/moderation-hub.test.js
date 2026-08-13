@@ -241,6 +241,15 @@ async function waitFor(condition, attempts = 50) {
   throw new Error('Timed out waiting for the test synchronization point.');
 }
 
+async function waitForEventually(condition, timeoutMs = 2_000, intervalMs = 10) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (condition()) return;
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+  throw new Error('Timed out waiting for the delayed test condition.');
+}
+
 
 test('exempt and non-matching messages are not claimed by moderation', async t => {
   const { hub, store } = loadRuntime(t);
@@ -409,6 +418,9 @@ test('cards and queues disable mentions and exclude content, domains, URLs, file
   assert.deepEqual(card.allowedMentions, { parse: [] });
   assert.match(serialized, /Ban berhasil/);
   assert.match(serialized, /Penghapusan berhasil/);
+  const cardEmbed = card.embeds[0].toJSON();
+  assert.match(String(cardEmbed.description || ''), /Hengs belum dapat menyelesaikan seluruh tindakan/i);
+  assert.match(JSON.stringify(cardEmbed.fields), /Periksa insiden ini/i);
   assert.deepEqual(queue.payload.allowedMentions, { parse: [] });
   assert.equal(queue.page, 0);
   assert.equal(queue.totalPages, 1);
@@ -454,7 +466,7 @@ test('a live incident schedules idempotent panel maintenance after delivery fail
   await hub.start(client, { panelRetryDelayMs: 10 });
 
   assert.equal(await hub.handleMessage(message('700000000000000094', { guild, client })), true);
-  await new Promise(resolve => setTimeout(resolve, 80));
+  await waitForEventually(() => Boolean(store.listIncidents()[0]?.panel));
 
   const [incident] = store.listIncidents();
   assert.ok(incident.panel);
@@ -607,8 +619,18 @@ test('status reports configured and effective modes with sanitized counters', as
   const embed = interaction.lastReply.embeds[0].toJSON();
   const output = JSON.stringify(embed);
 
-  assert.match(embed.description, /Mode tersimpan: \*\*active\*\*/);
-  assert.match(embed.description, /Mode efektif: \*\*monitor\*\*/);
+  assert.equal(embed.title, 'Anti-Raid sedang memantau');
+  assert.match(embed.description, /Mode Aktif diminta.*kembali ke Monitor/i);
+  assert.match(output, /Kesiapan penegakan/);
+  assert.match(output, /Aktivitas sesi/);
+  assert.match(output, /Riwayat tindakan/);
+  assert.match(output, /Tersimpan: Aktif/);
+  assert.match(output, /Efektif: Monitor/);
+  assert.deepEqual(interaction.lastReply.components[0].components.map(button => button.toJSON().label), [
+    'Aktifkan Penegakan',
+    'Pantau Saja',
+    'Matikan Anti-Raid',
+  ]);
   assert.match(output, /Kanal log tidak privat/);
   assert.match(output, /Guild: 1/);
   assert.match(output, /Observasi: 1/);
@@ -680,10 +702,26 @@ test('allowlist list is owner-only and returns only bounded safe stored values',
   });
 
   await hub.mutateAllowlist(owner, 'role', 'list');
-  assert.match(owner.lastReply.content, /Nilai aman: 10\/12/);
-  assert.doesNotMatch(owner.lastReply.content, /<@unsafe>|810000000000001011/);
+  assert.ok(Array.isArray(owner.lastReply.embeds), 'allowlist list should render an embed');
+  const allowEmbed = owner.lastReply.embeds[0].toJSON();
+  const allowOutput = JSON.stringify(allowEmbed);
+  assert.equal(allowEmbed.title, 'Allowlist role');
+  assert.match(allowOutput, /Menampilkan 10 dari 12 nilai aman/);
+  assert.doesNotMatch(allowOutput, /<@unsafe>|810000000000001011/);
   assert.equal(owner.lastReply.ephemeral, true);
   assert.deepEqual(owner.lastReply.allowedMentions, { parse: [] });
+
+  const emptyDomain = fakeInteraction('');
+  await hub.mutateAllowlist(emptyDomain, 'domain', 'list');
+  const emptyEmbed = emptyDomain.lastReply.embeds[0].toJSON();
+  assert.equal(emptyEmbed.title, 'Allowlist domain');
+  assert.match(emptyEmbed.description, /Belum ada domain yang dikecualikan/i);
+
+  const addDomain = fakeInteraction('');
+  await hub.mutateAllowlist(addDomain, 'domain', 'add', 'safe.example');
+  assert.match(addDomain.lastReply.content, /Domain berhasil ditambahkan/i);
+  assert.doesNotMatch(addDomain.lastReply.content, /safe\.example/);
+  assert.deepEqual(addDomain.lastReply.allowedMentions, { parse: [] });
 
   const outsider = fakeInteraction('', { userId: '777777777777777778' });
   await hub.mutateAllowlist(outsider, 'role', 'list');
@@ -757,4 +795,256 @@ test('detection and card-delivery failures never persist or log raw content, URL
   for (const secret of [SENTINEL_CONTENT, SENTINEL_DOMAIN, SENTINEL_URL, SENTINEL_FILENAME, SENTINEL_ERROR]) {
     assert.doesNotMatch(observed, new RegExp(secret));
   }
+});
+
+test('owner preview is labeled, private, and leaves moderation state unchanged', async t => {
+  const { hub, store, directory } = loadRuntime(t);
+  const before = JSON.stringify(store.getState());
+  const filesBefore = fs.readdirSync(directory).sort();
+  const owner = fakeInteraction('');
+
+  await hub.showPreview(owner);
+
+  const payload = owner.lastReply;
+  const output = JSON.stringify(payload.embeds[0].toJSON());
+  assert.equal(payload.ephemeral, true);
+  assert.deepEqual(payload.allowedMentions, { parse: [] });
+  assert.match(output, /Pratinjau/);
+  assert.match(output, /Data contoh, tidak disimpan/);
+  assert.doesNotMatch(output, /Incident ID:|discord\.com\/channels|<@/);
+  assert.equal(JSON.stringify(store.getState()), before);
+  assert.deepEqual(fs.readdirSync(directory).sort(), filesBefore);
+  assert.equal(store.listIncidents().length, 0);
+});
+
+test('moderator cannot render a forged preview', async t => {
+  const { hub } = loadRuntime(t);
+  const moderator = fakeInteraction('', {
+    userId: '777777777777777778',
+    roleIds: [MODERATOR_ROLE_ID],
+  });
+
+  await hub.showPreview(moderator);
+
+  assert.match(moderator.lastReply.content, /hanya tersedia untuk owner/i);
+  assert.equal(moderator.lastReply.ephemeral, true);
+  assert.deepEqual(moderator.lastReply.allowedMentions, { parse: [] });
+});
+
+test('requesting Active shows a warning without changing mode', async t => {
+  const { hub, store } = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  const owner = fakeInteraction('mod:mode:0:active');
+
+  await hub.handleComponent(owner);
+
+  assert.equal(store.getMode().mode, 'monitor');
+  assert.equal(store.getMode().revision, 0);
+  assert.match(owner.lastReply.content, /menghapus pesan raid/i);
+  assert.deepEqual(owner.lastReply.components[0].components.map(button => button.toJSON().custom_id), [
+    'mod:mode-confirm:0:active',
+    'mod:mode-cancel:0',
+  ]);
+  assert.deepEqual(owner.lastReply.allowedMentions, { parse: [] });
+});
+
+test('confirming Active changes mode exactly once', async t => {
+  const { hub, store } = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  const owner = fakeInteraction('mod:mode-confirm:0:active', { guild: fakeGuild(fakeModLog()) });
+
+  await hub.handleComponent(owner);
+
+  assert.equal(store.getMode().mode, 'active');
+  assert.equal(store.getMode().revision, 1);
+  assert.match(owner.lastUpdate.content, /Penegakan Anti-Raid aktif/i);
+  assert.deepEqual(owner.lastUpdate.components, []);
+  assert.deepEqual(owner.lastUpdate.allowedMentions, { parse: [] });
+});
+
+test('cancelling Active leaves mode and revision unchanged', async t => {
+  const { hub, store } = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  const owner = fakeInteraction('mod:mode-cancel:0');
+
+  await hub.handleComponent(owner);
+
+  assert.equal(store.getMode().mode, 'monitor');
+  assert.equal(store.getMode().revision, 0);
+  assert.match(String(owner.lastUpdate?.content || ''), /Tidak ada perubahan/i);
+  assert.deepEqual(owner.lastUpdate.components, []);
+  assert.deepEqual(owner.lastUpdate.allowedMentions, { parse: [] });
+});
+
+test('stale and unauthorized Active confirmations fail closed', async t => {
+  const staleRuntime = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  staleRuntime.store.setMode('off', OWNER_ID, staleRuntime.store.getMode().revision);
+  const staleOwner = fakeInteraction('mod:mode-confirm:0:active');
+
+  await staleRuntime.hub.handleComponent(staleOwner);
+
+  assert.equal(staleRuntime.store.getMode().mode, 'off');
+  assert.equal(staleRuntime.store.getMode().revision, 1);
+  assert.match(String(staleOwner.lastUpdate?.content || ''), /sudah berubah/i);
+
+  const deniedRuntime = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  const moderator = fakeInteraction('mod:mode-confirm:0:active', {
+    userId: '777777777777777778',
+    roleIds: [MODERATOR_ROLE_ID],
+  });
+
+  await deniedRuntime.hub.handleComponent(moderator);
+
+  assert.equal(deniedRuntime.store.getMode().mode, 'monitor');
+  assert.match(moderator.lastReply.content, /tidak valid|tidak tersedia/i);
+  assert.deepEqual(moderator.lastReply.allowedMentions, { parse: [] });
+});
+
+test('empty incident queue explains the effective mode without pagination noise', t => {
+  const { hub } = loadRuntime(t);
+  for (const [effectiveMode, expected] of [
+    ['monitor', /tetap memantau tanpa menghapus pesan atau memblokir member/i],
+    ['active', /Penegakan aktif, tetapi belum ada aktivitas/i],
+    ['off', /Anti-Raid sedang dimatikan/i],
+  ]) {
+    const queue = hub.buildIncidentQueue([], 0, { effectiveMode });
+    const embed = queue.payload.embeds[0].toJSON();
+    assert.equal(embed.title, 'Belum ada insiden Anti-Raid');
+    assert.match(embed.description, expected);
+    assert.equal(embed.fields?.length || 0, 0);
+    assert.doesNotMatch(embed.description, /Halaman:|Menampilkan:/);
+    assert.deepEqual(queue.payload.components[0].components.map(button => button.toJSON().label), ['Cek Lagi']);
+  }
+});
+
+test('incident command uses the assessed Monitor fallback for its empty state', async t => {
+  const { hub } = loadRuntime(t);
+  const guild = fakeGuild(fakeModLog({ publicChannel: true }));
+  const interaction = fakeInteraction('', { guild });
+
+  await hub.showIncidents(interaction, 1);
+
+  const embed = interaction.lastReply.embeds[0].toJSON();
+  assert.equal(embed.title, 'Belum ada insiden Anti-Raid');
+  assert.match(embed.description, /tetap memantau tanpa menghapus pesan atau memblokir member/i);
+  assert.equal(interaction.lastReply.ephemeral, true);
+  assert.deepEqual(interaction.lastReply.allowedMentions, { parse: [] });
+});
+
+test('Active confirmation reports the effective Monitor fallback when prerequisites are unsafe', async t => {
+  const { hub, store } = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  const guild = fakeGuild(fakeModLog({ publicChannel: true }));
+  const owner = fakeInteraction('mod:mode-confirm:0:active', { guild });
+
+  await hub.handleComponent(owner);
+
+  assert.equal(store.getMode().mode, 'active');
+  assert.match(owner.lastUpdate.content, /disimpan/i);
+  assert.match(owner.lastUpdate.content, /tetap Monitor/i);
+  assert.doesNotMatch(owner.lastUpdate.content, /sekarang dapat menghapus pesan raid/i);
+});
+
+test('domain allowlist embed stays within Discord field limits', async t => {
+  const { hub, store } = loadRuntime(t);
+  const owner = fakeInteraction('');
+  for (let index = 0; index < 10; index += 1) {
+    const domain = `${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.${'d'.repeat(55)}${String(index).padStart(2, '0')}.com`;
+    const result = store.mutateAllowlist('domain', 'add', domain, OWNER_ID, store.getMode().revision);
+    assert.equal(result.ok, true);
+  }
+
+  await hub.mutateAllowlist(owner, 'domain', 'list');
+
+  const embed = owner.lastReply.embeds[0].toJSON();
+  for (const field of embed.fields || []) assert.ok(field.value.length <= 1024);
+  assert.match(embed.description, /Menampilkan/);
+});
+
+test('Monitor incident cards say enforcement was not attempted', t => {
+  const { hub } = loadRuntime(t);
+  const incident = {
+    ...incidentInput(),
+    id: '0123456789abcdef',
+    status: 'monitor',
+    createdAt: new Date().toISOString(),
+    result: monitorResult(),
+  };
+  const output = JSON.stringify(hub.buildIncidentCard(incident).embeds[0].toJSON());
+  assert.match(output, /tidak dijalankan/i);
+  assert.doesNotMatch(output, /Ban berhasil|Penghapusan berhasil/);
+});
+
+test('stale and unauthorized Active cancellations fail closed', async t => {
+  const staleRuntime = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  staleRuntime.store.setMode('off', OWNER_ID, staleRuntime.store.getMode().revision);
+  const staleOwner = fakeInteraction('mod:mode-cancel:0');
+  await staleRuntime.hub.handleComponent(staleOwner);
+  assert.equal(staleRuntime.store.getMode().mode, 'off');
+  assert.match(String(staleOwner.lastUpdate?.content || ''), /sudah berubah/i);
+
+  const deniedRuntime = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  const moderator = fakeInteraction('mod:mode-cancel:0', {
+    userId: '777777777777777778',
+    roleIds: [MODERATOR_ROLE_ID],
+  });
+  await deniedRuntime.hub.handleComponent(moderator);
+  assert.equal(deniedRuntime.store.getMode().mode, 'monitor');
+  assert.match(moderator.lastReply.content, /tidak valid|tidak tersedia/i);
+});
+
+test('malformed Active confirmation and cancellation IDs are rejected', async t => {
+  const { hub, store } = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  for (const customId of [
+    'mod:mode-confirm:01:active',
+    'mod:mode-confirm:0:monitor',
+    'mod:mode-cancel:-1',
+    'mod:mode-cancel:9007199254740992',
+  ]) {
+    const owner = fakeInteraction(customId);
+    await hub.handleComponent(owner);
+    assert.match(owner.lastReply.content, /tidak valid|tidak tersedia/i);
+  }
+  assert.equal(store.getMode().mode, 'monitor');
+  assert.equal(store.getMode().revision, 0);
+});
+
+test('direct Off and Monitor changes are revision-safe', async t => {
+  const { hub, store } = loadRuntime(t, { ANTI_RAID_MODE: 'active' });
+  const off = fakeInteraction('mod:mode:0:off');
+  await hub.handleComponent(off);
+  assert.equal(store.getMode().mode, 'off');
+  assert.equal(store.getMode().revision, 1);
+  assert.match(off.lastReply.content, /dimatikan/i);
+  const staleMonitor = fakeInteraction('mod:mode:0:monitor');
+  await hub.handleComponent(staleMonitor);
+  assert.equal(store.getMode().mode, 'off');
+  assert.equal(store.getMode().revision, 1);
+  assert.match(staleMonitor.lastReply.content, /sudah berubah/i);
+});
+
+test('mode-store failures acknowledge button interactions safely', async t => {
+  const getRuntime = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  getRuntime.store.getMode = () => { throw new Error(SENTINEL_ERROR); };
+  const cancel = fakeInteraction('mod:mode-cancel:0');
+  await getRuntime.hub.handleComponent(cancel);
+  assert.match(String(cancel.lastUpdate?.content || cancel.lastReply?.content || ''), /tidak tersedia/i);
+
+  const setRuntime = loadRuntime(t, { ANTI_RAID_MODE: 'monitor' });
+  setRuntime.store.setMode = () => { throw new Error(SENTINEL_ERROR); };
+  const off = fakeInteraction('mod:mode:0:off');
+  await setRuntime.hub.handleComponent(off);
+  assert.match(String(off.lastUpdate?.content || off.lastReply?.content || ''), /tidak tersedia/i);
+  assert.doesNotMatch(String(off.lastUpdate?.content || off.lastReply?.content || ''), /private-error-sentinel/i);
+});
+
+test('configured Off stays Off when enforcement prerequisites are unavailable', async t => {
+  const { hub } = loadRuntime(t, { ANTI_RAID_MODE: 'off' });
+  const guild = fakeGuild(fakeModLog({ publicChannel: true }));
+  const status = fakeInteraction('', { guild });
+  const incidents = fakeInteraction('', { guild });
+  await hub.showStatus(status);
+  await hub.showIncidents(incidents, 1);
+  const statusOutput = JSON.stringify(status.lastReply.embeds[0].toJSON());
+  const incidentEmbed = incidents.lastReply.embeds[0].toJSON();
+  assert.match(statusOutput, /Anti-Raid dimatikan/);
+  assert.match(statusOutput, /Efektif: Nonaktif/);
+  assert.equal(incidentEmbed.title, 'Belum ada insiden Anti-Raid');
+  assert.match(incidentEmbed.description, /sedang dimatikan/i);
 });

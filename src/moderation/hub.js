@@ -17,6 +17,7 @@ const MAX_QUEUE_ITEMS = 10;
 const MAX_DISPLAY_COUNT = 9_999;
 const MAX_DISPLAY_AGE_DAYS = 365;
 const MAX_ALLOWLIST_VALUES = 10;
+const MAX_EMBED_FIELD_VALUE = 1_024;
 const MAX_PAGE = 49;
 const MAX_TRACKED_MESSAGES = 2_000;
 const TRACKED_MESSAGE_TTL_MS = 120_000;
@@ -94,6 +95,17 @@ function safeDate(value) {
   return Number.isFinite(parsed) ? new Date(parsed) : null;
 }
 
+function incidentDescription(status) {
+  return {
+    detected: 'Hengs mendeteksi pola yang cocok dan sedang menyiapkan tindakan.',
+    enforcing: 'Hengs sedang menjalankan tindakan Anti-Raid untuk insiden ini.',
+    banned: 'Hengs menyelesaikan tindakan Anti-Raid dan memblokir member yang terlibat.',
+    monitor: 'Hengs mencatat pola ini tanpa menghapus pesan atau memblokir member.',
+    partial: 'Hengs belum dapat menyelesaikan seluruh tindakan. Periksa insiden ini sebelum mengambil tindakan manual.',
+    failed: 'Hengs belum dapat menyelesaikan seluruh tindakan. Periksa insiden ini sebelum mengambil tindakan manual.',
+  }[status] || '';
+}
+
 function buildIncidentCard(incident = {}) {
   const id = INCIDENT_ID.test(String(incident.id || '')) ? incident.id : '0000000000000000';
   const fields = [
@@ -105,21 +117,50 @@ function buildIncidentCard(incident = {}) {
     { name: 'Kanal terpantau', value: String(Math.max(0, Number(incident.channelCount) || 0)), inline: true },
   ];
   const outcome = issueLabel(incident.result?.issueCode);
-  if (incident.result) {
+  if (incident.status === 'monitor') {
+    fields.push({ name: 'Penegakan', value: 'Tidak dijalankan karena insiden ini dicatat dalam mode Monitor.', inline: false });
+  } else if (incident.result && ['banned', 'partial', 'failed'].includes(incident.status)) {
     fields.push(
       { name: 'Ban berhasil', value: incident.result.banSucceeded ? 'Ya' : 'Tidak', inline: true },
       { name: 'Penghapusan berhasil', value: incident.result.deletionSucceeded ? 'Ya' : 'Tidak', inline: true },
     );
   }
   if (outcome) fields.push({ name: 'Catatan sistem', value: outcome, inline: false });
+  if (incident.status === 'partial' || incident.status === 'failed') {
+    fields.push({ name: 'Langkah berikutnya', value: 'Periksa insiden ini sebelum mengambil tindakan manual.', inline: false });
+  }
 
   const embed = new EmbedBuilder()
     .setColor(incidentColor(incident.status))
     .setTitle(`Anti-Raid | ${statusLabel(incident.status)}`)
+    .setDescription(incidentDescription(incident.status))
     .addFields(fields)
     .setFooter({ text: incidentMarker(id) });
   const createdAt = safeDate(incident.createdAt);
   if (createdAt) embed.setTimestamp(createdAt);
+
+  return {
+    embeds: [embed],
+    components: [],
+    allowedMentions: allowedMentions(),
+  };
+}
+
+function buildIncidentPreview() {
+  const embed = new EmbedBuilder()
+    .setColor(0xF0B232)
+    .setTitle('Pratinjau | Tindakan sebagian')
+    .setDescription('Pratinjau ini menunjukkan insiden ketika Hengs sudah mengambil sebagian tindakan, tetapi moderator masih perlu memeriksanya.')
+    .addFields(
+      { name: 'Status', value: 'Perlu pemeriksaan moderator', inline: true },
+      { name: 'Member', value: 'Member contoh', inline: true },
+      { name: 'Pemicu', value: 'Pesan berulang lintas kanal', inline: true },
+      { name: 'Pesan terpantau', value: '8', inline: true },
+      { name: 'Kanal terpantau', value: '3', inline: true },
+      { name: 'Tindakan Hengs', value: 'Penghapusan berhasil. Pemblokiran member belum berhasil.', inline: false },
+      { name: 'Langkah berikutnya', value: 'Periksa konteks insiden sebelum mengambil tindakan manual.', inline: false },
+    )
+    .setFooter({ text: 'Pratinjau | Data contoh, tidak disimpan' });
 
   return {
     embeds: [embed],
@@ -176,7 +217,7 @@ function queueField(incident) {
   };
 }
 
-function queueNavigation(page, totalPages) {
+function queueNavigation(page, totalPages, { empty = false } = {}) {
   const buttons = [];
   if (page > 0) {
     buttons.push(new ButtonBuilder()
@@ -186,7 +227,7 @@ function queueNavigation(page, totalPages) {
   }
   buttons.push(new ButtonBuilder()
     .setCustomId(`mod:incidents:refresh:${page}`)
-    .setLabel('Segarkan')
+    .setLabel(empty ? 'Cek Lagi' : 'Segarkan')
     .setStyle(ButtonStyle.Primary));
   if (page < totalPages - 1) {
     buttons.push(new ButtonBuilder()
@@ -197,24 +238,48 @@ function queueNavigation(page, totalPages) {
   return new ActionRowBuilder().addComponents(buttons);
 }
 
-function buildIncidentQueue(incidents, requestedPage = 0) {
+function emptyIncidentDescription(effectiveMode) {
+  return {
+    active: 'Penegakan aktif, tetapi belum ada aktivitas yang cocok dengan aturan Anti-Raid.',
+    monitor: 'Belum ada aktivitas yang cocok dengan aturan Anti-Raid. Hengs tetap memantau tanpa menghapus pesan atau memblokir member.',
+    off: 'Belum ada insiden tersimpan. Anti-Raid sedang dimatikan. Gunakan /mod status untuk mulai memantau.',
+  }[effectiveMode];
+}
+
+function buildIncidentQueue(incidents, requestedPage = 0, options = {}) {
   const records = (Array.isArray(incidents) ? incidents : [])
     .slice(0, 500)
     .sort((left, right) => incidentTimestamp(right) - incidentTimestamp(left));
+  const effectiveMode = MODES.has(options?.effectiveMode) ? options.effectiveMode : 'monitor';
+  if (!records.length) {
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle('Belum ada insiden Anti-Raid')
+      .setDescription(emptyIncidentDescription(effectiveMode));
+    return {
+      payload: {
+        embeds: [embed],
+        components: [queueNavigation(0, 1, { empty: true })],
+        allowedMentions: allowedMentions(),
+      },
+      page: 0,
+      totalPages: 1,
+    };
+  }
+
   const totalPages = Math.max(1, Math.ceil(records.length / MAX_QUEUE_ITEMS));
   const page = boundedPage(requestedPage, totalPages);
   const pageRecords = records.slice(page * MAX_QUEUE_ITEMS, (page + 1) * MAX_QUEUE_ITEMS);
   const active = boundedCount(records.filter(incident => incident.status === 'detected' || incident.status === 'enforcing').length);
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
-    .setTitle('Antrean Anti-Raid')
+    .setTitle('Insiden Anti-Raid')
     .setDescription([
       `Aktif tersimpan: **${active}**`,
       `Halaman: ${page + 1}/${totalPages}`,
       `Menampilkan: ${pageRecords.length}/${records.length}`,
-      pageRecords.length ? null : 'Tidak ada insiden tersimpan.',
-    ].filter(Boolean).join('\n'));
-  if (pageRecords.length) embed.addFields(pageRecords.map(queueField));
+    ].join('\n'))
+    .addFields(pageRecords.map(queueField));
 
   return {
     payload: {
@@ -610,8 +675,63 @@ async function replyEphemeral(interaction, content) {
   }
 }
 
+async function updateComponentResponse(interaction, content) {
+  const payload = {
+    ...(typeof content === 'string' ? { content } : content),
+    components: [],
+    allowedMentions: allowedMentions(),
+  };
+  if (interaction?.update) await interaction.update(payload);
+  else await replyEphemeral(interaction, payload);
+}
+
+function modeConfirmation(revision) {
+  return {
+    content: 'Aktifkan penegakan Anti-Raid? Hengs dapat menghapus pesan raid dan memblokir member yang cocok dengan aturan.',
+    components: [new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`mod:mode-confirm:${revision}:active`)
+        .setLabel('Ya, Aktifkan')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`mod:mode-cancel:${revision}`)
+        .setLabel('Batal')
+        .setStyle(ButtonStyle.Secondary),
+    )],
+  };
+}
+
+function modeSuccessMessage(mode) {
+  return {
+    active: 'Penegakan Anti-Raid aktif. Hengs sekarang dapat menghapus pesan raid dan memblokir member yang cocok dengan aturan. Pengaturan disimpan.',
+    monitor: 'Mode Monitor aktif. Hengs akan mencatat pola berisiko tanpa menghapus pesan atau memblokir member. Pengaturan disimpan.',
+    off: 'Anti-Raid dimatikan. Pesan baru tidak akan diperiksa oleh sistem Anti-Raid. Pengaturan disimpan.',
+  }[mode];
+}
+
+async function verifiedModeSuccessMessage(mode, guild) {
+  if (mode !== 'active') return modeSuccessMessage(mode);
+  try {
+    const { assessment } = await assessModeration(guild);
+    if (assessment.effectiveMode !== 'active') {
+      return 'Mode Aktif disimpan, tetapi penegakan tetap Monitor karena kesiapan belum aman. Buka /mod status untuk melihat prasyaratnya.';
+    }
+    return modeSuccessMessage(mode);
+  } catch {
+    return 'Mode Aktif disimpan, tetapi status efektif belum dapat diverifikasi. Buka /mod status sebelum mengandalkan penegakan.';
+  }
+}
+
 function parseComponentId(customId) {
   const value = String(customId || '');
+  const confirm = value.match(/^mod:mode-confirm:(0|[1-9]\d*):active$/);
+  if (confirm && Number.isSafeInteger(Number(confirm[1]))) {
+    return { kind: 'mode-confirm', revision: Number(confirm[1]), mode: 'active' };
+  }
+  const cancel = value.match(/^mod:mode-cancel:(0|[1-9]\d*)$/);
+  if (cancel && Number.isSafeInteger(Number(cancel[1]))) {
+    return { kind: 'mode-cancel', revision: Number(cancel[1]) };
+  }
   const mode = value.match(/^mod:mode:(0|[1-9]\d*):(active|monitor|off)$/);
   if (mode && Number.isSafeInteger(Number(mode[1]))) {
     return { kind: 'mode', revision: Number(mode[1]), mode: mode[2] };
@@ -631,22 +751,58 @@ async function handleComponent(interaction) {
     return true;
   }
 
-  if (parsed.kind === 'mode') {
+  if (parsed.kind === 'mode' || parsed.kind === 'mode-confirm' || parsed.kind === 'mode-cancel') {
     if (!isOwner(interaction)) {
       await replyEphemeral(interaction, 'Kontrol moderasi tidak valid atau tidak tersedia.');
       return true;
     }
-    const result = store.setMode(parsed.mode, interaction.user.id, parsed.revision);
-    if (!result.ok) {
-      await replyEphemeral(interaction, 'Mode moderasi sudah berubah. Segarkan status lalu coba lagi.');
+
+    try {
+      if (parsed.kind === 'mode-cancel') {
+        const current = store.getMode();
+        const message = current.revision === parsed.revision
+          ? 'Tidak ada perubahan. Anti-Raid tetap memakai mode sebelumnya.'
+          : 'Pengaturan Anti-Raid sudah berubah. Buka /mod status lalu coba lagi.';
+        await updateComponentResponse(interaction, message);
+        return true;
+      }
+
+      if (parsed.kind === 'mode' && parsed.mode === 'active') {
+        await replyEphemeral(interaction, modeConfirmation(parsed.revision));
+        return true;
+      }
+
+      const nextMode = parsed.kind === 'mode-confirm' ? 'active' : parsed.mode;
+      const result = store.setMode(nextMode, interaction.user.id, parsed.revision);
+      if (!result.ok) {
+        const staleMessage = 'Pengaturan Anti-Raid sudah berubah. Buka /mod status lalu coba lagi.';
+        if (parsed.kind === 'mode-confirm') await updateComponentResponse(interaction, staleMessage);
+        else await replyEphemeral(interaction, staleMessage);
+        return true;
+      }
+      const successMessage = await verifiedModeSuccessMessage(nextMode, interaction?.guild);
+      if (parsed.kind === 'mode-confirm') {
+        await updateComponentResponse(interaction, successMessage);
+      } else {
+        await replyEphemeral(interaction, successMessage);
+      }
+      return true;
+    } catch {
+      const unavailableMessage = 'Pengaturan Anti-Raid sedang tidak tersedia. Buka /mod status lalu coba lagi.';
+      if (parsed.kind === 'mode-confirm' || parsed.kind === 'mode-cancel') {
+        await updateComponentResponse(interaction, unavailableMessage);
+      } else {
+        await replyEphemeral(interaction, unavailableMessage);
+      }
       return true;
     }
-    await replyEphemeral(interaction, 'Mode moderasi disimpan.');
-    return true;
   }
 
   try {
-    const queue = buildIncidentQueue(store.listIncidents(), parsed.page);
+    const { assessment } = await assessModeration(interaction?.guild);
+    const queue = buildIncidentQueue(store.listIncidents(), parsed.page, {
+      effectiveMode: assessment.effectiveMode,
+    });
     if (interaction.update) await interaction.update(queue.payload);
     else await replyEphemeral(interaction, queue.payload);
   } catch {
@@ -659,10 +815,41 @@ function modeControls(mode) {
   return new ActionRowBuilder().addComponents(
     ...['active', 'monitor', 'off'].map(value => new ButtonBuilder()
       .setCustomId(`mod:mode:${mode.revision}:${value}`)
-      .setLabel({ active: 'Aktif', monitor: 'Monitor', off: 'Nonaktif' }[value])
+      .setLabel({ active: 'Aktifkan Penegakan', monitor: 'Pantau Saja', off: 'Matikan Anti-Raid' }[value])
       .setStyle(value === 'active' ? ButtonStyle.Danger : ButtonStyle.Secondary)
       .setDisabled(mode.mode === value)),
   );
+}
+
+function modeLabel(mode) {
+  return {
+    active: 'Aktif',
+    monitor: 'Monitor',
+    off: 'Nonaktif',
+  }[mode] || mode;
+}
+
+function modePresentation(configuredMode, effectiveMode) {
+  const base = {
+    active: { title: 'Penegakan Anti-Raid aktif', description: 'Hengs dapat menghapus pesan raid dan memblokir member yang cocok dengan aturan.', color: 0xED4245 },
+    monitor: { title: 'Anti-Raid sedang memantau', description: 'Hengs mencatat pola yang cocok tanpa menghapus pesan atau memblokir member.', color: 0x5865F2 },
+    off: { title: 'Anti-Raid dimatikan', description: 'Hengs tidak memeriksa pesan baru untuk insiden Anti-Raid.', color: 0x747F8D },
+  }[effectiveMode];
+  if (configuredMode !== 'active' || effectiveMode !== 'monitor') return base;
+  return {
+    ...base,
+    description: `${base.description}\n\nMode Aktif diminta, tetapi Hengs kembali ke Monitor karena kesiapan penegakan belum aman.`,
+  };
+}
+
+async function assessModeration(guild) {
+  const state = store.getState();
+  const staticPolicy = policy.readStaticPolicy(process.env);
+  const modLogChannel = await findModLogChannel(guild);
+  const assessment = policy.assessPrerequisites(
+    assessmentContext({ guild }, state, staticPolicy, modLogChannel),
+  );
+  return { state, assessment };
 }
 
 function finalStatusCounts(incidents) {
@@ -677,27 +864,34 @@ async function showStatus(interaction) {
     await replyEphemeral(interaction, 'Kamu tidak dapat membuka status moderasi.');
     return true;
   }
-  const state = store.getState();
-  const staticPolicy = policy.readStaticPolicy(process.env);
-  const guild = interaction?.guild;
-  const modLogChannel = await findModLogChannel(guild);
-  const assessment = policy.assessPrerequisites(assessmentContext({ guild }, state, staticPolicy, modLogChannel));
+  const { state, assessment } = await assessModeration(interaction?.guild);
   const issues = assessment.issues.map(issueLabel).filter(Boolean);
   const snapshot = tracker.snapshot();
   const finalCounts = finalStatusCounts(store.listIncidents());
+  const presentation = modePresentation(assessment.configuredMode, assessment.effectiveMode);
   const payload = {
     embeds: [new EmbedBuilder()
-      .setColor(assessment.effectiveMode === 'active' ? 0xED4245 : 0x5865F2)
-      .setTitle('Status Anti-Raid')
-      .setDescription(`Mode tersimpan: **${assessment.configuredMode}**\nMode efektif: **${assessment.effectiveMode}**`)
+      .setColor(presentation.color)
+      .setTitle(presentation.title)
+      .setDescription(presentation.description)
       .addFields(
-        { name: 'Prasyarat', value: issues.join('\n') || 'Siap', inline: false },
-        { name: 'Tracker saat ini', value: `Guild: ${boundedCount(snapshot.guilds)}\nMember: ${boundedCount(snapshot.members)}\nObservasi: ${boundedCount(snapshot.observations)}`, inline: true },
-        { name: 'Status final', value: `Diblokir: ${finalCounts.banned}\nDipantau: ${finalCounts.monitor}\nTindakan sebagian: ${finalCounts.partial}\nPerlu tindak lanjut: ${finalCounts.failed}`, inline: true },
+        { name: 'Kesiapan penegakan', value: issues.join('\n') || 'Siap', inline: false },
+        { name: 'Aktivitas sesi', value: `Guild: ${boundedCount(snapshot.guilds)}\nMember: ${boundedCount(snapshot.members)}\nObservasi: ${boundedCount(snapshot.observations)}`, inline: true },
+        { name: 'Riwayat tindakan', value: `Diblokir: ${finalCounts.banned}\nDipantau: ${finalCounts.monitor}\nTindakan sebagian: ${finalCounts.partial}\nPerlu tindak lanjut: ${finalCounts.failed}`, inline: true },
+        { name: 'Konfigurasi', value: `Tersimpan: ${modeLabel(assessment.configuredMode)}\nEfektif: ${modeLabel(assessment.effectiveMode)}`, inline: false },
       )],
     components: isOwner(interaction) ? [modeControls({ mode: state.mode, revision: state.revision })] : [],
   };
   await replyEphemeral(interaction, payload);
+  return true;
+}
+
+async function showPreview(interaction) {
+  if (!isOwner(interaction)) {
+    await replyEphemeral(interaction, 'Pratinjau insiden hanya tersedia untuk owner.');
+    return true;
+  }
+  await replyEphemeral(interaction, buildIncidentPreview());
   return true;
 }
 
@@ -706,7 +900,11 @@ async function showIncidents(interaction, page = 0) {
     await replyEphemeral(interaction, 'Kamu tidak dapat membuka antrean moderasi.');
     return true;
   }
-  await replyEphemeral(interaction, buildIncidentQueue(store.listIncidents(), Number(page) - 1).payload);
+  const { assessment } = await assessModeration(interaction?.guild);
+  const queue = buildIncidentQueue(store.listIncidents(), Number(page) - 1, {
+    effectiveMode: assessment.effectiveMode,
+  });
+  await replyEphemeral(interaction, queue.payload);
   return true;
 }
 
@@ -730,6 +928,49 @@ function allowlistValues(kind, state) {
   return { label: metadata.label, safe: safe.slice(0, MAX_ALLOWLIST_VALUES), total: safe.length };
 }
 
+function allowlistKindLabel(kind) {
+  return {
+    role: 'Role',
+    channel: 'Channel',
+    domain: 'Domain',
+  }[kind] || null;
+}
+
+function allowlistFields(values) {
+  const groups = [];
+  let current = '';
+  for (const value of values) {
+    const line = `\`${value}\``;
+    const candidate = current ? `${current}\n${line}` : line;
+    if (current && candidate.length > MAX_EMBED_FIELD_VALUE) {
+      groups.push(current);
+      current = line;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) groups.push(current);
+  return groups.map((value, index) => ({
+    name: index === 0 ? 'Nilai tersimpan' : `Nilai tersimpan (lanjutan ${index + 1})`,
+    value,
+    inline: false,
+  }));
+}
+
+function buildAllowlistEmbed(listed) {
+  const embed = new EmbedBuilder()
+    .setColor(0x5865F2)
+    .setTitle(`Allowlist ${listed.label}`);
+  if (!listed.safe.length) {
+    embed.setDescription(`Belum ada ${listed.label} yang dikecualikan dari Anti-Raid.`);
+    return embed;
+  }
+  embed
+    .setDescription(`Menampilkan ${listed.safe.length} dari ${listed.total} nilai aman.`)
+    .addFields(allowlistFields(listed.safe));
+  return embed;
+}
+
 async function mutateAllowlist(interaction, kind, action, value) {
   const ownerId = String(process.env.OWNER_ID || '');
   if (!DISCORD_ID.test(ownerId) || String(interaction?.user?.id || '') !== ownerId) {
@@ -739,18 +980,18 @@ async function mutateAllowlist(interaction, kind, action, value) {
   if (action === 'list') {
     const listed = allowlistValues(kind, store.getState());
     if (!listed) await replyEphemeral(interaction, 'Nilai allowlist tidak valid.');
-    else await replyEphemeral(interaction, [
-      `Allowlist ${listed.label}`,
-      `Nilai aman: ${listed.safe.length}/${listed.total}`,
-      listed.safe.length ? listed.safe.map(value => `\`${value}\``).join('\n') : 'Tidak ada nilai tersimpan.',
-    ].join('\n'));
+    else await replyEphemeral(interaction, { embeds: [buildAllowlistEmbed(listed)] });
     return true;
   }
   try {
     const result = store.mutateAllowlist(kind, action, value, interaction.user.id, store.getMode().revision);
-    await replyEphemeral(interaction, result.ok
-      ? 'Allowlist moderasi diperbarui.'
-      : 'Allowlist sudah berubah. Coba lagi.');
+    if (!result.ok) {
+      await replyEphemeral(interaction, 'Allowlist sudah berubah. Jalankan kembali perintah ini.');
+      return true;
+    }
+    const label = allowlistKindLabel(kind);
+    const actionLabel = action === 'add' ? 'ditambahkan' : 'dihapus';
+    await replyEphemeral(interaction, `${label} berhasil ${actionLabel} dari allowlist Anti-Raid.`);
   } catch {
     await replyEphemeral(interaction, 'Nilai allowlist tidak valid.');
   }
@@ -863,6 +1104,7 @@ async function start(client, options = {}) {
 
 module.exports = {
   buildIncidentCard,
+  buildIncidentPreview,
   buildIncidentQueue,
   findModLogChannel,
   handleComponent,
@@ -870,6 +1112,7 @@ module.exports = {
   isModerator,
   mutateAllowlist,
   showIncidents,
+  showPreview,
   showStatus,
   start,
 };

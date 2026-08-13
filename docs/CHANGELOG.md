@@ -5,6 +5,44 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-13
+
+### Added
+- Owner-only `/mod preview` renders a clearly labeled ephemeral incident example without
+  persistence, statistics, mod-log delivery, detection, deletion, or ban side effects.
+- Active enforcement now requires a second revision-bound Owner confirmation.
+
+### Changed
+- `/mod status` leads with the effective consequence and explains fail-safe fallback from
+  requested Active to Monitor.
+- Empty incident queues follow the effective mode, hide pagination noise, and expose only
+  a `Cek Lagi` refresh action.
+- Incident cards, mode controls, allowlist choices, mutation feedback, and recovery copy
+  use concise Indonesian language while preserving mention-safe metadata boundaries.
+- Monitor cards now say enforcement was not attempted instead of presenting false failure
+  outcomes. Long valid allowlists are split across Discord-safe field sizes.
+- Confirmed Active changes recheck the effective mode before reporting success; unsafe
+  prerequisites are reported as a saved Active request that remains effectively Monitor.
+- Configured Off remains effectively Off even when enforcement prerequisites are unavailable.
+
+### Security
+- Preview authorization is checked in both command and hub layers. Forged, malformed,
+  stale, and unauthorized confirmation or cancellation controls fail closed.
+- Mode-store failures acknowledge component interactions with sanitized recovery guidance
+  instead of exposing errors or leaving Discord interactions unanswered.
+- No moderation store schema changes were introduced; synthetic preview data cannot enter
+  real incident or audit paths.
+
+### Verification
+- Full `npm test`: 326 passed, 0 failed; focused Moderation Center suite: 108 passed,
+  0 failed; all 87 JavaScript files passed syntax checks.
+- Production dependency audit found 0 vulnerabilities. The official credential scanner
+  accepted all 14 changed tracked files, and `git diff --check` passed.
+- Impeccable interface detector reported no findings. Targeted code and security re-review
+  reported no remaining Critical or Important findings.
+- Command registration, bot restart, deployment, and live Active-mode testing were not
+  performed in this checkpoint.
+
 ## [1.15.1] - 2026-08-12
 
 ### Fixed

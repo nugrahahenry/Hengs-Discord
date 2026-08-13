@@ -287,7 +287,9 @@ function assessPrerequisites(context = {}) {
   const orderedIssues = ISSUE_CODES.filter(code => issues.includes(code));
   return {
     configuredMode,
-    effectiveMode: orderedIssues.length ? 'monitor' : configuredMode,
+    effectiveMode: configuredMode === 'off'
+      ? 'off'
+      : (orderedIssues.length ? 'monitor' : configuredMode),
     issues: orderedIssues,
   };
 }

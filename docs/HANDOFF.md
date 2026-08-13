@@ -1,8 +1,47 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-12
+Updated: 2026-08-13
 
-## Current checkpoint: v1.15.1 - root-tenancy OCI preflight compatibility
+## Current checkpoint: v1.16.0 - Moderation Center UX and safety
+
+- Proposed release: **v1.16.0**.
+- `/mod preview` gives the Owner a fixed, ephemeral incident example without persistence,
+  mod-log delivery, statistics, detection, deletion, or ban side effects.
+- Activating enforcement requires a second Owner confirmation bound to the current state
+  revision. Confirm, cancel, Monitor, and Off controls recheck authorization and stale state.
+- Confirmed Active changes reassess effective readiness before claiming enforcement is live.
+  Unsafe prerequisites keep effective Monitor, while configured Off remains effectively Off.
+- Status, empty incidents, real incident cards, and allowlist feedback use consequence-first,
+  human Indonesian copy. Monitor cards distinguish "not attempted" from failed enforcement.
+- Allowlist output is limited to ten validated values and split within Discord's field budget.
+- Mode-store failures receive sanitized, mention-safe guidance instead of an unanswered button.
+- No moderation store schema migration was introduced.
+- This is a local code checkpoint. Command registration, bot restart, deployment, and live
+  Active-mode testing were not performed. The previously recorded runtime remains the source
+  of truth until Henry explicitly approves registration and restart; keep it in Monitor.
+
+## v1.16.0 verification status
+
+- Full `npm test`: 326 passed, 0 failed. Focused Moderation Center suite: 108 passed,
+  0 failed. All 87 JavaScript files passed syntax checks.
+- Production dependency audit found 0 vulnerabilities. The official release credential
+  scanner accepted all 14 changed tracked files, and `git diff --check` passed.
+- Local verification ran under Node 24.15.0 because Node 22 is not installed in this
+  workspace. Production remains pinned to Node >=22 <23, so the engine warning is expected.
+- Impeccable UI detector returned no findings. Targeted code and security re-review reported
+  no remaining Critical or Important findings.
+- No command registration, restart, deployment, VM action, token transfer, or live ban occurred.
+
+## v1.16.0 next point
+
+1. Henry reviews and commits the local v1.16.0 checkpoint.
+2. With separate approval, register the updated `/mod` schema and restart the Discord bot.
+3. Run a safe Monitor-only smoke test for status, empty incidents, and preview. Active ban
+   acceptance requires a separately approved disposable dummy account.
+
+Suggested commit: `Hengs Discord v1.16.0: Improve Moderation Center UX`
+
+## Previous checkpoint: v1.15.1 - root-tenancy OCI preflight compatibility
 
 - Proposed release: **v1.15.1**.
 - Base deployment checkpoint `v1.15.0` is committed as `09c2eff`.

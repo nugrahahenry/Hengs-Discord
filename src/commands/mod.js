@@ -68,6 +68,9 @@ const data = new SlashCommandBuilder()
       .setDescription('Halaman insiden, dari 1 sampai 50')
       .setMinValue(1)
       .setMaxValue(50)))
+  .addSubcommand(subcommand => subcommand
+    .setName('preview')
+    .setDescription('Lihat contoh privat kartu insiden'))
   .addSubcommandGroup(group => group
     .setName('allow')
     .setDescription('Kelola pengecualian moderasi')
@@ -79,9 +82,9 @@ const data = new SlashCommandBuilder()
         .setDescription('Tindakan allowlist')
         .setRequired(true)
         .addChoices(
-          { name: 'Add', value: 'add' },
-          { name: 'Remove', value: 'remove' },
-          { name: 'List', value: 'list' },
+          { name: 'Tambahkan', value: 'add' },
+          { name: 'Hapus', value: 'remove' },
+          { name: 'Lihat', value: 'list' },
         ))
       .addRoleOption(option => option
         .setName('role')
@@ -94,9 +97,9 @@ const data = new SlashCommandBuilder()
         .setDescription('Tindakan allowlist')
         .setRequired(true)
         .addChoices(
-          { name: 'Add', value: 'add' },
-          { name: 'Remove', value: 'remove' },
-          { name: 'List', value: 'list' },
+          { name: 'Tambahkan', value: 'add' },
+          { name: 'Hapus', value: 'remove' },
+          { name: 'Lihat', value: 'list' },
         ))
       .addChannelOption(option => option
         .setName('channel')
@@ -109,9 +112,9 @@ const data = new SlashCommandBuilder()
         .setDescription('Tindakan allowlist')
         .setRequired(true)
         .addChoices(
-          { name: 'Add', value: 'add' },
-          { name: 'Remove', value: 'remove' },
-          { name: 'List', value: 'list' },
+          { name: 'Tambahkan', value: 'add' },
+          { name: 'Hapus', value: 'remove' },
+          { name: 'Lihat', value: 'list' },
         ))
       .addStringOption(option => option
         .setName('domain')
@@ -130,6 +133,19 @@ module.exports = {
 
     const group = interaction.options.getSubcommandGroup(false);
     const subcommand = interaction.options.getSubcommand(false);
+    if (!group && subcommand === 'preview') {
+      if (!isOwner(interaction)) {
+        await replyPrivate(interaction, 'Pratinjau insiden hanya tersedia untuk owner.');
+        return;
+      }
+      try {
+        await moderationHub.showPreview(interaction);
+      } catch {
+        await replyPrivate(interaction, 'Pratinjau insiden sedang tidak tersedia. Coba lagi sebentar.');
+      }
+      return;
+    }
+
     if (!group && (subcommand === 'status' || subcommand === 'incidents')) {
       if (!canViewModeration(interaction, moderationHub)) {
         await replyPrivate(interaction, 'Kamu tidak dapat memakai kontrol moderasi.');

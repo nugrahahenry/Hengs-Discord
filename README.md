@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** v1.15.1
+**Current checkpoint:** v1.16.0
 
 ## ✨ Fitur Utama
 
@@ -65,7 +65,7 @@ stop-bot.bat            # hentikan bot
 
 ### Cloud deployment (belum live)
 
-Checkpoint v1.15.1 menyiapkan deployment Always Free untuk Ubuntu tanpa mengubah slash command. Tidak ada VM production yang diklaim aktif dari repository ini. Pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
+Dukungan deployment Always Free untuk Ubuntu tetap tersedia, tetapi checkpoint v1.16.0 berfokus pada Moderation Center dan menambah `/mod preview`. Tidak ada VM production yang diklaim aktif dari repository ini. Pendaftaran command, restart bot, pembuatan VM, transfer secret, dan cutover memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal harus dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands
 
@@ -79,7 +79,7 @@ Checkpoint v1.15.1 menyiapkan deployment Always Free untuk Ubuntu tanpa mengubah
 | `/translate file to non_sensitive:true` | Terjemahkan dokumen non-sensitif; bahasa sumber dideteksi otomatis |
 | `/report category details [member] [message_link] [evidence] [anonymous]` | Kirim laporan insiden privat kepada owner/moderator |
 | `/reports` | Buka antrean laporan aktif privat untuk owner/moderator |
-| `/mod status` · `/mod incidents` · `/mod allow ...` | Lihat status/insiden Anti-Raid atau kelola pengecualian owner-only |
+| `/mod status` · `/mod incidents` · `/mod preview` · `/mod allow ...` | Lihat status/insiden, buka pratinjau owner-only, atau kelola pengecualian Anti-Raid |
 | `/admin setup` | Auto-bikin struktur server |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
