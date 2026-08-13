@@ -71,10 +71,11 @@ acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInsta
 provider dipetakan ke kode tetap tanpa menyimpan output mentah. Schema slash command tidak
 berubah, jadi registrasi ulang command tidak diperlukan. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd; service Hengs tetap disabled/inactive tanpa release,
-secret, atau state produksi. Laptop dan VM sudah terdaftar pada tailnet yang sama, dan acceptance
-SSH privat melalui Tailscale sudah lulus. VM belum menjadi production. Transfer secret/state, deployment, dan
-cutover tetap memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.18.0 sudah terpasang dan
+lulus dependency/test acceptance di Ubuntu, tetapi service Hengs tetap disabled/inactive dengan
+env kosong dan state produksi kosong. Laptop dan VM sudah terdaftar pada tailnet yang sama, dan acceptance
+SSH privat melalui Tailscale sudah lulus. VM belum menjadi production. Transfer secret/state dan
+cutover final tetap memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal
 harus dihentikan sebelum service cloud memakai token Discord.
 
 ## 💬 Commands

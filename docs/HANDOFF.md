@@ -10,7 +10,7 @@ Updated: 2026-08-14
   exactly one `RUNNING` E2 Micro instance; the A1 state remains `STOPPED` with all three attempts.
 - Ubuntu host bootstrap completed with Node 22, UFW, Tailscale, the service identity, persistent
   directories, and a verified systemd unit. The Hengs service remains disabled/inactive, its
-  environment file is empty, and no current release exists. Laptop and VM Tailscale enrollment
+  environment file is empty, and production state is empty. Laptop and VM Tailscale enrollment
   plus private SSH acceptance completed on 2026-08-14; public SSH remains available for recovery.
 - Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
   `1.18.0`. The release content scanner now keeps credential assignments line-bounded, and an
@@ -36,6 +36,13 @@ Updated: 2026-08-14
   empty env and zero production state files. Immutable release files/directories now remain
   root-owned but use the dedicated `hengs-discord` group, preserving read/traverse access while
   removing group/world write permission; focused Linux safety tests pass 14/14.
+- Immutable release `1.18.0-47849dbfe82c` is now installed and selected by `current`. Ubuntu archive
+  acceptance passes 340 tests with 0 failures and 3 intentional repository/workspace-only skips;
+  production dependency audit reports 0 vulnerabilities. Final split acceptance confirms the
+  service user can read the release, files/directories are root-owned and service-group-readable,
+  group/world writes are absent, the persistent data link is correct, and the previous unstarted
+  release remains available for rollback. Service and autostart remain off, env and production
+  state remain empty, and there is no cloud bot process.
 - The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
   local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 
@@ -113,7 +120,8 @@ secret transfer, or cutover was created during the research.
    allowed, and the installed systemd unit matching the reviewed repository asset.
 8. The cloud service remains disabled/inactive. `/etc/hengs/discord.env` is empty, mode 0640,
    owned by root and the service group; persistent state is mode 0750 under the service identity;
-   no current release exists. Tailscale 1.102.2 is installed on the laptop; both laptop and VM are
+   release `1.18.0-47849dbfe82c` is staged as `current`, while production data remains empty.
+   Tailscale 1.102.2 is installed on the laptop; both laptop and VM are
    online in the same tailnet, encrypted peer reachability passes, and private SSH acceptance
    succeeds. The local v1.17.2 bot remains connected and authoritative.
 9. Azure for Students is no longer the active path while the E2 VM remains healthy. It stays a
@@ -123,11 +131,12 @@ secret transfer, or cutover was created during the research.
 10. If Oracle reclaims E2 and student credit is unavailable, continue local-only. No verified
    cloud platform guarantees a persistent non-sleeping Discord worker forever at zero cost.
 11. Keep the local v1.17.2 runtime as the authoritative Discord token consumer. Next checkpoints
-   are (a) approved release/state staging with the cloud service stopped, then (b) a separately
-   approved single-consumer cutover. Command
+   are (a) confirm/rotate the Discord token, (b) approved final secret and production-state
+   transfer with both sides controlled, then (c) a separately approved single-consumer cutover.
+   State restore rehearsal has already passed; command
    registration is unnecessary.
-12. The tracked E2 acquisition support is released as v1.18.0. A local documentation-only
-   follow-up records Tailscale acceptance and remains unpushed for Henry to review.
+12. The tracked E2 acquisition support is released as v1.18.0. Seven local follow-up commits cover
+   Tailscale acceptance and deployment hardening and remain unpushed for Henry to review.
 
 Checkpoint commit: `Hengs Discord v1.18.0: Add Oracle E2 Micro acquisition support`
 
