@@ -10,12 +10,13 @@ Updated: 2026-08-14
   exactly one `RUNNING` E2 Micro instance; the A1 state remains `STOPPED` with all three attempts.
 - Ubuntu host bootstrap completed with Node 22, UFW, Tailscale, the service identity, persistent
   directories, and a verified systemd unit. The Hengs service remains disabled/inactive, its
-  environment file is empty, no current release exists, and Tailscale is not enrolled.
+  environment file is empty, and no current release exists. Laptop and VM Tailscale enrollment
+  plus private SSH acceptance completed on 2026-08-14; public SSH remains available for recovery.
 - Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
   `1.18.0`. Focused version/cloud tests pass 34/34; full `npm test` passes 338/338; JavaScript
   syntax checks and `git diff --check` pass.
-- All v1.18.0 changes remain uncommitted at Henry's request. The committed `HEAD` is still
-  v1.17.2 (`4a71721`), and the connected local v1.17.2 bot remains authoritative.
+- The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
+  local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
 
 ## Previous checkpoint: v1.17.2 - single-request OCI launch diagnostics
 
@@ -91,8 +92,9 @@ secret transfer, or cutover was created during the research.
    allowed, and the installed systemd unit matching the reviewed repository asset.
 8. The cloud service remains disabled/inactive. `/etc/hengs/discord.env` is empty, mode 0640,
    owned by root and the service group; persistent state is mode 0750 under the service identity;
-   no current release exists. Tailscale enrollment was not performed because no approved auth
-   mechanism was supplied. The local v1.17.2 bot remains connected and authoritative.
+   no current release exists. Tailscale 1.102.2 is installed on the laptop; both laptop and VM are
+   online in the same tailnet, encrypted peer reachability passes, and private SSH acceptance
+   succeeds. The local v1.17.2 bot remains connected and authoritative.
 9. Azure for Students is no longer the active path while the E2 VM remains healthy. It stays a
    fail-closed temporary fallback only: Microsoft currently offers USD 100
    credit for up to 12 months without a card and disables resources at depletion unless the user
@@ -100,14 +102,13 @@ secret transfer, or cutover was created during the research.
 10. If Oracle reclaims E2 and student credit is unavailable, continue local-only. No verified
    cloud platform guarantees a persistent non-sleeping Discord worker forever at zero cost.
 11. Keep the local v1.17.2 runtime as the authoritative Discord token consumer. Next checkpoints
-   are (a) interactive Tailscale enrollment and private-path acceptance, (b) Henry's v1.18.0
-   commit so the fail-closed release builder accepts `HEAD`, (c) release/state staging with the
-   cloud service stopped, then (d) a separately approved single-consumer cutover. Command
+   are (a) approved release/state staging with the cloud service stopped, then (b) a separately
+   approved single-consumer cutover. Command
    registration is unnecessary.
-12. The tracked E2 acquisition support is a new operational capability; the working checkpoint
-   version is v1.18.0. Henry requested that all changes remain uncommitted until the next checkpoint.
+12. The tracked E2 acquisition support is released as v1.18.0. A local documentation-only
+   follow-up records Tailscale acceptance and remains unpushed for Henry to review.
 
-Suggested future checkpoint commit: `Hengs Discord v1.18.0: Add Oracle E2 Micro acquisition support`
+Checkpoint commit: `Hengs Discord v1.18.0: Add Oracle E2 Micro acquisition support`
 
 ## Previous checkpoint: v1.17.1 - safe OCI diagnostics
 
