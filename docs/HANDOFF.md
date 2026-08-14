@@ -57,6 +57,15 @@ Updated: 2026-08-14
   returned exactly one cloud Node process, local Discord remained at zero, WhatsApp remained at
   one, Anti-Raid stayed `monitor`, boot journal errors were zero, and read-only server verification
   reported 0 failures and 0 warnings. Temporary local and remote cutover snapshots were removed.
+- The first encrypted off-VM backup acceptance passed on 2026-08-14. Four filtered persistent-state
+  files were snapshotted and verified while cloud remained healthy, then the archive and manifest
+  were encrypted with `age` before leaving the VM. Only the two ciphertext files are stored under
+  ignored local `.cloud/backups/`; the recovery identity is separate in the protected local SSH
+  directory and its public recipient is ignored under `.cloud/backup-keys/`. A full laptop-to-VM
+  round trip decrypted, verified, and restored into an isolated rehearsal target with correct
+  service ownership/modes. All remote plaintext, key, encrypted-transfer, and rehearsal artifacts
+  were removed afterward; cloud remained `CONNECTED`/`OK`, local Discord stayed at zero, and
+  WhatsApp stayed at one.
 
 ## Previous checkpoint: v1.17.2 - single-request OCI launch diagnostics
 
@@ -142,9 +151,9 @@ secret transfer, or cutover was created during the research.
 10. If Oracle reclaims E2 and student credit is unavailable, continue local-only. No verified
    cloud platform guarantees a persistent non-sleeping Discord worker forever at zero cost.
 11. Keep cloud v1.18.0 as the sole authoritative Discord token consumer and keep local Discord
-   stopped. Next checkpoints are (a) configure and acceptance-test encrypted off-VM state backup,
-   (b) monitor the E2 resource and systemd health, and (c) collect Anti-Raid `monitor` evidence
-   before any enforcement change. Command
+   stopped. The first encrypted off-VM backup and restore rehearsal are accepted. Next checkpoints
+   are (a) define a safe recurring backup cadence/retention policy, (b) monitor the E2 resource and
+   systemd health, and (c) collect Anti-Raid `monitor` evidence before any enforcement change. Command
    registration is unnecessary.
 12. The tracked E2 acquisition support is released as v1.18.0. The seven Tailscale/deployment-
    hardening follow-up commits are present on both `main` and `origin/main`; only the cutover
