@@ -63,7 +63,7 @@ start-hidden.vbs        # nyalain manual sekarang (tanpa window)
 stop-bot.bat            # hentikan bot
 ```
 
-### Cloud deployment (belum live)
+### Cloud deployment (live)
 
 Dukungan deployment Always Free untuk Ubuntu tersedia bagi A1 Flex dan E2 Micro. A1 memakai
 sizing fleksibel, sedangkan E2 adalah fixed shape dan memiliki config/state terpisah agar histori
@@ -71,12 +71,14 @@ acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInsta
 provider dipetakan ke kode tetap tanpa menyimpan output mentah. Schema slash command tidak
 berubah, jadi registrasi ulang command tidak diperlukan. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.18.0 sudah terpasang dan
-lulus dependency/test acceptance di Ubuntu, tetapi service Hengs tetap disabled/inactive dengan
-env kosong dan state produksi kosong. Laptop dan VM sudah terdaftar pada tailnet yang sama, dan acceptance
-SSH privat melalui Tailscale sudah lulus. VM belum menjadi production. Transfer secret/state dan
-cutover final tetap memerlukan approval terpisah. Ikuti [panduan cloud](docs/CLOUD-DEPLOY.md); bot lokal
-harus dihentikan sebelum service cloud memakai token Discord.
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.18.0 terpasang sebagai
+production `current` dan lulus dependency/test acceptance di Ubuntu. Secret serta state persisten
+dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
+Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal
+berhenti sebagai jalur rollback. Initial start, restart service, dan reboot VM masing-masing lulus
+dua heartbeat `CONNECTED` yang segar, sedangkan Anti-Raid tetap `monitor`. Ikuti
+[panduan cloud](docs/CLOUD-DEPLOY.md) dan jangan menyalakan consumer lokal sebelum cloud dibuktikan
+berhenti.
 
 ## 💬 Commands
 

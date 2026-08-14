@@ -2,16 +2,15 @@
 
 Updated: 2026-08-14
 
-## Current working checkpoint: v1.18.0 - Oracle E2 Micro acquisition and safe host bootstrap
+## Current working checkpoint: v1.18.0 - Oracle E2 Micro production cutover
 
 - Added fixed-shape `VM.Standard.E2.1.Micro` acquisition support without A1-only flexible sizing,
   plus a fail-closed region/shape state-mismatch gate and isolated E2 example configuration.
 - Henry authorized exactly one E2 attempt. It succeeded once, and read-only verification confirms
   exactly one `RUNNING` E2 Micro instance; the A1 state remains `STOPPED` with all three attempts.
 - Ubuntu host bootstrap completed with Node 22, UFW, Tailscale, the service identity, persistent
-  directories, and a verified systemd unit. The Hengs service remains disabled/inactive, its
-  environment file is empty, and production state is empty. Laptop and VM Tailscale enrollment
-  plus private SSH acceptance completed on 2026-08-14; public SSH remains available for recovery.
+  directories, and a verified systemd unit. Laptop and VM Tailscale enrollment plus private SSH
+  acceptance completed on 2026-08-14; public SSH remains available for recovery.
 - Package, release-builder, test fixture, README, and deployment runbook versions are aligned to
   `1.18.0`. The release content scanner now keeps credential assignments line-bounded, and an
   integration gate verifies every tracked file so credential-shaped test sentinels cannot block
@@ -36,15 +35,28 @@ Updated: 2026-08-14
   empty env and zero production state files. Immutable release files/directories now remain
   root-owned but use the dedicated `hengs-discord` group, preserving read/traverse access while
   removing group/world write permission; focused Linux safety tests pass 14/14.
-- Immutable release `1.18.0-47849dbfe82c` is now installed and selected by `current`. Ubuntu archive
+- Immutable release `1.18.0-47849dbfe82c` is installed and selected by `current`. Ubuntu archive
   acceptance passes 340 tests with 0 failures and 3 intentional repository/workspace-only skips;
   production dependency audit reports 0 vulnerabilities. Final split acceptance confirms the
   service user can read the release, files/directories are root-owned and service-group-readable,
   group/world writes are absent, the persistent data link is correct, and the previous unstarted
-  release remains available for rollback. Service and autostart remain off, env and production
-  state remain empty, and there is no cloud bot process.
-- The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`; the connected
-  local runtime remains v1.17.2 and authoritative until an explicitly approved cutover.
+  release remains available for rollback.
+- The v1.18.0 code checkpoint is committed as `91c66ee` on `main` and `origin/main`. On 2026-08-14,
+  Henry explicitly approved a Discord token reset and secret installation without cloud start or
+  cutover. The old token was reset in the Developer Portal, local `.env` was updated atomically,
+  and the cloud environment was transferred over Tailscale, installed as
+  `root:hengs-discord` mode 0640, checksum-verified, and stripped of its temporary transfer file.
+- Henry then explicitly approved final production-state transfer and a single-consumer cutover.
+  The local Discord process was stopped first while the separate WhatsApp process remained running.
+  A final four-file filtered snapshot passed local and remote hash/manifest checks, restored
+  atomically with service ownership/modes, and left no transfer artifact. Cloud autostart and the
+  service were enabled only after both sides proved zero Discord consumers.
+- Cloud v1.18.0 is now the sole authoritative Discord token consumer. Initial start, an explicit
+  service restart, and one explicitly approved VM reboot each passed two fresh `CONNECTED`/`OK`
+  heartbeats at least 30 seconds apart. Tailscale/SSH recovered after reboot, systemd autostart
+  returned exactly one cloud Node process, local Discord remained at zero, WhatsApp remained at
+  one, Anti-Raid stayed `monitor`, boot journal errors were zero, and read-only server verification
+  reported 0 failures and 0 warnings. Temporary local and remote cutover snapshots were removed.
 
 ## Previous checkpoint: v1.17.2 - single-request OCI launch diagnostics
 
@@ -106,10 +118,9 @@ secret transfer, or cutover was created during the research.
    `SUCCESS`; the single `attempt` invocation returned `SUCCESS`; post-launch read-only status is
    `SUCCEEDED` with exactly one attempt. Instance verification found exactly one active instance,
    `RUNNING`, with shape `VM.Standard.E2.1.Micro`. No second attempt or `run` invocation occurred.
-5. Keep A1 acquisition `STOPPED` and preserve all three historical A1 attempts. The E2 VM is
-   infrastructure only: no Hengs release, secret, state, service start, token cutover, public
-   message, or moderation action occurred. Capacity and idle reclamation remain provider risks;
-   do not create artificial idle-avoidance traffic.
+5. Keep A1 acquisition `STOPPED` and preserve all three historical A1 attempts. E2 is the active
+   production host. Capacity and idle reclamation remain provider risks; do not create artificial
+   idle-avoidance traffic.
 6. E2 host bootstrap completed on 2026-08-14. Read-only resource acceptance confirmed one
    `RUNNING` E2 Micro instance, one 47 GB boot volume, a public IPv4, and reachable SSH.
    First-login acceptance confirmed Ubuntu 24.04 x86_64, completed cloud-init, and passwordless
@@ -118,25 +129,26 @@ secret transfer, or cutover was created during the research.
    5/5 before execution. `install-host.sh` returned `HOST_INSTALL_READY`. Acceptance confirmed
    Node 22.23.2, npm 10.9.8, Tailscale 1.102.2 with `tailscaled` active, UFW active with OpenSSH
    allowed, and the installed systemd unit matching the reviewed repository asset.
-8. The cloud service remains disabled/inactive. `/etc/hengs/discord.env` is empty, mode 0640,
-   owned by root and the service group; persistent state is mode 0750 under the service identity;
-   release `1.18.0-47849dbfe82c` is staged as `current`, while production data remains empty.
-   Tailscale 1.102.2 is installed on the laptop; both laptop and VM are
-   online in the same tailnet, encrypted peer reachability passes, and private SSH acceptance
-   succeeds. The local v1.17.2 bot remains connected and authoritative.
+8. `/etc/hengs/discord.env` is populated, checksum-verified, mode 0640, and owned by root plus the
+   service group. Persistent state is mode 0750 under the service identity; release
+   `1.18.0-47849dbfe82c` is production `current`. Tailscale 1.102.2 is installed on the laptop;
+   both laptop and VM are online in the same tailnet, encrypted peer reachability and private SSH
+   pass, and reboot recovery is accepted. Cloud systemd is active/enabled with exactly one v1.18.0
+   process; local Discord is stopped and remains the rollback consumer only.
 9. Azure for Students is no longer the active path while the E2 VM remains healthy. It stays a
    fail-closed temporary fallback only: Microsoft currently offers USD 100
    credit for up to 12 months without a card and disables resources at depletion unless the user
    deliberately upgrades. It is not permanent hosting.
 10. If Oracle reclaims E2 and student credit is unavailable, continue local-only. No verified
    cloud platform guarantees a persistent non-sleeping Discord worker forever at zero cost.
-11. Keep the local v1.17.2 runtime as the authoritative Discord token consumer. Next checkpoints
-   are (a) confirm/rotate the Discord token, (b) approved final secret and production-state
-   transfer with both sides controlled, then (c) a separately approved single-consumer cutover.
-   State restore rehearsal has already passed; command
+11. Keep cloud v1.18.0 as the sole authoritative Discord token consumer and keep local Discord
+   stopped. Next checkpoints are (a) configure and acceptance-test encrypted off-VM state backup,
+   (b) monitor the E2 resource and systemd health, and (c) collect Anti-Raid `monitor` evidence
+   before any enforcement change. Command
    registration is unnecessary.
-12. The tracked E2 acquisition support is released as v1.18.0. Seven local follow-up commits cover
-   Tailscale acceptance and deployment hardening and remain unpushed for Henry to review.
+12. The tracked E2 acquisition support is released as v1.18.0. The seven Tailscale/deployment-
+   hardening follow-up commits are present on both `main` and `origin/main`; only the cutover
+   documentation updates in this working tree remain uncommitted.
 
 Checkpoint commit: `Hengs Discord v1.18.0: Add Oracle E2 Micro acquisition support`
 
