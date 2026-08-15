@@ -66,6 +66,15 @@ Updated: 2026-08-14
   service ownership/modes. All remote plaintext, key, encrypted-transfer, and rehearsal artifacts
   were removed afterward; cloud remained `CONNECTED`/`OK`, local Discord stayed at zero, and
   WhatsApp stayed at one.
+- A local Codex heartbeat automation named `Hengs daily encrypted backup` is active at 09:00 WIB.
+  Its ignored runner lives under `.cloud/automation/`, fails closed on unhealthy cloud, a missing
+  peer, or any local Discord consumer, sends only the public `age` recipient to the VM, and retains
+  the seven newest ignored ciphertext backup directories. The private recovery identity never
+  moves during routine backup. A manual acceptance of the exact runner produced the second valid
+  backup, removed no retained version, left zero remote plaintext/temp artifacts, and preserved
+  `CONNECTED`/`OK`. The next two daily runs double as the initial 24-48 hour observation window.
+  This heartbeat is task/account-scoped and must be recreated if Hengs moves to another Codex
+  account or task.
 
 ## Previous checkpoint: v1.17.2 - single-request OCI launch diagnostics
 
@@ -151,9 +160,10 @@ secret transfer, or cutover was created during the research.
 10. If Oracle reclaims E2 and student credit is unavailable, continue local-only. No verified
    cloud platform guarantees a persistent non-sleeping Discord worker forever at zero cost.
 11. Keep cloud v1.18.0 as the sole authoritative Discord token consumer and keep local Discord
-   stopped. The first encrypted off-VM backup and restore rehearsal are accepted. Next checkpoints
-   are (a) define a safe recurring backup cadence/retention policy, (b) monitor the E2 resource and
-   systemd health, and (c) collect Anti-Raid `monitor` evidence before any enforcement change. Command
+   stopped. Encrypted off-VM backup now runs daily at 09:00 WIB with seven-version retention; its
+   first two scheduled runs are also the initial 24-48 hour health observation. Next checkpoints
+   are (a) review those scheduled outcomes, (b) continue E2/systemd monitoring, and (c) collect
+   Anti-Raid `monitor` evidence before any enforcement change. Command
    registration is unnecessary.
 12. The tracked E2 acquisition support is released as v1.18.0. The seven Tailscale/deployment-
    hardening follow-up commits are present on both `main` and `origin/main`; only the cutover
