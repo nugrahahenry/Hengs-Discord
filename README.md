@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.19.0 Public Self-Service Beta
+**Current local checkpoint:** v1.19.1 Public Self-Service Beta Deployment Fix
 
 **Current cloud production:** v1.18.0
 
@@ -71,7 +71,7 @@ stop-bot.bat            # hentikan bot
 Dukungan deployment Always Free untuk Ubuntu tersedia bagi A1 Flex dan E2 Micro. A1 memakai
 sizing fleksibel, sedangkan E2 adalah fixed shape dan memiliki config/state terpisah agar histori
 acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInstance`; error
-provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service Beta v1.19.0 menambahkan
+provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service Beta v1.19.1 menambahkan
 satu command global `/setup`, tetapi belum didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
 UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.18.0 terpasang sebagai

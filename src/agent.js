@@ -31,14 +31,16 @@ const GROQ_MODELS = [
 ];
 
 // ── Lapis 3: OpenRouter (fallback) ───────────────────────────────────────────
-const openrouter = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    'HTTP-Referer': 'https://github.com/discord-bot-henzzz',
-    'X-Title': 'Discord Bot Henzzz',
-  },
-});
+const openrouter = process.env.OPENROUTER_API_KEY
+  ? new OpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: process.env.OPENROUTER_API_KEY,
+    defaultHeaders: {
+      'HTTP-Referer': 'https://github.com/discord-bot-henzzz',
+      'X-Title': 'Discord Bot Henzzz',
+    },
+  })
+  : null;
 
 // Diverifikasi 12 Juni 2026 — semua ID valid & masih ':free'. Urut quality-first.
 const FREE_MODELS = [
@@ -171,7 +173,7 @@ async function chat(userMessage, conversationKey, context = {}) {
   }
 
   // ── Lapis 3: OpenRouter fallback (urutan pintar) ──
-  for (const model of getSmartModelOrder()) {
+  for (const model of openrouter ? getSmartModelOrder() : []) {
     try {
       const res = await callWithTimeout(openrouter, { ...params, model }, 10000);
       const reply = res.choices[0]?.message?.content?.trim();
@@ -243,7 +245,7 @@ async function runAnnouncementEditor({
     }
   }
 
-  for (const model of getSmartModelOrder()) {
+  for (const model of openrouter ? getSmartModelOrder() : []) {
     try {
       const res = await callWithTimeout(openrouter, { ...params, model }, 10_000);
       const reply = res.choices[0]?.message?.content?.trim();

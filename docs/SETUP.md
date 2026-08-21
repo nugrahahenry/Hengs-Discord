@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.19.0 hanya membuka `/setup` dan chat lewat mention. Command admin, moderasi,
+Public Beta v1.19.1 hanya membuka `/setup` dan chat lewat mention. Command admin, moderasi,
 laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
 
 ### Langkah pengelola Hengs

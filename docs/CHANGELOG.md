@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-08-21
+
+### Fixed
+- AI provider initialization now permits secretless immutable release acceptance. Groq and
+  OpenRouter clients are created only when their dedicated keys exist, while production still
+  receives the same keys from its root-controlled environment.
+- Cloud deployment and release metadata now target v1.19.1 after v1.19.0 was rejected safely
+  during pre-activation Ubuntu acceptance.
+
+### Verification
+- A focused child-process test reproduces the Ubuntu failure with all AI keys removed and now
+  proves that `src/agent.js` loads without reading a local `.env`.
+- Exact Node 22.23.2 full tests pass 372/372, all 99 JavaScript files pass syntax checks,
+  `git diff --check` passes, and the production dependency audit reports 0 vulnerabilities.
+- The v1.19.0 deployment attempt never switched the production symlink. Rollback acceptance found
+  v1.18.0 active, enabled, connected, fresh, single-process, with WhatsApp cloud still active and no
+  failed release directory.
+- No command registration, public invite, config mutation, state restore, VM reboot, or WhatsApp
+  restart occurred.
+
 ## [1.19.0] - 2026-08-21
 
 ### Added

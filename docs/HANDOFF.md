@@ -2,7 +2,22 @@
 
 Updated: 2026-08-21
 
-## Current local checkpoint: v1.19.0 - Public Self-Service Beta
+## Current local checkpoint: v1.19.1 - Public Self-Service Beta Deployment Fix
+
+- v1.19.0 commit `6e60c55` is on `main` and `origin/main`. Local build and transfer succeeded.
+  The first deployment invocation used the v1.18.0 deployer and was rejected by its version gate.
+  The second used the hash-verified v1.19.0 deployer, installed dependencies, then reproduced a
+  secretless test failure because `src/agent.js` created OpenRouter without a key. Both attempts
+  stopped before switching `current`; fallback restored v1.18.0 active/enabled, connected/fresh,
+  single-process, WhatsApp remained active, and no failed release directory remained.
+- v1.19.1 fixes the blocker by constructing each AI client only when its dedicated key exists.
+  A child-process regression runs from a directory without `.env` and removes all AI keys.
+  Package, lockfile, release builder, Linux deployer, tests, README, and runbook now target v1.19.1.
+  Exact Node 22.23.2 full tests pass 372/372, all 99 JavaScript files pass syntax checks,
+  `git diff --check` passes, and the production dependency audit reports 0 vulnerabilities.
+  This patch still needs Henry to review, commit, and push before another immutable build.
+- `/setup` has not been registered globally and no public invite has been created. Do not register
+  it while production remains v1.18.0.
 
 - Public Beta memakai model lobi mandiri: server utama mempertahankan semua fitur v1.18.0,
   sedangkan server lain cukup memakai satu invite publik dan `/setup start`. Discord memberikan
