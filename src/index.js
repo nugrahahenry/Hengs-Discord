@@ -32,6 +32,8 @@ const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
 const { InstanceLockError, createInstanceLock, resolveInstanceLockFile } = require('./runtime/instance-lock');
 const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtime/wa-recovery-alerts');
+const { createGuildConfigStore } = require('./guilds/config-store');
+const { createGuildAccess, parseBetaGuildIds } = require('./guilds/access');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -53,6 +55,15 @@ runtimeHealth.start();
 process.on('exit', () => {
   runtimeHealth.stop();
   instanceLock.release();
+});
+
+const guildConfigStore = createGuildConfigStore({
+  rootDir: process.env.HENGS_GUILD_CONFIG_DIR || undefined,
+});
+const guildAccess = createGuildAccess({
+  homeGuildId: process.env.DISCORD_GUILD_ID,
+  betaGuildIds: parseBetaGuildIds(process.env.HENGS_BETA_GUILD_IDS),
+  store: guildConfigStore,
 });
 
 // ── Client setup ────────────────────────────────────────────────────────────
@@ -162,8 +173,7 @@ async function postBotSettings(guild, content) {
 client.once(Events.ClientReady, async (c) => {
   console.log('\n✅ Discord Bot Online!');
   console.log(`   Tag : ${c.user.tag}`);
-  console.log(`   ID  : ${c.user.id}`);
-  console.log(`   Server: ${c.guilds.cache.map(g => g.name).join(', ')}`);
+  console.log(`   Server count: ${c.guilds.cache.size}`);
   console.log('─────────────────────────────────────');
   console.log('Slash commands tersedia:');
   console.log('  /study on [topic] | /study off | /study status');
@@ -187,6 +197,7 @@ client.once(Events.ClientReady, async (c) => {
 
   // Update server stats sekali saat bot nyala
   for (const guild of c.guilds.cache.values()) {
+    if (!guildAccess.isHome(guild.id)) continue;
     await updateServerStats(guild).catch(() => {});
   }
   opsHub.startCanoxInbox(c);
@@ -209,6 +220,7 @@ client.once(Events.ClientReady, async (c) => {
 
   // ── Auto-rejoin voice channel terakhir (kalau sebelumnya bot di voice) ──────
   for (const guild of c.guilds.cache.values()) {
+    if (!guildAccess.isHome(guild.id)) continue;
     const channelId = voiceStore.getVoiceChannel(guild.id);
     if (!channelId) continue;
     const channel = guild.channels.cache.get(channelId);
@@ -244,6 +256,7 @@ client.once(Events.ClientReady, async (c) => {
 
 // ── Welcome member baru ──────────────────────────────────────────────────────
 client.on(Events.GuildMemberAdd, async (member) => {
+  if (!guildAccess.isHome(member.guild.id)) return;
   // Auto-role and stats remain operational even when the welcome channel is missing.
   await updateServerStats(member.guild).catch(() => {});
   await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
@@ -300,6 +313,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
 // ── Leave message ─────────────────────────────────────────────────────────────
 client.on(Events.GuildMemberRemove, async (member) => {
+  if (!guildAccess.isHome(member.guild.id)) return;
   // Bisa ke channel sendiri (LEAVE_CHANNEL_ID), atau default ke welcome channel
   const channelId = process.env.LEAVE_CHANNEL_ID || process.env.WELCOME_CHANNEL_ID;
   if (!channelId) return;
@@ -331,6 +345,7 @@ client.on(Events.GuildMemberRemove, async (member) => {
 // ── Boost celebration ─────────────────────────────────────────────────────────
 // Hengs ngucapin pas ada member mulai nge-boost server
 client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
+  if (!guildAccess.isHome(newMember.guild.id)) return;
   if (oldMember.premiumSince || !newMember.premiumSince) return; // cuma pas BARU mulai boost
   const g = newMember.guild;
   const findCh = (envId, ...names) => {
@@ -359,12 +374,16 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
 // ── AI Chat via mention ──────────────────────────────────────────────────────
 client.on(Events.MessageCreate, async (msg) => {
   if (msg.author.bot) return;
-  try {
-    const moderationMatched = await moderationHub.handleMessage(msg);
-    if (moderationMatched) return;
-  } catch (error) {
-    console.error('[moderation] message failed:', { code: error.code || 'MESSAGE_FAILED' });
+  const messageScope = guildAccess.classify(msg.guildId);
+  if (messageScope.kind === 'home') {
+    try {
+      const moderationMatched = await moderationHub.handleMessage(msg);
+      if (moderationMatched) return;
+    } catch (error) {
+      console.error('[moderation] message failed:', { code: error.code || 'MESSAGE_FAILED' });
+    }
   }
+  if (messageScope.kind !== 'home' && messageScope.kind !== 'beta') return;
   if (!msg.mentions.has(client.user)) return;
 
   // Bersihkan mention dari teks
@@ -381,7 +400,8 @@ client.on(Events.MessageCreate, async (msg) => {
   await msg.channel.sendTyping();
 
   try {
-    const reply = await agent.chat(text, msg.author.id);
+    const conversationKey = agent.buildConversationKey(msg.guildId, msg.author.id);
+    const reply = await agent.chat(text, conversationKey, { kind: messageScope.kind });
     // Discord max 2000 karakter per pesan
     await msg.reply(reply.substring(0, 2000));
   } catch (err) {
@@ -392,7 +412,12 @@ client.on(Events.MessageCreate, async (msg) => {
 
 // ── Slash command handler ─────────────────────────────────────────────────────
 client.on(Events.InteractionCreate, async (interaction) => {
+  const interactionScope = guildAccess.classify(interaction.guildId);
   if (interaction.isAutocomplete()) {
+    if (interactionScope.kind !== 'home') {
+      await interaction.respond([]).catch(() => {});
+      return;
+    }
     const cmd = client.commands.get(interaction.commandName);
     if (!cmd?.autocomplete) {
       await interaction.respond([]).catch(() => {});
@@ -406,6 +431,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
     return;
   }
+
+  if (!interaction.isChatInputCommand() && interactionScope.kind !== 'home') return;
 
   if (interaction.isButton() && interaction.customId.startsWith('mod:')) {
     try {
@@ -479,13 +506,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (!interaction.isChatInputCommand()) return;
 
+  if (interactionScope.kind !== 'home' && interaction.commandName !== 'setup') {
+    await interaction.reply({
+      content: 'Command ini belum tersedia di Hengs Friend Beta.',
+      flags: MessageFlags.Ephemeral,
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+
   // Restrict commands ke BOT_CHANNEL_ID
   // Admin bypass: kalau punya permission Administrator → bisa dari channel manapun (bot-settings, dll)
   // Regular user: harus di BOT_CHANNEL_ID, kecuali command dengan guard sendiri.
   const botChannelId = process.env.BOT_CHANNEL_ID;
   const freeCommands = ['announce', 'admin', 'translate', 'ops', 'event', 'report', 'reports', 'mod'];
   const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
-  if (botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
+  if (interactionScope.kind === 'home' && botChannelId && !isAdmin && interaction.channelId !== botChannelId && !freeCommands.includes(interaction.commandName)) {
     await interaction.reply({
       content: `❌ Command hanya bisa dipakai di <#${botChannelId}>!`,
       ephemeral: true,
@@ -511,6 +547,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       translation: translationService,
       runtimeHealth,
       version: packageMetadata.version,
+      guildAccess,
+      guildConfigStore,
     });
   } catch (err) {
     if (interaction.commandName === 'reports') {
@@ -535,6 +573,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // ── Reaction Roles ─────────────────────────────────────────────────────────
 async function handleReaction(reaction, user, add) {
   if (user.bot) return;
+  if (!guildAccess.isHome(reaction.message.guildId)) return;
 
   // Fetch partial reactions/messages
   if (reaction.partial) {

@@ -355,7 +355,8 @@ test('reports command and queue route are wired into the runtime loader', () => 
     .filter(name => name.endsWith('.js'));
   const indexSource = fs.readFileSync(path.join(projectRoot, 'src', 'index.js'), 'utf8');
 
-  assert.equal(commandFiles.length, 12);
+  assert.equal(commandFiles.length, 13);
+  assert.ok(commandFiles.includes('setup.js'));
   assert.ok(commandFiles.includes('reports.js'));
   assert.match(indexSource, /require\('\.\/reports\/queue'\)/);
   assert.match(indexSource, /routeReportComponent\(interaction, reportHub, reportQueue\)/);

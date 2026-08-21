@@ -1,8 +1,35 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-14
+Updated: 2026-08-21
 
-## Current working checkpoint: v1.18.0 - Oracle E2 Micro production cutover
+## Current local checkpoint: v1.19.0 - Friend Beta
+
+- Friend Beta memakai model lobi terbatas: server utama mempertahankan semua fitur v1.18.0,
+  sedangkan maksimal sepuluh server allowlisted hanya mendapat `/setup` dan mention chat.
+- Config per server memakai schema ketat dan write atomik di `data/guilds/<guildId>/config.json`.
+  Guild ID divalidasi sebelum menjadi path, symlink ditolak, dan chat tidak dipersistenkan.
+- Runtime mengklasifikasikan semua event sebagai home, beta aktif, pending, denied, atau DM sebelum
+  handler fitur. Semua command dan komponen lama, moderasi, member event, reaction role, stats, dan
+  voice tetap home-only.
+- History AI sekarang memakai `<guildId>:<userId>`. Prompt beta selalu mengaku sebagai bot Hengs
+  dan tidak memuat profil, jadwal, atau identitas pribadi Henry.
+- Registrasi command dipisah: hanya `/setup` global dan command lama tetap guild-scoped. Import
+  modul deploy tidak lagi memiliki side effect. Invite generator meminta izin minimum dan tidak
+  membaca token.
+- During the first red test, importing the legacy deploy module started its old asynchronous
+  home-guild registration path before the missing new modules terminated the test process. No
+  success response was observed. Final read-only Discord audit still shows exactly 12 home commands
+  and no `/setup` in either global or home scope, so external command state is materially unchanged.
+  The new main guard prevents imports from making any request.
+- Architecture gate internal berada di `docs/architecture/DISCORD_FRIEND_BETA_V119.md`.
+- Focused Friend Beta tests pass 15/15, the full suite passes 358/358, all 95 JavaScript files pass
+  syntax checks, `git diff --check` passes, and the production dependency audit reports 0
+  vulnerabilities. Security review removed startup server-name/ID logging and the unused setup
+  channel ID from persistent config.
+- Cloud masih menjalankan v1.18.0. Jangan deploy, menjalankan `npm run deploy`, mengubah allowlist,
+  membuat invite nyata, atau restart service sebelum Henry memberi izin eksplisit baru.
+
+## Production baseline: v1.18.0 - Oracle E2 Micro production cutover
 
 - Added fixed-shape `VM.Standard.E2.1.Micro` acquisition support without A1-only flexible sizing,
   plus a fail-closed region/shape state-mismatch gate and isolated E2 example configuration.

@@ -110,6 +110,25 @@ schema `/event` tetap sama dan tidak memerlukan `npm run deploy`. Role pada
 `OPS_EDITOR_ROLE_IDS` dapat mengedit isi draft, tetapi Publish, Discard, dan Cancel
 tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
+## 7. Friend Beta untuk server teman
+
+Friend Beta v1.19.0 hanya membuka `/setup` dan chat lewat mention. Command admin, moderasi,
+laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
+
+1. Minta teman menyalakan Developer Mode lalu menyalin Server ID miliknya.
+2. Tambahkan ID itu ke `HENGS_BETA_GUILD_IDS` di environment cloud. Maksimal 10 ID,
+   dipisahkan koma.
+3. Setelah deployment dan registrasi command mendapat izin owner, buat URL undangan dengan
+   `npm run invite:beta`. Generator hanya meminta View Channel, Send Messages, dan Read Message
+   History, serta tidak membaca atau mencetak token bot.
+4. Pemilik server teman membuka URL, memilih servernya, lalu menjalankan `/setup start`.
+5. Setelah status aktif, member dapat mention Hengs. Konteks AI mereka terpisah berdasarkan
+   server dan user, serta prompt beta tidak membawa profil pribadi Henry.
+
+Jangan menjalankan `npm run deploy` dari laptop yang belum direview. Perintah itu melakukan
+registrasi eksternal: `/setup` menjadi global, sedangkan seluruh command lama tetap didaftarkan
+hanya ke `DISCORD_GUILD_ID`.
+
 ## 🔐 Catatan keamanan
 
 - Token bocor (ke-share di chat/screenshot/commit)? **Langsung Reset Token** di Developer Portal, update `.env`.

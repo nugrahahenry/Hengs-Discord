@@ -1,43 +1,54 @@
-// ─── deploy-commands.js ────────────────────────────────────────────────────
-// Jalankan SEKALI untuk register slash commands ke Discord:
-//   npm run deploy
-//
-// Kalau kamu tambah/ubah command, jalankan lagi.
-
-require('dotenv').config();
-const { REST, Routes } = require('discord.js');
-const fs   = require('node:fs');
+const fs = require('node:fs');
 const path = require('node:path');
+const { REST, Routes } = require('discord.js');
 
-const commands = [];
-const commandsPath = path.join(__dirname, 'commands');
+function loadCommands(commandsPath = path.join(__dirname, 'commands')) {
+  return fs.readdirSync(commandsPath)
+    .filter(file => file.endsWith('.js'))
+    .sort()
+    .map(file => require(path.join(commandsPath, file)))
+    .filter(command => command.data)
+    .map(command => command.data.toJSON());
+}
 
-for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) {
-  const cmd = require(path.join(commandsPath, file));
-  if (cmd.data) {
-    commands.push(cmd.data.toJSON());
-    console.log(`  + ${cmd.data.name}`);
+function buildCommandPlan(commands) {
+  const setup = commands.filter(command => command.name === 'setup');
+  if (setup.length !== 1) throw new Error('SETUP_COMMAND_INVALID');
+  return {
+    global: setup,
+    home: commands.filter(command => command.name !== 'setup'),
+  };
+}
+
+async function registerCommands({ rest, clientId, guildId, commands }) {
+  if (!/^\d{17,20}$/.test(String(clientId || ''))) throw new Error('CLIENT_ID_INVALID');
+  if (!/^\d{17,20}$/.test(String(guildId || ''))) throw new Error('GUILD_ID_INVALID');
+  if (!rest || typeof rest.put !== 'function') throw new Error('REST_CLIENT_INVALID');
+  const plan = buildCommandPlan(commands);
+  await rest.put(Routes.applicationCommands(clientId), { body: plan.global });
+  await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: plan.home });
+  return plan;
+}
+
+async function main() {
+  require('dotenv').config();
+  const commands = loadCommands();
+  const rest = new REST().setToken(process.env.DISCORD_TOKEN);
+  console.log(`Registering ${commands.length - 1} home commands dan 1 global setup command...`);
+  try {
+    await registerCommands({
+      rest,
+      clientId: process.env.DISCORD_CLIENT_ID,
+      guildId: process.env.DISCORD_GUILD_ID,
+      commands,
+    });
+    console.log('COMMAND_REGISTRATION_OK');
+  } catch {
+    console.error('COMMAND_REGISTRATION_FAILED');
+    process.exitCode = 1;
   }
 }
 
-const rest = new REST().setToken(process.env.DISCORD_TOKEN);
+if (require.main === module) main();
 
-(async () => {
-  console.log(`\nRegistering ${commands.length} slash commands ke server...`);
-  try {
-    await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.DISCORD_CLIENT_ID,
-        process.env.DISCORD_GUILD_ID,
-      ),
-      { body: commands },
-    );
-    console.log('✅ Semua commands berhasil didaftarkan!\n');
-    console.log('Sekarang jalankan: npm start');
-  } catch (err) {
-    console.error('❌ Gagal register commands:', err.message);
-    if (err.message.includes('Missing Access')) {
-      console.error('   → Pastikan bot sudah diundang ke server dengan scope "applications.commands"');
-    }
-  }
-})();
+module.exports = { buildCommandPlan, loadCommands, registerCommands };

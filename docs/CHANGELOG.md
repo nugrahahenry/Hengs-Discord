@@ -5,6 +5,35 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-08-21
+
+### Added
+- Friend Beta menyediakan `/setup start` dan `/setup status` untuk maksimal sepuluh server yang
+  diizinkan secara eksplisit.
+- Konfigurasi server disimpan atomik pada namespace terpisah dan invite generator meminta izin
+  Discord minimum tanpa membaca token.
+
+### Changed
+- Hanya `/setup` yang direncanakan sebagai global command. Dua belas command lama tetap terikat
+  pada server utama Henry.
+- History dan cooldown AI memakai key gabungan server dan user. Server beta memakai prompt Hengs
+  netral tanpa profil pribadi Henry.
+
+### Security
+- Semua handler lama, komponen, member event, reaction role, voice restore, dan moderasi gagal
+  tertutup di luar server utama.
+- Setup membutuhkan owner server atau Administrator, konfigurasi menolak path symlink dan schema
+  asing, serta respons setup selalu privat dan bebas mention.
+
+### Verification
+- Friend Beta focused tests pass 15/15 and the complete suite passes 358/358. All 95 JavaScript
+  files pass syntax checks, `git diff --check` passes, and the production dependency audit reports
+  0 vulnerabilities.
+- Targeted security review removed friend server names and IDs from startup logs, removed the
+  unused setup channel ID from persistent config, and found no credential material in changed files.
+- Belum ada deployment, restart, registrasi command produksi, pembuatan invite nyata, atau
+  perubahan server Discord pada checkpoint lokal ini.
+
 ## [1.17.2] - 2026-08-13
 
 ### Fixed

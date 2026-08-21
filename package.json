@@ -1,11 +1,12 @@
 {
   "name": "discord-bot-henzzz",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "deploy": "node src/deploy-commands.js",
+    "invite:beta": "node src/create-beta-invite.js",
     "test": "node --test",
     "verify:server": "node --use-system-ca scripts/verify-server.js"
   },
