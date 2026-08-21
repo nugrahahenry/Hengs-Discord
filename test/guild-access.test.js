@@ -1,34 +1,33 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { createGuildAccess, parseBetaGuildIds } = require('../src/guilds/access');
+const { createGuildAccess } = require('../src/guilds/access');
 
 const HOME = '123456789012345678';
-const BETA = '223456789012345678';
-const DENIED = '323456789012345678';
+const PUBLIC = '223456789012345678';
+const OTHER = '323456789012345678';
 
-test('beta allowlist is bounded, deduplicated, and strict', () => {
-  assert.deepEqual(parseBetaGuildIds(`${BETA}, ${BETA}`), [BETA]);
-  assert.throws(() => parseBetaGuildIds('not-an-id'), /BETA_GUILD_IDS_INVALID/);
-  assert.throws(
-    () => parseBetaGuildIds(Array.from({ length: 11 }, (_, index) => `123456789012345${String(index).padStart(3, '0')}`).join(',')),
-    /BETA_GUILD_LIMIT_EXCEEDED/,
-  );
-});
-
-test('guild access separates home, pending beta, active beta, denied, and DM scopes', () => {
+test('guild access separates home, pending public, active public, invalid, and DM scopes', () => {
   const configs = new Map();
   const access = createGuildAccess({
     homeGuildId: HOME,
-    betaGuildIds: [BETA],
     store: { get: guildId => configs.get(guildId) || null },
   });
 
   assert.equal(access.classify(HOME).kind, 'home');
-  assert.equal(access.classify(BETA).kind, 'pending');
-  assert.equal(access.classify(DENIED).kind, 'denied');
+  assert.equal(access.classify(PUBLIC).kind, 'pending');
+  assert.equal(access.classify(OTHER).kind, 'pending');
+  assert.equal(access.classify('invalid').kind, 'denied');
   assert.equal(access.classify(null).kind, 'dm');
 
-  configs.set(BETA, { status: 'active', features: { mentionChat: true } });
-  assert.equal(access.classify(BETA).kind, 'beta');
+  configs.set(PUBLIC, { status: 'active', features: { mentionChat: true } });
+  assert.equal(access.classify(PUBLIC).kind, 'public');
+});
+
+test('guild access fails closed when public config cannot be validated', () => {
+  const access = createGuildAccess({
+    homeGuildId: HOME,
+    store: { get: () => { throw new Error('GUILD_CONFIG_INVALID'); } },
+  });
+  assert.deepEqual(access.classify(PUBLIC), { kind: 'denied', code: 'CONFIG_INVALID' });
 });

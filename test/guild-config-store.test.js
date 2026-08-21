@@ -4,12 +4,21 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { createGuildConfigStore } = require('../src/guilds/config-store');
+const { createGuildConfigStore, parsePublicGuildLimit } = require('../src/guilds/config-store');
 
 const GUILD_A = '123456789012345678';
 const GUILD_B = '223456789012345678';
 const OWNER = '323456789012345678';
 const ADMIN = '423456789012345678';
+
+test('public guild limit is strict and bounded', () => {
+  assert.equal(parsePublicGuildLimit(undefined), 25);
+  assert.equal(parsePublicGuildLimit('1'), 1);
+  assert.equal(parsePublicGuildLimit('100'), 100);
+  for (const value of ['0', '101', '1.5', 'nope']) {
+    assert.throws(() => parsePublicGuildLimit(value), /PUBLIC_GUILD_LIMIT_INVALID/);
+  }
+});
 
 function fixture(t) {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-guild-config-'));
@@ -75,6 +84,47 @@ test('guild config refresh keeps creation time and increments revision only on c
   assert.equal(refreshed.config.setupBy, ADMIN);
 });
 
+test('guild config enforces active capacity without blocking existing guilds', t => {
+  const { store } = fixture(t);
+  store.activate({ guildId: GUILD_A, ownerId: OWNER, setupBy: ADMIN, maxActiveGuilds: 1 });
+  assert.equal(store.countActive(), 1);
+  assert.throws(
+    () => store.activate({ guildId: GUILD_B, ownerId: OWNER, setupBy: ADMIN, maxActiveGuilds: 1 }),
+    /PUBLIC_GUILD_LIMIT_REACHED/,
+  );
+  assert.equal(store.activate({
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: OWNER,
+    maxActiveGuilds: 1,
+  }).config.guildId, GUILD_A);
+});
+
+test('guild config removal is idempotent and releases capacity', t => {
+  const { rootDir, store } = fixture(t);
+  store.activate({ guildId: GUILD_A, ownerId: OWNER, setupBy: ADMIN, maxActiveGuilds: 1 });
+  assert.deepEqual(store.remove(GUILD_A), { removed: true });
+  assert.equal(store.get(GUILD_A), null);
+  assert.equal(store.countActive(), 0);
+  assert.equal(fs.existsSync(path.join(rootDir, GUILD_A)), false);
+  assert.deepEqual(store.remove(GUILD_A), { removed: false });
+  assert.equal(store.activate({
+    guildId: GUILD_B,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    maxActiveGuilds: 1,
+  }).created, true);
+});
+
+test('guild config removal refuses to delete an unexpected managed entry', t => {
+  const { rootDir, store } = fixture(t);
+  store.activate({ guildId: GUILD_A, ownerId: OWNER, setupBy: ADMIN });
+  fs.writeFileSync(path.join(rootDir, GUILD_A, 'unexpected.txt'), 'keep');
+  assert.throws(() => store.remove(GUILD_A), /GUILD_STORE_INVALID/);
+  assert.equal(store.get(GUILD_A).guildId, GUILD_A);
+  assert.equal(fs.existsSync(path.join(rootDir, GUILD_A, 'unexpected.txt')), true);
+});
+
 test('guild config rejects unsafe IDs, malformed data, and cross-guild content', t => {
   const { rootDir, store } = fixture(t);
   assert.throws(() => store.get('../outside'), /GUILD_ID_INVALID/);
@@ -107,4 +157,10 @@ test('guild config fails closed when a managed path is a symlink', t => {
     ownerId: OWNER,
     setupBy: ADMIN,
   }), /GUILD_PATH_UNSAFE/);
+});
+
+test('active count fails closed on unexpected or unsafe root entries', t => {
+  const { rootDir, store } = fixture(t);
+  fs.writeFileSync(path.join(rootDir, 'unexpected.txt'), 'nope');
+  assert.throws(() => store.countActive(), /GUILD_STORE_INVALID/);
 });

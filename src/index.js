@@ -32,8 +32,9 @@ const translationService = require('./translation/service');
 const { bindDiscordClientHealth, createRuntimeHealth } = require('./runtime/health');
 const { InstanceLockError, createInstanceLock, resolveInstanceLockFile } = require('./runtime/instance-lock');
 const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtime/wa-recovery-alerts');
-const { createGuildConfigStore } = require('./guilds/config-store');
-const { createGuildAccess, parseBetaGuildIds } = require('./guilds/access');
+const { createGuildConfigStore, parsePublicGuildLimit } = require('./guilds/config-store');
+const { createGuildAccess } = require('./guilds/access');
+const { createPublicTrafficGuard } = require('./guilds/public-traffic-guard');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -60,11 +61,12 @@ process.on('exit', () => {
 const guildConfigStore = createGuildConfigStore({
   rootDir: process.env.HENGS_GUILD_CONFIG_DIR || undefined,
 });
+const publicGuildLimit = parsePublicGuildLimit(process.env.HENGS_PUBLIC_GUILD_LIMIT);
 const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
-  betaGuildIds: parseBetaGuildIds(process.env.HENGS_BETA_GUILD_IDS),
   store: guildConfigStore,
 });
+const publicTrafficGuard = createPublicTrafficGuard();
 
 // ── Client setup ────────────────────────────────────────────────────────────
 const client = new Client({
@@ -383,7 +385,7 @@ client.on(Events.MessageCreate, async (msg) => {
       console.error('[moderation] message failed:', { code: error.code || 'MESSAGE_FAILED' });
     }
   }
-  if (messageScope.kind !== 'home' && messageScope.kind !== 'beta') return;
+  if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
   if (!msg.mentions.has(client.user)) return;
 
   // Bersihkan mention dari teks
@@ -392,21 +394,45 @@ client.on(Events.MessageCreate, async (msg) => {
     .trim();
 
   if (!text) {
-    await msg.reply('Ada yang bisa aku bantu? Tulis apa yang mau kamu tanya 😊');
+    await msg.reply({
+      content: 'Ada yang bisa aku bantu? Tulis apa yang mau kamu tanya 😊',
+      allowedMentions: { parse: [] },
+    });
     return;
   }
 
-  // Typing indicator biar keliatan lagi "mikir"
-  await msg.channel.sendTyping();
+  let lease = null;
+  if (messageScope.kind === 'public') {
+    const admission = publicTrafficGuard.acquire(msg.guildId);
+    if (!admission.ok) {
+      const content = admission.code === 'PUBLIC_GUILD_BUSY'
+        ? 'Aku masih menjawab pesan lain di server ini. Coba lagi sebentar ya.'
+        : 'Batas chat Hengs untuk server ini sedang penuh. Coba lagi beberapa menit lagi.';
+      await msg.reply({ content, allowedMentions: { parse: [] } });
+      return;
+    }
+    lease = admission;
+  }
 
   try {
+    // Typing indicator biar keliatan lagi "mikir"
+    await msg.channel.sendTyping();
     const conversationKey = agent.buildConversationKey(msg.guildId, msg.author.id);
     const reply = await agent.chat(text, conversationKey, { kind: messageScope.kind });
     // Discord max 2000 karakter per pesan
-    await msg.reply(reply.substring(0, 2000));
+    await msg.reply({
+      content: reply.substring(0, 2000),
+      allowedMentions: { parse: [] },
+    });
   } catch (err) {
-    console.error('❌ AI error:', err.message);
-    await msg.reply('Aduh, lagi error nih. Coba lagi nanti! 🙏');
+    if (messageScope.kind === 'public') console.error('[public-ai] PUBLIC_AI_FAILED');
+    else console.error('❌ AI error:', err.message);
+    await msg.reply({
+      content: 'Aduh, lagi error nih. Coba lagi nanti! 🙏',
+      allowedMentions: { parse: [] },
+    }).catch(() => {});
+  } finally {
+    if (lease) lease.release();
   }
 });
 
@@ -508,7 +534,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interactionScope.kind !== 'home' && interaction.commandName !== 'setup') {
     await interaction.reply({
-      content: 'Command ini belum tersedia di Hengs Friend Beta.',
+      content: 'Command ini belum tersedia di Hengs Public Beta.',
       flags: MessageFlags.Ephemeral,
       allowedMentions: { parse: [] },
     });
@@ -549,6 +575,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       version: packageMetadata.version,
       guildAccess,
       guildConfigStore,
+      publicGuildLimit,
     });
   } catch (err) {
     if (interaction.commandName === 'reports') {

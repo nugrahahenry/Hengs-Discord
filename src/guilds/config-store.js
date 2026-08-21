@@ -8,6 +8,17 @@ const CONFIG_KEYS = [
   'revision', 'schemaVersion', 'setupBy', 'status', 'updatedAt',
 ];
 const MAX_CONFIG_BYTES = 16 * 1024;
+const DEFAULT_PUBLIC_GUILD_LIMIT = 25;
+const MAX_PUBLIC_GUILD_LIMIT = 100;
+
+function parsePublicGuildLimit(value) {
+  if (value === undefined || value === null || value === '') return DEFAULT_PUBLIC_GUILD_LIMIT;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_PUBLIC_GUILD_LIMIT) {
+    throw new Error('PUBLIC_GUILD_LIMIT_INVALID');
+  }
+  return parsed;
+}
 
 function assertSnowflake(value, code, { nullable = false } = {}) {
   if (nullable && value === null) return null;
@@ -111,11 +122,28 @@ function createGuildConfigStore({
     }
   }
 
-  function activate({ guildId, ownerId, setupBy }) {
+  function countActive() {
+    if (!fsImpl.existsSync(resolvedRoot)) return 0;
+    assertSafeEntry(fsImpl, resolvedRoot, { directory: true });
+    let count = 0;
+    for (const entry of fsImpl.readdirSync(resolvedRoot)) {
+      if (!SNOWFLAKE.test(entry)) throw new Error('GUILD_STORE_INVALID');
+      const paths = pathsFor(entry);
+      assertSafeEntry(fsImpl, paths.directory, { directory: true });
+      const config = get(entry);
+      if (!config) throw new Error('GUILD_STORE_INVALID');
+      count += 1;
+    }
+    return count;
+  }
+
+  function activate({ guildId, ownerId, setupBy, maxActiveGuilds }) {
     const paths = pathsFor(guildId);
     const normalizedOwner = assertSnowflake(ownerId, 'OWNER_ID_INVALID');
     const normalizedSetupBy = assertSnowflake(setupBy, 'SETUP_BY_INVALID');
     const existing = get(paths.guildId);
+    const limit = parsePublicGuildLimit(maxActiveGuilds);
+    if (!existing && countActive() >= limit) throw new Error('PUBLIC_GUILD_LIMIT_REACHED');
     const timestamp = now();
     if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
     const desired = {
@@ -142,7 +170,19 @@ function createGuildConfigStore({
     return { config: desired, created: !existing, changed: true };
   }
 
-  return { activate, get };
+  function remove(guildId) {
+    const paths = pathsFor(guildId);
+    inspectPaths(paths);
+    if (!fsImpl.existsSync(paths.file)) return { removed: false };
+    get(paths.guildId);
+    const entries = fsImpl.readdirSync(paths.directory);
+    if (entries.length !== 1 || entries[0] !== 'config.json') throw new Error('GUILD_STORE_INVALID');
+    fsImpl.unlinkSync(paths.file);
+    fsImpl.rmdirSync(paths.directory);
+    return { removed: true };
+  }
+
+  return { activate, countActive, get, remove };
 }
 
-module.exports = { createGuildConfigStore, validateConfig };
+module.exports = { createGuildConfigStore, parsePublicGuildLimit, validateConfig };

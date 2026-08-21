@@ -110,20 +110,34 @@ schema `/event` tetap sama dan tidak memerlukan `npm run deploy`. Role pada
 `OPS_EDITOR_ROLE_IDS` dapat mengedit isi draft, tetapi Publish, Discard, dan Cancel
 tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
-## 7. Friend Beta untuk server teman
+## 7. Public Self-Service Beta untuk server lain
 
-Friend Beta v1.19.0 hanya membuka `/setup` dan chat lewat mention. Command admin, moderasi,
+Public Beta v1.19.0 hanya membuka `/setup` dan chat lewat mention. Command admin, moderasi,
 laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
 
-1. Minta teman menyalakan Developer Mode lalu menyalin Server ID miliknya.
-2. Tambahkan ID itu ke `HENGS_BETA_GUILD_IDS` di environment cloud. Maksimal 10 ID,
-   dipisahkan koma.
-3. Setelah deployment dan registrasi command mendapat izin owner, buat URL undangan dengan
-   `npm run invite:beta`. Generator hanya meminta View Channel, Send Messages, dan Read Message
-   History, serta tidak membaca atau mencetak token bot.
-4. Pemilik server teman membuka URL, memilih servernya, lalu menjalankan `/setup start`.
-5. Setelah status aktif, member dapat mention Hengs. Konteks AI mereka terpisah berdasarkan
-   server dan user, serta prompt beta tidak membawa profil pribadi Henry.
+### Langkah pengelola Hengs
+
+1. Pastikan aplikasi Hengs mengizinkan pemasangan publik oleh server lain di Discord Developer
+   Portal. Token bot tetap privat dan tidak pernah ikut dalam URL.
+2. Atur `HENGS_PUBLIC_GUILD_LIMIT=25`. Nilai valid adalah 1 sampai 100.
+3. Setelah deployment dan registrasi command mendapat izin owner, jalankan
+   `npm run invite:public` untuk membuat URL undangan publik. Generator hanya meminta View
+   Channel, Send Messages, dan Read Message History. Generator tidak membaca atau mencetak token.
+4. Bagikan URL itu. Server ID tidak perlu diminta atau dimasukkan secara manual.
+
+### Langkah teman yang memasang Hengs
+
+1. Buka URL undangan Hengs.
+2. Pilih server Discord yang ingin dipasangi bot. Akun pemasang perlu hak untuk mengelola server.
+3. Tekan Authorize dan selesaikan pemeriksaan Discord jika muncul.
+4. Di server tersebut, pemilik server atau Administrator menjalankan `/setup start`.
+5. Setelah respons aktif muncul, member cukup menulis `@Hengs pertanyaan`.
+6. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
+   dan menghapus konfigurasi lokal server tersebut.
+
+Setiap server memiliki konteks AI sendiri. Public Beta dibatasi 25 server aktif secara default,
+satu jawaban AI berjalan per server, dan 30 permintaan per 10 menit per server. Prompt publik tidak
+membawa profil pribadi Henry.
 
 Jangan menjalankan `npm run deploy` dari laptop yang belum direview. Perintah itu melakukan
 registrasi eksternal: `/setup` menjadi global, sedangkan seluruh command lama tetap didaftarkan

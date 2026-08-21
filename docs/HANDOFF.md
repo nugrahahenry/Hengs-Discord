@@ -2,17 +2,21 @@
 
 Updated: 2026-08-21
 
-## Current local checkpoint: v1.19.0 - Friend Beta
+## Current local checkpoint: v1.19.0 - Public Self-Service Beta
 
-- Friend Beta memakai model lobi terbatas: server utama mempertahankan semua fitur v1.18.0,
-  sedangkan maksimal sepuluh server allowlisted hanya mendapat `/setup` dan mention chat.
+- Public Beta memakai model lobi mandiri: server utama mempertahankan semua fitur v1.18.0,
+  sedangkan server lain cukup memakai satu invite publik dan `/setup start`. Discord memberikan
+  guild ID otomatis, jadi tidak ada Developer Mode, penyalinan Server ID, atau allowlist manual.
 - Config per server memakai schema ketat dan write atomik di `data/guilds/<guildId>/config.json`.
-  Guild ID divalidasi sebelum menjadi path, symlink ditolak, dan chat tidak dipersistenkan.
-- Runtime mengklasifikasikan semua event sebagai home, beta aktif, pending, denied, atau DM sebelum
+  Guild ID divalidasi sebelum menjadi path, symlink ditolak, chat tidak dipersistenkan, dan
+  `/setup disable` menghapus konfigurasi server secara idempotent.
+- Runtime mengklasifikasikan semua event sebagai home, public aktif, pending, denied, atau DM sebelum
   handler fitur. Semua command dan komponen lama, moderasi, member event, reaction role, stats, dan
   voice tetap home-only.
-- History AI sekarang memakai `<guildId>:<userId>`. Prompt beta selalu mengaku sebagai bot Hengs
+- History AI sekarang memakai `<guildId>:<userId>`. Prompt publik selalu mengaku sebagai bot Hengs
   dan tidak memuat profil, jadwal, atau identitas pribadi Henry.
+- Kapasitas default 25 server aktif, rentang konfigurasi 1 sampai 100. Setiap server publik dibatasi
+  satu permintaan AI aktif serta 30 permintaan yang dimulai per 10 menit.
 - Registrasi command dipisah: hanya `/setup` global dan command lama tetap guild-scoped. Import
   modul deploy tidak lagi memiliki side effect. Invite generator meminta izin minimum dan tidak
   membaca token.
@@ -21,13 +25,14 @@ Updated: 2026-08-21
   success response was observed. Final read-only Discord audit still shows exactly 12 home commands
   and no `/setup` in either global or home scope, so external command state is materially unchanged.
   The new main guard prevents imports from making any request.
-- Architecture gate internal berada di `docs/architecture/DISCORD_FRIEND_BETA_V119.md`.
-- Focused Friend Beta tests pass 15/15, the full suite passes 358/358, all 95 JavaScript files pass
-  syntax checks, `git diff --check` passes, and the production dependency audit reports 0
-  vulnerabilities. Security review removed startup server-name/ID logging and the unused setup
-  channel ID from persistent config.
-- Cloud masih menjalankan v1.18.0. Jangan deploy, menjalankan `npm run deploy`, mengubah allowlist,
-  membuat invite nyata, atau restart service sebelum Henry memberi izin eksplisit baru.
+- Architecture gate internal berada di `docs/architecture/DISCORD_PUBLIC_BETA_V119.md`.
+- Public Beta focused tests pass 28/28 and the full suite passes 371/371 on exact Node 22.23.2.
+  All 99 JavaScript files pass syntax checks, `git diff --check` passes, and the production
+  dependency audit reports 0 vulnerabilities. Security review confirms setup authorization,
+  capacity and concurrency backpressure, mention-safe AI replies, fixed public error logs, strict
+  config deletion, no credential material, and home-only legacy paths.
+- Cloud masih menjalankan v1.18.0. Jangan deploy, menjalankan `npm run deploy`, membuat invite nyata,
+  atau restart service sebelum Henry memberi izin eksplisit baru.
 
 ## Production baseline: v1.18.0 - Oracle E2 Micro production cutover
 

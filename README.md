@@ -2,14 +2,14 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.19.0 Friend Beta
+**Current local checkpoint:** v1.19.0 Public Self-Service Beta
 
 **Current cloud production:** v1.18.0
 
 ## ✨ Fitur Utama
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
-- **Friend Beta** - server teman yang masuk allowlist dapat mengaktifkan mention chat lewat `/setup`, tanpa mendapat akses ke fitur privat server Henry
+- **Public Self-Service Beta:** pemilik server cukup mengundang Hengs dan menjalankan `/setup start`; Discord mengirim Server ID otomatis dan fitur privat Henry tetap terkunci
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
@@ -71,7 +71,7 @@ stop-bot.bat            # hentikan bot
 Dukungan deployment Always Free untuk Ubuntu tersedia bagi A1 Flex dan E2 Micro. A1 memakai
 sizing fleksibel, sedangkan E2 adalah fixed shape dan memiliki config/state terpisah agar histori
 acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInstance`; error
-provider dipetakan ke kode tetap tanpa menyimpan output mentah. Friend Beta v1.19.0 menambahkan
+provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service Beta v1.19.0 menambahkan
 satu command global `/setup`, tetapi belum didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
 UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.18.0 terpasang sebagai
@@ -88,7 +88,7 @@ berhenti.
 | Command | Fungsi |
 |---|---|
 | `@Hengs <pesan>` | Ngobrol sama AI |
-| `/setup start` · `/setup status` | Aktivasi dan status Friend Beta untuk owner atau Administrator server |
+| `/setup start` · `/setup status` · `/setup disable` | Kelola Public Beta untuk owner atau Administrator server |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
 | `/ops draft` · `/ops status` · `/ops history` · `/ops overview` | Draft pengumuman, approval owner, audit, dan ringkasan operasi privat |

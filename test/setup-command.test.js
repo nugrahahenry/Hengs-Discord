@@ -37,7 +37,12 @@ function dependencies(kind = 'pending') {
         calls.push(input);
         return { created: true, changed: true, config: { status: 'active' } };
       },
+      remove(guildId) {
+        calls.push({ remove: guildId });
+        return { removed: true };
+      },
     },
+    publicGuildLimit: 25,
   };
 }
 
@@ -47,14 +52,14 @@ function assertPrivate(payload) {
   assert.doesNotMatch(payload.content, /\d{15,22}/);
 }
 
-test('/setup is a guild-only command with start and status', () => {
+test('/setup is a guild-only command with start, status, and disable', () => {
   const json = setup.data.toJSON();
   assert.equal(json.name, 'setup');
   assert.equal(json.dm_permission, false);
-  assert.deepEqual(json.options.map(option => option.name), ['start', 'status']);
+  assert.deepEqual(json.options.map(option => option.name), ['start', 'status', 'disable']);
 });
 
-test('/setup start activates an allowlisted guild for its owner or administrator', async () => {
+test('/setup start activates any valid public guild for its owner or administrator', async () => {
   for (const actor of [
     { userId: OWNER, administrator: false },
     { userId: ADMIN, administrator: true },
@@ -66,14 +71,16 @@ test('/setup start activates an allowlisted guild for its owner or administrator
     assert.match(value.replyPayload.content, /aktif/i);
     assert.equal(deps.calls.length, 1);
     assert.equal(deps.calls[0].guildId, GUILD);
+    assert.equal(deps.calls[0].maxActiveGuilds, 25);
   }
 });
 
-test('/setup denies DMs, non-allowlisted guilds, and unauthorized members without mutation', async () => {
+test('/setup denies DMs, invalid configs, and unauthorized members without mutation', async () => {
   const cases = [
     { value: interaction({ guild: false, subcommand: 'start' }), kind: 'dm' },
     { value: interaction({ subcommand: 'start' }), kind: 'denied' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'start' }), kind: 'pending' },
+    { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'disable' }), kind: 'public' },
   ];
 
   for (const item of cases) {
@@ -86,9 +93,9 @@ test('/setup denies DMs, non-allowlisted guilds, and unauthorized members withou
 
 test('/setup status reports fixed states without exposing stored IDs', async () => {
   for (const [kind, expected] of [
-    ['denied', /belum masuk beta/i],
+    ['denied', /tidak dapat dibaca/i],
     ['pending', /belum aktif/i],
-    ['beta', /aktif/i],
+    ['public', /aktif/i],
     ['home', /server utama/i],
   ]) {
     const deps = dependencies(kind);
@@ -97,4 +104,34 @@ test('/setup status reports fixed states without exposing stored IDs', async () 
     assertPrivate(value.replyPayload);
     assert.match(value.replyPayload.content, expected);
   }
+});
+
+test('/setup start reports full capacity without exposing operational data', async () => {
+  const deps = dependencies('pending');
+  deps.guildConfigStore.activate = () => { throw new Error('PUBLIC_GUILD_LIMIT_REACHED'); };
+  const value = interaction({ subcommand: 'start' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /kapasitas/i);
+});
+
+test('/setup disable removes public config and is idempotent', async () => {
+  for (const kind of ['public', 'pending']) {
+    const deps = dependencies(kind);
+    if (kind === 'pending') deps.guildConfigStore.remove = () => ({ removed: false });
+    const value = interaction({ subcommand: 'disable' });
+    await setup.execute(value, deps);
+    assertPrivate(value.replyPayload);
+    assert.match(value.replyPayload.content, kind === 'public' ? /dinonaktifkan/i : /belum aktif/i);
+    assert.equal(deps.calls.length, kind === 'public' ? 1 : 0);
+  }
+});
+
+test('/setup cannot disable the home guild', async () => {
+  const deps = dependencies('home');
+  const value = interaction({ subcommand: 'disable' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /server utama/i);
+  assert.equal(deps.calls.length, 0);
 });

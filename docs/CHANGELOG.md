@@ -8,29 +8,35 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 ## [1.19.0] - 2026-08-21
 
 ### Added
-- Friend Beta menyediakan `/setup start` dan `/setup status` untuk maksimal sepuluh server yang
-  diizinkan secara eksplisit.
+- Public Self-Service Beta menyediakan `/setup start`, `/setup status`, dan `/setup disable` tanpa
+  meminta pengguna mencari atau mengirim Server ID.
 - Konfigurasi server disimpan atomik pada namespace terpisah dan invite generator meminta izin
   Discord minimum tanpa membaca token.
+- Traffic guard membatasi satu jawaban AI aktif dan 30 permintaan per 10 menit untuk setiap server
+  publik.
 
 ### Changed
 - Hanya `/setup` yang direncanakan sebagai global command. Dua belas command lama tetap terikat
   pada server utama Henry.
-- History dan cooldown AI memakai key gabungan server dan user. Server beta memakai prompt Hengs
+- History dan cooldown AI memakai key gabungan server dan user. Server publik memakai prompt Hengs
   netral tanpa profil pribadi Henry.
+- Kapasitas default adalah 25 server aktif dan dapat diatur secara ketat dari 1 sampai 100.
 
 ### Security
 - Semua handler lama, komponen, member event, reaction role, voice restore, dan moderasi gagal
   tertutup di luar server utama.
 - Setup membutuhkan owner server atau Administrator, konfigurasi menolak path symlink dan schema
   asing, serta respons setup selalu privat dan bebas mention.
+- Konfigurasi server dihapus saat `/setup disable`; konfigurasi yang rusak dan kapasitas penuh gagal
+  tertutup tanpa membuka fitur privat.
 
 ### Verification
-- Friend Beta focused tests pass 15/15 and the complete suite passes 358/358. All 95 JavaScript
-  files pass syntax checks, `git diff --check` passes, and the production dependency audit reports
-  0 vulnerabilities.
+- Public Beta focused tests pass 28/28 and the complete suite passes 371/371 on exact Node
+  22.23.2. All 99 JavaScript files pass syntax checks, `git diff --check` passes, and the
+  production dependency audit reports 0 vulnerabilities.
 - Targeted security review removed friend server names and IDs from startup logs, removed the
-  unused setup channel ID from persistent config, and found no credential material in changed files.
+  unused setup channel ID from persistent config, disables mentions in AI replies, uses fixed public
+  error logging, and found no credential material in changed files.
 - Belum ada deployment, restart, registrasi command produksi, pembuatan invite nyata, atau
   perubahan server Discord pada checkpoint lokal ini.
 
