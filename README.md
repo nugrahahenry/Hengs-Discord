@@ -4,7 +4,7 @@
 
 **Current local checkpoint:** v1.24.0 Layered Welcome Cards
 
-**Current cloud production:** v1.19.1
+**Current cloud production:** v1.24.0
 
 ## ✨ Fitur Utama
 
@@ -78,15 +78,16 @@ stop-bot.bat            # hentikan bot
 Dukungan deployment Always Free untuk Ubuntu tersedia bagi A1 Flex dan E2 Micro. A1 memakai
 sizing fleksibel, sedangkan E2 adalah fixed shape dan memiliki config/state terpisah agar histori
 acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInstance`; error
-provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service Beta v1.19.1 menambahkan
-satu command global `/setup` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
+provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.24.0 menyediakan
+dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.19.1 terpasang sebagai
-production `current` dan lulus dependency/test acceptance di Ubuntu. Secret serta state persisten
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.24.0 terpasang sebagai
+production `current` dan lulus dependency, test, command-schema, serta server acceptance di Ubuntu. Secret serta state persisten
 dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
 Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal
 berhenti sebagai jalur rollback. Initial start, restart service, dan reboot VM masing-masing lulus
-dua heartbeat `CONNECTED` yang segar, sedangkan Anti-Raid tetap `monitor`. Ikuti
+dua heartbeat `CONNECTED` yang segar. Deployment v1.24.0 mempertahankan konfigurasi Anti-Raid
+yang sudah tersimpan tanpa melakukan perubahan mode. Ikuti
 [panduan cloud](docs/CLOUD-DEPLOY.md) dan jangan menyalakan consumer lokal sebelum cloud dibuktikan
 berhenti.
 

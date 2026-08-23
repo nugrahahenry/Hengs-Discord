@@ -2,10 +2,11 @@
 
 Updated: 2026-08-23
 
-## Current local checkpoint: v1.24.0 - Layered Welcome Cards
+## Current production checkpoint: v1.24.0 - Layered Welcome Cards
 
-- v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
-  registration, restart, or Discord write is authorized by this local checkpoint.
+- Commit `8f8ffa4` and the preceding v1.22.0 and v1.23.0 checkpoints are pushed to `origin/main`.
+  Immutable v1.24.0 is cloud production and the only Discord token consumer. Discord local and
+  WhatsApp local both remain at zero processes.
 - Welcome and leave cards now use a generated Aurora Gateway background beneath deterministic
   Canvas layers. The production asset is 900 x 280 and under 512 KiB. The high-resolution ImageGen
   master is retained in `assets/_originals/` for future visual work.
@@ -19,9 +20,21 @@ Updated: 2026-08-23
   the production dependency audit reports 0 vulnerabilities, and whitespace checks pass. Visual
   inspection confirms readable welcome and leave compositions at 900 x 280. Both PNG assets have
   no textual or EXIF metadata. Humanizer review and the global source test confirm zero em dash or
-  en dash characters in runtime code. Exact Node 22 remains mandatory before deployment.
-- No deployment, command registration, restart, invite installation, public guild activation, or
-  cloud write occurred in this checkpoint.
+  en dash characters in runtime code.
+- Cloud deployment used exact Node 22.23.2. Archive acceptance ran 421 tests with 418 pass, three
+  intentional repository or workspace skips, and zero failures. The release pointer changed
+  atomically while Discord was stopped, then two advancing `CONNECTED`/`OK`/fresh heartbeats passed
+  with one process and zero systemd restarts. The v1.19.1 release remains available for rollback.
+- Command registration reached Discord exactly once after health acceptance. Read-only API audit
+  confirms `/setup` and `/hengs` as the two global commands and 12 home-guild commands matching the
+  committed schema. Read-only server verification reports zero failures and zero warnings.
+- WhatsApp remained v0.20.3 active/enabled, `CONNECTED`/`OK`/fresh, and exactly one process throughout.
+  No QR, auth change, WA restart, VM reboot, state restore, public guild activation, or local bot
+  start occurred. Remote transfer, deploy logs, command-audit helpers, and release staging were
+  removed after acceptance.
+- Anti-Raid is configured `active` in the preserved production state and has no mode-change audit.
+  Deployment did not mutate it. This supersedes the older handoff assumption that it was still
+  configured `monitor`.
 - Checkpoint commit subject: `feat(discord): Hengs Discord v1.24.0 - upgrade layered welcome cards`.
 
 ## Previous local checkpoint: v1.23.0 - Owner Insights

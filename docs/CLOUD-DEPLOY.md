@@ -1,12 +1,13 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi upgrade Hengs Discord v1.24.0 di Ubuntu. Cloud production
-saat ini menjalankan v1.19.1. Deployment berikutnya, registrasi command, perubahan billing, dan cutover tetap memerlukan persetujuan
+saat ini menjalankan v1.24.0. Deployment berikutnya, registrasi command, perubahan billing, dan cutover tetap memerlukan persetujuan
 Henry pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
-cloud, yang boleh memakai token Discord pada satu waktu. Anti-Raid tetap dalam mode
-`monitor`; deployment tidak mengubah permission atau kebijakan moderasi. Registrasi v1.24.0
+cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
+permission, atau kebijakan Anti-Raid. State produksi v1.24.0 mempertahankan konfigurasi
+`active` yang sudah ada tanpa audit perubahan mode saat deployment. Registrasi v1.24.0
 memperbarui schema global `/setup` dengan Owner Insights, mempertahankan `/hengs`,
 serta mempertahankan 12 command lama di home guild.
 
