@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.22.0 Public Onboarding and Trust
+**Current local checkpoint:** v1.23.0 Owner Insights
 
 **Current cloud production:** v1.19.1
 
@@ -12,6 +12,9 @@
 - **Public Server Essentials:** owner cukup menjalankan `/setup start`, lalu dapat memilih gaya,
   bahasa, dan channel. Member bisa memakai `/hengs ask`, `/hengs reset`, `/hengs help`,
   `/hengs privacy`, atau `/hengs invite` tanpa Server ID manual
+- **Owner Insights:** owner atau Administrator dapat membuka ringkasan penggunaan privat lewat
+  `/setup insights`. Hengs hanya menyimpan angka agregat harian dan feedback, tanpa isi chat,
+  jawaban, channel, atau identitas member
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
@@ -91,7 +94,7 @@ berhenti.
 |---|---|
 | `@Hengs <pesan>` | Ngobrol sama AI |
 | `/hengs ask` · `/hengs reset` · `/hengs help` · `/hengs privacy` · `/hengs invite` | Tanya Hengs, kelola ingatanmu, pahami privasi, buka panduan, atau undang Hengs ke server lain |
-| `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup disable` | Kelola Public Beta untuk owner atau Administrator server |
+| `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup insights` · `/setup disable` | Kelola Public Beta dan lihat ringkasan penggunaan privat untuk owner atau Administrator server |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
 | `/ops draft` · `/ops status` · `/ops history` · `/ops overview` | Draft pengumuman, approval owner, audit, dan ringkasan operasi privat |

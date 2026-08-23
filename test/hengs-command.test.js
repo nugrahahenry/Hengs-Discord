@@ -56,6 +56,16 @@ function dependencies(kind = 'public', configValue = config()) {
     },
     guildAccess: { classify: () => kind === 'public' ? { kind, config: configValue } : { kind } },
     clientId: '123456789012345678',
+    publicInsightsStore: {
+      claimAccepted(guildId) {
+        calls.push({ claimAccepted: guildId });
+        return { ok: true, requestId: 'a1b2c3d4e5f60718', used: 1, limit: 100 };
+      },
+      recordRejection(guildId, code) {
+        calls.push({ recordRejection: [guildId, code] });
+        return { recorded: true };
+      },
+    },
     publicTrafficGuard: {
       acquire(guildId) {
         calls.push({ acquire: guildId });
@@ -163,6 +173,7 @@ test('/hengs ask shares public admission and sends mention-safe output', async (
   assert.deepEqual(value.editPayload.allowedMentions, { parse: [] });
   assert.deepEqual(deps.calls, [
     { acquire: GUILD },
+    { claimAccepted: GUILD },
     { buildConversationKey: [GUILD, USER] },
     { chat: {
       prompt: 'Explain queues',
@@ -170,6 +181,9 @@ test('/hengs ask shares public admission and sends mention-safe output', async (
       context: { kind: 'public', replyStyle: 'technical', language: 'en' },
     } },
   ]);
+  const feedback = value.editPayload.components[0].toJSON().components;
+  assert.deepEqual(feedback.map(component => component.label), ['Membantu', 'Kurang pas']);
+  assert.ok(feedback.every(component => component.custom_id.includes(USER)));
   assert.deepEqual(deps.releases, [GUILD]);
 });
 
@@ -193,8 +207,36 @@ test('/hengs ask reports shared backpressure without calling AI', async () => {
     await hengs.execute(value, deps);
     assertPrivate(value.replyPayload);
     assert.match(value.replyPayload.content, expected);
-    assert.equal(deps.calls.length, 0);
+    assert.deepEqual(deps.calls, [{ recordRejection: [GUILD, code] }]);
   }
+});
+
+test('/hengs ask enforces the persistent daily budget before calling AI', async () => {
+  const deps = dependencies('public');
+  deps.publicInsightsStore.claimAccepted = () => ({
+    ok: false,
+    code: 'PUBLIC_DAILY_LIMITED',
+    used: 100,
+    limit: 100,
+  });
+  const value = interaction({ subcommand: 'ask' });
+  await hengs.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /batas harian/i);
+  assert.deepEqual(deps.releases, [GUILD]);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});
+
+test('/hengs ask fails closed when the usage store cannot be written', async () => {
+  const deps = dependencies('public');
+  deps.publicInsightsStore.claimAccepted = () => { throw new Error('private path detail'); };
+  const value = interaction({ subcommand: 'ask' });
+  await hengs.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /tidak akan memakai layanan AI/i);
+  assert.deepEqual(deps.releases, [GUILD]);
+  assert.equal(deps.calls.some(call => call.chat), false);
+  assert.deepEqual(deps.calls.at(-1), { log: '[public-insights] PUBLIC_INSIGHTS_WRITE_FAILED' });
 });
 
 test('/hengs ask releases admission and hides provider failures', async () => {

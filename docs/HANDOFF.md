@@ -2,7 +2,40 @@
 
 Updated: 2026-08-23
 
-## Current local checkpoint: v1.22.0 - Public Onboarding and Trust
+## Current local checkpoint: v1.23.0 - Owner Insights
+
+- v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
+  registration, restart, invite installation, or public guild activation is authorized by this
+  local checkpoint.
+- `/setup insights` gives only the public guild owner or an Administrator a private 7-day or
+  30-day aggregate. It reports accepted requests, temporary and daily limits, helpful or
+  needs-work feedback, and current UTC daily-budget usage.
+- Public mention chat and `/hengs ask` now claim a persistent daily budget before any AI provider
+  call. The default is 100 accepted requests per UTC day and the operator override is restricted
+  to 10 through 300. A store failure or exhausted budget releases the traffic lease and blocks
+  provider work.
+- Every successful public AI response has requester-only `Membantu` and `Kurang pas` buttons.
+  Random issued request IDs make forged and duplicate feedback fail closed. Accepted feedback
+  removes the buttons and receives a private acknowledgement.
+- Per-guild schema 1 state retains at most 31 UTC days of integer aggregates and random request
+  IDs. It stores no prompts, answers, usernames, display names, user IDs, channel data, topics,
+  sentiment, or raw provider errors. Paths are tenant-bound, symlinks are rejected, writes are
+  atomic, and unknown or corrupt state blocks only that public guild.
+- `/setup disable` purges Owner Insights before deleting guild configuration. If the privacy purge
+  fails, Hengs stays active and does not claim that all data was removed.
+- Focused Owner Insights and routing tests pass 48/48. The full suite passes 417/417 on local Node
+  24.15.0, all 109 JavaScript files and four Linux shell scripts pass syntax validation, the
+  production dependency audit reports 0 vulnerabilities, and whitespace plus tracked release
+  content checks pass. Humanizer review confirms the new user copy contains no em dash or en dash.
+  Manual security review confirms provider admission ordering, tenant-bound strict state,
+  aggregate-to-claim integrity, forged component denial, owner or Administrator reads, fixed-code
+  failures, and fail-closed privacy purge. Node 22 is not installed locally, so exact Node 22
+  acceptance remains a mandatory deployment gate.
+- No deployment, command registration, restart, invite installation, public guild activation, or
+  cloud write occurred in this checkpoint.
+- Checkpoint commit subject: `feat(discord): Hengs Discord v1.23.0 - add privacy-safe owner insights`.
+
+## Previous local checkpoint: v1.22.0 - Public Onboarding and Trust
 
 - v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
   registration, restart, invite installation, or public guild activation is authorized by this

@@ -16,6 +16,7 @@ function interaction({
   subcommand = 'status',
   preset = 'balanced',
   mode = 'all',
+  range = null,
 } = {}) {
   return {
     guildId: guild ? GUILD : null,
@@ -25,7 +26,7 @@ function interaction({
     memberPermissions: { has: permission => permission === PermissionFlagsBits.Administrator && administrator },
     options: {
       getSubcommand: () => subcommand,
-      getString: name => ({ preset, mode }[name] ?? null),
+      getString: name => ({ preset, mode, range }[name] ?? null),
     },
     inGuild: () => guild,
     async reply(payload) { this.replyPayload = payload; },
@@ -80,7 +81,28 @@ function dependencies(kind = 'pending') {
         };
       },
     },
+    publicInsightsStore: {
+      getSummary(guildId, days) {
+        calls.push({ getSummary: [guildId, days] });
+        return {
+          days,
+          accepted: 8,
+          busyRejected: 2,
+          rateLimited: 3,
+          dailyLimited: 1,
+          helpful: 4,
+          needsWork: 1,
+          todayUsed: 2,
+          dailyLimit: 100,
+        };
+      },
+      remove(guildId) {
+        calls.push({ removeInsights: guildId });
+        return { removed: true };
+      },
+    },
     publicGuildLimit: 25,
+    logger: { error: code => calls.push({ log: code }) },
   };
 }
 
@@ -95,7 +117,7 @@ test('/setup is a guild-only command with public server settings', () => {
   assert.equal(json.name, 'setup');
   assert.equal(json.dm_permission, false);
   assert.deepEqual(json.options.map(option => option.name), [
-    'start', 'status', 'style', 'language', 'channel', 'disable',
+    'start', 'status', 'style', 'language', 'channel', 'insights', 'disable',
   ]);
   const style = json.options.find(option => option.name === 'style');
   assert.deepEqual(style.options[0].choices.map(choice => choice.value), [
@@ -105,6 +127,9 @@ test('/setup is a guild-only command with public server settings', () => {
   assert.deepEqual(language.options[0].choices.map(choice => choice.value), ['auto', 'id', 'en']);
   const channel = json.options.find(option => option.name === 'channel');
   assert.deepEqual(channel.options[0].choices.map(choice => choice.value), ['all', 'current']);
+  const insights = json.options.find(option => option.name === 'insights');
+  assert.deepEqual(insights.options[0].choices.map(choice => choice.value), ['7_days', '30_days']);
+  assert.equal(insights.options[0].required, false);
 });
 
 test('/setup start activates any valid public guild for its owner or administrator', async () => {
@@ -131,6 +156,7 @@ test('/setup denies DMs, invalid configs, and unauthorized members without mutat
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'style' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'language' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'channel' }), kind: 'public' },
+    { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'insights' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'disable' }), kind: 'public' },
   ];
 
@@ -246,6 +272,49 @@ test('/setup start reports full capacity without exposing operational data', asy
   assert.match(value.replyPayload.content, /kapasitas/i);
 });
 
+test('/setup insights returns private aggregate-only ranges to public server managers', async () => {
+  for (const [range, days] of [[null, 7], ['30_days', 30]]) {
+    const deps = dependencies('public');
+    const value = interaction({ subcommand: 'insights', range });
+    await setup.execute(value, deps);
+    assertPrivate(value.replyPayload);
+    assert.match(value.replyPayload.content, new RegExp(`${days} hari`, 'i'));
+    assert.match(value.replyPayload.content, /8/);
+    assert.match(value.replyPayload.content, /5/);
+    assert.match(value.replyPayload.content, /isi chat.*tidak masuk/i);
+    assert.doesNotMatch(value.replyPayload.content, /[\u2013\u2014]/);
+    assert.deepEqual(deps.calls, [{ getSummary: [GUILD, days] }]);
+  }
+});
+
+test('/setup insights does not read private metrics outside active public guilds', async () => {
+  for (const kind of ['home', 'pending', 'denied']) {
+    const deps = dependencies(kind);
+    const value = interaction({ subcommand: 'insights' });
+    await setup.execute(value, deps);
+    assertPrivate(value.replyPayload);
+    assert.equal(deps.calls.length, 0);
+  }
+});
+
+test('/setup insights explains an empty aggregate without exposing identifiers', async () => {
+  const deps = dependencies('public');
+  deps.publicInsightsStore.getSummary = () => ({
+    accepted: 0,
+    busyRejected: 0,
+    rateLimited: 0,
+    dailyLimited: 0,
+    helpful: 0,
+    needsWork: 0,
+    todayUsed: 0,
+    dailyLimit: 100,
+  });
+  const value = interaction({ subcommand: 'insights' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /belum ada permintaan publik/i);
+});
+
 test('/setup disable removes public config and is idempotent', async () => {
   for (const kind of ['public', 'pending']) {
     const deps = dependencies(kind);
@@ -254,8 +323,22 @@ test('/setup disable removes public config and is idempotent', async () => {
     await setup.execute(value, deps);
     assertPrivate(value.replyPayload);
     assert.match(value.replyPayload.content, kind === 'public' ? /dinonaktifkan/i : /belum aktif/i);
-    assert.equal(deps.calls.length, kind === 'public' ? 1 : 0);
+    assert.equal(deps.calls.length, kind === 'public' ? 2 : 0);
+    if (kind === 'public') assert.deepEqual(deps.calls, [
+      { removeInsights: GUILD },
+      { remove: GUILD },
+    ]);
   }
+});
+
+test('/setup disable keeps config active when insights cannot be purged', async () => {
+  const deps = dependencies('public');
+  deps.publicInsightsStore.remove = () => { throw new Error('private path detail'); };
+  const value = interaction({ subcommand: 'disable' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /belum dinonaktifkan/i);
+  assert.deepEqual(deps.calls, [{ log: '[public-insights] PUBLIC_INSIGHTS_PURGE_FAILED' }]);
 });
 
 test('/setup cannot disable the home guild', async () => {

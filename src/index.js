@@ -35,6 +35,11 @@ const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtim
 const { createGuildConfigStore, parsePublicGuildLimit } = require('./guilds/config-store');
 const { createGuildAccess } = require('./guilds/access');
 const { createPublicTrafficGuard } = require('./guilds/public-traffic-guard');
+const {
+  createPublicInsightsStore,
+  parsePublicDailyRequestLimit,
+} = require('./guilds/public-insights-store');
+const { buildPublicFeedbackComponents, handlePublicFeedback } = require('./guilds/public-feedback');
 const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const packageMetadata = require('../package.json');
@@ -69,6 +74,10 @@ const guildAccess = createGuildAccess({
   store: guildConfigStore,
 });
 const publicTrafficGuard = createPublicTrafficGuard();
+const publicDailyRequestLimit = parsePublicDailyRequestLimit(
+  process.env.HENGS_PUBLIC_DAILY_REQUEST_LIMIT,
+);
+const publicInsightsStore = createPublicInsightsStore({ dailyLimit: publicDailyRequestLimit });
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
@@ -418,9 +427,15 @@ client.on(Events.MessageCreate, async (msg) => {
   }
 
   let lease = null;
+  let insightClaim = null;
   if (messageScope.kind === 'public') {
     const admission = publicTrafficGuard.acquire(msg.guildId);
     if (!admission.ok) {
+      try {
+        publicInsightsStore.recordRejection(msg.guildId, admission.code);
+      } catch {
+        console.error('[public-insights] PUBLIC_INSIGHTS_WRITE_FAILED');
+      }
       const content = admission.code === 'PUBLIC_GUILD_BUSY'
         ? 'Aku masih menjawab pesan lain di server ini. Coba lagi sebentar ya.'
         : 'Batas chat Hengs untuk server ini sedang penuh. Coba lagi beberapa menit lagi.';
@@ -428,6 +443,27 @@ client.on(Events.MessageCreate, async (msg) => {
       return;
     }
     lease = admission;
+    try {
+      insightClaim = publicInsightsStore.claimAccepted(msg.guildId);
+    } catch {
+      console.error('[public-insights] PUBLIC_INSIGHTS_WRITE_FAILED');
+      lease.release();
+      lease = null;
+      await msg.reply({
+        content: 'Data penggunaan Hengs belum bisa diperbarui. Aku tidak akan memakai layanan AI dulu. Coba lagi nanti ya.',
+        allowedMentions: { parse: [] },
+      });
+      return;
+    }
+    if (!insightClaim.ok) {
+      lease.release();
+      lease = null;
+      await msg.reply({
+        content: 'Batas harian Hengs untuk server ini sudah habis. Coba lagi besok setelah pukul 00.00 UTC.',
+        allowedMentions: { parse: [] },
+      });
+      return;
+    }
   }
 
   try {
@@ -442,6 +478,12 @@ client.on(Events.MessageCreate, async (msg) => {
     // Discord max 2000 karakter per pesan
     await msg.reply({
       content: reply.substring(0, 2000),
+      components: messageScope.kind === 'public'
+        ? buildPublicFeedbackComponents({
+          requestId: insightClaim.requestId,
+          requesterId: msg.author.id,
+        })
+        : [],
       allowedMentions: { parse: [] },
     });
   } catch (err) {
@@ -474,6 +516,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
     } catch (error) {
       console.error(`Autocomplete /${interaction.commandName} gagal:`, error.message);
       await interaction.respond([]).catch(() => {});
+    }
+    return;
+  }
+
+  if (interaction.isButton() && interaction.customId.startsWith('hengs-feedback:')) {
+    try {
+      await handlePublicFeedback(interaction, {
+        botUserId: client.user?.id,
+        guildAccess,
+        publicInsightsStore,
+      });
+    } catch {
+      console.error('[public-feedback] PUBLIC_FEEDBACK_FAILED');
+      const payload = {
+        content: 'Feedback belum dapat dicatat. Coba lagi nanti ya.',
+        flags: MessageFlags.Ephemeral,
+        allowedMentions: { parse: [] },
+      };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
     }
     return;
   }
@@ -597,6 +662,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       guildAccess,
       guildConfigStore,
       publicGuildLimit,
+      publicInsightsStore,
       publicTrafficGuard,
     });
   } catch (err) {

@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.22.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
+Public Beta v1.23.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
 laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
 
 ### Langkah pengelola Hengs
@@ -120,10 +120,12 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
 1. Pastikan aplikasi Hengs mengizinkan pemasangan publik oleh server lain di Discord Developer
    Portal. Token bot tetap privat dan tidak pernah ikut dalam URL.
 2. Atur `HENGS_PUBLIC_GUILD_LIMIT=25`. Nilai valid adalah 1 sampai 100.
+   Atur `HENGS_PUBLIC_DAILY_REQUEST_LIMIT=100` untuk batas permintaan AI per server publik per
+   hari UTC. Nilai valid adalah 10 sampai 300.
 3. Setelah deployment dan registrasi command mendapat izin owner, jalankan
    `npm run invite:public` untuk membuat URL undangan publik. Generator hanya meminta View
    Channel, Send Messages, dan Read Message History. Generator tidak membaca atau mencetak token.
-4. Bagikan URL itu. Setelah v1.22.0 terdaftar, member juga dapat meminta link yang sama lewat
+4. Bagikan URL itu. Setelah v1.23.0 terdaftar, member juga dapat meminta link yang sama lewat
    `/hengs invite`. Server ID tidak perlu diminta atau dimasukkan secara manual.
 
 ### Langkah teman yang memasang Hengs
@@ -141,8 +143,10 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
 9. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
 10. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
    `/hengs ask`. `/hengs reset` hanya menghapus ingatan percakapan milik pemanggil.
-11. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
-   dan menghapus konfigurasi lokal server tersebut.
+11. Gunakan `/setup insights` untuk melihat angka penggunaan dan feedback 7 atau 30 hari. Laporan
+   ini privat dan tidak menyimpan isi chat, jawaban, channel, atau identitas member.
+12. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
+   dan menghapus konfigurasi serta Owner Insights server tersebut.
 
 Setiap server memiliki konteks AI sendiri. Public Beta dibatasi 25 server aktif secara default,
 satu jawaban AI berjalan per server, dan 30 permintaan per 10 menit per server. Prompt publik tidak

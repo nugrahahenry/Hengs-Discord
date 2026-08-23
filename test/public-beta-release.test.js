@@ -109,16 +109,24 @@ test('runtime gates legacy paths before public traffic', () => {
   assert.match(source, /guildAccess\.classify\(msg\.guildId\)/);
   assert.match(source, /messageScope\.kind !== 'home' && messageScope\.kind !== 'public'/);
   assert.match(source, /publicTrafficGuard\.acquire\(msg\.guildId\)/);
+  assert.match(source, /publicInsightsStore\.claimAccepted\(msg\.guildId\)/);
+  assert.ok(
+    source.indexOf('publicInsightsStore.claimAccepted(msg.guildId)')
+      < source.indexOf('agent.chat(text, conversationKey'),
+  );
+  assert.match(source, /buildPublicFeedbackComponents/);
+  assert.match(source, /handlePublicFeedback/);
   assert.match(source, /isPublicChannelAllowed\(messageScope\.config, msg\.channelId\)/);
   assert.match(source, /replyStyle: messageScope\.config\?\.settings\?\.replyStyle \|\| 'balanced'/);
   assert.match(source, /language: messageScope\.config\?\.settings\?\.language \|\| 'auto'/);
   assert.match(source, /Events\.GuildCreate/);
   assert.match(source, /lease\.release\(\)/);
-  assert.match(source, /content: reply\.substring\(0, 2000\),\s+allowedMentions: \{ parse: \[\] \}/);
+  assert.match(source, /content: reply\.substring\(0, 2000\),[\s\S]+allowedMentions: \{ parse: \[\] \}/);
   assert.match(source, /\[public-ai\] PUBLIC_AI_FAILED/);
   assert.match(source, /PUBLIC_COMMANDS\.has\(interaction\.commandName\)/);
   assert.match(source, /\[public-command\] PUBLIC_COMMAND_FAILED/);
   assert.match(source, /publicTrafficGuard,/);
+  assert.match(source, /publicInsightsStore,/);
   assert.match(source, /if \(!guildAccess\.isHome\(member\.guild\.id\)\) return;/);
   assert.match(source, /if \(!guildAccess\.isHome\(reaction\.message\.guildId\)\) return;/);
 });

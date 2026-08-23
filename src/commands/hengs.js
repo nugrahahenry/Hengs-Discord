@@ -1,6 +1,7 @@
 const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { createPublicInviteUrl } = require('../create-public-invite');
 const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
+const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
 
 const MAX_PROMPT_LENGTH = 1800;
@@ -46,6 +47,7 @@ async function execute(interaction, {
   agent,
   clientId,
   guildAccess,
+  publicInsightsStore,
   publicTrafficGuard,
   logger = console,
 }) {
@@ -79,6 +81,7 @@ async function execute(interaction, {
       'Pertanyaanmu dan konteks percakapan terbaru dikirim ke penyedia AI untuk membuat balasan.',
       'Cara penyedia menyimpan data mengikuti kebijakan layanan yang sedang dipakai. Jangan kirim kata sandi, token, atau data sensitif.',
       'Riwayat chat tidak disimpan ke file. Proses Hengs hanya mengingat sampai 10 pesan terbaru untuk setiap pengguna di setiap server.',
+      'Untuk server publik, Hengs menyimpan angka penggunaan harian dan pilihan feedback tanpa isi chat, jawaban, atau identitas member.',
       'Gunakan `/hengs reset` kapan saja untuk menghapus ingatan percakapanmu sendiri.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
     ].join('\n'));
@@ -146,10 +149,16 @@ async function execute(interaction, {
   }
 
   let lease = null;
+  let insightClaim = null;
   if (scope.kind === 'public') {
-    if (!publicTrafficGuard) throw new Error('HENGS_DEPENDENCY_MISSING');
+    if (!publicTrafficGuard || !publicInsightsStore) throw new Error('HENGS_DEPENDENCY_MISSING');
     const admission = publicTrafficGuard.acquire(interaction.guildId);
     if (!admission.ok) {
+      try {
+        publicInsightsStore.recordRejection(interaction.guildId, admission.code);
+      } catch {
+        logger.error('[public-insights] PUBLIC_INSIGHTS_WRITE_FAILED');
+      }
       const content = admission.code === 'PUBLIC_GUILD_BUSY'
         ? 'Aku masih menjawab pesan lain di server ini. Coba lagi sebentar ya.'
         : 'Batas chat Hengs untuk server ini sedang penuh. Coba lagi beberapa menit lagi.';
@@ -157,6 +166,21 @@ async function execute(interaction, {
       return;
     }
     lease = admission;
+    try {
+      insightClaim = publicInsightsStore.claimAccepted(interaction.guildId);
+    } catch {
+      logger.error('[public-insights] PUBLIC_INSIGHTS_WRITE_FAILED');
+      lease.release();
+      lease = null;
+      await replyPrivate(interaction, 'Data penggunaan Hengs belum bisa diperbarui. Aku tidak akan memakai layanan AI dulu. Coba lagi nanti ya.');
+      return;
+    }
+    if (!insightClaim.ok) {
+      lease.release();
+      lease = null;
+      await replyPrivate(interaction, 'Batas harian Hengs untuk server ini sudah habis. Coba lagi besok setelah pukul 00.00 UTC.');
+      return;
+    }
   }
 
   await interaction.deferReply({});
@@ -172,6 +196,12 @@ async function execute(interaction, {
     const answer = await agent.chat(prompt, conversationKey, context);
     await interaction.editReply({
       content: answer.substring(0, 2000),
+      components: scope.kind === 'public'
+        ? buildPublicFeedbackComponents({
+          requestId: insightClaim.requestId,
+          requesterId: interaction.user.id,
+        })
+        : [],
       allowedMentions: { parse: [] },
     });
   } catch {

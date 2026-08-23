@@ -5,6 +5,32 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-08-23
+
+### Added
+- `/setup insights` gives a public server owner or Administrator a private 7-day or 30-day
+  summary of accepted requests, temporary limits, daily limits, and response feedback.
+- Public AI answers now include requester-only `Membantu` and `Kurang pas` buttons. Each answer
+  accepts one feedback choice and removes its buttons after the choice is recorded.
+- A persistent per-guild daily request budget defaults to 100 accepted requests per UTC day. An
+  operator may set a value from 10 to 300 with `HENGS_PUBLIC_DAILY_REQUEST_LIMIT`.
+
+### Security
+- Owner Insights stores daily integer aggregates and random request IDs only. It does not persist
+  prompts, answers, usernames, display names, channel data, or per-member metrics.
+- State uses strict schema validation, tenant-bound paths, symlink rejection, atomic writes,
+  31-day retention, and fixed-code errors. A failed budget write blocks the provider call.
+- `/setup disable` removes Owner Insights before removing the guild config and fails closed if the
+  privacy purge cannot finish.
+
+### Verification
+- Focused Owner Insights and routing tests pass 48/48. The full suite passes 417/417 on local Node
+  24.15.0, all 109 JavaScript files and four shell scripts pass syntax validation, the production
+  dependency audit reports 0 vulnerabilities, and whitespace plus tracked-content checks pass.
+  Exact Node 22 acceptance remains mandatory before deployment.
+- No deployment, command registration, invite installation, service restart, Discord write, or
+  cloud mutation occurred in this checkpoint.
+
 ## [1.22.0] - 2026-08-23
 
 ### Added

@@ -61,6 +61,17 @@ const data = new SlashCommandBuilder()
         { name: 'Semua channel', value: 'all' },
         { name: 'Hanya channel ini', value: 'current' },
       )))
+  .addSubcommand(subcommand => subcommand
+    .setName('insights')
+    .setDescription('Lihat ringkasan penggunaan Hengs tanpa isi chat')
+    .addStringOption(option => option
+      .setName('range')
+      .setDescription('Rentang laporan, default 7 hari')
+      .setRequired(false)
+      .addChoices(
+        { name: '7 hari', value: '7_days' },
+        { name: '30 hari', value: '30_days' },
+      )))
   .addSubcommand(subcommand => subcommand.setName('disable').setDescription('Nonaktifkan Hengs di server ini'));
 
 function canManage(interaction) {
@@ -73,7 +84,13 @@ async function replyPrivate(interaction, content) {
   await interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
 }
 
-async function execute(interaction, { guildAccess, guildConfigStore, publicGuildLimit }) {
+async function execute(interaction, {
+  guildAccess,
+  guildConfigStore,
+  publicGuildLimit,
+  publicInsightsStore,
+  logger = console,
+}) {
   if (!interaction.inGuild?.() || !interaction.guildId) {
     await replyPrivate(interaction, 'Setup hanya tersedia di dalam server Discord.');
     return;
@@ -108,6 +125,47 @@ async function execute(interaction, { guildAccess, guildConfigStore, publicGuild
       dm: 'Setup hanya tersedia di dalam server Discord.',
     };
     await replyPrivate(interaction, messages[scope.kind] || messages.denied);
+    return;
+  }
+  if (subcommand === 'insights') {
+    if (scope.kind === 'home') {
+      await replyPrivate(interaction, 'Owner Insights hanya tersedia untuk Hengs di server publik.');
+      return;
+    }
+    if (scope.kind === 'pending') {
+      await replyPrivate(interaction, 'Aktifkan Hengs lebih dulu lewat /setup start sebelum membuka Owner Insights.');
+      return;
+    }
+    if (scope.kind !== 'public') {
+      await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+      return;
+    }
+    if (!publicInsightsStore) throw new Error('SETUP_DEPENDENCY_MISSING');
+    const range = interaction.options.getString('range') || '7_days';
+    const days = range === '30_days' ? 30 : range === '7_days' ? 7 : null;
+    if (!days) {
+      await replyPrivate(interaction, 'Rentang Owner Insights tidak dikenali.');
+      return;
+    }
+    let summary;
+    try {
+      summary = publicInsightsStore.getSummary(interaction.guildId, days);
+    } catch {
+      logger.error('[public-insights] PUBLIC_INSIGHTS_READ_FAILED');
+      await replyPrivate(interaction, 'Owner Insights belum dapat dibaca. Coba lagi nanti ya.');
+      return;
+    }
+    await replyPrivate(interaction, [
+      `**Owner Insights, ${days} hari**`,
+      summary.accepted === 0 ? 'Belum ada permintaan publik yang tercatat pada rentang ini.' : null,
+      `Permintaan diterima: **${summary.accepted}**`,
+      `Dibatasi sementara: **${summary.busyRejected + summary.rateLimited}**`,
+      `Batas harian tercapai: **${summary.dailyLimited}**`,
+      `Feedback: **${summary.helpful} membantu | ${summary.needsWork} kurang pas**`,
+      `Hari ini: **${summary.todayUsed}/${summary.dailyLimit}** permintaan. Hitungan berganti setiap pukul 00.00 UTC.`,
+      '',
+      'Hengs hanya menyimpan angka agregat. Isi chat, jawaban, dan identitas member tidak masuk laporan ini.',
+    ].filter(line => line !== null).join('\n'));
     return;
   }
   if (subcommand === 'language') {
@@ -214,9 +272,17 @@ async function execute(interaction, { guildAccess, guildConfigStore, publicGuild
       await replyPrivate(interaction, 'Hengs memang belum aktif di server ini. Tidak ada pengaturan yang diubah.');
       return;
     }
+    if (!publicInsightsStore) throw new Error('SETUP_DEPENDENCY_MISSING');
+    try {
+      publicInsightsStore.remove(interaction.guildId);
+    } catch {
+      logger.error('[public-insights] PUBLIC_INSIGHTS_PURGE_FAILED');
+      await replyPrivate(interaction, 'Hengs belum dinonaktifkan karena data Owner Insights belum berhasil dibersihkan. Coba lagi nanti ya.');
+      return;
+    }
     const result = guildConfigStore.remove(interaction.guildId);
     await replyPrivate(interaction, result.removed
-      ? 'Hengs sudah dinonaktifkan. Data konfigurasi server ini juga sudah dihapus.'
+      ? 'Hengs sudah dinonaktifkan. Data konfigurasi dan Owner Insights server ini juga sudah dihapus.'
       : 'Hengs memang belum aktif di server ini. Tidak ada pengaturan yang diubah.');
     return;
   }
