@@ -53,7 +53,7 @@ module.exports = {
     )
     .addSubcommand(sub => sub
       .setName('flip')
-      .setDescription('Lempar koin — heads atau tails?')
+      .setDescription('Lempar koin, heads atau tails?')
     )
     .addSubcommand(sub => sub
       .setName('meme')
@@ -80,7 +80,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x7289DA)
         .setDescription(`💬 *"${quoteData.content}"*`)
-        .setFooter({ text: `— ${quoteData.author}  ✨` });
+        .setFooter({ text: `${quoteData.author}  ✨` });
       await interaction.editReply({ embeds: [embed] });
     }
 

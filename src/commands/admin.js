@@ -31,7 +31,7 @@ module.exports = {
       )
       .addStringOption(opt => opt
         .setName('roles')
-        .setDescription('Format: emoji:RoleName,emoji:RoleName — e.g. 🎮:Gamer,⭐:Member,🎨:Artist')
+        .setDescription('Format: emoji:RoleName,emoji:RoleName. Contoh: 🎮:Gamer,⭐:Member,🎨:Artist')
         .setRequired(true)
       )
     )
@@ -85,7 +85,7 @@ module.exports = {
         const ex = guild.channels.cache.find(c => c.name === name && c.type === ChannelType.GuildCategory);
         if (ex) { skipped.push(`[${name}]`); return ex; }
 
-        // 2. Fuzzy — strip emoji prefix, match by keyword
+        // 2. Fuzzy: strip emoji prefix, match by keyword
         // "🔒 PRIVATE" → keyword "private", cocok dengan "PRIVATE", "🔐 PRIVATE", dll
         const normCat = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         const keyword = normCat(name);
@@ -109,7 +109,7 @@ module.exports = {
         let ex = guild.channels.cache.find(c => c.name === name && c.parentId === parentId);
         if (ex) { skipped.push(`#${name}`); return ex; }
 
-        // 2. Fuzzy keyword match — handle semua format emoji prefix
+        // 2. Fuzzy keyword match untuk menangani semua format emoji prefix
         // "📌・welcome", "⚓welcome", "⚓ welcome", "welcome" → keyword = "welcome"
         const keyword = name.includes('・')
           ? name.split('・').pop().toLowerCase()
@@ -149,7 +149,7 @@ module.exports = {
         return ch;
       }
 
-      // Stats channels — VOICE channel supaya nama bisa pakai spasi/huruf besar/kolon
+      // Stats channels memakai VOICE channel supaya nama bisa memakai spasi, huruf besar, dan kolon.
       // Connect: false → orang tidak bisa join, tapi bisa lihat nama (= stat display)
       // Ini cara standar semua stat bot (MEE6, Statbot, dll)
       const statOverrides = [{ id: everyone, deny: ['Connect'] }];
@@ -187,7 +187,7 @@ module.exports = {
 
       try {
         // ══════════════════════════════════════════════════════════════════
-        // 📊 SERVER STATS — gembok (locked text), posisi paling atas
+        // 📊 SERVER STATS: gembok (locked text), posisi paling atas
         // Format: "All Members: X" / "Members: X" / "Bots: X"
         // updateServerStats di index.js juga pakai prefix yang sama
         // ══════════════════════════════════════════════════════════════════
@@ -202,7 +202,7 @@ module.exports = {
         await ensureStatCh('🤖・Bots:',        `🤖・Bots: ${botCount}`,           catStats.id);
 
         // ══════════════════════════════════════════════════════════════════
-        // 🌟 WELCOME — read-only, welcome card landing + rules + get-roles
+        // 🌟 WELCOME: read-only, welcome card landing + rules + get-roles
         // Icons: 🌊 welcome (wave), 📜 rules (scroll), 📌 server-info, 🎭 get-roles
         // ══════════════════════════════════════════════════════════════════
         const catWelcome = await ensureCat('🌟 WELCOME');
@@ -217,7 +217,7 @@ module.exports = {
           { topic: 'React di sini untuk dapetin role kamu!' });
 
         // ══════════════════════════════════════════════════════════════════
-        // 📢 ANNOUNCEMENTS — read-only
+        // 📢 ANNOUNCEMENTS: read-only
         // ══════════════════════════════════════════════════════════════════
         const catAnn = await ensureCat('📢 ANNOUNCEMENTS');
         const chAnn  = await ensureCh('📢・announcements',    ChannelType.GuildText, catAnn.id, readOnly,
@@ -230,8 +230,8 @@ module.exports = {
           { topic: 'Pengumuman Google Student Ambassador' });
 
         // ══════════════════════════════════════════════════════════════════
-        // 💬 COMMUNITY — free chat
-        // "ngobrol" bukan "general" — nama khas server Henzzz
+        // 💬 COMMUNITY: free chat
+        // "ngobrol" bukan "general", nama khas server Henzzz
         // ══════════════════════════════════════════════════════════════════
         const catChat = await ensureCat('💬 COMMUNITY');
         await ensureCh('💬・ngobrol',       ChannelType.GuildText, catChat.id,
@@ -240,13 +240,13 @@ module.exports = {
           [], { topic: 'Kenalin diri kamu ke server!' });
 
         // ══════════════════════════════════════════════════════════════════
-        // 🎮 GAMING — main, LFG, highlights
+        // 🎮 GAMING: main, LFG, highlights
         // ══════════════════════════════════════════════════════════════════
         const catGame = await ensureCat('🎮 GAMING');
         await ensureCh('🎮・game-chat',  ChannelType.GuildText, catGame.id,
           [], { topic: 'Obrolan gaming umum' });
         await ensureCh('👥・lfg',        ChannelType.GuildText, catGame.id,
-          [], { topic: 'Looking for group — cari teman main di sini!' });
+          [], { topic: 'Looking for group, cari teman main di sini!' });
         await ensureCh('🎬・highlights', ChannelType.GuildText, catGame.id,
           [], { topic: 'Share clip dan momen terbaikmu!' });
 
@@ -264,13 +264,13 @@ module.exports = {
           [], { topic: 'Pamerkan project dan build kamu!' });
 
         // ══════════════════════════════════════════════════════════════════
-        // 🤖 BOT CENTER — Henzzz Bot + bot lain
+        // 🤖 BOT CENTER: Henzzz Bot + bot lain
         // ══════════════════════════════════════════════════════════════════
         const catBot = await ensureCat('🤖 BOT CENTER');
         const chBot  = await ensureCh('🤖・bot-commands', ChannelType.GuildText, catBot.id,
-          [], { topic: 'Henzzz Bot — /study /scrim /voice /fun /admin' });
+          [], { topic: 'Henzzz Bot: /study /scrim /voice /fun /admin' });
         await ensureCh('🐾・owo-bot',      ChannelType.GuildText, catBot.id,
-          [], { topic: 'OwO Bot — hunt, battle, dan lainnya!' });
+          [], { topic: 'OwO Bot: hunt, battle, dan lainnya!' });
         await ensureCh('✨・lumina-bot',   ChannelType.GuildText, catBot.id,
           [], { topic: 'Lumina Bot commands' });
         await ensureCh('🔧・carl-bot',     ChannelType.GuildText, catBot.id,
@@ -280,14 +280,14 @@ module.exports = {
         await ensureCh('⚙️・bot-status',  ChannelType.GuildText, catBot.id,
           readOnly, { topic: 'Status bot dan uptime' });
         await ensureCh('🎛️・bot-settings',ChannelType.GuildText, catBot.id,
-          adminOnly, { topic: 'Konfigurasi bot — admin only' });
+          adminOnly, { topic: 'Konfigurasi bot, admin only' });
 
         // ══════════════════════════════════════════════════════════════════
-        // 🔒 PRIVATE — hidden dari @everyone, hanya admin/owner
+        // 🔒 PRIVATE: hidden dari @everyone, hanya admin/owner
         // photo, admin-chat, mod-logs
         // ══════════════════════════════════════════════════════════════════
         const catPrivate = await ensureCat('🔒 PRIVATE');
-        // Set kategori private — semua channel di dalamnya otomatis hidden
+        // Set kategori private agar semua channel di dalamnya otomatis hidden.
         await guild.channels.cache.get(catPrivate.id)?.permissionOverwrites
           .edit(everyone, { ViewChannel: false }).catch(() => {});
         await ensureCh('📷・photo',       ChannelType.GuildText, catPrivate.id, adminOnly,
@@ -298,7 +298,7 @@ module.exports = {
           { topic: 'Log moderasi server' });
 
         // ══════════════════════════════════════════════════════════════════
-        // 🔊 VOICE — channel suara
+        // 🔊 VOICE: channel suara
         // ══════════════════════════════════════════════════════════════════
         const catVoice = await ensureCat('🔊 VOICE');
         await ensureCh('⭐・Hengs',   ChannelType.GuildVoice, catVoice.id);
@@ -330,10 +330,10 @@ module.exports = {
 
         const embed = new EmbedBuilder()
           .setColor(0x43B581)
-          .setTitle('✅ Server Henzzz — setup selesai!')
+          .setTitle('✅ Setup server Henzzz selesai!')
           .addFields(
-            { name: '✨ Dibuat / Direname', value: created.join('\n') || '—', inline: true },
-            { name: '⏩ Sudah ada', value: skipped.slice(0, 15).join('\n') || '—', inline: true },
+            { name: '✨ Dibuat / Direname', value: created.join('\n') || '-', inline: true },
+            { name: '⏩ Sudah ada', value: skipped.slice(0, 15).join('\n') || '-', inline: true },
           )
           .addFields({ name: '📋 Tambah ke .env:', value: `\`\`\`\n${envLines}\n\`\`\`` });
 
@@ -442,14 +442,14 @@ module.exports = {
           SendMessages: false,
           AddReactions: false,
         });
-        await interaction.editReply(`🔒 ${ch} locked — @everyone can no longer send messages.`);
+        await interaction.editReply(`🔒 ${ch} locked. @everyone can no longer send messages.`);
       } catch (err) {
         await interaction.editReply(`❌ ${err.message}`);
       }
     }
 
     // ── /admin ids ─────────────────────────────────────────────────────────
-    // Scan server yang sudah ada, output IDs untuk .env — tanpa bikin channel baru
+    // Scan server yang sudah ada dan output ID untuk .env tanpa membuat channel baru.
     else if (sub === 'ids') {
       const guild = interaction.guild;
       const channels = guild.channels.cache;
@@ -516,7 +516,7 @@ module.exports = {
       const icon = guild.iconURL({ size: 256 }) || null;
       const embed = new EmbedBuilder()
         .setColor(0x5865F2)
-        .setAuthor({ name: `${guild.name} — Peraturan`, iconURL: icon || undefined })
+        .setAuthor({ name: `${guild.name}: Peraturan`, iconURL: icon || undefined })
         .setThumbnail(icon)
         .setTitle('📜 Baca & Patuhi Ya!')
         .setDescription('Biar server tetap nyaman & asik buat semua, ada beberapa aturan dasar 🙏')
@@ -559,14 +559,14 @@ module.exports = {
         .setAuthor({ name: guild.name, iconURL: icon || undefined })
         .setThumbnail(icon)
         .setTitle('📌 Tentang Server')
-        .setDescription('Komunitas santai buat **gaming**, **ngoding/tech**, & **mahasiswa** — tempat ngobrol, main bareng, belajar coding, dan sharing project. Selamat datang! 👋')
+        .setDescription('Komunitas santai buat **gaming**, **ngoding/tech**, dan **mahasiswa**. Tempat ngobrol, main bareng, belajar coding, dan sharing project. Selamat datang! 👋')
         .addFields(
-          { name: '👑 Owner', value: owner ? `${owner.user.username}` : '—', inline: true },
+          { name: '👑 Owner', value: owner ? `${owner.user.username}` : '-', inline: true },
           { name: '👥 Member', value: `${guild.memberCount}`, inline: true },
           { name: '📅 Dibuat', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:D>`, inline: true },
           { name: '🗺️ Kategori', value: '💬 Community · 🎮 Gaming · 💻 Tech & Code · 🤖 Bot Center · 🔊 Voice' },
           { name: '🤖 Bot Hengs', value: 'Mention **Henzzz Bot** buat AI chat. Coba `/study`, `/scrim`, `/fun`, `/voice`. Ada juga OwO, Carl-bot, & Lumina.' },
-          { name: '🎭 Ambil role', value: 'Ke **#get-roles** — pilih minat, game, warna nama, & notifikasi.' },
+          { name: '🎭 Ambil role', value: 'Ke **#get-roles** untuk memilih minat, game, warna nama, dan notifikasi.' },
           { name: '📜 Rules', value: 'Baca **#rules** sebelum mulai ngobrol ya.' },
           { name: '💬 Mulai dari mana?', value: 'Kenalan di **#introductions**, ngobrol bebas di **#ngobrol**!' },
         )
@@ -583,7 +583,7 @@ module.exports = {
     }
 
     // ── /admin getroles ──────────────────────────────────────────────────────
-    // PAKAI role yang sudah ada aja (fuzzy match) — TIDAK bikin role baru.
+    // PAKAI role yang sudah ada saja (fuzzy match). TIDAK membuat role baru.
     // Hapus pesan get-roles lama dulu tiap re-run biar nggak numpuk.
     else if (sub === 'getroles') {
       const guild = interaction.guild;

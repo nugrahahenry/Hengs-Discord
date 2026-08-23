@@ -1,5 +1,5 @@
 // ─── /voice ───────────────────────────────────────────────────────────────
-// Bot join/leave voice channel — silent presence (deaf + mute)
+// Bot join/leave voice channel dengan silent presence (deaf + mute)
 // Cocok buat marathon study/nonton bareng di voice
 
 const { SlashCommandBuilder, EmbedBuilder, ChannelType } = require('discord.js');
@@ -18,7 +18,7 @@ module.exports = {
 
     .addSubcommand(sub => sub
       .setName('join')
-      .setDescription('Bot masuk voice channel (silent — hanya nemenin)')
+      .setDescription('Bot masuk voice channel secara diam, hanya untuk nemenin')
       .addChannelOption(opt => opt
         .setName('channel')
         .setDescription('Channel tujuan (default: channel kamu sekarang)')
@@ -37,7 +37,7 @@ module.exports = {
 
     // ── /voice join ──────────────────────────────────────────────────────────
     if (sub === 'join') {
-      // DEFER DULU — Discord timeout 3s, join voice bisa lebih lama
+      // DEFER DULU karena Discord timeout 3 detik dan join voice bisa lebih lama.
       await interaction.deferReply();
 
       let channel = interaction.options.getChannel('channel');
@@ -68,8 +68,8 @@ module.exports = {
           channelId: channel.id,
           guildId: interaction.guildId,
           adapterCreator: interaction.guild.voiceAdapterCreator,
-          selfDeaf: true,  // bot tidak dengar audio — hemat resource
-          selfMute: true,  // bot tidak kirim audio — silent presence
+          selfDeaf: true,  // bot tidak mendengar audio untuk menghemat resource
+          selfMute: true,  // bot tidak mengirim audio, hanya silent presence
         });
 
         // Tunggu sampai connected (maks 10s)
@@ -94,8 +94,8 @@ module.exports = {
 
         const embed = new EmbedBuilder()
           .setColor(0x43B581)
-          .setTitle('🔊 Voice — Marathon Mode')
-          .setDescription(`Bot sudah masuk **${channel.name}** dan siap temenin! 💪\n\n_Bot diam (deaf + mute) — hanya hadir sebagai teman study/nonton_`)
+          .setTitle('🔊 Voice Marathon Mode')
+          .setDescription(`Bot sudah masuk **${channel.name}** dan siap temenin! 💪\n\n_Bot diam (deaf + mute), hanya hadir sebagai teman study/nonton_`)
           .setFooter({ text: '/voice leave untuk keluar' });
 
         await interaction.editReply({ embeds: [embed] });

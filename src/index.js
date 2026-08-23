@@ -1,5 +1,5 @@
 // ─── index.js ─────────────────────────────────────────────────────────────
-// Discord Bot Henzzz — entry point
+// Discord Bot Henzzz entry point
 //
 // Cara pakai:
 // 1. Isi .env (DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID, dll)
@@ -148,7 +148,7 @@ for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) 
 
 // ── Server Stats updater ─────────────────────────────────────────────────────
 // Update voice channels yang jadi stat display (member count, bots, dll)
-// Discord rate limit: 2 rename per channel per 10 menit — tidak boleh terlalu sering
+// Discord rate limit: 2 rename per channel per 10 menit, tidak boleh terlalu sering.
 async function updateServerStats(guild) {
   try {
     const memberCount = guild.memberCount;
@@ -198,10 +198,10 @@ client.once(Events.ClientReady, async (c) => {
   console.log('  Mention bot untuk AI chat!');
   console.log('─────────────────────────────────────\n');
 
-  // Mode mulai OFF — aktifkan manual via /study on atau /scrim on
+  // Mode mulai OFF. Aktifkan manual via /study on atau /scrim on.
   // (tidak auto-study seperti WA bot, Discord bot dipakai lebih sosial)
 
-  // Status bot — biar keliatan cara minta bantuan
+  // Status bot agar cara meminta bantuan terlihat.
   c.user.setPresence({
     activities: [{ name: 'mention aku buat ngobrol 🤖 | /fun', type: ActivityType.Listening }],
     status: 'online',
@@ -260,7 +260,7 @@ client.once(Events.ClientReady, async (c) => {
         }
       });
       console.log(`🔊 Auto-rejoined voice: ${channel.name}`);
-      await postBotSettings(guild, `🔊 **Auto-rejoin voice** — Hengs balik ke **${channel.name}**, siap nemenin lagi! 💪`);
+      await postBotSettings(guild, `🔊 **Auto-rejoin voice**. Hengs balik ke **${channel.name}**, siap nemenin lagi! 💪`);
     } catch (e) {
       console.error('⚠️ Auto-rejoin voice gagal:', e.message);
       await postBotSettings(guild, `⚠️ Gagal auto-rejoin voice **${channel.name}**: \`${e.message}\``);
@@ -294,7 +294,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
   try {
     const cardBuffer = await generateCard(member, 'welcome');
-    // Cari channel by env ID, fallback by nama → biar selalu nge-link (clickable)
+    // Cari channel dari env ID, lalu fallback berdasarkan nama agar link selalu bisa diklik.
     const g = member.guild;
     const linkCh = (envId, ...names) => {
       let c = envId && g.channels.cache.get(envId);
@@ -311,7 +311,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
         `📜 Baca dulu rules di ${rulesCh || '**#rules**'}\n` +
         `🎭 Ambil role kamu di ${rolesCh || '**#get-roles**'}\n` +
         `📢 Cek pengumuman di ${annCh || '**#announcements**'}\n\n` +
-        `Butuh bantuan atau mau ngobrol? Tinggal **mention aku** (@Hengs Bot) ya — atau coba \`/fun\` & \`/study\`! 🤖`
+        `Butuh bantuan atau mau ngobrol? Tinggal **mention aku** (@Hengs Bot), atau coba \`/fun\` dan \`/study\`! 🤖`
       )
       .setTimestamp();
 
@@ -331,7 +331,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
 });
 
-// ── Leave message ─────────────────────────────────────────────────────────────
+// Leave message
 client.on(Events.GuildMemberRemove, async (member) => {
   if (!guildAccess.isHome(member.guild.id)) return;
   // Bisa ke channel sendiri (LEAVE_CHANNEL_ID), atau default ke welcome channel
@@ -362,7 +362,7 @@ client.on(Events.GuildMemberRemove, async (member) => {
   await updateServerStats(member.guild).catch(() => {});
 });
 
-// ── Boost celebration ─────────────────────────────────────────────────────────
+// Boost celebration
 // Hengs ngucapin pas ada member mulai nge-boost server
 client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
   if (!guildAccess.isHome(newMember.guild.id)) return;
@@ -380,7 +380,7 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
     const embed = new EmbedBuilder()
       .setColor(0xF47FFF)
       .setTitle('💜 SERVER BOOST!')
-      .setDescription(`Makasih banyak <@${newMember.id}> udah nge-**boost** ${g.name}! 🚀✨\n\nKamu bikin server makin kece — big love! 💜`)
+      .setDescription(`Makasih banyak <@${newMember.id}> udah nge-**boost** ${g.name}! 🚀✨\n\nKamu bikin server makin kece. Big love! 💜`)
       .setThumbnail(newMember.user.displayAvatarURL({ size: 256 }))
       .setFooter({ text: `Total boost server: ${g.premiumSubscriptionCount || 0}` })
       .setTimestamp();

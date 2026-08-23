@@ -257,6 +257,7 @@ function wrapText(ctx, text, maxWidth, maxLines = 2) {
 }
 
 function formatDate(dateValue) {
+  if (dateValue === null || dateValue === undefined || dateValue === '') return 'Unknown';
   const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
   if (Number.isNaN(date.getTime())) return 'Unknown';
   return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
@@ -267,9 +268,25 @@ function daysInMonth(year, monthIndex) {
 }
 
 function formatDuration(startValue, endValue = new Date()) {
+  if (startValue === null || startValue === undefined || startValue === '') return 'Unknown';
   const start = startValue instanceof Date ? startValue : new Date(startValue);
   const end = endValue instanceof Date ? endValue : new Date(endValue);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 'Unknown';
+
+  const elapsedMs = end.getTime() - start.getTime();
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+  if (elapsedMinutes < 1) return '<1m';
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  const remainingMinutes = elapsedMinutes % 60;
+  if (elapsedHours < 24) {
+    return remainingMinutes > 0 ? `${elapsedHours}h ${remainingMinutes}m` : `${elapsedHours}h`;
+  }
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  const remainingHours = elapsedHours % 24;
+  if (elapsedDays < 31) {
+    return remainingHours > 0 ? `${elapsedDays}d ${remainingHours}h` : `${elapsedDays}d`;
+  }
 
   let years = end.getFullYear() - start.getFullYear();
   let months = end.getMonth() - start.getMonth();
@@ -307,8 +324,10 @@ function getMemberData(member, type, options = {}) {
 
   const username = safeString(user.username, 'New Member');
   const displayName = safeString(member?.displayName || user.globalName, username);
-  const createdAt = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt || now);
-  const joinedAt = member?.joinedAt instanceof Date ? member.joinedAt : new Date(member?.joinedAt || now);
+  const createdAtValue = user.createdAt ?? user.createdTimestamp;
+  const joinedAtValue = member?.joinedAt ?? member?.joinedTimestamp;
+  const createdAt = createdAtValue instanceof Date ? createdAtValue : new Date(createdAtValue);
+  const joinedAt = joinedAtValue instanceof Date ? joinedAtValue : new Date(joinedAtValue);
   const memberNumber = options.memberNumber ?? guild.memberCount ?? 0;
   const brandName = safeString(
     options.serverName || process.env.WELCOME_SERVER_NAME,
@@ -366,9 +385,27 @@ function getLogoCandidates(options = {}) {
   return [
     options.logoPath,
     process.env.HENGS_LOGO_PATH,
+    path.resolve(__dirname, '../../assets/henzzz_bot_icon.png'),
     path.resolve(__dirname, '../../assets/hengs-bot-icon.png'),
     path.resolve(process.cwd(), 'assets/hengs-bot-icon.png'),
   ].filter(Boolean);
+}
+
+function getBackdropCandidates(options = {}) {
+  return [
+    options.backgroundPath,
+    process.env.HENGS_WELCOME_BACKGROUND_PATH,
+    path.resolve(__dirname, '../../assets/welcome/aurora-gateway-v2.png'),
+    path.resolve(process.cwd(), 'assets/welcome/aurora-gateway-v2.png'),
+  ].filter(Boolean);
+}
+
+async function loadOptionalBackdrop(loadImage, options = {}) {
+  for (const candidate of getBackdropCandidates(options)) {
+    const image = await loadLocalImage(loadImage, candidate);
+    if (image) return image;
+  }
+  return null;
 }
 
 async function loadOptionalLogo(loadImage, options = {}) {
@@ -398,7 +435,7 @@ function drawBaseBackground(ctx, width, height, theme) {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, width, height);
 
-  // Nebula swirl diagonal di tengah — bikin warna lebih hidup (kayak PNG)
+  // Nebula swirl diagonal di tengah membuat warna lebih hidup seperti aset PNG.
   const nebula = ctx.createLinearGradient(180, 0, 760, height);
   nebula.addColorStop(0, hexToRgba(theme.tertiary, 0));
   nebula.addColorStop(0.38, hexToRgba(theme.tertiary, 0.46));
@@ -435,6 +472,43 @@ function drawBaseBackground(ctx, width, height, theme) {
   vignette.addColorStop(1, 'rgba(0,0,12,0.40)');
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, width, height);
+}
+
+function drawBackdropLayer(ctx, image, width, height, theme, isLeave) {
+  if (!image) return;
+  ctx.save();
+  ctx.globalAlpha = isLeave ? 0.54 : 0.70;
+  drawCoverImage(ctx, image, 0, 0, width, height);
+  ctx.globalAlpha = 1;
+
+  const tint = ctx.createLinearGradient(0, 0, width, height);
+  tint.addColorStop(0, hexToRgba(isLeave ? theme.secondary : theme.primary, isLeave ? 0.22 : 0.10));
+  tint.addColorStop(0.48, 'rgba(4,8,28,0.12)');
+  tint.addColorStop(1, hexToRgba(isLeave ? theme.primary : theme.secondary, isLeave ? 0.18 : 0.08));
+  ctx.fillStyle = tint;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+}
+
+function drawIdentityGlass(ctx, theme) {
+  const x = 228;
+  const y = 20;
+  const width = 428;
+  const height = 178;
+  const glass = ctx.createLinearGradient(x, y, x + width, y + height);
+  glass.addColorStop(0, 'rgba(7,11,34,0.38)');
+  glass.addColorStop(0.55, 'rgba(8,13,39,0.20)');
+  glass.addColorStop(1, hexToRgba(theme.primary, 0.08));
+  fillRoundedRect(ctx, x, y, width, height, 20, glass);
+  strokeRoundedRect(ctx, x, y, width, height, 20, 'rgba(255,255,255,0.10)', 1);
+
+  ctx.save();
+  const edge = ctx.createLinearGradient(x, y, x, y + height);
+  edge.addColorStop(0, hexToRgba(theme.secondary, 0.72));
+  edge.addColorStop(1, hexToRgba(theme.primary, 0.06));
+  ctx.fillStyle = edge;
+  fillRoundedRect(ctx, x, y + 18, 3, height - 36, 2, edge);
+  ctx.restore();
 }
 
 function drawAuroraStreaks(ctx, theme) {
@@ -755,7 +829,7 @@ function drawPlanet(ctx, data, theme) {
   ctx.shadowBlur = 0;
   ctx.fillStyle = 'rgba(255,255,255,0.86)';
   ctx.font = fontSpec(700, 10);
-  ctx.fillText(data.isLeave ? 'MEMBERS LEFT' : 'NEW MEMBER', x, y + 29);
+  ctx.fillText(data.isLeave ? 'MEMBER LEFT' : 'NEW MEMBER', x, y + 29);
 
   drawSparkle(ctx, x - 42, y - 55, 6.5, theme.tertiary);
   ctx.restore();
@@ -928,24 +1002,29 @@ async function generateCard(member, type = 'welcome', options = {}) {
   const { createCanvas, loadImage } = canvasLib;
   const canvas = createCanvas(CARD.width, CARD.height);
   const ctx = canvas.getContext('2d');
+  const [backdropImage, logoImage] = await Promise.all([
+    loadOptionalBackdrop(loadImage, options),
+    loadOptionalLogo(loadImage, options),
+  ]);
 
   ctx.save();
   roundedRectPath(ctx, 0, 0, CARD.width, CARD.height, CARD.radius);
   ctx.clip();
 
   drawBaseBackground(ctx, CARD.width, CARD.height, theme);
+  drawBackdropLayer(ctx, backdropImage, CARD.width, CARD.height, theme, data.isLeave);
   drawAuroraStreaks(ctx, theme);
 
   const random = createSeededRandom(`${data.id}:${normalizedType}:${data.memberNumber}`);
   drawStars(ctx, CARD.width, CARD.height, random, theme);
 
-  const logoImage = await loadOptionalLogo(loadImage, options);
   drawLogoWatermark(ctx, logoImage, theme);
 
   drawSparkle(ctx, 63, 72, 5.4, theme.tertiary);
   drawSparkle(ctx, 680, 51, 4.2, theme.secondary);
   drawSparkle(ctx, 856, 210, 4.8, theme.secondary);
   drawCornerDetails(ctx, theme);
+  drawIdentityGlass(ctx, theme);
 
   await drawAvatar(ctx, loadImage, data, theme);
   drawIdentity(ctx, data, theme, options);
@@ -958,6 +1037,7 @@ async function generateCard(member, type = 'welcome', options = {}) {
 }
 
 module.exports = {
+  formatDuration,
   generateCard,
   CARD,
 };

@@ -23,7 +23,7 @@ module.exports = {
     ),
 
   async execute(interaction, { state }) {
-    await interaction.deferReply({ ephemeral: true }); // defer dulu — cegah timeout 3 detik
+    await interaction.deferReply({ ephemeral: true }); // defer dulu untuk mencegah timeout 3 detik
     const message = interaction.options.getString('message');
     const title   = interaction.options.getString('title') || 'Pengumuman';
     let   ping    = interaction.options.getBoolean('ping') ?? false;

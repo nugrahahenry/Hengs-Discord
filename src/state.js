@@ -1,5 +1,5 @@
 // ─── state.js ─────────────────────────────────────────────────────────────
-// Study/scrim mode state — sama seperti WA bot
+// Study/scrim mode state, sama seperti WA bot
 
 const state = {
   mode: 'off',       // 'off' | 'study' | 'scrim'
@@ -13,7 +13,7 @@ function setMode(mode, topic = null) {
   state.startTime = mode !== 'off' ? new Date() : null;
 
   const label = { off: 'OFF', study: '📚 STUDY', scrim: '🎮 SCRIM' }[mode];
-  console.log(`Mode: ${label}${topic ? ` — ${topic}` : ''}`);
+  console.log(`Mode: ${label}${topic ? `: ${topic}` : ''}`);
 }
 
 function getMode()  { return state.mode; }

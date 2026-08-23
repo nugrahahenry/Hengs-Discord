@@ -68,8 +68,8 @@ module.exports = {
         .setTitle('📊 Status Sekarang')
         .addFields(
           { name: 'Mode',   value: labelMap[mode],                inline: true },
-          { name: 'Topik',  value: topic || '—',                  inline: true },
-          { name: 'Durasi', value: mins != null ? `${mins} menit` : '—', inline: true },
+          { name: 'Topik',  value: topic || '-',                  inline: true },
+          { name: 'Durasi', value: mins != null ? `${mins} menit` : '-', inline: true },
         )
         .setTimestamp();
       await interaction.reply({ embeds: [embed] });

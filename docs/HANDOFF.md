@@ -2,7 +2,29 @@
 
 Updated: 2026-08-23
 
-## Current local checkpoint: v1.23.0 - Owner Insights
+## Current local checkpoint: v1.24.0 - Layered Welcome Cards
+
+- v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
+  registration, restart, or Discord write is authorized by this local checkpoint.
+- Welcome and leave cards now use a generated Aurora Gateway background beneath deterministic
+  Canvas layers. The production asset is 900 x 280 and under 512 KiB. The high-resolution ImageGen
+  master is retained in `assets/_originals/` for future visual work.
+- Short membership tenure now keeps minute and hour precision. An eight-minute stay renders as
+  `8m` instead of `0d`; missing join data renders as `Unknown` instead of inventing a timestamp.
+- The welcome message no longer uses an em dash. All remaining em dash and en dash characters were
+  removed from runtime source, including legacy command copy, prompts, logs, and comments. A global
+  regression test enforces that boundary.
+- Focused visual, runtime-copy, and release tests pass 29/29. The full suite passes 421/421 on
+  local Node 24.15.0. All 109 JavaScript files and four Linux shell scripts pass syntax checks,
+  the production dependency audit reports 0 vulnerabilities, and whitespace checks pass. Visual
+  inspection confirms readable welcome and leave compositions at 900 x 280. Both PNG assets have
+  no textual or EXIF metadata. Humanizer review and the global source test confirm zero em dash or
+  en dash characters in runtime code. Exact Node 22 remains mandatory before deployment.
+- No deployment, command registration, restart, invite installation, public guild activation, or
+  cloud write occurred in this checkpoint.
+- Checkpoint commit subject: `feat(discord): Hengs Discord v1.24.0 - upgrade layered welcome cards`.
+
+## Previous local checkpoint: v1.23.0 - Owner Insights
 
 - v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
   registration, restart, invite installation, or public guild activation is authorized by this

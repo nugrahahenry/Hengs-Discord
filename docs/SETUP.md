@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.23.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
+Public Beta v1.24.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
 laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
 
 ### Langkah pengelola Hengs
@@ -125,7 +125,7 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
 3. Setelah deployment dan registrasi command mendapat izin owner, jalankan
    `npm run invite:public` untuk membuat URL undangan publik. Generator hanya meminta View
    Channel, Send Messages, dan Read Message History. Generator tidak membaca atau mencetak token.
-4. Bagikan URL itu. Setelah v1.23.0 terdaftar, member juga dapat meminta link yang sama lewat
+4. Bagikan URL itu. Setelah v1.24.0 terdaftar, member juga dapat meminta link yang sama lewat
    `/hengs invite`. Server ID tidak perlu diminta atau dimasukkan secara manual.
 
 ### Langkah teman yang memasang Hengs

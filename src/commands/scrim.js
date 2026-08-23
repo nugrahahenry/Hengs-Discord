@@ -16,7 +16,7 @@ module.exports = {
     )
     .addSubcommand(sub => sub
       .setName('off')
-      .setDescription('Matikan scrim mode — GG WP!')
+      .setDescription('Matikan scrim mode. GG WP!')
     ),
 
   async execute(interaction, { state }) {
@@ -33,7 +33,7 @@ module.exports = {
             ? `Game: **${game}**\nGL HF! Fokus, jangan terdistraksi 🏆`
             : 'Scrim mode aktif! GL HF! 🏆'
         )
-        .setFooter({ text: 'Lagi on match — jangan ganggu!' })
+        .setFooter({ text: 'Lagi on match, jangan ganggu!' })
         .setTimestamp();
       await interaction.reply({ embeds: [embed] });
     }

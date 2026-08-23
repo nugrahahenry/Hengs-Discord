@@ -1,5 +1,23 @@
 # Brief buat ChatGPT — Konsep Desain Welcome Card Discord
 
+## Implementasi terpilih v1.24.0
+
+Konsep produksi sekarang memakai **Aurora Gateway Layered Card**:
+
+- Master hasil ImageGen: `assets/_originals/welcome-aurora-gateway-v2.png`.
+- Aset produksi teroptimasi: `assets/welcome/aurora-gateway-v2.png`, tepat 900 x 280.
+- Aset hanya berisi background kosmik, aurora, circuit trace, dan partikel. Teks, avatar,
+  statistik, nomor member, planet, glass panel, serta border tetap digambar deterministik oleh
+  Canvas.
+- Welcome memakai tint violet dan cyan. Leave memakai tint magenta dan rose dari layer yang sama.
+- Durasi member di bawah satu hari memakai menit dan jam. Timestamp join yang tidak tersedia
+  ditampilkan sebagai `Unknown`, bukan `0d`.
+- Seluruh source runtime dilarang memakai em dash dan en dash melalui regression test.
+
+Prompt final ImageGen memakai screenshot Discord hanya sebagai referensi mood. Intinya meminta
+background ultra-wide kosmik modern dengan aurora, circuit trace, star particles, dark text-safe
+center, tanpa teks, logo, avatar, manusia, planet, badge, UI, atau watermark.
+
 > Copy-paste SEMUA teks di bawah ini ke ChatGPT. Ini "prompt master" yang
 > menjelaskan keadaan kita — biar GPT ngasih BEBERAPA KONSEP desain (bukan
 > langsung generate 1 gambar), terus kamu yang nilai mana paling bagus.

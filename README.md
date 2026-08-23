@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.23.0 Owner Insights
+**Current local checkpoint:** v1.24.0 Layered Welcome Cards
 
 **Current cloud production:** v1.19.1
 
@@ -29,7 +29,9 @@
 - **Deterministic Anti-Raid** - `/mod` memantau atau menangani pola raid berkeyakinan tinggi tanpa klasifikasi AI; detail operator ada di [`docs/ANTI-RAID.md`](docs/ANTI-RAID.md)
 - **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
-- **Welcome / leave card custom** — gradient bg, avatar glow, member count, umur akun — di-render via `@napi-rs/canvas`
+- **Layered welcome / leave cards:** background aurora hasil ImageGen dipadukan dengan glass layer,
+  avatar glow, member count, umur akun, tanggal join/keluar, dan durasi member berpresisi menit
+  melalui `@napi-rs/canvas`
 - **Auto-assign role** Member pas join + **stats channel** auto-update (jumlah member dll)
 - **Admin tools** — `/admin ids`, `/admin webhook`, `/admin lockdown`
 

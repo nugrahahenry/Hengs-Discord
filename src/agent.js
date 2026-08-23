@@ -11,7 +11,7 @@
 // gampang habis & lelet. Sekarang Groq jadi andalan utama.
 //
 // Pembagian kunci (lihat API_KEY_ALLOCATION.md): Discord pakai key Groq SENDIRI,
-// terpisah dari WA bot dan dari Canox — biar kuota tidak rebutan, dan Canox
+// terpisah dari WA bot dan dari Canox agar kuota tidak rebutan, dan Canox
 // (asisten utama) tetap di tier teratas.
 
 require('dotenv').config();
@@ -42,18 +42,18 @@ const openrouter = process.env.OPENROUTER_API_KEY
   })
   : null;
 
-// Diverifikasi 12 Juni 2026 — semua ID valid & masih ':free'. Urut quality-first.
+// Diverifikasi 12 Juni 2026. Semua ID valid dan masih ':free'. Urut quality-first.
 const FREE_MODELS = [
-  'google/gemma-4-31b-it:free',                // q65 — terbaik di free tier
+  'google/gemma-4-31b-it:free',                // q65, terbaik di free tier
   'nvidia/nemotron-3-super-120b-a12b:free',    // q60
   'openai/gpt-oss-120b:free',                  // q55
   'google/gemma-4-26b-a4b-it:free',            // q52
   'openai/gpt-oss-20b:free',                   // q41
-  'meta-llama/llama-3.3-70b-instruct:free',    // q24 — stabil
-  'meta-llama/llama-3.2-3b-instruct:free',     // q16 — jaring terakhir
+  'meta-llama/llama-3.3-70b-instruct:free',    // q24, stabil
+  'meta-llama/llama-3.2-3b-instruct:free',     // q16, jaring terakhir
 ];
 
-// ─── Smart ordering — bot "ingat" model mana yang barusan sehat/gagal ─────────
+// Smart ordering: bot "ingat" model mana yang barusan sehat atau gagal.
 const modelStats = new Map();          // model → { lastSuccessAt, lastFailedAt }
 const FAIL_COOLDOWN_MS = 60_000;       // model gagal digeser ke belakang 60 detik
 
@@ -89,7 +89,7 @@ const MAX_USERS = 300;              // cap memori histories (cegah numpuk selama
 
 const SYSTEM_PROMPT = `Kamu adalah bot AI di server Discord "Henzzz" milik Henry, mahasiswa Sistem Informasi semester 4.
 Kepribadian kamu:
-- Santai, friendly, sedikit humor — kayak teman ngobrol
+- Santai, friendly, sedikit humor, kayak teman ngobrol
 - Bahasa Indonesia campur Inggris kalau natural
 - Singkat dan to the point, tidak bertele-tele
 - Kalau ditanya soal coding/tech, boleh teknikal tapi tetap friendly
@@ -147,7 +147,7 @@ async function chat(userMessage, conversationKey, context = {}) {
   if (!/^\d{17,20}:\d{17,20}$/.test(String(conversationKey || ''))) {
     throw new Error('CONVERSATION_KEY_INVALID');
   }
-  // Rate-limit per user — cegah spam mention yang nguras kuota API
+  // Rate-limit per user untuk mencegah spam mention yang menguras kuota API.
   const now = Date.now();
   if (now - (lastChatAt.get(conversationKey) || 0) < CHAT_COOLDOWN_MS) {
     return 'Sabar bentar ya 😅 jangan spam, coba lagi beberapa detik lagi.';
@@ -164,7 +164,7 @@ async function chat(userMessage, conversationKey, context = {}) {
   if (!histories.has(conversationKey)) histories.set(conversationKey, []);
   const history = histories.get(conversationKey);
 
-  // user-turn baru masuk ke 'messages' tapi BELUM di-commit ke history — biar kalau
+  // user-turn baru masuk ke 'messages' tapi BELUM di-commit ke history agar kalau
   // semua model gagal, history nggak ketambahan user-turn yatim (bikin context rusak).
   const pendingUser = { role: 'user', content: userMessage };
   const messages = [{ role: 'system', content: buildSystemPrompt(context) }, ...history, pendingUser];
@@ -188,7 +188,7 @@ async function chat(userMessage, conversationKey, context = {}) {
           return reply;
         }
       } catch (err) {
-        console.log(`  ⚠ Groq ${model} gagal: ${err.message} — lanjut...`);
+        console.log(`  ⚠ Groq ${model} gagal: ${err.message}. Lanjut...`);
       }
     }
   }
@@ -207,7 +207,7 @@ async function chat(userMessage, conversationKey, context = {}) {
     } catch (err) {
       modelStats.set(model, { ...modelStats.get(model) || {}, lastFailedAt: Date.now() });
       if (err.status === 401) { // key invalid → semua model share key, percuma lanjut
-        console.error('  ✖ OpenRouter 401 (API key invalid) — stop fallback.');
+        console.error('  ✖ OpenRouter 401 (API key invalid). Stop fallback.');
         break;
       }
       const isRetryable =
@@ -261,7 +261,7 @@ async function runAnnouncementEditor({
           return parseAnnouncement(reply, fallbackTitle);
         }
       } catch (err) {
-        console.log(`  ⚠ Groq announcement ${operation} ${model} gagal: ${err.message} — lanjut...`);
+        console.log(`  ⚠ Groq announcement ${operation} ${model} gagal: ${err.message}. Lanjut...`);
       }
     }
   }

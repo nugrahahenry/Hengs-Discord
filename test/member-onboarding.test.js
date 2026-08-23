@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { findMemberRole, assignMemberRole } = require('../src/utils/member-onboarding');
-const { generateCard, CARD } = require('../src/utils/welcome-card');
+const { formatDuration, generateCard, CARD } = require('../src/utils/welcome-card');
 
 function cache(items) {
   const map = new Map(items.map((item) => [item.id, item]));
@@ -67,4 +67,39 @@ test('welcome and leave cards render valid PNG buffers offline', async () => {
     assert.equal(output.readUInt32BE(16), CARD.width);
     assert.equal(output.readUInt32BE(20), CARD.height);
   }
+});
+
+test('production welcome background is an optimized card-sized PNG', async () => {
+  const { loadImage } = require('@napi-rs/canvas');
+  const backgroundPath = require('node:path').join(
+    __dirname,
+    '..',
+    'assets',
+    'welcome',
+    'aurora-gateway-v2.png',
+  );
+  const stat = require('node:fs').statSync(backgroundPath);
+  const image = await loadImage(backgroundPath);
+  assert.equal(image.width, CARD.width);
+  assert.equal(image.height, CARD.height);
+  assert.ok(stat.size < 512 * 1024);
+});
+
+test('member tenure keeps minute and hour precision instead of showing zero days', () => {
+  const joined = new Date('2026-08-23T11:33:00.000Z');
+  assert.equal(formatDuration(joined, new Date('2026-08-23T11:41:00.000Z')), '8m');
+  assert.equal(formatDuration(joined, new Date('2026-08-23T13:38:00.000Z')), '2h 5m');
+  assert.equal(formatDuration(joined, new Date('2026-08-24T13:33:00.000Z')), '1d 2h');
+  assert.equal(formatDuration(null, new Date('2026-08-24T13:33:00.000Z')), 'Unknown');
+});
+
+test('welcome runtime copy contains no em dash or en dash', () => {
+  const source = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'src', 'index.js'),
+    'utf8',
+  );
+  const welcomeStart = source.indexOf('client.on(Events.GuildMemberAdd');
+  const welcomeEnd = source.indexOf('client.on(Events.GuildMemberUpdate');
+  const welcomeSurface = source.slice(welcomeStart, welcomeEnd);
+  assert.doesNotMatch(welcomeSurface, /[\u2013\u2014]/);
 });

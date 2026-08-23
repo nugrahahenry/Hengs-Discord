@@ -130,3 +130,18 @@ test('runtime gates legacy paths before public traffic', () => {
   assert.match(source, /if \(!guildAccess\.isHome\(member\.guild\.id\)\) return;/);
   assert.match(source, /if \(!guildAccess\.isHome\(reaction\.message\.guildId\)\) return;/);
 });
+
+test('runtime source contains no em dash or en dash', () => {
+  const pending = [path.join(ROOT, 'src')];
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) pending.push(target);
+      else if (entry.isFile() && entry.name.endsWith('.js')) {
+        const source = fs.readFileSync(target, 'utf8');
+        assert.doesNotMatch(source, /[\u2013\u2014]/, path.relative(ROOT, target));
+      }
+    }
+  }
+});

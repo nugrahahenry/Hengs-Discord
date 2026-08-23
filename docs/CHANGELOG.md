@@ -5,6 +5,28 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-08-23
+
+### Added
+- Welcome and leave cards now combine a reusable ImageGen aurora background with deterministic
+  Canvas glass, avatar, identity, statistics, member-number, and border layers.
+- The optimized production background is exactly 900 x 280, while the high-resolution source is
+  retained separately for future crops and visual revisions.
+
+### Fixed
+- Short member tenure no longer displays `0d`. It now keeps useful minute and hour precision, such
+  as `8m`, `2h 5m`, or `1d 2h`. Missing Discord join timestamps display `Unknown` instead of a
+  fabricated duration.
+- The visible welcome copy and all remaining runtime source now avoid em dash and en dash. A global
+  regression test prevents either character from returning.
+
+### Verification
+- Focused visual, runtime-copy, and release tests pass 29/29. The full suite passes 421/421 on
+  local Node 24.15.0. All 109 JavaScript files and four shell scripts pass syntax checks, the
+  production dependency audit reports 0 vulnerabilities, and whitespace checks pass. Both PNG
+  assets contain no textual or EXIF metadata. Exact Node 22 remains mandatory before deployment.
+- No deployment, command registration, service restart, Discord write, or cloud mutation occurred.
+
 ## [1.23.0] - 2026-08-23
 
 ### Added
