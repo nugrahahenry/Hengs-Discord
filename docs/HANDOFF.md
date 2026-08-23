@@ -2,26 +2,30 @@
 
 Updated: 2026-08-23
 
-## Current local checkpoint: v1.20.0 - Public Onboarding and Reply Styles
+## Current local checkpoint: v1.21.0 - Public Server Essentials
 
 - v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
   registration, restart, invite installation, or public guild activation is authorized by this
   local checkpoint.
-- A new public guild receives one fixed setup guide through `GuildCreate` only when its scope is
-  pending and an existing channel permits View Channel plus Send Messages. There is no channel
-  creation, retry, mention, activation, or delivery state.
-- `/setup style` exposes only Balanced, Concise, and Technical presets to the guild owner or an
-  Administrator. The selected enum is stored atomically in schema 2 and mapped to static prompt
-  instructions. Free-form prompt input is impossible.
-- Schema 1 remains readable as Balanced and migrates atomically on the next authorized write.
-  Rollback to v1.19.1 fails closed for schema 2 public guilds without deleting their state.
-- Focused public, setup, config-store, and release tests pass 43/43. The full suite passes 380/380
-  on local Node 24.15.0, all 100 JavaScript files pass syntax validation, `git diff --check` passes,
-  and the production dependency audit reports 0 vulnerabilities. Exact Node 22 acceptance remains
-  mandatory before deployment.
-- Targeted security review confirms fixed-enum prompt selection, owner or Administrator
-  authorization, mention-safe onboarding, atomic writes, cross-guild isolation, privacy-safe
-  failure logs, and fail-closed permission inspection. No external Discord or cloud write occurred.
+- `/hengs ask`, `/hengs reset`, and `/hengs help` provide public AI chat, caller-only in-memory
+  history reset, and fixed onboarding guidance. The command is global beside `/setup`; all legacy
+  commands remain home-guild only.
+- `/setup language` exposes only Auto, Indonesian, and English. `/setup channel` accepts only all
+  channels or the current interaction channel. `/setup status` reports style, language, and scope
+  without exposing stored IDs.
+- Mention chat and `/hengs ask` share the selected channel policy, one-active-request gate, and 30
+  started requests per 10 minutes per public guild. Every AI response remains mention-safe.
+- Schema 3 persists fixed style, language, and channel settings atomically. Schemas 1 and 2 stay
+  readable and migrate on the next authorized write. Rollback to v1.20.0 fails closed for schema 3
+  without deleting state, and forward repair is v1.21.0.
+- Focused public server tests pass 43/43 and the full suite passes 393/393 on local Node 24.15.0.
+  All 105 JavaScript files and four shell scripts pass syntax validation, the production dependency
+  audit reports 0 vulnerabilities, and whitespace plus release-content checks pass. Security review
+  confirms fixed-code errors, owner or Administrator settings, caller-only reset, prompt bounds,
+  mention safety, channel isolation, and cross-guild state boundaries. Exact Node 22 acceptance
+  remains mandatory before deployment.
+- No deployment, command registration, restart, invite installation, public guild activation, or
+  cloud write occurred in this checkpoint.
 
 ## Production checkpoint: v1.19.1 - Public Self-Service Beta Deployment Fix
 

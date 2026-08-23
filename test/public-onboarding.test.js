@@ -40,7 +40,8 @@ test('public welcome copy is fixed, mention-safe, and explains self-service setu
   const payload = buildPublicWelcome();
   assert.match(payload.content, /Hengs/i);
   assert.match(payload.content, /\/setup start/);
-  assert.match(payload.content, /\/setup style/);
+  assert.match(payload.content, /\/hengs ask/);
+  assert.match(payload.content, /\/hengs help/);
   assert.deepEqual(payload.allowedMentions, { parse: [] });
   assert.doesNotMatch(payload.content, /Henry|\d{15,22}|[\u2013\u2014]/i);
 });

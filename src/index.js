@@ -35,6 +35,7 @@ const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtim
 const { createGuildConfigStore, parsePublicGuildLimit } = require('./guilds/config-store');
 const { createGuildAccess } = require('./guilds/access');
 const { createPublicTrafficGuard } = require('./guilds/public-traffic-guard');
+const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const packageMetadata = require('../package.json');
 
@@ -68,6 +69,7 @@ const guildAccess = createGuildAccess({
   store: guildConfigStore,
 });
 const publicTrafficGuard = createPublicTrafficGuard();
+const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
 const client = new Client({
@@ -394,6 +396,13 @@ client.on(Events.MessageCreate, async (msg) => {
   }
   if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
   if (!msg.mentions.has(client.user)) return;
+  if (messageScope.kind === 'public' && !isPublicChannelAllowed(messageScope.config, msg.channelId)) {
+    await msg.reply({
+      content: 'Hengs hanya dapat menjawab di channel yang dipilih pengelola server.',
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
 
   // Bersihkan mention dari teks
   const text = msg.content
@@ -428,6 +437,7 @@ client.on(Events.MessageCreate, async (msg) => {
     const reply = await agent.chat(text, conversationKey, {
       kind: messageScope.kind,
       replyStyle: messageScope.config?.settings?.replyStyle || 'balanced',
+      language: messageScope.config?.settings?.language || 'auto',
     });
     // Discord max 2000 karakter per pesan
     await msg.reply({
@@ -542,7 +552,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (!interaction.isChatInputCommand()) return;
 
-  if (interactionScope.kind !== 'home' && interaction.commandName !== 'setup') {
+  if (interactionScope.kind !== 'home' && !PUBLIC_COMMANDS.has(interaction.commandName)) {
     await interaction.reply({
       content: 'Command ini belum tersedia di Hengs Public Beta.',
       flags: MessageFlags.Ephemeral,
@@ -586,6 +596,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       guildAccess,
       guildConfigStore,
       publicGuildLimit,
+      publicTrafficGuard,
     });
   } catch (err) {
     if (interaction.commandName === 'reports') {

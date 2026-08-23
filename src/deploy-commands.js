@@ -12,11 +12,15 @@ function loadCommands(commandsPath = path.join(__dirname, 'commands')) {
 }
 
 function buildCommandPlan(commands) {
-  const setup = commands.filter(command => command.name === 'setup');
-  if (setup.length !== 1) throw new Error('SETUP_COMMAND_INVALID');
+  const publicNames = new Set(['hengs', 'setup']);
+  for (const name of publicNames) {
+    if (commands.filter(command => command.name === name).length !== 1) {
+      throw new Error('PUBLIC_COMMAND_INVALID');
+    }
+  }
   return {
-    global: setup,
-    home: commands.filter(command => command.name !== 'setup'),
+    global: commands.filter(command => publicNames.has(command.name)),
+    home: commands.filter(command => !publicNames.has(command.name)),
   };
 }
 
@@ -34,7 +38,7 @@ async function main() {
   require('dotenv').config();
   const commands = loadCommands();
   const rest = new REST().setToken(process.env.DISCORD_TOKEN);
-  console.log(`Registering ${commands.length - 1} home commands dan 1 global setup command...`);
+  console.log(`Registering ${commands.length - 2} home commands dan 2 global public commands...`);
   try {
     await registerCommands({
       rest,

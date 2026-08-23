@@ -102,7 +102,7 @@ const PUBLIC_SYSTEM_PROMPT = `Kamu adalah Hengs, bot AI yang sedang membantu seb
 Kepribadian kamu:
 - Jujur menyebut dirimu sebagai bot Hengs, bukan manusia atau pemilik server
 - Santai, ramah, singkat, dan membantu
-- Gunakan Bahasa Indonesia, campur English hanya saat natural
+- Ikuti aturan bahasa server di bagian akhir prompt ini
 - Kalau ditanya coding atau teknologi, boleh teknikal tetapi tetap mudah dipahami
 - Pakai emoji sesekali, jangan berlebihan
 - Jangan mengaku tahu identitas, kegiatan, jadwal, atau pendapat pemilik server
@@ -115,6 +115,12 @@ const PUBLIC_REPLY_STYLE_INSTRUCTIONS = Object.freeze({
   technical: 'Untuk topik teknis, mulai dari contoh konkret lalu jelaskan alasan dan langkah secara terstruktur.',
 });
 
+const PUBLIC_LANGUAGE_INSTRUCTIONS = Object.freeze({
+  auto: 'Ikuti bahasa pengguna pada pesan terbaru. Jangan mengganti bahasa tanpa alasan.',
+  id: 'Gunakan Bahasa Indonesia. Istilah teknis English boleh dipakai saat lebih natural.',
+  en: 'Use English for the complete response.',
+});
+
 function buildConversationKey(guildId, userId) {
   const guild = String(guildId || '').trim();
   const user = String(userId || '').trim();
@@ -124,11 +130,17 @@ function buildConversationKey(guildId, userId) {
   return `${guild}:${user}`;
 }
 
-function buildSystemPrompt({ kind = 'home', replyStyle = 'balanced' } = {}) {
+function buildSystemPrompt({ kind = 'home', replyStyle = 'balanced', language = 'auto' } = {}) {
   if (kind !== 'public') return SYSTEM_PROMPT;
   const styleInstruction = PUBLIC_REPLY_STYLE_INSTRUCTIONS[replyStyle];
   if (!styleInstruction) throw new Error('PUBLIC_REPLY_STYLE_INVALID');
-  return `${PUBLIC_SYSTEM_PROMPT}\n- GAYA SERVER: ${styleInstruction}`;
+  const languageInstruction = PUBLIC_LANGUAGE_INSTRUCTIONS[language];
+  if (!languageInstruction) throw new Error('PUBLIC_LANGUAGE_INVALID');
+  return [
+    PUBLIC_SYSTEM_PROMPT,
+    `- GAYA SERVER: ${styleInstruction}`,
+    `- BAHASA SERVER: ${languageInstruction}`,
+  ].join('\n');
 }
 
 async function chat(userMessage, conversationKey, context = {}) {

@@ -15,6 +15,7 @@ function interaction({
   administrator = false,
   subcommand = 'status',
   preset = 'balanced',
+  mode = 'all',
 } = {}) {
   return {
     guildId: guild ? GUILD : null,
@@ -24,7 +25,7 @@ function interaction({
     memberPermissions: { has: permission => permission === PermissionFlagsBits.Administrator && administrator },
     options: {
       getSubcommand: () => subcommand,
-      getString: name => name === 'preset' ? preset : null,
+      getString: name => ({ preset, mode }[name] ?? null),
     },
     inGuild: () => guild,
     async reply(payload) { this.replyPayload = payload; },
@@ -37,7 +38,18 @@ function dependencies(kind = 'pending') {
     calls,
     guildAccess: {
       classify: () => kind === 'public'
-        ? { kind, config: { settings: { replyStyle: 'balanced' } } }
+        ? {
+          kind,
+          config: {
+            schemaVersion: 3,
+            settings: {
+              channelId: null,
+              channelMode: 'all',
+              language: 'auto',
+              replyStyle: 'balanced',
+            },
+          },
+        }
         : { kind },
     },
     guildConfigStore: {
@@ -56,6 +68,17 @@ function dependencies(kind = 'pending') {
           config: { settings: { replyStyle: input.replyStyle } },
         };
       },
+      setLanguage(input) {
+        calls.push(input);
+        return { changed: true, config: { settings: { language: input.language } } };
+      },
+      setChannelScope(input) {
+        calls.push(input);
+        return {
+          changed: true,
+          config: { settings: { channelMode: input.channelMode, channelId: input.channelId } },
+        };
+      },
     },
     publicGuildLimit: 25,
   };
@@ -67,15 +90,21 @@ function assertPrivate(payload) {
   assert.doesNotMatch(payload.content, /\d{15,22}/);
 }
 
-test('/setup is a guild-only command with start, status, style, and disable', () => {
+test('/setup is a guild-only command with public server settings', () => {
   const json = setup.data.toJSON();
   assert.equal(json.name, 'setup');
   assert.equal(json.dm_permission, false);
-  assert.deepEqual(json.options.map(option => option.name), ['start', 'status', 'style', 'disable']);
+  assert.deepEqual(json.options.map(option => option.name), [
+    'start', 'status', 'style', 'language', 'channel', 'disable',
+  ]);
   const style = json.options.find(option => option.name === 'style');
   assert.deepEqual(style.options[0].choices.map(choice => choice.value), [
     'balanced', 'concise', 'technical',
   ]);
+  const language = json.options.find(option => option.name === 'language');
+  assert.deepEqual(language.options[0].choices.map(choice => choice.value), ['auto', 'id', 'en']);
+  const channel = json.options.find(option => option.name === 'channel');
+  assert.deepEqual(channel.options[0].choices.map(choice => choice.value), ['all', 'current']);
 });
 
 test('/setup start activates any valid public guild for its owner or administrator', async () => {
@@ -100,6 +129,8 @@ test('/setup denies DMs, invalid configs, and unauthorized members without mutat
     { value: interaction({ subcommand: 'start' }), kind: 'denied' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'start' }), kind: 'pending' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'style' }), kind: 'public' },
+    { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'language' }), kind: 'public' },
+    { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'channel' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'disable' }), kind: 'public' },
   ];
 
@@ -123,7 +154,58 @@ test('/setup status reports fixed states without exposing stored IDs', async () 
     await setup.execute(value, deps);
     assertPrivate(value.replyPayload);
     assert.match(value.replyPayload.content, expected);
-    if (kind === 'public') assert.match(value.replyPayload.content, /santai/i);
+    if (kind === 'public') {
+      assert.match(value.replyPayload.content, /santai/i);
+      assert.match(value.replyPayload.content, /otomatis/i);
+      assert.match(value.replyPayload.content, /semua channel/i);
+    }
+  }
+});
+
+test('/setup language updates only active public guilds with fixed presets', async () => {
+  const deps = dependencies('public');
+  const value = interaction({ subcommand: 'language', preset: 'en' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /English/i);
+  assert.deepEqual(deps.calls, [{ guildId: GUILD, language: 'en', setupBy: OWNER }]);
+
+  const forged = dependencies('public');
+  const forgedValue = interaction({ subcommand: 'language', preset: 'free-form' });
+  await setup.execute(forgedValue, forged);
+  assertPrivate(forgedValue.replyPayload);
+  assert.equal(forged.calls.length, 0);
+});
+
+test('/setup channel derives current channel from Discord and never accepts an arbitrary ID', async () => {
+  const deps = dependencies('public');
+  const current = interaction({ subcommand: 'channel', mode: 'current' });
+  await setup.execute(current, deps);
+  assertPrivate(current.replyPayload);
+  assert.match(current.replyPayload.content, /channel ini/i);
+  assert.deepEqual(deps.calls, [{
+    guildId: GUILD,
+    channelMode: 'current',
+    channelId: current.channelId,
+    setupBy: OWNER,
+  }]);
+
+  const allDeps = dependencies('public');
+  const all = interaction({ subcommand: 'channel', mode: 'all' });
+  await setup.execute(all, allDeps);
+  assert.deepEqual(allDeps.calls[0], {
+    guildId: GUILD,
+    channelMode: 'all',
+    channelId: null,
+    setupBy: OWNER,
+  });
+
+  for (const kind of ['pending', 'home', 'denied']) {
+    const blocked = dependencies(kind);
+    const blockedValue = interaction({ subcommand: 'channel', mode: 'current' });
+    await setup.execute(blockedValue, blocked);
+    assertPrivate(blockedValue.replyPayload);
+    assert.equal(blocked.calls.length, 0);
   }
 });
 

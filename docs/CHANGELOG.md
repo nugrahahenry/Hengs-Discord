@@ -5,6 +5,41 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-08-23
+
+### Added
+- `/hengs ask`, `/hengs reset`, and `/hengs help` provide one simple public AI command, a
+  caller-only memory reset, and fixed onboarding guidance.
+- `/setup language` offers Auto, Indonesian, and English presets. `/setup channel` lets an owner or
+  Administrator allow every channel or select the current channel without entering an ID.
+- `/setup status` now summarizes reply style, language, and channel scope without exposing stored
+  Discord IDs.
+
+### Changed
+- Public guild config schema 3 stores fixed language and channel settings. Schemas 1 and 2 remain
+  readable and migrate atomically only on an authorized write.
+- Public mention chat and `/hengs ask` share the same per-guild concurrency and rolling-window
+  traffic guard. Both honor the selected channel and static language instruction.
+- Command registration plans exactly two global commands, `/setup` and `/hengs`, while every legacy
+  command remains scoped to the home guild.
+
+### Security
+- AI prompts are bounded user data, every AI response disables mentions, and custom language,
+  custom system prompts, arbitrary channel IDs, cross-user reset targets, and cross-guild history
+  are not accepted.
+- Channel checks happen before traffic admission. Invalid config, IDs, permissions, and settings
+  fail closed without entering provider or legacy home-only paths.
+
+### Verification
+- The focused public server suites pass 43/43 and the full suite passes 393/393 on local Node
+  24.15.0. All 105 JavaScript files and four shell scripts pass syntax validation.
+- The production dependency audit reports 0 vulnerabilities. Whitespace, release-content policy,
+  fixed-code failures, owner or Administrator authorization, caller-only reset, mention safety,
+  prompt bounds, channel isolation, and cross-guild state boundaries pass targeted review. Exact
+  Node 22 acceptance remains a mandatory deployment gate.
+- No deployment, command registration, service restart, Discord write, or cloud mutation occurred
+  in this checkpoint.
+
 ## [1.20.0] - 2026-08-23
 
 ### Added

@@ -7,6 +7,8 @@ const test = require('node:test');
 const {
   createGuildConfigStore,
   parsePublicGuildLimit,
+  resolveChannelScope,
+  resolveLanguage,
   resolveReplyStyle,
 } = require('../src/guilds/config-store');
 
@@ -44,11 +46,13 @@ test('guild config activation is atomic, strict, and idempotent', t => {
   });
 
   assert.equal(first.created, true);
-  assert.equal(first.config.schemaVersion, 2);
+  assert.equal(first.config.schemaVersion, 3);
   assert.equal(first.config.revision, 1);
   assert.equal(first.config.status, 'active');
   assert.equal(first.config.features.mentionChat, true);
   assert.equal(first.config.settings.replyStyle, 'balanced');
+  assert.equal(first.config.settings.language, 'auto');
+  assert.deepEqual(resolveChannelScope(first.config), { channelMode: 'all', channelId: null });
   assert.equal(first.config.guildId, GUILD_A);
 
   const repeated = store.activate({
@@ -115,9 +119,12 @@ test('guild config migrates legacy schema on activation without losing ownership
     setupBy: ADMIN,
   });
   assert.equal(migrated.changed, true);
-  assert.equal(migrated.config.schemaVersion, 2);
+  assert.equal(migrated.config.schemaVersion, 3);
   assert.equal(migrated.config.revision, 4);
   assert.equal(migrated.config.settings.replyStyle, 'balanced');
+  assert.equal(migrated.config.settings.language, 'auto');
+  assert.equal(migrated.config.settings.channelMode, 'all');
+  assert.equal(migrated.config.settings.channelId, null);
   assert.equal(migrated.config.createdAt, legacy.createdAt);
 });
 
@@ -149,6 +156,87 @@ test('guild reply style uses fixed presets and atomic idempotent updates', t => 
   assert.throws(
     () => store.setReplyStyle({ guildId: GUILD_B, replyStyle: 'concise', setupBy: OWNER }),
     /GUILD_CONFIG_NOT_ACTIVE/,
+  );
+});
+
+test('guild language and channel scope use fixed values with schema 2 migration', t => {
+  const { rootDir, store } = fixture(t);
+  const directory = path.join(rootDir, GUILD_A);
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'config.json'), `${JSON.stringify({
+    schemaVersion: 2,
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    status: 'active',
+    features: { mentionChat: true },
+    settings: { replyStyle: 'technical' },
+    revision: 4,
+    createdAt: '2026-08-20T12:00:00.000Z',
+    updatedAt: '2026-08-20T12:00:00.000Z',
+  })}\n`);
+
+  const legacy = store.get(GUILD_A);
+  assert.equal(resolveLanguage(legacy), 'auto');
+  assert.deepEqual(resolveChannelScope(legacy), { channelMode: 'all', channelId: null });
+
+  const language = store.setLanguage({ guildId: GUILD_A, language: 'id', setupBy: OWNER });
+  assert.equal(language.changed, true);
+  assert.equal(language.config.schemaVersion, 3);
+  assert.equal(language.config.settings.replyStyle, 'technical');
+  assert.equal(language.config.settings.language, 'id');
+  assert.equal(language.config.revision, 5);
+
+  const channel = store.setChannelScope({
+    guildId: GUILD_A,
+    channelMode: 'current',
+    channelId: '523456789012345678',
+    setupBy: ADMIN,
+  });
+  assert.equal(channel.changed, true);
+  assert.deepEqual(resolveChannelScope(channel.config), {
+    channelMode: 'current',
+    channelId: '523456789012345678',
+  });
+  assert.equal(channel.config.revision, 6);
+
+  const repeated = store.setChannelScope({
+    guildId: GUILD_A,
+    channelMode: 'current',
+    channelId: '523456789012345678',
+    setupBy: OWNER,
+  });
+  assert.equal(repeated.changed, false);
+  assert.equal(repeated.config.revision, 6);
+
+  const all = store.setChannelScope({
+    guildId: GUILD_A,
+    channelMode: 'all',
+    channelId: null,
+    setupBy: OWNER,
+  });
+  assert.deepEqual(resolveChannelScope(all.config), { channelMode: 'all', channelId: null });
+  assert.throws(
+    () => store.setLanguage({ guildId: GUILD_A, language: 'custom', setupBy: OWNER }),
+    /LANGUAGE_INVALID/,
+  );
+  assert.throws(
+    () => store.setChannelScope({
+      guildId: GUILD_A,
+      channelMode: 'current',
+      channelId: 'not-a-channel',
+      setupBy: OWNER,
+    }),
+    /CHANNEL_SCOPE_INVALID/,
+  );
+  assert.throws(
+    () => store.setChannelScope({
+      guildId: GUILD_A,
+      channelMode: 'all',
+      channelId: '523456789012345678',
+      setupBy: OWNER,
+    }),
+    /CHANNEL_SCOPE_INVALID/,
   );
 });
 

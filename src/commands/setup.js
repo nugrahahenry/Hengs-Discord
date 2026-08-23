@@ -1,9 +1,23 @@
 const { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
+const {
+  resolveChannelScope,
+  resolveLanguage,
+  resolveReplyStyle,
+} = require('../guilds/config-store');
 
 const STYLE_LABELS = Object.freeze({
   balanced: 'Santai',
   concise: 'Ringkas',
   technical: 'Teknis',
+});
+const LANGUAGE_LABELS = Object.freeze({
+  auto: 'Otomatis mengikuti bahasa pengguna',
+  id: 'Bahasa Indonesia',
+  en: 'English',
+});
+const CHANNEL_LABELS = Object.freeze({
+  all: 'Semua channel',
+  current: 'Satu channel yang dipilih',
 });
 
 const data = new SlashCommandBuilder()
@@ -23,6 +37,29 @@ const data = new SlashCommandBuilder()
         { name: 'Santai dan seimbang', value: 'balanced' },
         { name: 'Ringkas dan langsung', value: 'concise' },
         { name: 'Teknis dan terstruktur', value: 'technical' },
+      )))
+  .addSubcommand(subcommand => subcommand
+    .setName('language')
+    .setDescription('Pilih bahasa balasan Hengs')
+    .addStringOption(option => option
+      .setName('preset')
+      .setDescription('Bahasa yang dipakai untuk balasan Hengs di server ini')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Otomatis mengikuti pengguna', value: 'auto' },
+        { name: 'Bahasa Indonesia', value: 'id' },
+        { name: 'English', value: 'en' },
+      )))
+  .addSubcommand(subcommand => subcommand
+    .setName('channel')
+    .setDescription('Pilih tempat Hengs boleh menjawab')
+    .addStringOption(option => option
+      .setName('mode')
+      .setDescription('Gunakan semua channel atau hanya channel tempat command ini dijalankan')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Semua channel', value: 'all' },
+        { name: 'Hanya channel ini', value: 'current' },
       )))
   .addSubcommand(subcommand => subcommand.setName('disable').setDescription('Nonaktifkan Hengs di server ini'));
 
@@ -49,16 +86,90 @@ async function execute(interaction, { guildAccess, guildConfigStore, publicGuild
     return;
   }
   if (subcommand === 'status') {
-    const publicStyle = STYLE_LABELS[scope.config?.settings?.replyStyle || 'balanced']
-      || STYLE_LABELS.balanced;
+    const publicStyle = scope.kind === 'public'
+      ? STYLE_LABELS[resolveReplyStyle(scope.config)]
+      : STYLE_LABELS.balanced;
+    const publicLanguage = scope.kind === 'public'
+      ? LANGUAGE_LABELS[resolveLanguage(scope.config)]
+      : LANGUAGE_LABELS.auto;
+    const publicChannel = scope.kind === 'public'
+      ? CHANNEL_LABELS[resolveChannelScope(scope.config).channelMode]
+      : CHANNEL_LABELS.all;
     const messages = {
       home: 'Ini server utama Hengs. Semua fitur lama tetap dikelola dari sini.',
-      public: `Hengs Public Beta aktif. Member dapat mention Hengs untuk mengobrol. Gaya balasan: **${publicStyle}**.`,
+      public: [
+        'Hengs Public Beta aktif. Member dapat mention Hengs atau memakai `/hengs ask`.',
+        `Gaya balasan: **${publicStyle}**.`,
+        `Bahasa: **${publicLanguage}**.`,
+        `Cakupan: **${publicChannel}**.`,
+      ].join('\n'),
       pending: 'Hengs belum aktif di server ini. Jalankan /setup start untuk memulai.',
       denied: 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.',
       dm: 'Setup hanya tersedia di dalam server Discord.',
     };
     await replyPrivate(interaction, messages[scope.kind] || messages.denied);
+    return;
+  }
+  if (subcommand === 'language') {
+    if (scope.kind === 'home') {
+      await replyPrivate(interaction, 'Server utama memakai karakter pribadi Hengs dan tidak diubah lewat setup publik.');
+      return;
+    }
+    if (scope.kind === 'pending') {
+      await replyPrivate(interaction, 'Aktifkan Hengs lebih dulu lewat /setup start sebelum memilih bahasa.');
+      return;
+    }
+    if (scope.kind !== 'public') {
+      await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+      return;
+    }
+    const language = interaction.options.getString('preset', true);
+    const label = LANGUAGE_LABELS[language];
+    if (!label) {
+      await replyPrivate(interaction, 'Pilihan bahasa tidak dikenali. Pilih salah satu preset yang tersedia.');
+      return;
+    }
+    const result = guildConfigStore.setLanguage({
+      guildId: interaction.guildId,
+      language,
+      setupBy: interaction.user.id,
+    });
+    await replyPrivate(interaction, result.changed
+      ? `Bahasa balasan Hengs sekarang **${label}**.`
+      : `Bahasa balasan Hengs memang sudah **${label}**. Tidak ada pengaturan yang diubah.`);
+    return;
+  }
+  if (subcommand === 'channel') {
+    if (scope.kind === 'home') {
+      await replyPrivate(interaction, 'Server utama memakai aturan channel pribadi dan tidak diubah lewat setup publik.');
+      return;
+    }
+    if (scope.kind === 'pending') {
+      await replyPrivate(interaction, 'Aktifkan Hengs lebih dulu lewat /setup start sebelum memilih channel.');
+      return;
+    }
+    if (scope.kind !== 'public') {
+      await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+      return;
+    }
+    const channelMode = interaction.options.getString('mode', true);
+    const label = CHANNEL_LABELS[channelMode];
+    if (!label) {
+      await replyPrivate(interaction, 'Pilihan channel tidak dikenali. Pilih salah satu mode yang tersedia.');
+      return;
+    }
+    const result = guildConfigStore.setChannelScope({
+      guildId: interaction.guildId,
+      channelMode,
+      channelId: channelMode === 'current' ? interaction.channelId : null,
+      setupBy: interaction.user.id,
+    });
+    const changedMessage = channelMode === 'current'
+      ? 'Hengs sekarang hanya menjawab di channel ini.'
+      : 'Hengs sekarang dapat menjawab di semua channel.';
+    await replyPrivate(interaction, result.changed
+      ? changedMessage
+      : `${changedMessage} Tidak ada pengaturan yang diubah.`);
     return;
   }
   if (subcommand === 'style') {

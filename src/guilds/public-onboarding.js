@@ -13,8 +13,9 @@ function buildPublicWelcome() {
       'Halo, aku **Hengs**, bot AI yang baru masuk ke server ini. 👋',
       '',
       'Aku belum akan membalas chat sampai pemilik server atau Administrator menjalankan `/setup start`.',
-      'Setelah aktif, member cukup mention aku untuk bertanya atau ngobrol.',
-      'Gaya default-ku **Santai**. Pengelola server bisa menggantinya lewat `/setup style`.',
+      'Setelah aktif, member dapat mention aku atau memakai `/hengs ask` untuk bertanya.',
+      'Gunakan `/hengs help` untuk panduan singkat.',
+      'Pengelola server dapat mengatur gaya, bahasa, dan channel lewat `/setup`.',
     ].join('\n'),
     allowedMentions: { parse: [] },
   };

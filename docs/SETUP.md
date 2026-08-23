@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.20.0 hanya membuka `/setup` dan chat lewat mention. Command admin, moderasi,
+Public Beta v1.21.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
 laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
 
 ### Langkah pengelola Hengs
@@ -134,8 +134,12 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
    `/setup` tetap dapat digunakan tanpa pesan sambutan.
 5. Di server tersebut, pemilik server atau Administrator menjalankan `/setup start`.
 6. Pilih gaya dengan `/setup style`: Santai, Ringkas, atau Teknis.
-7. Setelah respons aktif muncul, member cukup menulis `@Hengs pertanyaan`.
-8. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
+7. Pilih bahasa lewat `/setup language`: Otomatis, Bahasa Indonesia, atau English.
+8. Jika Hengs hanya boleh menjawab di satu channel, jalankan `/setup channel` di channel tersebut
+   dan pilih `current`. Pilih `all` untuk mengizinkan semua channel.
+9. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
+   `/hengs ask`. `/hengs reset` hanya menghapus ingatan percakapan milik pemanggil.
+10. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
    dan menghapus konfigurasi lokal server tersebut.
 
 Setiap server memiliki konteks AI sendiri. Public Beta dibatasi 25 server aktif secara default,
@@ -143,10 +147,11 @@ satu jawaban AI berjalan per server, dan 30 permintaan per 10 menit per server. 
 membawa profil pribadi Henry.
 
 Pesan sambutan tidak membuat channel, tidak menyebut pengguna, tidak retry, dan tidak mengaktifkan
-server secara otomatis. Preset gaya adalah enum tetap, bukan prompt bebas dari Administrator.
+server secara otomatis. Preset gaya dan bahasa adalah enum tetap. Channel `current` selalu diambil
+dari tempat command dijalankan, bukan ID yang diketik pengguna.
 
 Jangan menjalankan `npm run deploy` dari laptop yang belum direview. Perintah itu melakukan
-registrasi eksternal: `/setup` menjadi global, sedangkan seluruh command lama tetap didaftarkan
+registrasi eksternal: `/setup` dan `/hengs` menjadi global, sedangkan seluruh command lama tetap didaftarkan
 hanya ke `DISCORD_GUILD_ID`.
 
 ## 🔐 Catatan keamanan
