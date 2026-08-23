@@ -1,4 +1,5 @@
 const { MessageFlags, SlashCommandBuilder } = require('discord.js');
+const { createPublicInviteUrl } = require('../create-public-invite');
 const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
 
@@ -21,7 +22,13 @@ const data = new SlashCommandBuilder()
     .setDescription('Hapus ingatan percakapan Hengs khusus untukmu'))
   .addSubcommand(subcommand => subcommand
     .setName('help')
-    .setDescription('Lihat cara menggunakan Hengs'));
+    .setDescription('Lihat cara menggunakan Hengs'))
+  .addSubcommand(subcommand => subcommand
+    .setName('invite')
+    .setDescription('Undang Hengs ke server Discord lain'))
+  .addSubcommand(subcommand => subcommand
+    .setName('privacy')
+    .setDescription('Lihat cara Hengs menangani chat dan data'));
 
 async function replyPrivate(interaction, content) {
   await interaction.reply({
@@ -37,6 +44,7 @@ function activeScope(kind) {
 
 async function execute(interaction, {
   agent,
+  clientId,
   guildAccess,
   publicTrafficGuard,
   logger = console,
@@ -45,15 +53,47 @@ async function execute(interaction, {
     await replyPrivate(interaction, 'Command Hengs hanya tersedia di dalam server Discord.');
     return;
   }
-  if (!agent || !guildAccess) throw new Error('HENGS_DEPENDENCY_MISSING');
-  const scope = guildAccess.classify(interaction.guildId);
+  if (!guildAccess) throw new Error('HENGS_DEPENDENCY_MISSING');
   const subcommand = interaction.options.getSubcommand();
+
+  if (subcommand === 'invite') {
+    let inviteUrl;
+    try {
+      inviteUrl = createPublicInviteUrl({ clientId });
+    } catch {
+      logger.error('[public-invite] PUBLIC_INVITE_FAILED');
+      await replyPrivate(interaction, 'Link undangan Hengs belum bisa dibuat. Coba lagi nanti ya.');
+      return;
+    }
+    await replyPrivate(interaction, [
+      '**Undang Hengs ke server lain**',
+      `[Buka halaman undangan Discord](${inviteUrl}), lalu pilih server yang kamu kelola.`,
+      'Setelah Hengs masuk, pemilik server atau Administrator cukup menjalankan `/setup start`.',
+    ].join('\n'));
+    return;
+  }
+
+  if (subcommand === 'privacy') {
+    await replyPrivate(interaction, [
+      '**Privasi Hengs**',
+      'Pertanyaanmu dan konteks percakapan terbaru dikirim ke penyedia AI untuk membuat balasan.',
+      'Cara penyedia menyimpan data mengikuti kebijakan layanan yang sedang dipakai. Jangan kirim kata sandi, token, atau data sensitif.',
+      'Riwayat chat tidak disimpan ke file. Proses Hengs hanya mengingat sampai 10 pesan terbaru untuk setiap pengguna di setiap server.',
+      'Gunakan `/hengs reset` kapan saja untuk menghapus ingatan percakapanmu sendiri.',
+      'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
+    ].join('\n'));
+    return;
+  }
+
+  const scope = guildAccess.classify(interaction.guildId);
 
   if (subcommand === 'help') {
     if (scope.kind === 'pending') {
       await replyPrivate(interaction, [
-        'Hengs belum aktif di server ini.',
-        'Minta pemilik server atau Administrator menjalankan `/setup start` lebih dulu.',
+        '**Hengs belum aktif di server ini**',
+        'Pemilik server atau Administrator dapat menjalankan `/setup start` untuk mengaktifkannya.',
+        'Baca `/hengs privacy` untuk memahami penggunaan data.',
+        'Pakai `/hengs invite` jika ingin membawa Hengs ke server lain yang kamu kelola.',
       ].join('\n'));
       return;
     }
@@ -62,10 +102,12 @@ async function execute(interaction, {
       return;
     }
     await replyPrivate(interaction, [
-      '**Cara memakai Hengs**',
-      '`/hengs ask` untuk bertanya langsung.',
+      '**Mulai pakai Hengs**',
+      '`/hengs ask` untuk bertanya langsung, atau mention Hengs lalu tulis pertanyaanmu.',
       '`/hengs reset` untuk menghapus ingatan percakapanmu sendiri.',
-      'Kamu juga dapat mention Hengs lalu tulis pertanyaanmu.',
+      'Pemilik server atau Administrator dapat mengatur Hengs lewat `/setup`.',
+      '`/hengs privacy` menjelaskan penggunaan data.',
+      '`/hengs invite` membawamu ke halaman undangan Discord.',
     ].join('\n'));
     return;
   }
@@ -77,6 +119,8 @@ async function execute(interaction, {
     await replyPrivate(interaction, content);
     return;
   }
+
+  if (!agent) throw new Error('HENGS_DEPENDENCY_MISSING');
 
   if (subcommand === 'reset') {
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);

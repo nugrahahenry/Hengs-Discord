@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.21.0 Public Server Essentials
+**Current local checkpoint:** v1.22.0 Public Onboarding and Trust
 
 **Current cloud production:** v1.19.1
 
@@ -10,8 +10,8 @@
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
 - **Public Server Essentials:** owner cukup menjalankan `/setup start`, lalu dapat memilih gaya,
-  bahasa, dan channel. Member bisa memakai `/hengs ask`, `/hengs reset`, atau `/hengs help`
-  tanpa Server ID manual
+  bahasa, dan channel. Member bisa memakai `/hengs ask`, `/hengs reset`, `/hengs help`,
+  `/hengs privacy`, atau `/hengs invite` tanpa Server ID manual
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
@@ -90,7 +90,7 @@ berhenti.
 | Command | Fungsi |
 |---|---|
 | `@Hengs <pesan>` | Ngobrol sama AI |
-| `/hengs ask` · `/hengs reset` · `/hengs help` | Tanya Hengs, hapus ingatan percakapanmu sendiri, atau buka panduan publik |
+| `/hengs ask` · `/hengs reset` · `/hengs help` · `/hengs privacy` · `/hengs invite` | Tanya Hengs, kelola ingatanmu, pahami privasi, buka panduan, atau undang Hengs ke server lain |
 | `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup disable` | Kelola Public Beta untuk owner atau Administrator server |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |

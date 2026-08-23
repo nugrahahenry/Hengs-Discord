@@ -376,7 +376,7 @@ test('reports command and queue route are wired into the runtime loader', () => 
   );
   assert.match(
     indexSource.slice(commandExecuteStart),
-    /catch \(err\) \{\s*if \(interaction\.commandName === 'reports'\) \{\s*console\.error\('\[reports\] command failed:', \{ code: err\.code \|\| 'COMMAND_FAILED' \}\);/,
+    /else if \(interaction\.commandName === 'reports'\) \{\s*console\.error\('\[reports\] command failed:', \{ code: err\.code \|\| 'COMMAND_FAILED' \}\);/,
   );
   assert.match(
     indexSource,

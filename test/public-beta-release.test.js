@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const { PermissionFlagsBits } = require('discord.js');
 
 const { buildCommandPlan, registerCommands } = require('../src/deploy-commands');
 const { createPublicInviteUrl } = require('../src/create-public-invite');
@@ -50,7 +51,10 @@ test('public invite has minimal permissions and no token', () => {
   assert.equal(url.pathname, '/oauth2/authorize');
   assert.equal(url.searchParams.get('client_id'), '123456789012345678');
   assert.deepEqual(url.searchParams.get('scope').split(' ').sort(), ['applications.commands', 'bot']);
-  assert.ok(BigInt(url.searchParams.get('permissions')) > 0n);
+  const expectedPermissions = PermissionFlagsBits.ViewChannel
+    | PermissionFlagsBits.SendMessages
+    | PermissionFlagsBits.ReadMessageHistory;
+  assert.equal(BigInt(url.searchParams.get('permissions')), expectedPermissions);
   assert.equal(url.searchParams.has('token'), false);
   assert.throws(() => createPublicInviteUrl({ clientId: 'unsafe' }), /CLIENT_ID_INVALID/);
 });
@@ -113,6 +117,7 @@ test('runtime gates legacy paths before public traffic', () => {
   assert.match(source, /content: reply\.substring\(0, 2000\),\s+allowedMentions: \{ parse: \[\] \}/);
   assert.match(source, /\[public-ai\] PUBLIC_AI_FAILED/);
   assert.match(source, /PUBLIC_COMMANDS\.has\(interaction\.commandName\)/);
+  assert.match(source, /\[public-command\] PUBLIC_COMMAND_FAILED/);
   assert.match(source, /publicTrafficGuard,/);
   assert.match(source, /if \(!guildAccess\.isHome\(member\.guild\.id\)\) return;/);
   assert.match(source, /if \(!guildAccess\.isHome\(reaction\.message\.guildId\)\) return;/);

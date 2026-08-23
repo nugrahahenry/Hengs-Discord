@@ -2,7 +2,38 @@
 
 Updated: 2026-08-23
 
-## Current local checkpoint: v1.21.0 - Public Server Essentials
+## Current local checkpoint: v1.22.0 - Public Onboarding and Trust
+
+- v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
+  registration, restart, invite installation, or public guild activation is authorized by this
+  local checkpoint.
+- `/hengs invite` turns the existing least-privilege Discord OAuth URL into a private self-service
+  command. Any member can open it, while Discord only lets them select a server they can manage.
+  The URL is built from a validated application ID, fixed Discord domain, fixed scopes, and the
+  existing View Channel, Send Messages, and Read Message History permissions. It contains no token.
+- `/hengs privacy` gives a fixed, plain-language explanation before setup or AI access. It states
+  that prompts go to an AI provider, chat history is not written to a file, in-process memory is
+  capped at 10 recent messages per user and server, caller-only reset is available, and server
+  configuration can be removed through `/setup disable`.
+- `/hengs help` now provides a short member and manager path, and the one-time public welcome points
+  to the privacy explanation. Invite and privacy do not read guild configuration, mutate state, or
+  call an AI provider. Every response is private and mention-safe. Unexpected `/hengs` or `/setup`
+  failures now log only one fixed outer error code instead of a raw exception.
+- There is no persistence or config-schema change. A later authorized release still requires exact
+  Node 22 acceptance, cloud deployment while preserving the single token consumer, and one global
+  command registration because the `/hengs` schema changed.
+- Focused command, onboarding, invite, and release tests pass 24/24. The full suite passes 397/397
+  on local Node 24.15.0, all 105 JavaScript files and four shell scripts pass syntax validation,
+  the production dependency audit reports 0 vulnerabilities, and whitespace plus release-content
+  checks pass. Manual security review confirms fixed-domain invite construction, exact minimum
+  permissions, token exclusion, private mention-safe responses, state-independent information
+  commands, caller-only reset, and fixed-code public failures. Exact Node 22 acceptance remains a
+  mandatory deployment gate.
+- No deployment, command registration, restart, invite installation, public guild activation, or
+  cloud write occurred in this checkpoint.
+- Checkpoint commit subject: `feat(discord): Hengs Discord v1.22.0 - improve public onboarding`.
+
+## Previous local checkpoint: v1.21.0 - Public Server Essentials
 
 - v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
   registration, restart, invite installation, or public guild activation is authorized by this

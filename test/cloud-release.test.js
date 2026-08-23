@@ -89,7 +89,7 @@ function createGitFixture(options = {}) {
   const commit = '0123456789abcdef0123456789abcdef01234567';
   const tracked = options.tracked || ['package.json', 'src/index.js'];
   const contents = {
-    'package.json': JSON.stringify({ version: options.version || '1.21.0' }),
+    'package.json': JSON.stringify({ version: options.version || '1.22.0' }),
     'src/index.js': "'use strict';\n",
     ...(options.contents || {}),
   };
@@ -119,11 +119,11 @@ function createGitFixture(options = {}) {
 test('release builder archives committed HEAD and writes a SHA-256 sidecar', () => {
   const fixture = createGitFixture();
   const result = buildRelease(fixture);
-  const expectedArchive = `hengs-discord-1.21.0-${fixture.commit.slice(0, 12)}.tar.gz`;
+  const expectedArchive = `hengs-discord-1.22.0-${fixture.commit.slice(0, 12)}.tar.gz`;
 
   assert.equal(path.basename(result.archive), expectedArchive);
   assert.equal(result.commit, fixture.commit);
-  assert.equal(result.version, '1.21.0');
+  assert.equal(result.version, '1.22.0');
   assert.equal(fs.existsSync(result.archive), true);
   assert.equal(fs.existsSync(result.checksumFile), true);
   const expectedHash = crypto.createHash('sha256')
@@ -160,9 +160,9 @@ test('release metadata pins Node 22 and checkpoint version consistently', () => 
   const packageMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lockMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
   assert.equal(fs.readFileSync(path.join(root, '.nvmrc'), 'utf8').trim(), '22');
-  assert.equal(packageMetadata.version, '1.21.0');
+  assert.equal(packageMetadata.version, '1.22.0');
   assert.deepEqual(packageMetadata.engines, { node: '>=22 <23' });
-  assert.equal(lockMetadata.version, '1.21.0');
-  assert.equal(lockMetadata.packages[''].version, '1.21.0');
+  assert.equal(lockMetadata.version, '1.22.0');
+  assert.equal(lockMetadata.packages[''].version, '1.22.0');
   assert.deepEqual(lockMetadata.packages[''].engines, { node: '>=22 <23' });
 });

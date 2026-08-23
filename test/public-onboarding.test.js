@@ -42,6 +42,7 @@ test('public welcome copy is fixed, mention-safe, and explains self-service setu
   assert.match(payload.content, /\/setup start/);
   assert.match(payload.content, /\/hengs ask/);
   assert.match(payload.content, /\/hengs help/);
+  assert.match(payload.content, /\/hengs privacy/);
   assert.deepEqual(payload.allowedMentions, { parse: [] });
   assert.doesNotMatch(payload.content, /Henry|\d{15,22}|[\u2013\u2014]/i);
 });

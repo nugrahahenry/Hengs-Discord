@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.21.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
+Public Beta v1.22.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
 laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
 
 ### Langkah pengelola Hengs
@@ -123,7 +123,8 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
 3. Setelah deployment dan registrasi command mendapat izin owner, jalankan
    `npm run invite:public` untuk membuat URL undangan publik. Generator hanya meminta View
    Channel, Send Messages, dan Read Message History. Generator tidak membaca atau mencetak token.
-4. Bagikan URL itu. Server ID tidak perlu diminta atau dimasukkan secara manual.
+4. Bagikan URL itu. Setelah v1.22.0 terdaftar, member juga dapat meminta link yang sama lewat
+   `/hengs invite`. Server ID tidak perlu diminta atau dimasukkan secara manual.
 
 ### Langkah teman yang memasang Hengs
 
@@ -137,9 +138,10 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
 7. Pilih bahasa lewat `/setup language`: Otomatis, Bahasa Indonesia, atau English.
 8. Jika Hengs hanya boleh menjawab di satu channel, jalankan `/setup channel` di channel tersebut
    dan pilih `current`. Pilih `all` untuk mengizinkan semua channel.
-9. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
+9. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
+10. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
    `/hengs ask`. `/hengs reset` hanya menghapus ingatan percakapan milik pemanggil.
-10. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
+11. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
    dan menghapus konfigurasi lokal server tersebut.
 
 Setiap server memiliki konteks AI sendiri. Public Beta dibatasi 25 server aktif secara default,

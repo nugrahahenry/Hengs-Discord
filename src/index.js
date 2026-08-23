@@ -593,13 +593,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       translation: translationService,
       runtimeHealth,
       version: packageMetadata.version,
+      clientId: process.env.DISCORD_CLIENT_ID,
       guildAccess,
       guildConfigStore,
       publicGuildLimit,
       publicTrafficGuard,
     });
   } catch (err) {
-    if (interaction.commandName === 'reports') {
+    if (PUBLIC_COMMANDS.has(interaction.commandName)) {
+      console.error('[public-command] PUBLIC_COMMAND_FAILED');
+    } else if (interaction.commandName === 'reports') {
       console.error('[reports] command failed:', { code: err.code || 'COMMAND_FAILED' });
     } else {
       console.error(`❌ Error di /${interaction.commandName}:`, err);

@@ -55,6 +55,7 @@ function dependencies(kind = 'public', configValue = config()) {
       clearHistory(key) { calls.push({ clearHistory: key }); },
     },
     guildAccess: { classify: () => kind === 'public' ? { kind, config: configValue } : { kind } },
+    clientId: '123456789012345678',
     publicTrafficGuard: {
       acquire(guildId) {
         calls.push({ acquire: guildId });
@@ -70,15 +71,76 @@ function assertPrivate(payload) {
   assert.deepEqual(payload.allowedMentions, { parse: [] });
 }
 
-test('/hengs exposes bounded ask, caller-only reset, and fixed help', () => {
+test('/hengs exposes bounded chat, self-service, privacy, and caller-only reset', () => {
   const json = hengs.data.toJSON();
   assert.equal(json.name, 'hengs');
   assert.equal(json.dm_permission, false);
-  assert.deepEqual(json.options.map(option => option.name), ['ask', 'reset', 'help']);
+  assert.deepEqual(json.options.map(option => option.name), [
+    'ask',
+    'reset',
+    'help',
+    'invite',
+    'privacy',
+  ]);
   const prompt = json.options[0].options[0];
   assert.equal(prompt.required, true);
   assert.ok(prompt.max_length <= 1800);
   assert.deepEqual(json.options[1].options || [], []);
+});
+
+test('/hengs invite returns the fixed least-privilege Discord link privately', async () => {
+  const deps = dependencies('pending');
+  const value = interaction({ subcommand: 'invite' });
+  await hengs.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  const match = value.replyPayload.content.match(/\((https:\/\/discord\.com\/oauth2\/authorize\?[^)]+)\)/);
+  assert.ok(match);
+  const url = new URL(match[1]);
+  assert.equal(url.searchParams.get('client_id'), deps.clientId);
+  assert.deepEqual(url.searchParams.get('scope').split(' ').sort(), ['applications.commands', 'bot']);
+  assert.equal(url.searchParams.has('token'), false);
+  assert.match(value.replyPayload.content, /server yang kamu kelola/i);
+  assert.equal(deps.calls.length, 0);
+});
+
+test('/hengs invite hides invalid application configuration behind a fixed code', async () => {
+  const deps = dependencies('public');
+  deps.clientId = 'private invalid detail';
+  const value = interaction({ subcommand: 'invite' });
+  await hengs.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /belum bisa dibuat/i);
+  assert.doesNotMatch(value.replyPayload.content, /private invalid detail/i);
+  assert.deepEqual(deps.calls, [{ log: '[public-invite] PUBLIC_INVITE_FAILED' }]);
+});
+
+test('/hengs privacy explains provider processing and bounded memory without mutation', async () => {
+  for (const kind of ['pending', 'public', 'home']) {
+    const deps = dependencies(kind);
+    const value = interaction({ subcommand: 'privacy' });
+    await hengs.execute(value, deps);
+    assertPrivate(value.replyPayload);
+    assert.match(value.replyPayload.content, /penyedia AI/i);
+    assert.match(value.replyPayload.content, /konteks percakapan/i);
+    assert.match(value.replyPayload.content, /kebijakan layanan/i);
+    assert.match(value.replyPayload.content, /10 pesan terbaru/i);
+    assert.match(value.replyPayload.content, /tidak disimpan ke file/i);
+    assert.match(value.replyPayload.content, /\/hengs reset/i);
+    assert.doesNotMatch(value.replyPayload.content, /Henry|[\u2013\u2014]/i);
+    assert.equal(deps.calls.length, 0);
+  }
+});
+
+test('/hengs invite and privacy stay available without reading guild config or AI', async () => {
+  for (const subcommand of ['invite', 'privacy']) {
+    const deps = dependencies('public');
+    deps.agent = null;
+    deps.guildAccess.classify = () => { throw new Error('private config detail'); };
+    const value = interaction({ subcommand });
+    await hengs.execute(value, deps);
+    assertPrivate(value.replyPayload);
+    assert.equal(deps.calls.length, 0);
+  }
 });
 
 test('/hengs help guides pending guilds without starting or mutating anything', async () => {
@@ -87,6 +149,8 @@ test('/hengs help guides pending guilds without starting or mutating anything', 
   await hengs.execute(value, deps);
   assertPrivate(value.replyPayload);
   assert.match(value.replyPayload.content, /\/setup start/i);
+  assert.match(value.replyPayload.content, /\/hengs privacy/i);
+  assert.match(value.replyPayload.content, /\/hengs invite/i);
   assert.equal(deps.calls.length, 0);
 });
 

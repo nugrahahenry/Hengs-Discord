@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-08-23
+
+### Added
+- `/hengs invite` gives any member a private self-service link for adding Hengs to another server
+  they manage. It reuses the existing fixed Discord OAuth contract and minimum permissions.
+- `/hengs privacy` explains AI-provider processing, in-process memory of at most 10 recent
+  messages per user and server, caller-only reset, non-persistent chat history, and removable
+  server configuration.
+
+### Changed
+- `/hengs help` now gives separate first-use guidance for members and server managers, including
+  direct routes to setup, privacy, and invitation.
+- The one-time public welcome includes the privacy command before the server is activated.
+
+### Security
+- Invite and privacy responses are private, mention-safe, and available without reading guild
+  configuration or calling an AI provider. The invitation accepts only a validated application
+  ID and always uses Discord's fixed domain, scopes, and existing minimum permission set.
+- Invalid invite configuration produces one fixed error code without exposing identifiers or raw
+  configuration. Unexpected failures from either public command also use one fixed outer error
+  code. The generated URL never contains the bot token.
+
+### Verification
+- Focused command, onboarding, invite, and release tests pass 24/24. The full suite passes 397/397
+  on local Node 24.15.0, all 105 JavaScript files and four shell scripts pass syntax validation,
+  the production dependency audit reports 0 vulnerabilities, and whitespace plus release-content
+  checks pass. Exact Node 22 acceptance remains mandatory before deployment.
+- No deployment, command registration, invite installation, service restart, Discord write, or
+  cloud mutation occurred in this checkpoint.
+
 ## [1.21.0] - 2026-08-23
 
 ### Added
