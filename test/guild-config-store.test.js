@@ -4,7 +4,11 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { createGuildConfigStore, parsePublicGuildLimit } = require('../src/guilds/config-store');
+const {
+  createGuildConfigStore,
+  parsePublicGuildLimit,
+  resolveReplyStyle,
+} = require('../src/guilds/config-store');
 
 const GUILD_A = '123456789012345678';
 const GUILD_B = '223456789012345678';
@@ -40,10 +44,11 @@ test('guild config activation is atomic, strict, and idempotent', t => {
   });
 
   assert.equal(first.created, true);
-  assert.equal(first.config.schemaVersion, 1);
+  assert.equal(first.config.schemaVersion, 2);
   assert.equal(first.config.revision, 1);
   assert.equal(first.config.status, 'active');
   assert.equal(first.config.features.mentionChat, true);
+  assert.equal(first.config.settings.replyStyle, 'balanced');
   assert.equal(first.config.guildId, GUILD_A);
 
   const repeated = store.activate({
@@ -82,6 +87,69 @@ test('guild config refresh keeps creation time and increments revision only on c
   assert.equal(refreshed.config.createdAt, first.createdAt);
   assert.notEqual(refreshed.config.updatedAt, first.updatedAt);
   assert.equal(refreshed.config.setupBy, ADMIN);
+});
+
+test('guild config migrates legacy schema on activation without losing ownership', t => {
+  const { rootDir, store } = fixture(t);
+  const directory = path.join(rootDir, GUILD_A);
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'config.json'), `${JSON.stringify({
+    schemaVersion: 1,
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    status: 'active',
+    features: { mentionChat: true },
+    revision: 3,
+    createdAt: '2026-08-20T12:00:00.000Z',
+    updatedAt: '2026-08-20T12:00:00.000Z',
+  })}\n`);
+
+  const legacy = store.get(GUILD_A);
+  assert.equal(legacy.schemaVersion, 1);
+  assert.equal(resolveReplyStyle(legacy), 'balanced');
+
+  const migrated = store.activate({
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+  });
+  assert.equal(migrated.changed, true);
+  assert.equal(migrated.config.schemaVersion, 2);
+  assert.equal(migrated.config.revision, 4);
+  assert.equal(migrated.config.settings.replyStyle, 'balanced');
+  assert.equal(migrated.config.createdAt, legacy.createdAt);
+});
+
+test('guild reply style uses fixed presets and atomic idempotent updates', t => {
+  const { store } = fixture(t);
+  store.activate({ guildId: GUILD_A, ownerId: OWNER, setupBy: ADMIN });
+
+  const changed = store.setReplyStyle({
+    guildId: GUILD_A,
+    replyStyle: 'technical',
+    setupBy: OWNER,
+  });
+  assert.equal(changed.changed, true);
+  assert.equal(changed.config.settings.replyStyle, 'technical');
+  assert.equal(changed.config.revision, 2);
+  assert.equal(changed.config.setupBy, OWNER);
+
+  const repeated = store.setReplyStyle({
+    guildId: GUILD_A,
+    replyStyle: 'technical',
+    setupBy: ADMIN,
+  });
+  assert.equal(repeated.changed, false);
+  assert.equal(repeated.config.revision, 2);
+  assert.throws(
+    () => store.setReplyStyle({ guildId: GUILD_A, replyStyle: 'custom prompt', setupBy: OWNER }),
+    /REPLY_STYLE_INVALID/,
+  );
+  assert.throws(
+    () => store.setReplyStyle({ guildId: GUILD_B, replyStyle: 'concise', setupBy: OWNER }),
+    /GUILD_CONFIG_NOT_ACTIVE/,
+  );
 });
 
 test('guild config enforces active capacity without blocking existing guilds', t => {

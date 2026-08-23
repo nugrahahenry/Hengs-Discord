@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-08-23
+
+### Added
+- New public guilds receive one fixed, mention-safe setup guide in an existing writable channel.
+  Hengs never creates a channel, retries delivery, or activates the guild automatically.
+- `/setup style` lets the guild owner or an Administrator select Balanced, Concise, or Technical
+  replies through fixed choices.
+
+### Changed
+- Public guild config schema 2 stores only the fixed reply-style enum. Schema 1 remains readable
+  and migrates atomically on the next authorized activation or style change.
+- Public AI prompts now append one static style instruction while retaining guild-separated
+  history and the neutral Hengs identity.
+
+### Security
+- Onboarding runs only for pending public guilds, verifies View Channel and Send Messages on the
+  selected existing channel, disables mentions, logs fixed codes, and never persists delivery data.
+- Reply style rejects free-form input, cross-guild state, and unauthorized members. Legacy command,
+  component, moderation, member, reaction, and voice paths remain home-only.
+
+### Verification
+- The focused public, setup, config-store, and release suites pass 43/43. The full suite passes
+  380/380 on local Node 24.15.0, and all 100 JavaScript files pass syntax validation.
+- The production dependency audit reports 0 vulnerabilities. Targeted security review confirms
+  fixed-enum prompt selection, owner or Administrator authorization, mention-safe onboarding,
+  atomic config writes, cross-guild isolation, and privacy-safe failure logs.
+- `git diff --check` and the tracked release-content policy pass. Exact Node 22 acceptance remains
+  a mandatory deployment gate. No deployment, command registration, restart, invite installation,
+  or public guild activation occurred in this checkpoint.
+
 ## [1.19.1] - 2026-08-21
 
 ### Fixed
@@ -22,8 +52,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - The v1.19.0 deployment attempt never switched the production symlink. Rollback acceptance found
   v1.18.0 active, enabled, connected, fresh, single-process, with WhatsApp cloud still active and no
   failed release directory.
-- No command registration, public invite, config mutation, state restore, VM reboot, or WhatsApp
-  restart occurred.
+- Immutable v1.19.1 deployment passed Ubuntu acceptance and two fresh connected heartbeats more
+  than 30 seconds apart. Discord is active/enabled as one process, persistent state is available,
+  WhatsApp stayed active, and v1.18.0 remains available for rollback.
+- Command registration ran exactly once: one global `/setup`, 12 home commands, and no home-scoped
+  `/setup`. Public installation is allowed, OAuth code grant is not required, and a least-privilege
+  invite URL was generated.
+- No friend guild activation, config mutation, state restore, VM reboot, WhatsApp restart, local
+  bot start, or Anti-Raid mode change occurred.
 
 ## [1.19.0] - 2026-08-21
 

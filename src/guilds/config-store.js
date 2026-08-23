@@ -3,10 +3,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SNOWFLAKE = /^\d{17,20}$/;
-const CONFIG_KEYS = [
+const LEGACY_CONFIG_KEYS = [
   'createdAt', 'features', 'guildId', 'ownerId',
   'revision', 'schemaVersion', 'setupBy', 'status', 'updatedAt',
 ];
+const CONFIG_KEYS = [
+  'createdAt', 'features', 'guildId', 'ownerId',
+  'revision', 'schemaVersion', 'settings', 'setupBy', 'status', 'updatedAt',
+];
+const REPLY_STYLES = Object.freeze(['balanced', 'concise', 'technical']);
 const MAX_CONFIG_BYTES = 16 * 1024;
 const DEFAULT_PUBLIC_GUILD_LIMIT = 25;
 const MAX_PUBLIC_GUILD_LIMIT = 100;
@@ -35,10 +40,13 @@ function isIsoTimestamp(value) {
 
 function validateConfig(value, expectedGuildId) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('GUILD_CONFIG_INVALID');
-  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(CONFIG_KEYS)) {
+  const expectedKeys = value.schemaVersion === 1 ? LEGACY_CONFIG_KEYS : CONFIG_KEYS;
+  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(expectedKeys)) {
     throw new Error('GUILD_CONFIG_INVALID');
   }
-  if (value.schemaVersion !== 1 || value.status !== 'active') throw new Error('GUILD_CONFIG_INVALID');
+  if (![1, 2].includes(value.schemaVersion) || value.status !== 'active') {
+    throw new Error('GUILD_CONFIG_INVALID');
+  }
   const guildId = assertSnowflake(value.guildId, 'GUILD_CONFIG_INVALID');
   if (guildId !== expectedGuildId) throw new Error('GUILD_CONFIG_INVALID');
   assertSnowflake(value.ownerId, 'GUILD_CONFIG_INVALID');
@@ -50,12 +58,28 @@ function validateConfig(value, expectedGuildId) {
     || JSON.stringify(Object.keys(value.features)) !== JSON.stringify(['mentionChat'])
     || value.features.mentionChat !== true
   ) throw new Error('GUILD_CONFIG_INVALID');
+  if (value.schemaVersion === 2) {
+    if (
+      !value.settings
+      || typeof value.settings !== 'object'
+      || Array.isArray(value.settings)
+      || JSON.stringify(Object.keys(value.settings)) !== JSON.stringify(['replyStyle'])
+      || !REPLY_STYLES.includes(value.settings.replyStyle)
+    ) throw new Error('GUILD_CONFIG_INVALID');
+  }
   if (!Number.isInteger(value.revision) || value.revision < 1) throw new Error('GUILD_CONFIG_INVALID');
   if (!isIsoTimestamp(value.createdAt) || !isIsoTimestamp(value.updatedAt)) {
     throw new Error('GUILD_CONFIG_INVALID');
   }
   if (Date.parse(value.createdAt) > Date.parse(value.updatedAt)) throw new Error('GUILD_CONFIG_INVALID');
   return value;
+}
+
+function resolveReplyStyle(config) {
+  if (config?.schemaVersion === 1) return 'balanced';
+  const style = config?.settings?.replyStyle;
+  if (!REPLY_STYLES.includes(style)) throw new Error('REPLY_STYLE_INVALID');
+  return style;
 }
 
 function assertSafeEntry(fsImpl, entryPath, { directory = false } = {}) {
@@ -147,17 +171,19 @@ function createGuildConfigStore({
     const timestamp = now();
     if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
     const desired = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       guildId: paths.guildId,
       ownerId: normalizedOwner,
       setupBy: normalizedSetupBy,
       status: 'active',
       features: { mentionChat: true },
+      settings: { replyStyle: existing ? resolveReplyStyle(existing) : 'balanced' },
       revision: existing ? existing.revision : 1,
       createdAt: existing ? existing.createdAt : timestamp,
       updatedAt: existing ? existing.updatedAt : timestamp,
     };
     const unchanged = existing
+      && existing.schemaVersion === 2
       && existing.ownerId === desired.ownerId
       && existing.setupBy === desired.setupBy;
     if (unchanged) return { config: existing, created: false, changed: false };
@@ -168,6 +194,34 @@ function createGuildConfigStore({
     validateConfig(desired, paths.guildId);
     write(paths, desired);
     return { config: desired, created: !existing, changed: true };
+  }
+
+  function setReplyStyle({ guildId, replyStyle, setupBy }) {
+    const paths = pathsFor(guildId);
+    const normalizedSetupBy = assertSnowflake(setupBy, 'SETUP_BY_INVALID');
+    if (!REPLY_STYLES.includes(replyStyle)) throw new Error('REPLY_STYLE_INVALID');
+    const existing = get(paths.guildId);
+    if (!existing) throw new Error('GUILD_CONFIG_NOT_ACTIVE');
+    if (existing.schemaVersion === 2 && resolveReplyStyle(existing) === replyStyle) {
+      return { config: existing, changed: false };
+    }
+    const timestamp = now();
+    if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
+    const desired = {
+      schemaVersion: 2,
+      guildId: existing.guildId,
+      ownerId: existing.ownerId,
+      setupBy: normalizedSetupBy,
+      status: 'active',
+      features: { mentionChat: true },
+      settings: { replyStyle },
+      revision: existing.revision + 1,
+      createdAt: existing.createdAt,
+      updatedAt: timestamp,
+    };
+    validateConfig(desired, paths.guildId);
+    write(paths, desired);
+    return { config: desired, changed: true };
   }
 
   function remove(guildId) {
@@ -182,7 +236,13 @@ function createGuildConfigStore({
     return { removed: true };
   }
 
-  return { activate, countActive, get, remove };
+  return { activate, countActive, get, remove, setReplyStyle };
 }
 
-module.exports = { createGuildConfigStore, parsePublicGuildLimit, validateConfig };
+module.exports = {
+  REPLY_STYLES,
+  createGuildConfigStore,
+  parsePublicGuildLimit,
+  resolveReplyStyle,
+  validateConfig,
+};

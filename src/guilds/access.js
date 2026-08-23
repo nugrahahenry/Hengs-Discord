@@ -12,7 +12,9 @@ function createGuildAccess({ homeGuildId, store }) {
     if (normalized === home) return { kind: 'home' };
     try {
       const config = store.get(normalized);
-      if (config?.status === 'active' && config.features?.mentionChat === true) return { kind: 'public' };
+      if (config?.status === 'active' && config.features?.mentionChat === true) {
+        return { kind: 'public', config };
+      }
       return { kind: 'pending' };
     } catch {
       return { kind: 'denied', code: 'CONFIG_INVALID' };

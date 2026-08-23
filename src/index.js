@@ -35,6 +35,7 @@ const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtim
 const { createGuildConfigStore, parsePublicGuildLimit } = require('./guilds/config-store');
 const { createGuildAccess } = require('./guilds/access');
 const { createPublicTrafficGuard } = require('./guilds/public-traffic-guard');
+const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -256,6 +257,12 @@ client.once(Events.ClientReady, async (c) => {
   }
 });
 
+client.on(Events.GuildCreate, guild => {
+  sendPublicGuildWelcome(guild, { guildAccess }).catch(() => {
+    console.warn('[public-onboarding] PUBLIC_WELCOME_FAILED');
+  });
+});
+
 // ── Welcome member baru ──────────────────────────────────────────────────────
 client.on(Events.GuildMemberAdd, async (member) => {
   if (!guildAccess.isHome(member.guild.id)) return;
@@ -418,7 +425,10 @@ client.on(Events.MessageCreate, async (msg) => {
     // Typing indicator biar keliatan lagi "mikir"
     await msg.channel.sendTyping();
     const conversationKey = agent.buildConversationKey(msg.guildId, msg.author.id);
-    const reply = await agent.chat(text, conversationKey, { kind: messageScope.kind });
+    const reply = await agent.chat(text, conversationKey, {
+      kind: messageScope.kind,
+      replyStyle: messageScope.config?.settings?.replyStyle || 'balanced',
+    });
     // Discord max 2000 karakter per pesan
     await msg.reply({
       content: reply.substring(0, 2000),

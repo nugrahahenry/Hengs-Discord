@@ -1,8 +1,29 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-21
+Updated: 2026-08-23
 
-## Current local checkpoint: v1.19.1 - Public Self-Service Beta Deployment Fix
+## Current local checkpoint: v1.20.0 - Public Onboarding and Reply Styles
+
+- v1.19.1 remains cloud production and the only Discord token consumer. No deployment, command
+  registration, restart, invite installation, or public guild activation is authorized by this
+  local checkpoint.
+- A new public guild receives one fixed setup guide through `GuildCreate` only when its scope is
+  pending and an existing channel permits View Channel plus Send Messages. There is no channel
+  creation, retry, mention, activation, or delivery state.
+- `/setup style` exposes only Balanced, Concise, and Technical presets to the guild owner or an
+  Administrator. The selected enum is stored atomically in schema 2 and mapped to static prompt
+  instructions. Free-form prompt input is impossible.
+- Schema 1 remains readable as Balanced and migrates atomically on the next authorized write.
+  Rollback to v1.19.1 fails closed for schema 2 public guilds without deleting their state.
+- Focused public, setup, config-store, and release tests pass 43/43. The full suite passes 380/380
+  on local Node 24.15.0, all 100 JavaScript files pass syntax validation, `git diff --check` passes,
+  and the production dependency audit reports 0 vulnerabilities. Exact Node 22 acceptance remains
+  mandatory before deployment.
+- Targeted security review confirms fixed-enum prompt selection, owner or Administrator
+  authorization, mention-safe onboarding, atomic writes, cross-guild isolation, privacy-safe
+  failure logs, and fail-closed permission inspection. No external Discord or cloud write occurred.
+
+## Production checkpoint: v1.19.1 - Public Self-Service Beta Deployment Fix
 
 - v1.19.0 commit `6e60c55` is on `main` and `origin/main`. Local build and transfer succeeded.
   The first deployment invocation used the v1.18.0 deployer and was rejected by its version gate.
@@ -15,9 +36,17 @@ Updated: 2026-08-21
   Package, lockfile, release builder, Linux deployer, tests, README, and runbook now target v1.19.1.
   Exact Node 22.23.2 full tests pass 372/372, all 99 JavaScript files pass syntax checks,
   `git diff --check` passes, and the production dependency audit reports 0 vulnerabilities.
-  This patch still needs Henry to review, commit, and push before another immutable build.
-- `/setup` has not been registered globally and no public invite has been created. Do not register
-  it while production remains v1.18.0.
+  Henry committed and pushed v1.19.1 as `88e3ab1`.
+- Immutable v1.19.1 is live on Oracle. Ubuntu install acceptance passed, two fresh connected
+  heartbeats more than 30 seconds apart passed, service is active/enabled with exactly one process,
+  persistent state is available, WhatsApp stayed active, and v1.18.0 remains available for rollback.
+- Command registration ran exactly once after health acceptance. Read-only audit confirms one
+  global command named `/setup`, 12 existing home-guild commands, and no `/setup` in the home scope.
+  The Discord application permits public installation and does not require OAuth code grant.
+- A least-privilege public invite was generated. No friend guild has been installed or activated
+  yet, so cross-guild acceptance still needs one disposable or friend server.
+- Release archives and the deployer were removed from the operator home directory after acceptance.
+  No state restore, VM reboot, WhatsApp restart, local bot start, or Anti-Raid mode change occurred.
 
 - Public Beta memakai model lobi mandiri: server utama mempertahankan semua fitur v1.18.0,
   sedangkan server lain cukup memakai satu invite publik dan `/setup start`. Discord memberikan
@@ -37,8 +66,8 @@ Updated: 2026-08-21
   membaca token.
 - During the first red test, importing the legacy deploy module started its old asynchronous
   home-guild registration path before the missing new modules terminated the test process. No
-  success response was observed. Final read-only Discord audit still shows exactly 12 home commands
-  and no `/setup` in either global or home scope, so external command state is materially unchanged.
+  success response was observed. A later authorized v1.19.1 registration replaced that historical
+  baseline with one global `/setup` and the same 12 home commands.
   The new main guard prevents imports from making any request.
 - Architecture gate internal berada di `docs/architecture/DISCORD_PUBLIC_BETA_V119.md`.
 - Public Beta focused tests pass 28/28 and the full suite passes 371/371 on exact Node 22.23.2.

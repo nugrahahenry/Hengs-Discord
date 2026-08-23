@@ -1,11 +1,29 @@
 const { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 
+const STYLE_LABELS = Object.freeze({
+  balanced: 'Santai',
+  concise: 'Ringkas',
+  technical: 'Teknis',
+});
+
 const data = new SlashCommandBuilder()
   .setName('setup')
   .setDescription('Kelola Hengs Public Beta di server ini')
   .setDMPermission(false)
   .addSubcommand(subcommand => subcommand.setName('start').setDescription('Aktifkan mention chat Hengs'))
   .addSubcommand(subcommand => subcommand.setName('status').setDescription('Lihat status Hengs'))
+  .addSubcommand(subcommand => subcommand
+    .setName('style')
+    .setDescription('Pilih gaya balasan Hengs')
+    .addStringOption(option => option
+      .setName('preset')
+      .setDescription('Gaya yang dipakai untuk semua mention chat di server ini')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Santai dan seimbang', value: 'balanced' },
+        { name: 'Ringkas dan langsung', value: 'concise' },
+        { name: 'Teknis dan terstruktur', value: 'technical' },
+      )))
   .addSubcommand(subcommand => subcommand.setName('disable').setDescription('Nonaktifkan Hengs di server ini'));
 
 function canManage(interaction) {
@@ -31,14 +49,45 @@ async function execute(interaction, { guildAccess, guildConfigStore, publicGuild
     return;
   }
   if (subcommand === 'status') {
+    const publicStyle = STYLE_LABELS[scope.config?.settings?.replyStyle || 'balanced']
+      || STYLE_LABELS.balanced;
     const messages = {
       home: 'Ini server utama Hengs. Semua fitur lama tetap dikelola dari sini.',
-      public: 'Hengs Public Beta aktif. Member dapat mention Hengs untuk mengobrol.',
+      public: `Hengs Public Beta aktif. Member dapat mention Hengs untuk mengobrol. Gaya balasan: **${publicStyle}**.`,
       pending: 'Hengs belum aktif di server ini. Jalankan /setup start untuk memulai.',
       denied: 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.',
       dm: 'Setup hanya tersedia di dalam server Discord.',
     };
     await replyPrivate(interaction, messages[scope.kind] || messages.denied);
+    return;
+  }
+  if (subcommand === 'style') {
+    if (scope.kind === 'home') {
+      await replyPrivate(interaction, 'Server utama memakai karakter pribadi Hengs dan tidak diubah lewat setup publik.');
+      return;
+    }
+    if (scope.kind === 'pending') {
+      await replyPrivate(interaction, 'Aktifkan Hengs lebih dulu lewat /setup start sebelum memilih gaya balasan.');
+      return;
+    }
+    if (scope.kind !== 'public') {
+      await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+      return;
+    }
+    const replyStyle = interaction.options.getString('preset', true);
+    const label = STYLE_LABELS[replyStyle];
+    if (!label) {
+      await replyPrivate(interaction, 'Pilihan gaya tidak dikenali. Pilih salah satu preset yang tersedia.');
+      return;
+    }
+    const result = guildConfigStore.setReplyStyle({
+      guildId: interaction.guildId,
+      replyStyle,
+      setupBy: interaction.user.id,
+    });
+    await replyPrivate(interaction, result.changed
+      ? `Gaya balasan Hengs sekarang **${label}**.`
+      : `Gaya balasan Hengs memang sudah **${label}**. Tidak ada pengaturan yang diubah.`);
     return;
   }
   if (subcommand === 'disable') {

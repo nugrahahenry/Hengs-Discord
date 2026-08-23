@@ -63,6 +63,14 @@ test('AI context is separated by guild and public prompt has no Henry biography'
   assert.match(prompt, /Hengs/i);
   assert.doesNotMatch(prompt, /Henry|semester|Henzzz/i);
   assert.doesNotMatch(prompt, /[\u2013\u2014]/);
+  const concise = buildSystemPrompt({ kind: 'public', replyStyle: 'concise' });
+  const technical = buildSystemPrompt({ kind: 'public', replyStyle: 'technical' });
+  assert.match(concise, /ringkas/i);
+  assert.match(technical, /teknis/i);
+  assert.throws(
+    () => buildSystemPrompt({ kind: 'public', replyStyle: 'custom prompt' }),
+    /PUBLIC_REPLY_STYLE_INVALID/,
+  );
 });
 
 test('AI module can load during secretless immutable release acceptance', () => {
@@ -86,6 +94,8 @@ test('runtime gates legacy paths before public traffic', () => {
   assert.match(source, /guildAccess\.classify\(msg\.guildId\)/);
   assert.match(source, /messageScope\.kind !== 'home' && messageScope\.kind !== 'public'/);
   assert.match(source, /publicTrafficGuard\.acquire\(msg\.guildId\)/);
+  assert.match(source, /replyStyle: messageScope\.config\?\.settings\?\.replyStyle \|\| 'balanced'/);
+  assert.match(source, /Events\.GuildCreate/);
   assert.match(source, /lease\.release\(\)/);
   assert.match(source, /content: reply\.substring\(0, 2000\),\s+allowedMentions: \{ parse: \[\] \}/);
   assert.match(source, /\[public-ai\] PUBLIC_AI_FAILED/);

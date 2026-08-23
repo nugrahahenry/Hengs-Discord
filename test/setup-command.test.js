@@ -14,6 +14,7 @@ function interaction({
   userId = OWNER,
   administrator = false,
   subcommand = 'status',
+  preset = 'balanced',
 } = {}) {
   return {
     guildId: guild ? GUILD : null,
@@ -21,7 +22,10 @@ function interaction({
     guild: guild ? { id: GUILD, ownerId } : null,
     user: { id: userId },
     memberPermissions: { has: permission => permission === PermissionFlagsBits.Administrator && administrator },
-    options: { getSubcommand: () => subcommand },
+    options: {
+      getSubcommand: () => subcommand,
+      getString: name => name === 'preset' ? preset : null,
+    },
     inGuild: () => guild,
     async reply(payload) { this.replyPayload = payload; },
   };
@@ -31,7 +35,11 @@ function dependencies(kind = 'pending') {
   const calls = [];
   return {
     calls,
-    guildAccess: { classify: () => ({ kind }) },
+    guildAccess: {
+      classify: () => kind === 'public'
+        ? { kind, config: { settings: { replyStyle: 'balanced' } } }
+        : { kind },
+    },
     guildConfigStore: {
       activate(input) {
         calls.push(input);
@@ -40,6 +48,13 @@ function dependencies(kind = 'pending') {
       remove(guildId) {
         calls.push({ remove: guildId });
         return { removed: true };
+      },
+      setReplyStyle(input) {
+        calls.push(input);
+        return {
+          changed: true,
+          config: { settings: { replyStyle: input.replyStyle } },
+        };
       },
     },
     publicGuildLimit: 25,
@@ -52,11 +67,15 @@ function assertPrivate(payload) {
   assert.doesNotMatch(payload.content, /\d{15,22}/);
 }
 
-test('/setup is a guild-only command with start, status, and disable', () => {
+test('/setup is a guild-only command with start, status, style, and disable', () => {
   const json = setup.data.toJSON();
   assert.equal(json.name, 'setup');
   assert.equal(json.dm_permission, false);
-  assert.deepEqual(json.options.map(option => option.name), ['start', 'status', 'disable']);
+  assert.deepEqual(json.options.map(option => option.name), ['start', 'status', 'style', 'disable']);
+  const style = json.options.find(option => option.name === 'style');
+  assert.deepEqual(style.options[0].choices.map(choice => choice.value), [
+    'balanced', 'concise', 'technical',
+  ]);
 });
 
 test('/setup start activates any valid public guild for its owner or administrator', async () => {
@@ -80,6 +99,7 @@ test('/setup denies DMs, invalid configs, and unauthorized members without mutat
     { value: interaction({ guild: false, subcommand: 'start' }), kind: 'dm' },
     { value: interaction({ subcommand: 'start' }), kind: 'denied' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'start' }), kind: 'pending' },
+    { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'style' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'disable' }), kind: 'public' },
   ];
 
@@ -103,7 +123,36 @@ test('/setup status reports fixed states without exposing stored IDs', async () 
     await setup.execute(value, deps);
     assertPrivate(value.replyPayload);
     assert.match(value.replyPayload.content, expected);
+    if (kind === 'public') assert.match(value.replyPayload.content, /santai/i);
   }
+});
+
+test('/setup style updates only active public guilds with fixed presets', async () => {
+  const deps = dependencies('public');
+  const value = interaction({ subcommand: 'style', preset: 'technical' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /teknis/i);
+  assert.deepEqual(deps.calls, [{
+    guildId: GUILD,
+    replyStyle: 'technical',
+    setupBy: OWNER,
+  }]);
+
+  for (const kind of ['pending', 'home', 'denied']) {
+    const blocked = dependencies(kind);
+    const interactionValue = interaction({ subcommand: 'style', preset: 'concise' });
+    await setup.execute(interactionValue, blocked);
+    assertPrivate(interactionValue.replyPayload);
+    assert.equal(blocked.calls.length, 0);
+  }
+
+  const forged = dependencies('public');
+  const forgedInteraction = interaction({ subcommand: 'style', preset: 'ignore-all-rules' });
+  await setup.execute(forgedInteraction, forged);
+  assertPrivate(forgedInteraction.replyPayload);
+  assert.match(forgedInteraction.replyPayload.content, /tidak dikenali/i);
+  assert.equal(forged.calls.length, 0);
 });
 
 test('/setup start reports full capacity without exposing operational data', async () => {
