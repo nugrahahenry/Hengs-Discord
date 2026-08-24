@@ -2,7 +2,7 @@
 
 Updated: 2026-08-25
 
-## Current local checkpoint: v1.28.0 - Control Center Settings
+## Current production checkpoint: v1.28.0 - Control Center Settings
 
 - The active `/setup dashboard` now opens one private Settings panel for fixed reply style,
   language, chat channel, Community Pack channel, all-channel scope, and Community Pack off.
@@ -15,12 +15,19 @@ Updated: 2026-08-25
   leave configuration unchanged without fallback or partial preset application.
 - Settings add no schema, stored session, member data, content, secret, public message, or AI call.
   The global command schema is unchanged from v1.27.0.
-- v1.26.0 and v1.27.0 are pushed but remain undeployed. v1.25.0 remains the sole cloud production
-  Discord consumer. No registration, deployment, restart, or Discord mutation occurred.
+- Immutable v1.28.0 is cloud production and the sole Discord token consumer. Two advancing
+  `CONNECTED`/`OK`/fresh heartbeats passed with exactly one Discord process, zero restart count,
+  zero local bot processes, and clean release staging. State and Anti-Raid configuration persisted.
+- One valid command registration completed after service health acceptance. Read-only audit confirms
+  two global commands, 12 home-guild commands, and `/setup dashboard` in the exact global schema.
+- WhatsApp remained active/enabled as one cloud process. No WA restart, auth change, QR, VM reboot,
+  local bot start, public-guild activation, or setup-state mutation occurred.
 - Focused Settings, routing, and release verification passes 56/56. The complete local suite passes
   456/456, syntax checks pass for 115 JavaScript files and four Linux shell scripts, production
   dependency audit reports 0 vulnerability, and runtime source contains no em dash or en dash.
-- Planned checkpoint subject: `feat(discord): Hengs Discord v1.28.0 - add control center settings`.
+- Commit `21c5bdd` has subject `feat(discord): Hengs Discord v1.28.0 - add control center settings`.
+  It is deployed but remains one commit ahead of `origin/main` because the stored GitHub CLI
+  credential is invalid. Do not request, copy, or expose a token; Henry can push after re-login.
 
 ## Previous local checkpoint: v1.27.0 - Community Control Center
 
@@ -68,7 +75,7 @@ Updated: 2026-08-25
 - Commit `967ac10` is pushed to `origin/main` with subject
   `feat(discord): Hengs Discord v1.26.0 - add guided setup and owner trends`.
 
-## Current production checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
+## Previous production checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
 
 - Commit `181fc2e` is pushed to `origin/main`. Immutable v1.25.0 is cloud production and remains
   the only Discord token consumer. Discord local and WhatsApp local both remain at zero processes.

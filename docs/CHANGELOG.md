@@ -35,6 +35,17 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   456/456, production dependency audit reports 0 vulnerability, and runtime source contains no em
   dash or en dash.
 
+### Operations
+- Immutable v1.28.0 is live as the only Discord token consumer. Two advancing healthy heartbeats,
+  one cloud Discord process, zero service restarts, zero local bot processes, and clean staging
+  passed acceptance. Persistent state and the configured Anti-Raid mode were preserved.
+- One valid command registration completed after runtime health acceptance. Read-only audit confirms
+  two global commands, 12 home-guild commands, and the exact `/setup dashboard` schema.
+- WhatsApp remained active/enabled as exactly one cloud process. Deployment did not restart WA,
+  change WA auth, reboot the VM, start a local bot, or activate a public guild.
+- Commit `21c5bdd` remains local because the existing GitHub CLI credential is invalid. Cloud
+  deployment used its checksum-verified immutable archive; publication to `origin/main` is pending.
+
 ## [1.27.0] - 2026-08-25
 
 ### Added

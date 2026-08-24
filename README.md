@@ -4,7 +4,7 @@
 
 **Current local checkpoint:** v1.28.0 Control Center Settings
 
-**Current cloud production:** v1.25.0
+**Current cloud production:** v1.28.0
 
 ## ✨ Fitur Utama
 
@@ -87,24 +87,24 @@ stop-bot.bat            # hentikan bot
 Dukungan deployment Always Free untuk Ubuntu tersedia bagi A1 Flex dan E2 Micro. A1 memakai
 sizing fleksibel, sedangkan E2 adalah fixed shape dan memiliki config/state terpisah agar histori
 acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInstance`; error
-provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.25.0 menyediakan
+provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.28.0 menyediakan
 dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.25.0 terpasang sebagai
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.28.0 terpasang sebagai
 production `current` dan lulus dependency, test, command-schema, serta server acceptance di Ubuntu. Secret serta state persisten
 dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
 Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal
 berhenti sebagai jalur rollback. Initial start, restart service, dan reboot VM masing-masing lulus
-dua heartbeat `CONNECTED` yang segar. Deployment v1.25.0 mempertahankan konfigurasi Anti-Raid
+dua heartbeat `CONNECTED` yang segar. Deployment v1.28.0 mempertahankan konfigurasi Anti-Raid
 yang sudah tersimpan tanpa melakukan perubahan mode. Community Pack tetap opt-in dan belum
 diaktifkan pada server publik mana pun oleh deployment. Ikuti
 [panduan cloud](docs/CLOUD-DEPLOY.md) dan jangan menyalakan consumer lokal sebelum cloud dibuktikan
 berhenti.
 
-Checkpoint v1.26.0 dan v1.27.0 sudah berada di GitHub tetapi belum dideploy. Checkpoint lokal
-v1.28.0 menambahkan menu Settings tanpa mengubah schema slash command. Deployment gabungan berikutnya
-tetap memerlukan satu registrasi global command untuk `/setup dashboard` setelah health service lulus.
-Tidak ada fitur v1.26.0 sampai v1.28.0 yang aktif di cloud saat ini.
+Checkpoint v1.26.0 sampai v1.28.0 sudah digabung ke cloud. Registrasi command berjalan satu kali
+setelah health service lulus, dan audit memastikan `/setup dashboard` tersedia bersama dua command
+global serta 12 command home. Discord cloud tetap menjadi satu-satunya consumer; kedua bot lokal
+berhenti dan Hengs WA cloud tetap aktif tanpa restart atau perubahan auth.
 
 ## 💬 Commands
 
