@@ -2,7 +2,27 @@
 
 Updated: 2026-08-25
 
-## Current local checkpoint: v1.27.0 - Community Control Center
+## Current local checkpoint: v1.28.0 - Control Center Settings
+
+- The active `/setup dashboard` now opens one private Settings panel for fixed reply style,
+  language, chat channel, Community Pack channel, all-channel scope, and Community Pack off.
+- Style and language use existing enums. Both channel inputs accept exactly one Discord-selected
+  text or announcement channel from the current guild and never accept typed IDs or names.
+- Chat selection requires View Channel, Send Messages, and Read Message History. Community Pack
+  selection separately requires View Channel, Send Messages, and Attach Files.
+- Every interaction rechecks fresh public scope plus owner or Administrator access, then calls only
+  one existing atomic schema 4 setter. Invalid, stale, forged, cross-guild, or incomplete inputs
+  leave configuration unchanged without fallback or partial preset application.
+- Settings add no schema, stored session, member data, content, secret, public message, or AI call.
+  The global command schema is unchanged from v1.27.0.
+- v1.26.0 and v1.27.0 are pushed but remain undeployed. v1.25.0 remains the sole cloud production
+  Discord consumer. No registration, deployment, restart, or Discord mutation occurred.
+- Focused Settings, routing, and release verification passes 56/56. The complete local suite passes
+  456/456, syntax checks pass for 115 JavaScript files and four Linux shell scripts, production
+  dependency audit reports 0 vulnerability, and runtime source contains no em dash or en dash.
+- Planned checkpoint subject: `feat(discord): Hengs Discord v1.28.0 - add control center settings`.
+
+## Previous local checkpoint: v1.27.0 - Community Control Center
 
 - `/setup dashboard` opens an ephemeral panel for pending and active public guilds. It summarizes
   fixed setup state, existing seven-day aggregate usage, trend, and read-time configuration health.
@@ -22,7 +42,8 @@ Updated: 2026-08-25
   en dash.
 - v1.25.0 remains cloud production. No Discord write, registration, deployment, restart, or cloud
   mutation occurred.
-- Planned checkpoint subject: `feat(discord): Hengs Discord v1.27.0 - add community control center`.
+- Commit `13a91e3` is pushed to `origin/main` with subject
+  `feat(discord): Hengs Discord v1.27.0 - add community control center`.
 
 ## Previous local checkpoint: v1.26.0 - Guided Setup and Owner Insights Phase 3
 

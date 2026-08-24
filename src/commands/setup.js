@@ -7,6 +7,7 @@ const {
 } = require('../guilds/config-store');
 const {
   buildSetupWizardComponents,
+  canUseChatChannel,
   canUseSetupChannel,
   isSetupWizardInteraction,
   resolveSelectedChannel,
@@ -14,6 +15,7 @@ const {
 } = require('../guilds/setup-wizard');
 const {
   buildDashboardComponents,
+  buildDashboardSettingsComponents,
   buildDisableConfirmationComponents,
   resolveDashboardAction,
 } = require('../guilds/setup-dashboard');
@@ -283,6 +285,32 @@ async function renderDashboard(interaction, dependencies, scope, method = 'reply
   await interaction[method](payload);
 }
 
+function dashboardSettingsCopy(config, notice = null) {
+  const style = STYLE_LABELS[resolveReplyStyle(config)];
+  const language = LANGUAGE_LABELS[resolveLanguage(config)];
+  const channel = CHANNEL_LABELS[resolveChannelScope(config).channelMode];
+  const welcome = resolveCommunityWelcome(config).welcomeEnabled ? 'Aktif' : 'Nonaktif';
+  return [
+    '**Pengaturan Hengs**',
+    notice,
+    '',
+    `Gaya: **${style}**`,
+    `Bahasa: **${language}**`,
+    `Cakupan chat: **${channel}**`,
+    `Community Pack: **${welcome}**`,
+    '',
+    'Setiap pilihan hanya mengubah satu pengaturan. Channel dipilih langsung dari Discord tanpa mengetik ID.',
+  ].filter(line => line !== null).join('\n');
+}
+
+async function renderDashboardSettings(interaction, config, notice = null) {
+  await interaction.update({
+    content: dashboardSettingsCopy(config, notice),
+    components: buildDashboardSettingsComponents(config),
+    allowedMentions: { parse: [] },
+  });
+}
+
 async function updateWizard(interaction, content, { retry = false } = {}) {
   await interaction.update({
     content,
@@ -358,6 +386,16 @@ function disableConfirmationCopy() {
   ].join('\n');
 }
 
+function selectedDashboardValue(interaction) {
+  return Array.isArray(interaction.values) && interaction.values.length === 1
+    ? interaction.values[0]
+    : null;
+}
+
+function fixedLabel(labels, value) {
+  return typeof value === 'string' && Object.hasOwn(labels, value) ? labels[value] : null;
+}
+
 async function handleSetupDashboard(interaction, dependencies) {
   const action = resolveDashboardAction(interaction);
   if (!action) return false;
@@ -402,11 +440,15 @@ async function handleSetupDashboard(interaction, dependencies) {
     return true;
   }
 
-  if (action === 'refresh' || action === 'cancelDisable') {
+  if (action === 'refresh' || action === 'cancelDisable' || action === 'back') {
     await renderDashboard(interaction, dependencies, scope, 'update');
     return true;
   }
-  if (action === 'start' || action === 'repair') {
+  if (action === 'start') {
+    if (scope.kind === 'public') {
+      await renderDashboardSettings(interaction, scope.config);
+      return true;
+    }
     await interaction.update({
       content: setupWizardCopy(scope.kind),
       components: buildSetupWizardComponents(),
@@ -416,6 +458,101 @@ async function handleSetupDashboard(interaction, dependencies) {
   }
   if (scope.kind !== 'public') {
     await renderDashboard(interaction, dependencies, scope, 'update');
+    return true;
+  }
+  if (action === 'settings' || action === 'repair') {
+    await renderDashboardSettings(interaction, scope.config);
+    return true;
+  }
+  if (action === 'style') {
+    const replyStyle = selectedDashboardValue(interaction);
+    const label = fixedLabel(STYLE_LABELS, replyStyle);
+    if (!label) {
+      await renderDashboardSettings(interaction, scope.config, 'Pengaturan belum diubah karena pilihan gaya tidak dikenali.');
+      return true;
+    }
+    const result = guildConfigStore.setReplyStyle({
+      guildId: interaction.guildId,
+      replyStyle,
+      setupBy: interaction.user.id,
+    });
+    await renderDashboardSettings(interaction, result.config, `Gaya balasan sekarang ${label}.`);
+    return true;
+  }
+  if (action === 'language') {
+    const language = selectedDashboardValue(interaction);
+    const label = fixedLabel(LANGUAGE_LABELS, language);
+    if (!label) {
+      await renderDashboardSettings(interaction, scope.config, 'Pengaturan belum diubah karena pilihan bahasa tidak dikenali.');
+      return true;
+    }
+    const result = guildConfigStore.setLanguage({
+      guildId: interaction.guildId,
+      language,
+      setupBy: interaction.user.id,
+    });
+    await renderDashboardSettings(interaction, result.config, `Bahasa balasan sekarang ${label}.`);
+    return true;
+  }
+  if (action === 'chatChannel') {
+    const channelId = selectedDashboardValue(interaction);
+    const channel = channelId ? await resolveSelectedChannel(interaction.guild, channelId) : null;
+    if (!canUseChatChannel(channel, interaction.guild)) {
+      await renderDashboardSettings(
+        interaction,
+        scope.config,
+        'Pengaturan belum diubah. Channel chat memerlukan View Channel, Send Messages, dan Read Message History.',
+      );
+      return true;
+    }
+    const result = guildConfigStore.setChannelScope({
+      guildId: interaction.guildId,
+      channelMode: 'current',
+      channelId: channel.id,
+      setupBy: interaction.user.id,
+    });
+    await renderDashboardSettings(interaction, result.config, 'Hengs sekarang menjawab hanya di channel yang dipilih.');
+    return true;
+  }
+  if (action === 'communityChannel') {
+    if (!communityPack) throw new Error('SETUP_DEPENDENCY_MISSING');
+    const channelId = selectedDashboardValue(interaction);
+    const channel = channelId ? await resolveSelectedChannel(interaction.guild, channelId) : null;
+    if (!channel || !communityPack.canUseChannel(channel, interaction.guild)) {
+      await renderDashboardSettings(
+        interaction,
+        scope.config,
+        'Pengaturan belum diubah. Community Pack memerlukan View Channel, Send Messages, dan Attach Files.',
+      );
+      return true;
+    }
+    const result = guildConfigStore.setCommunityWelcome({
+      guildId: interaction.guildId,
+      enabled: true,
+      channelId: channel.id,
+      setupBy: interaction.user.id,
+    });
+    await renderDashboardSettings(interaction, result.config, 'Community Pack aktif di channel yang dipilih.');
+    return true;
+  }
+  if (action === 'allChannels') {
+    const result = guildConfigStore.setChannelScope({
+      guildId: interaction.guildId,
+      channelMode: 'all',
+      channelId: null,
+      setupBy: interaction.user.id,
+    });
+    await renderDashboardSettings(interaction, result.config, 'Hengs sekarang dapat menjawab di semua channel.');
+    return true;
+  }
+  if (action === 'disableCommunity') {
+    const result = guildConfigStore.setCommunityWelcome({
+      guildId: interaction.guildId,
+      enabled: false,
+      channelId: null,
+      setupBy: interaction.user.id,
+    });
+    await renderDashboardSettings(interaction, result.config, 'Community Pack sudah dinonaktifkan.');
     return true;
   }
   if (action === 'preview') {

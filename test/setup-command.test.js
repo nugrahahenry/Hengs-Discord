@@ -13,6 +13,21 @@ const OWNER = '323456789012345678';
 const ADMIN = '423456789012345678';
 const CHANNEL = '523456789012345678';
 
+function publicConfig(settings = {}) {
+  return {
+    schemaVersion: 4,
+    settings: {
+      channelId: null,
+      channelMode: 'all',
+      language: 'auto',
+      replyStyle: 'balanced',
+      welcomeChannelId: null,
+      welcomeEnabled: false,
+      ...settings,
+    },
+  };
+}
+
 function interaction({
   guild = true,
   ownerId = OWNER,
@@ -56,8 +71,18 @@ function interaction({
       getString: name => ({ preset, mode, range, action }[name] ?? null),
     },
     inGuild: () => guild,
-    isButton: () => String(customId || '').startsWith('hengs-setup:dashboard:'),
-    isChannelSelectMenu: () => customId === 'hengs-setup:standard-channel',
+    isButton: () => String(customId || '').startsWith('hengs-setup:dashboard:')
+      && !['hengs-setup:dashboard:style', 'hengs-setup:dashboard:language',
+        'hengs-setup:dashboard:chat-channel', 'hengs-setup:dashboard:community-channel'].includes(customId),
+    isChannelSelectMenu: () => [
+      'hengs-setup:standard-channel',
+      'hengs-setup:dashboard:chat-channel',
+      'hengs-setup:dashboard:community-channel',
+    ].includes(customId),
+    isStringSelectMenu: () => [
+      'hengs-setup:dashboard:style',
+      'hengs-setup:dashboard:language',
+    ].includes(customId),
     async reply(payload) { this.replyPayload = payload; },
     async update(payload) { this.updatePayload = payload; },
   };
@@ -71,17 +96,7 @@ function dependencies(kind = 'pending') {
       classify: () => kind === 'public'
         ? {
           kind,
-          config: {
-            schemaVersion: 4,
-            settings: {
-              channelId: null,
-              channelMode: 'all',
-              language: 'auto',
-              replyStyle: 'balanced',
-              welcomeChannelId: null,
-              welcomeEnabled: false,
-            },
-          },
+          config: publicConfig(),
         }
         : { kind },
     },
@@ -102,23 +117,26 @@ function dependencies(kind = 'pending') {
         calls.push(input);
         return {
           changed: true,
-          config: { settings: { replyStyle: input.replyStyle } },
+          config: publicConfig({ replyStyle: input.replyStyle }),
         };
       },
       setLanguage(input) {
         calls.push(input);
-        return { changed: true, config: { settings: { language: input.language } } };
+        return { changed: true, config: publicConfig({ language: input.language }) };
       },
       setChannelScope(input) {
         calls.push(input);
         return {
           changed: true,
-          config: { settings: { channelMode: input.channelMode, channelId: input.channelId } },
+          config: publicConfig({ channelMode: input.channelMode, channelId: input.channelId }),
         };
       },
       setCommunityWelcome(input) {
         calls.push(input);
-        return { changed: true, config: { settings: input } };
+        return { changed: true, config: publicConfig({
+          welcomeChannelId: input.channelId,
+          welcomeEnabled: input.enabled,
+        }) };
       },
     },
     communityPack: {
@@ -242,7 +260,7 @@ test('/setup dashboard renders private pending and active control panels', async
   const buttons = active.replyPayload.components.flatMap(row => row.toJSON().components);
   assert.deepEqual(buttons.map(button => button.custom_id), [
     'hengs-setup:dashboard:refresh',
-    'hengs-setup:dashboard:repair',
+    'hengs-setup:dashboard:settings',
     'hengs-setup:dashboard:preview',
     'hengs-setup:dashboard:insights',
     'hengs-setup:dashboard:disable',
@@ -260,13 +278,25 @@ test('/setup dashboard degrades safely when aggregate health cannot be read', as
   assert.deepEqual(deps.calls, [{ log: '[public-dashboard] PUBLIC_DASHBOARD_READ_FAILED' }]);
 });
 
-test('dashboard repair opens the existing picker and preview stays private', async () => {
-  const repairDeps = dependencies('public');
-  const repair = interaction({ customId: 'hengs-setup:dashboard:repair' });
-  assert.equal(await setup.handleSetupComponent(repair, repairDeps), true);
-  assert.match(repair.updatePayload.content, /Hengs Standard/i);
-  assert.equal(repair.updatePayload.components[0].toJSON().components[0].type, 8);
-  assert.deepEqual(repairDeps.calls, []);
+test('dashboard settings opens fixed controls and preview stays private', async () => {
+  const settingsDeps = dependencies('public');
+  const settings = interaction({ customId: 'hengs-setup:dashboard:settings' });
+  assert.equal(await setup.handleSetupComponent(settings, settingsDeps), true);
+  assert.match(settings.updatePayload.content, /Pengaturan Hengs/i);
+  assert.equal(settings.updatePayload.components.length, 5);
+  assert.deepEqual(
+    settings.updatePayload.components.flatMap(row => row.toJSON().components.map(component => component.custom_id)),
+    [
+      'hengs-setup:dashboard:style',
+      'hengs-setup:dashboard:language',
+      'hengs-setup:dashboard:chat-channel',
+      'hengs-setup:dashboard:community-channel',
+      'hengs-setup:dashboard:all-channels',
+      'hengs-setup:dashboard:community-off',
+      'hengs-setup:dashboard:back',
+    ],
+  );
+  assert.deepEqual(settingsDeps.calls, []);
 
   const previewDeps = dependencies('public');
   const preview = interaction({ customId: 'hengs-setup:dashboard:preview' });
@@ -274,6 +304,140 @@ test('dashboard repair opens the existing picker and preview stays private', asy
   assertPrivate(preview.replyPayload);
   assert.match(preview.replyPayload.content, /preview Community Pack/i);
   assert.deepEqual(previewDeps.calls, [{ preview: true }]);
+});
+
+test('stale start opens settings for an active guild and Back is read-only', async () => {
+  const startDeps = dependencies('public');
+  const start = interaction({ customId: 'hengs-setup:dashboard:start' });
+  assert.equal(await setup.handleSetupDashboard(start, startDeps), true);
+  assert.match(start.updatePayload.content, /Pengaturan Hengs/i);
+  assert.deepEqual(startDeps.calls, []);
+
+  const backDeps = dependencies('public');
+  const back = interaction({ customId: 'hengs-setup:dashboard:back' });
+  assert.equal(await setup.handleSetupDashboard(back, backDeps), true);
+  assert.match(back.updatePayload.content, /Control Center/i);
+  assert.deepEqual(backDeps.calls, [{ getSummary: [GUILD, 7] }]);
+});
+
+test('dashboard settings apply fixed style and language one at a time', async () => {
+  const styleDeps = dependencies('public');
+  const style = interaction({
+    customId: 'hengs-setup:dashboard:style',
+    values: ['technical'],
+  });
+  assert.equal(await setup.handleSetupDashboard(style, styleDeps), true);
+  assert.match(style.updatePayload.content, /Gaya balasan sekarang Teknis/i);
+  assert.deepEqual(styleDeps.calls, [{
+    guildId: GUILD,
+    replyStyle: 'technical',
+    setupBy: OWNER,
+  }]);
+
+  const languageDeps = dependencies('public');
+  const language = interaction({
+    customId: 'hengs-setup:dashboard:language',
+    values: ['id'],
+  });
+  assert.equal(await setup.handleSetupDashboard(language, languageDeps), true);
+  assert.match(language.updatePayload.content, /Bahasa balasan sekarang Bahasa Indonesia/i);
+  assert.deepEqual(languageDeps.calls, [{
+    guildId: GUILD,
+    language: 'id',
+    setupBy: OWNER,
+  }]);
+});
+
+test('dashboard settings reject forged enums without mutation', async () => {
+  for (const [customId, value] of [
+    ['hengs-setup:dashboard:style', 'custom prompt'],
+    ['hengs-setup:dashboard:style', '__proto__'],
+    ['hengs-setup:dashboard:language', 'free-form'],
+  ]) {
+    const deps = dependencies('public');
+    const input = interaction({ customId, values: [value] });
+    assert.equal(await setup.handleSetupDashboard(input, deps), true);
+    assert.match(input.updatePayload.content, /belum diubah/i);
+    assert.deepEqual(deps.calls, []);
+  }
+});
+
+test('dashboard channel settings use separate chat and Community Pack permissions', async () => {
+  const chatDeps = dependencies('public');
+  const chat = interaction({ customId: 'hengs-setup:dashboard:chat-channel' });
+  chat.channel.permissionsFor = () => ({
+    has: permission => permission !== PermissionFlagsBits.AttachFiles,
+  });
+  assert.equal(await setup.handleSetupDashboard(chat, chatDeps), true);
+  assert.match(chat.updatePayload.content, /hanya di channel yang dipilih/i);
+  assert.deepEqual(chatDeps.calls, [{
+    guildId: GUILD,
+    channelMode: 'current',
+    channelId: CHANNEL,
+    setupBy: OWNER,
+  }]);
+
+  const communityDeps = dependencies('public');
+  communityDeps.communityPack.canUseChannel = () => false;
+  const community = interaction({ customId: 'hengs-setup:dashboard:community-channel' });
+  assert.equal(await setup.handleSetupDashboard(community, communityDeps), true);
+  assert.match(community.updatePayload.content, /Attach Files/i);
+  assert.deepEqual(communityDeps.calls, []);
+});
+
+test('dashboard channel settings reject invalid cardinality and cross-guild channels', async () => {
+  for (const values of [[], [CHANNEL, '623456789012345678']]) {
+    const deps = dependencies('public');
+    const value = interaction({
+      customId: 'hengs-setup:dashboard:chat-channel',
+      values,
+    });
+    assert.equal(await setup.handleSetupDashboard(value, deps), true);
+    assert.match(value.updatePayload.content, /belum diubah/i);
+    assert.deepEqual(deps.calls, []);
+  }
+
+  const crossGuildDeps = dependencies('public');
+  const crossGuild = interaction({ customId: 'hengs-setup:dashboard:community-channel' });
+  crossGuild.channel.guildId = '623456789012345678';
+  assert.equal(await setup.handleSetupDashboard(crossGuild, crossGuildDeps), true);
+  assert.match(crossGuild.updatePayload.content, /belum diubah/i);
+  assert.deepEqual(crossGuildDeps.calls, []);
+});
+
+test('dashboard settings can enable or disable Community Pack and allow all chat channels', async () => {
+  const enableDeps = dependencies('public');
+  const enable = interaction({ customId: 'hengs-setup:dashboard:community-channel' });
+  assert.equal(await setup.handleSetupDashboard(enable, enableDeps), true);
+  assert.match(enable.updatePayload.content, /Community Pack aktif/i);
+  assert.deepEqual(enableDeps.calls, [{
+    guildId: GUILD,
+    enabled: true,
+    channelId: CHANNEL,
+    setupBy: OWNER,
+  }]);
+
+  const disableDeps = dependencies('public');
+  const disable = interaction({ customId: 'hengs-setup:dashboard:community-off' });
+  assert.equal(await setup.handleSetupDashboard(disable, disableDeps), true);
+  assert.match(disable.updatePayload.content, /Community Pack sudah dinonaktifkan/i);
+  assert.deepEqual(disableDeps.calls, [{
+    guildId: GUILD,
+    enabled: false,
+    channelId: null,
+    setupBy: OWNER,
+  }]);
+
+  const allDeps = dependencies('public');
+  const all = interaction({ customId: 'hengs-setup:dashboard:all-channels' });
+  assert.equal(await setup.handleSetupDashboard(all, allDeps), true);
+  assert.match(all.updatePayload.content, /semua channel/i);
+  assert.deepEqual(allDeps.calls, [{
+    guildId: GUILD,
+    channelMode: 'all',
+    channelId: null,
+    setupBy: OWNER,
+  }]);
 });
 
 test('dashboard insights reuses the aggregate-only report', async () => {

@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-08-25
+
+### Added
+- The private Control Center now opens one Settings panel with fixed reply-style and language
+  selects, one chat-channel picker, one Community Pack channel picker, All Channels, Turn Off
+  Community Pack, and Back actions.
+- Every successful selection re-renders the current validated settings with one fixed confirmation
+  notice. Existing slash commands remain available as equivalent controls.
+
+### Changed
+- The active dashboard replaces Select Channel Again with Settings. The legacy v1.27.0 Repair
+  component remains safely accepted during its short interaction lifetime and opens Settings.
+- Chat-channel health and selection require View Channel, Send Messages, and Read Message History.
+  Attach Files remains a separate Community Pack requirement.
+- v1.28.0 does not change slash-command schema, so the combined deployment still needs only the one
+  `/setup dashboard` registration introduced by v1.27.0.
+
+### Security
+- Every select and button rechecks fresh public-guild scope plus owner or Administrator access.
+- Style and language accept only existing enums. Channel pickers require exactly one current-guild
+  text or announcement channel selected through Discord, never typed IDs or channel names.
+- Each action invokes one existing atomic schema 4 setter. Invalid values, cardinality, channel
+  type, ownership, or permissions leave configuration unchanged with no fallback or partial preset.
+- Settings add no persistent field, component session, member data, content, secret, or AI call.
+
+### Verification
+- Focused Settings, routing, and release verification passes 56/56. The complete local suite passes
+  456/456, production dependency audit reports 0 vulnerability, and runtime source contains no em
+  dash or en dash.
+
 ## [1.27.0] - 2026-08-25
 
 ### Added

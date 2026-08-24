@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.27.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
+Public Beta v1.28.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
 harus diaktifkan owner. Command admin, moderasi, laporan, Ops Hub, Event Hub, reaction role, dan
 voice tetap khusus server utama.
 
@@ -144,6 +144,8 @@ voice tetap khusus server utama.
 7. Jalankan `/setup dashboard` untuk membuka Control Center privat. Dari sana pengelola dapat
    melihat status, kesehatan konfigurasi, tren penggunaan, memilih ulang channel, preview kartu,
    membuka Insights, atau memulai konfirmasi nonaktifkan.
+   Tombol Pengaturan membuka preset gaya dan bahasa, pemilih channel chat, pemilih channel
+   Community Pack, mode Semua Channel, serta tombol Matikan Community Pack.
 8. Bila perlu, ubah gaya melalui `/setup style`, bahasa melalui `/setup language`, cakupan melalui
    `/setup channel`, atau Community Pack melalui `/setup welcome`.
 9. Jalankan `/setup welcome action:preview` atau tombol Preview Welcome untuk melihat kartu secara privat.
@@ -164,8 +166,9 @@ server secara otomatis. Wizard hanya menerima satu channel dari pemilih bawaan D
 memeriksa izin sebelum satu write atomik. Preset Hengs Standard adalah mapping publik tetap dan
 tidak menyalin pengaturan, channel, role, atau data server utama Henry.
 
-Checkpoint v1.27.0 menambahkan subcommand `/setup dashboard`, sehingga deployment gabungan
-v1.26.0 dan v1.27.0 memerlukan satu registrasi global command setelah health service lulus.
+Checkpoint v1.28.0 tidak mengubah schema slash command. Deployment gabungan v1.26.0 sampai
+v1.28.0 tetap memerlukan satu registrasi global command untuk `/setup dashboard` setelah health
+service lulus.
 
 Jangan menjalankan `npm run deploy` dari laptop yang belum direview. Perintah itu melakukan
 registrasi eksternal: `/setup` dan `/hengs` menjadi global, sedangkan seluruh command lama tetap didaftarkan

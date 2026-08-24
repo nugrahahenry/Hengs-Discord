@@ -4,6 +4,7 @@ const test = require('node:test');
 const {
   DASHBOARD_ACTION_IDS,
   buildDashboardComponents,
+  buildDashboardSettingsComponents,
   buildDisableConfirmationComponents,
   resolveDashboardAction,
 } = require('../src/guilds/setup-dashboard');
@@ -19,13 +20,43 @@ test('dashboard exposes only fixed pending and public actions', () => {
   ]);
   assert.deepEqual(ids(buildDashboardComponents('public')), [
     DASHBOARD_ACTION_IDS.refresh,
-    DASHBOARD_ACTION_IDS.repair,
+    DASHBOARD_ACTION_IDS.settings,
     DASHBOARD_ACTION_IDS.preview,
     DASHBOARD_ACTION_IDS.insights,
     DASHBOARD_ACTION_IDS.disable,
   ]);
   assert.deepEqual(buildDashboardComponents('home'), []);
   assert.deepEqual(buildDashboardComponents('denied'), []);
+});
+
+test('settings panel exposes fixed enums, channel pickers, and exact buttons', () => {
+  const rows = buildDashboardSettingsComponents({
+    schemaVersion: 4,
+    settings: {
+      channelId: null,
+      channelMode: 'all',
+      language: 'id',
+      replyStyle: 'technical',
+      welcomeChannelId: null,
+      welcomeEnabled: false,
+    },
+  });
+  assert.equal(rows.length, 5);
+  assert.deepEqual(ids(rows), [
+    DASHBOARD_ACTION_IDS.style,
+    DASHBOARD_ACTION_IDS.language,
+    DASHBOARD_ACTION_IDS.chatChannel,
+    DASHBOARD_ACTION_IDS.communityChannel,
+    DASHBOARD_ACTION_IDS.allChannels,
+    DASHBOARD_ACTION_IDS.disableCommunity,
+    DASHBOARD_ACTION_IDS.back,
+  ]);
+  const style = rows[0].toJSON().components[0];
+  const language = rows[1].toJSON().components[0];
+  assert.deepEqual(style.options.map(option => option.value), ['balanced', 'concise', 'technical']);
+  assert.equal(style.options.find(option => option.value === 'technical').default, true);
+  assert.deepEqual(language.options.map(option => option.value), ['auto', 'id', 'en']);
+  assert.equal(language.options.find(option => option.value === 'id').default, true);
 });
 
 test('disable confirmation has one destructive action and one cancel action', () => {
@@ -52,4 +83,19 @@ test('dashboard action resolver accepts only exact button IDs', () => {
     customId: DASHBOARD_ACTION_IDS.refresh,
     isButton: () => false,
   }), null);
+  assert.equal(resolveDashboardAction({
+    customId: DASHBOARD_ACTION_IDS.style,
+    isButton: () => false,
+    isStringSelectMenu: () => true,
+  }), 'style');
+  assert.equal(resolveDashboardAction({
+    customId: DASHBOARD_ACTION_IDS.style,
+    isButton: () => true,
+    isStringSelectMenu: () => false,
+  }), null);
+  assert.equal(resolveDashboardAction({
+    customId: DASHBOARD_ACTION_IDS.chatChannel,
+    isButton: () => false,
+    isChannelSelectMenu: () => true,
+  }), 'chatChannel');
 });

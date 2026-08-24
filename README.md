@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.27.0 Community Control Center
+**Current local checkpoint:** v1.28.0 Control Center Settings
 
 **Current cloud production:** v1.25.0
 
@@ -15,6 +15,9 @@
 - **Community Control Center:** `/setup dashboard` membuka panel privat untuk melihat status,
   kesehatan konfigurasi, tren penggunaan, memperbaiki channel, preview kartu, membuka Insights,
   atau menonaktifkan Hengs melalui konfirmasi kedua
+- **Control Center Settings:** menu privat menyediakan preset gaya dan bahasa, pemilih channel chat,
+  pemilih channel Community Pack, mode semua channel, serta tombol mematikan Community Pack tanpa
+  command tambahan atau ID manual
 - **Owner Insights:** owner atau Administrator dapat membuka ringkasan penggunaan privat lewat
   `/setup insights`. Laporan menampilkan hari aktif, rata-rata, hari tersibuk, cakupan feedback,
   tingkat membantu, tren tujuh hari, kesehatan konfigurasi, dan saran tetap tanpa menyimpan isi
@@ -98,9 +101,10 @@ diaktifkan pada server publik mana pun oleh deployment. Ikuti
 [panduan cloud](docs/CLOUD-DEPLOY.md) dan jangan menyalakan consumer lokal sebelum cloud dibuktikan
 berhenti.
 
-Checkpoint v1.26.0 sudah berada di GitHub tetapi belum dideploy. Checkpoint lokal v1.27.0 menambahkan
-`/setup dashboard`, sehingga deployment gabungan berikutnya memerlukan satu registrasi global command
-setelah health service lulus. Tidak ada fitur v1.26.0 atau v1.27.0 yang aktif di cloud saat ini.
+Checkpoint v1.26.0 dan v1.27.0 sudah berada di GitHub tetapi belum dideploy. Checkpoint lokal
+v1.28.0 menambahkan menu Settings tanpa mengubah schema slash command. Deployment gabungan berikutnya
+tetap memerlukan satu registrasi global command untuk `/setup dashboard` setelah health service lulus.
+Tidak ada fitur v1.26.0 sampai v1.28.0 yang aktif di cloud saat ini.
 
 ## 💬 Commands
 

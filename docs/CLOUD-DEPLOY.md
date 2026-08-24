@@ -1,6 +1,6 @@
 # Hengs Discord Always Free Deployment
 
-Panduan ini adalah kontrak operasi Hengs Discord v1.27.0 di Ubuntu. Cloud production
+Panduan ini adalah kontrak operasi Hengs Discord v1.28.0 di Ubuntu. Cloud production
 saat ini menjalankan v1.25.0. Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan
 Henry pada saat tindakan dilakukan.
 
@@ -24,7 +24,7 @@ serta mempertahankan 12 command lama di home guild.
 
 ## Prerequisites
 
-- Checkout Git yang bersih dan checkpoint `1.27.0` sudah di-commit.
+- Checkout Git yang bersih dan checkpoint `1.28.0` sudah di-commit.
 - Node.js 22 untuk membuat release lokal.
 - Akun Oracle Cloud dengan home region dan entitlement Always Free yang telah dicek
   ulang di Console. Hentikan proses bila label biaya atau entitlement tidak jelas.
@@ -182,8 +182,8 @@ Transfer arsip dan file `.sha256` yang dihasilkan ke VM. Dengan service masih be
 
 ```bash
 sudo bash deploy/linux/deploy-release.sh \
-  /root/hengs-discord-1.27.0-<commit>.tar.gz \
-  /root/hengs-discord-1.27.0-<commit>.tar.gz.sha256
+  /root/hengs-discord-1.28.0-<commit>.tar.gz \
+  /root/hengs-discord-1.28.0-<commit>.tar.gz.sha256
 ```
 
 Deployer memvalidasi checksum dan path archive, menolak symlink/hardlink, menjalankan
@@ -222,10 +222,10 @@ Cutover memerlukan approval baru. Urutannya tidak boleh dibalik:
 6. Lakukan acceptance read-only: bot online, guild/channel sesuai, command termuat, dan
    tidak ada pesan atau tindakan moderasi tak terduga.
 
-v1.27.0 menambah subcommand global `/setup dashboard`, sehingga registrasi command wajib dilakukan
-tepat satu kali setelah release sehat. Acceptance memeriksa channel picker `/setup start` dan
-Control Center secara privat tanpa menyimpan konfigurasi uji ke server yang tidak diotorisasi.
-Jangan mengubah mode Anti-Raid selama acceptance deployment.
+v1.28.0 mempertahankan subcommand global `/setup dashboard` yang ditambahkan v1.27.0, sehingga
+registrasi command wajib dilakukan tepat satu kali setelah release sehat. Acceptance memeriksa
+channel picker `/setup start`, Control Center, dan menu Settings secara privat tanpa menyimpan
+konfigurasi uji ke server yang tidak diotorisasi. Jangan mengubah mode Anti-Raid selama acceptance.
 
 ## Reboot Verification
 
