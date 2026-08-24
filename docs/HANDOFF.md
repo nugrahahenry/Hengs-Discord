@@ -2,10 +2,10 @@
 
 Updated: 2026-08-24
 
-## Current local checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
+## Current production checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
 
-- v1.24.0 remains cloud production and the only Discord token consumer. This checkpoint does not
-  authorize command registration, deployment, service restart, or any Discord write.
+- Commit `181fc2e` is pushed to `origin/main`. Immutable v1.25.0 is cloud production and remains
+  the only Discord token consumer. Discord local and WhatsApp local both remain at zero processes.
 - Public owners and Administrators can use `/setup welcome` to preview the existing Aurora card
   privately, enable member welcome and leave cards in the current channel, or disable them.
 - Community Pack is opt-in for every new and migrated guild. It requires View Channel, Send
@@ -24,13 +24,21 @@ Updated: 2026-08-24
 - Security review confirms targeted mentions only on welcome, no mentions on leave or preview,
   strict member and channel identifiers, exact permission checks, no fallback channel, atomic
   schema migration, and no new sensitive insight data.
+- Deployment used the committed immutable archive and preserved persistent state. Two advancing
+  `CONNECTED`/`OK`/fresh heartbeats passed with exactly one Discord process and zero service
+  restarts. Tailscale remained online and release staging plus transfer residue were clean.
+- Command registration ran exactly once after health acceptance. Read-only audit confirms two
+  global commands, 12 home-guild commands, and `/setup welcome` with the exact `enable`, `disable`,
+  and `preview` actions. Read-only server verification reports success.
+- WhatsApp remained v0.20.3 active/enabled, `CONNECTED`/`OK`/fresh, and exactly one process. No WA
+  restart, QR, auth change, VM reboot, local bot start, public guild activation, or Community Pack
+  enablement occurred.
 - Checkpoint subject: `feat(discord): Hengs Discord v1.25.0 - add community welcome controls and richer insights`.
 
-## Current production checkpoint: v1.24.0 - Layered Welcome Cards
+## Previous production checkpoint: v1.24.0 - Layered Welcome Cards
 
 - Commit `8f8ffa4` and the preceding v1.22.0 and v1.23.0 checkpoints are pushed to `origin/main`.
-  Immutable v1.24.0 is cloud production and the only Discord token consumer. Discord local and
-  WhatsApp local both remain at zero processes.
+  Immutable v1.24.0 was the previous cloud production release and sole Discord token consumer.
 - Welcome and leave cards now use a generated Aurora Gateway background beneath deterministic
   Canvas layers. The production asset is 900 x 280 and under 512 KiB. The high-resolution ImageGen
   master is retained in `assets/_originals/` for future visual work.

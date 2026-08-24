@@ -28,13 +28,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Public setup status now shows whether Community Pack is active.
 
 ### Operations
-- This checkpoint is local-only. No command registration, deployment, service restart, Discord
-  write, or public guild mutation occurred.
+- Immutable v1.25.0 is live as the only Discord token consumer. Command registration ran exactly
+  once after health acceptance. Read-only audit confirms two global commands, 12 home-guild
+  commands, and the exact `/setup welcome` actions.
+- Community Pack remains opt-in. Deployment did not enable it or mutate any public guild.
 
 ### Verification
 - The complete suite passes 429/429 on local Node 24.15.0. Syntax checks pass for 111 JavaScript
   files and four Linux shell files, whitespace checks pass, runtime source contains no em dash or
   en dash, and the production dependency audit reports 0 vulnerabilities.
+- Production acceptance passed two advancing `CONNECTED`/`OK`/fresh heartbeats with exactly one
+  Discord process and zero service restarts. WhatsApp v0.20.3 remained healthy and unchanged,
+  both local bots remained stopped, and release staging plus transfer residue were clean.
 
 ## [1.24.0] - 2026-08-23
 
