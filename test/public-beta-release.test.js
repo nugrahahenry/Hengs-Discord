@@ -117,9 +117,9 @@ test('runtime gates legacy paths before public traffic', () => {
   );
   assert.match(source, /buildPublicFeedbackComponents/);
   assert.match(source, /handlePublicFeedback/);
-  assert.match(source, /setupCommand\.handleSetupWizard/);
+  assert.match(source, /setupCommand\.handleSetupComponent/);
   assert.ok(
-    source.indexOf('setupCommand.handleSetupWizard')
+    source.indexOf('setupCommand.handleSetupComponent')
       < source.indexOf("if (!interaction.isChatInputCommand() && interactionScope.kind !== 'home') return;"),
   );
   assert.match(source, /isPublicChannelAllowed\(messageScope\.config, msg\.channelId\)/);

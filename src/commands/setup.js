@@ -12,6 +12,11 @@ const {
   resolveSelectedChannel,
   reviewPublicConfiguration,
 } = require('../guilds/setup-wizard');
+const {
+  buildDashboardComponents,
+  buildDisableConfirmationComponents,
+  resolveDashboardAction,
+} = require('../guilds/setup-dashboard');
 
 const STYLE_LABELS = Object.freeze({
   balanced: 'Santai',
@@ -33,6 +38,7 @@ const data = new SlashCommandBuilder()
   .setDescription('Kelola Hengs Public Beta di server ini')
   .setDMPermission(false)
   .addSubcommand(subcommand => subcommand.setName('start').setDescription('Aktifkan mention chat Hengs'))
+  .addSubcommand(subcommand => subcommand.setName('dashboard').setDescription('Buka pusat kontrol privat Hengs'))
   .addSubcommand(subcommand => subcommand.setName('status').setDescription('Lihat status Hengs'))
   .addSubcommand(subcommand => subcommand
     .setName('style')
@@ -172,6 +178,111 @@ function setupWizardCopy(scopeKind) {
   ].join('\n');
 }
 
+function insightsCopy(summary, config, configuration, days) {
+  const recommendations = ownerRecommendations(summary, config, configuration);
+  return [
+    `**Owner Insights, ${days} hari**`,
+    summary.accepted === 0 ? 'Belum ada permintaan publik yang tercatat pada rentang ini.' : null,
+    `Permintaan diterima: **${summary.accepted}**`,
+    `Hari aktif: **${summary.activeDays}** dengan rata-rata **${summary.averagePerActiveDay}** permintaan per hari aktif.`,
+    summary.busiestDay
+      ? `Hari tersibuk: **${summary.busiestDay}** dengan **${summary.busiestAccepted}** permintaan.`
+      : 'Hari tersibuk: belum ada data.',
+    `Dibatasi sementara: **${summary.busyRejected + summary.rateLimited}**`,
+    `Batas harian tercapai: **${summary.dailyLimited}**`,
+    `Feedback: **${summary.helpful} membantu | ${summary.needsWork} kurang pas** dari **${summary.feedbackCoverage}%** balasan.`,
+    `Tingkat membantu: **${summary.helpfulRate}%** dari feedback yang masuk.`,
+    usageTrendCopy(summary),
+    `Hari ini: **${summary.todayUsed}/${summary.dailyLimit}** permintaan. Hitungan berganti setiap pukul 00.00 UTC.`,
+    `Kesehatan konfigurasi: **${configuration.ok ? 'Sehat' : `Perlu perhatian (${configuration.issues.length})`}**.`,
+    ...configuration.issues.map(code => `• ${CONFIGURATION_ISSUE_COPY[code]}`),
+    '',
+    '**Saran Hengs**',
+    ...recommendations.map(item => `• ${item}`),
+    '',
+    'Hengs hanya menyimpan angka agregat. Isi chat, jawaban, dan identitas member tidak masuk laporan ini.',
+  ].filter(line => line !== null).join('\n');
+}
+
+async function readPublicView({
+  guild,
+  guildId,
+  config,
+  communityPack,
+  publicInsightsStore,
+  days = 7,
+}) {
+  if (!publicInsightsStore) throw new Error('SETUP_DEPENDENCY_MISSING');
+  const summary = publicInsightsStore.getSummary(guildId, days);
+  const configuration = await reviewPublicConfiguration(guild, config, communityPack);
+  return { configuration, summary };
+}
+
+function dashboardCopy(scope, view = null) {
+  if (scope.kind === 'pending') {
+    return [
+      '**Hengs Control Center**',
+      'Status: **Belum aktif**',
+      '',
+      'Mulai Setup untuk memilih satu channel dan memasang Hengs Standard tanpa mengetik ID.',
+      'Panel ini hanya terlihat olehmu.',
+    ].join('\n');
+  }
+  if (scope.kind !== 'public') {
+    return 'Control Center tidak tersedia untuk konfigurasi server ini.';
+  }
+  const config = scope.config;
+  const style = STYLE_LABELS[resolveReplyStyle(config)];
+  const language = LANGUAGE_LABELS[resolveLanguage(config)];
+  const channel = CHANNEL_LABELS[resolveChannelScope(config).channelMode];
+  const welcome = resolveCommunityWelcome(config).welcomeEnabled ? 'Aktif' : 'Nonaktif';
+  const viewLines = view ? [
+    `Pemakaian 7 hari: **${view.summary.recentAccepted}** permintaan.`,
+    usageTrendCopy(view.summary),
+    `Kesehatan konfigurasi: **${view.configuration.ok ? 'Sehat' : `Perlu perhatian (${view.configuration.issues.length})`}**.`,
+    ...view.configuration.issues.map(code => `• ${CONFIGURATION_ISSUE_COPY[code]}`),
+  ] : [
+    'Pemakaian dan kesehatan konfigurasi belum dapat dibaca. Coba tekan Segarkan nanti.',
+  ];
+  return [
+    '**Hengs Control Center**',
+    'Status: **Aktif**',
+    `Gaya: **${style}**`,
+    `Bahasa: **${language}**`,
+    `Cakupan: **${channel}**`,
+    `Community Pack: **${welcome}**`,
+    '',
+    ...viewLines,
+    '',
+    'Gunakan tombol di bawah untuk mengelola Hengs. Panel ini hanya terlihat olehmu.',
+  ].join('\n');
+}
+
+async function renderDashboard(interaction, dependencies, scope, method = 'reply') {
+  let view = null;
+  const logger = dependencies.logger || console;
+  if (scope.kind === 'public') {
+    try {
+      view = await readPublicView({
+        guild: interaction.guild,
+        guildId: interaction.guildId,
+        config: scope.config,
+        communityPack: dependencies.communityPack,
+        publicInsightsStore: dependencies.publicInsightsStore,
+      });
+    } catch {
+      logger.error('[public-dashboard] PUBLIC_DASHBOARD_READ_FAILED');
+    }
+  }
+  const payload = {
+    content: dashboardCopy(scope, view),
+    components: buildDashboardComponents(scope.kind),
+    allowedMentions: { parse: [] },
+  };
+  if (method === 'reply') payload.flags = MessageFlags.Ephemeral;
+  await interaction[method](payload);
+}
+
 async function updateWizard(interaction, content, { retry = false } = {}) {
   await interaction.update({
     content,
@@ -237,6 +348,143 @@ async function handleSetupWizard(interaction, {
   return true;
 }
 
+function disableConfirmationCopy() {
+  return [
+    '**Konfirmasi nonaktifkan Hengs**',
+    'Mention chat dan Community Pack akan berhenti di server ini.',
+    'Konfigurasi server serta angka agregat Owner Insights akan dihapus.',
+    '',
+    'Tindakan baru dijalankan setelah kamu menekan Ya, Nonaktifkan.',
+  ].join('\n');
+}
+
+async function handleSetupDashboard(interaction, dependencies) {
+  const action = resolveDashboardAction(interaction);
+  if (!action) return false;
+  const {
+    guildAccess,
+    guildConfigStore,
+    communityPack,
+    publicInsightsStore,
+    logger = console,
+  } = dependencies;
+  if (!interaction.inGuild?.() || !interaction.guildId || !guildAccess || !guildConfigStore) {
+    await interaction.update({
+      content: 'Control Center hanya tersedia di dalam server Discord.',
+      components: [],
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  if (!canManage(interaction)) {
+    await interaction.update({
+      content: 'Control Center hanya dapat dipakai oleh pemilik server atau Administrator.',
+      components: [],
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  const scope = guildAccess.classify(interaction.guildId);
+  if (scope.kind === 'home') {
+    await interaction.update({
+      content: 'Server utama memakai pengaturan pribadi dan tidak dikelola lewat Control Center publik.',
+      components: [],
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  if (!['pending', 'public'].includes(scope.kind)) {
+    await interaction.update({
+      content: 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.',
+      components: [],
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+
+  if (action === 'refresh' || action === 'cancelDisable') {
+    await renderDashboard(interaction, dependencies, scope, 'update');
+    return true;
+  }
+  if (action === 'start' || action === 'repair') {
+    await interaction.update({
+      content: setupWizardCopy(scope.kind),
+      components: buildSetupWizardComponents(),
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  if (scope.kind !== 'public') {
+    await renderDashboard(interaction, dependencies, scope, 'update');
+    return true;
+  }
+  if (action === 'preview') {
+    if (!communityPack) throw new Error('SETUP_DEPENDENCY_MISSING');
+    const payload = await communityPack.preview(interaction.member);
+    await interaction.reply({
+      ...payload,
+      flags: MessageFlags.Ephemeral,
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  if (action === 'insights') {
+    let view;
+    try {
+      view = await readPublicView({
+        guild: interaction.guild,
+        guildId: interaction.guildId,
+        config: scope.config,
+        communityPack,
+        publicInsightsStore,
+      });
+    } catch {
+      logger.error('[public-dashboard] PUBLIC_DASHBOARD_INSIGHTS_FAILED');
+      await replyPrivate(interaction, 'Owner Insights belum dapat dibaca. Coba lagi nanti ya.');
+      return true;
+    }
+    await replyPrivate(interaction, insightsCopy(view.summary, scope.config, view.configuration, 7));
+    return true;
+  }
+  if (action === 'disable') {
+    await interaction.update({
+      content: disableConfirmationCopy(),
+      components: buildDisableConfirmationComponents(),
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  if (action === 'confirmDisable') {
+    if (!publicInsightsStore) throw new Error('SETUP_DEPENDENCY_MISSING');
+    try {
+      publicInsightsStore.remove(interaction.guildId);
+    } catch {
+      logger.error('[public-insights] PUBLIC_INSIGHTS_PURGE_FAILED');
+      await interaction.update({
+        content: 'Hengs belum dinonaktifkan karena data Owner Insights belum berhasil dibersihkan. Coba lagi nanti ya.',
+        components: buildDisableConfirmationComponents(),
+        allowedMentions: { parse: [] },
+      });
+      return true;
+    }
+    const result = guildConfigStore.remove(interaction.guildId);
+    await interaction.update({
+      content: result.removed
+        ? 'Hengs sudah dinonaktifkan. Data konfigurasi dan Owner Insights server ini juga sudah dihapus.'
+        : 'Hengs memang belum aktif di server ini. Tidak ada pengaturan yang diubah.',
+      components: [],
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  }
+  return false;
+}
+
+async function handleSetupComponent(interaction, dependencies) {
+  if (await handleSetupWizard(interaction, dependencies)) return true;
+  return handleSetupDashboard(interaction, dependencies);
+}
+
 async function execute(interaction, {
   guildAccess,
   guildConfigStore,
@@ -254,6 +502,22 @@ async function execute(interaction, {
   const subcommand = interaction.options.getSubcommand();
   if (!canManage(interaction)) {
     await replyPrivate(interaction, 'Setup hanya dapat dibuka oleh pemilik server atau Administrator.');
+    return;
+  }
+  if (subcommand === 'dashboard') {
+    if (scope.kind === 'home') {
+      await replyPrivate(interaction, 'Server utama memakai pengaturan pribadi dan tidak dikelola lewat Control Center publik.');
+      return;
+    }
+    if (!['pending', 'public'].includes(scope.kind)) {
+      await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+      return;
+    }
+    await renderDashboard(interaction, {
+      communityPack,
+      logger,
+      publicInsightsStore,
+    }, scope);
     return;
   }
   if (subcommand === 'status') {
@@ -348,45 +612,22 @@ async function execute(interaction, {
       await replyPrivate(interaction, 'Rentang Owner Insights tidak dikenali.');
       return;
     }
-    let summary;
+    let view;
     try {
-      summary = publicInsightsStore.getSummary(interaction.guildId, days);
+      view = await readPublicView({
+        guild: interaction.guild,
+        guildId: interaction.guildId,
+        config: scope.config,
+        communityPack,
+        publicInsightsStore,
+        days,
+      });
     } catch {
       logger.error('[public-insights] PUBLIC_INSIGHTS_READ_FAILED');
       await replyPrivate(interaction, 'Owner Insights belum dapat dibaca. Coba lagi nanti ya.');
       return;
     }
-    let configuration;
-    try {
-      configuration = await reviewPublicConfiguration(interaction.guild, scope.config, communityPack);
-    } catch {
-      logger.error('[public-insights] PUBLIC_CONFIGURATION_REVIEW_FAILED');
-      await replyPrivate(interaction, 'Owner Insights belum dapat memeriksa konfigurasi. Coba lagi nanti ya.');
-      return;
-    }
-    const recommendations = ownerRecommendations(summary, scope.config, configuration);
-    await replyPrivate(interaction, [
-      `**Owner Insights, ${days} hari**`,
-      summary.accepted === 0 ? 'Belum ada permintaan publik yang tercatat pada rentang ini.' : null,
-      `Permintaan diterima: **${summary.accepted}**`,
-      `Hari aktif: **${summary.activeDays}** dengan rata-rata **${summary.averagePerActiveDay}** permintaan per hari aktif.`,
-      summary.busiestDay
-        ? `Hari tersibuk: **${summary.busiestDay}** dengan **${summary.busiestAccepted}** permintaan.`
-        : 'Hari tersibuk: belum ada data.',
-      `Dibatasi sementara: **${summary.busyRejected + summary.rateLimited}**`,
-      `Batas harian tercapai: **${summary.dailyLimited}**`,
-      `Feedback: **${summary.helpful} membantu | ${summary.needsWork} kurang pas** dari **${summary.feedbackCoverage}%** balasan.`,
-      `Tingkat membantu: **${summary.helpfulRate}%** dari feedback yang masuk.`,
-      usageTrendCopy(summary),
-      `Hari ini: **${summary.todayUsed}/${summary.dailyLimit}** permintaan. Hitungan berganti setiap pukul 00.00 UTC.`,
-      `Kesehatan konfigurasi: **${configuration.ok ? 'Sehat' : `Perlu perhatian (${configuration.issues.length})`}**.`,
-      ...configuration.issues.map(code => `• ${CONFIGURATION_ISSUE_COPY[code]}`),
-      '',
-      '**Saran Hengs**',
-      ...recommendations.map(item => `• ${item}`),
-      '',
-      'Hengs hanya menyimpan angka agregat. Isi chat, jawaban, dan identitas member tidak masuk laporan ini.',
-    ].filter(line => line !== null).join('\n'));
+    await replyPrivate(interaction, insightsCopy(view.summary, scope.config, view.configuration, days));
     return;
   }
   if (subcommand === 'language') {
@@ -493,18 +734,7 @@ async function execute(interaction, {
       await replyPrivate(interaction, 'Hengs memang belum aktif di server ini. Tidak ada pengaturan yang diubah.');
       return;
     }
-    if (!publicInsightsStore) throw new Error('SETUP_DEPENDENCY_MISSING');
-    try {
-      publicInsightsStore.remove(interaction.guildId);
-    } catch {
-      logger.error('[public-insights] PUBLIC_INSIGHTS_PURGE_FAILED');
-      await replyPrivate(interaction, 'Hengs belum dinonaktifkan karena data Owner Insights belum berhasil dibersihkan. Coba lagi nanti ya.');
-      return;
-    }
-    const result = guildConfigStore.remove(interaction.guildId);
-    await replyPrivate(interaction, result.removed
-      ? 'Hengs sudah dinonaktifkan. Data konfigurasi dan Owner Insights server ini juga sudah dihapus.'
-      : 'Hengs memang belum aktif di server ini. Tidak ada pengaturan yang diubah.');
+    await replyPrivate(interaction, disableConfirmationCopy(), buildDisableConfirmationComponents());
     return;
   }
   if (subcommand !== 'start') {
@@ -523,9 +753,14 @@ async function execute(interaction, {
 }
 
 module.exports = {
+  dashboardCopy,
   data,
+  disableConfirmationCopy,
   execute,
+  handleSetupComponent,
+  handleSetupDashboard,
   handleSetupWizard,
+  insightsCopy,
   ownerRecommendations,
   setupWizardCopy,
   usageTrendCopy,

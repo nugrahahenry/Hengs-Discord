@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.26.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
+Public Beta v1.27.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
 harus diaktifkan owner. Command admin, moderasi, laporan, Ops Hub, Event Hub, reaction role, dan
 voice tetap khusus server utama.
 
@@ -141,16 +141,19 @@ voice tetap khusus server utama.
 6. Pilih satu text channel atau announcement channel dari menu Discord. Hengs Standard langsung
    memakai gaya Santai, bahasa Otomatis, menjawab hanya di channel itu, dan mengaktifkan Community
    Pack di channel yang sama. Tidak ada ID yang perlu dicari atau diketik.
-7. Bila perlu, ubah gaya melalui `/setup style`, bahasa melalui `/setup language`, cakupan melalui
+7. Jalankan `/setup dashboard` untuk membuka Control Center privat. Dari sana pengelola dapat
+   melihat status, kesehatan konfigurasi, tren penggunaan, memilih ulang channel, preview kartu,
+   membuka Insights, atau memulai konfirmasi nonaktifkan.
+8. Bila perlu, ubah gaya melalui `/setup style`, bahasa melalui `/setup language`, cakupan melalui
    `/setup channel`, atau Community Pack melalui `/setup welcome`.
-8. Jalankan `/setup welcome action:preview` untuk melihat kartu secara privat.
-9. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
-10. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
+9. Jalankan `/setup welcome action:preview` atau tombol Preview Welcome untuk melihat kartu secara privat.
+10. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
+11. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
    `/hengs ask`. `/hengs reset` hanya menghapus ingatan percakapan milik pemanggil.
-11. Gunakan `/setup insights` untuk melihat penggunaan, feedback, tren tujuh hari, dan kesehatan
+12. Gunakan `/setup insights` atau tombol Buka Insights untuk melihat penggunaan, feedback, tren tujuh hari, dan kesehatan
    konfigurasi. Laporan ini privat dan tidak menyimpan isi chat, jawaban, atau identitas member.
-12. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
-   dan menghapus konfigurasi serta Owner Insights server tersebut.
+13. Gunakan `/setup status` untuk pemeriksaan singkat. `/setup disable` dan tombol Nonaktifkan Hengs
+   selalu meminta konfirmasi kedua sebelum menghapus konfigurasi serta Owner Insights server.
 
 Setiap server memiliki konteks AI sendiri. Public Beta dibatasi 25 server aktif secara default,
 satu jawaban AI berjalan per server, dan 30 permintaan per 10 menit per server. Prompt publik tidak
@@ -161,8 +164,8 @@ server secara otomatis. Wizard hanya menerima satu channel dari pemilih bawaan D
 memeriksa izin sebelum satu write atomik. Preset Hengs Standard adalah mapping publik tetap dan
 tidak menyalin pengaturan, channel, role, atau data server utama Henry.
 
-Checkpoint v1.26.0 tidak mengubah schema `/setup` atau `/hengs`, sehingga `npm run deploy` tidak
-perlu dijalankan ulang saat rilis ini dipasang.
+Checkpoint v1.27.0 menambahkan subcommand `/setup dashboard`, sehingga deployment gabungan
+v1.26.0 dan v1.27.0 memerlukan satu registrasi global command setelah health service lulus.
 
 Jangan menjalankan `npm run deploy` dari laptop yang belum direview. Perintah itu melakukan
 registrasi eksternal: `/setup` dan `/hengs` menjadi global, sedangkan seluruh command lama tetap didaftarkan

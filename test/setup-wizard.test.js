@@ -4,6 +4,7 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const {
   CHAT_PERMISSIONS,
+  SETUP_PERMISSIONS,
   SETUP_STANDARD_CHANNEL_ID,
   buildSetupWizardComponents,
   canUseSetupChannel,
@@ -14,7 +15,7 @@ const {
 const GUILD = '223456789012345678';
 const CHANNEL = '523456789012345678';
 
-function fixture({ allowed = CHAT_PERMISSIONS, guildId = GUILD, type = ChannelType.GuildText } = {}) {
+function fixture({ allowed = SETUP_PERMISSIONS, guildId = GUILD, type = ChannelType.GuildText } = {}) {
   const permissionSet = new Set(allowed);
   const guild = { id: GUILD, members: { me: { id: 'bot' } } };
   const channel = {
@@ -56,11 +57,12 @@ test('setup channel permission gate rejects cross-guild, wrong-type, and incompl
   assert.equal(canUseSetupChannel(crossGuild.channel, crossGuild.guild), false);
   const wrongType = fixture({ type: ChannelType.GuildVoice });
   assert.equal(canUseSetupChannel(wrongType.channel, wrongType.guild), false);
-  for (const missing of CHAT_PERMISSIONS) {
-    const value = fixture({ allowed: CHAT_PERMISSIONS.filter(permission => permission !== missing) });
+  for (const missing of SETUP_PERMISSIONS) {
+    const value = fixture({ allowed: SETUP_PERMISSIONS.filter(permission => permission !== missing) });
     assert.equal(canUseSetupChannel(value.channel, value.guild), false);
   }
   assert.ok(CHAT_PERMISSIONS.includes(PermissionFlagsBits.ReadMessageHistory));
+  assert.ok(SETUP_PERMISSIONS.includes(PermissionFlagsBits.AttachFiles));
 });
 
 test('configuration review reports only fixed issue codes', async () => {
@@ -80,6 +82,12 @@ test('configuration review reports only fixed issue codes', async () => {
     canUseChannel: () => true,
   });
   assert.deepEqual(healthy, { ok: true, issues: [] });
+  const noAttachment = fixture({ allowed: CHAT_PERMISSIONS });
+  const chatOnly = await reviewPublicConfiguration(noAttachment.guild, {
+    ...config,
+    settings: { ...config.settings, welcomeEnabled: false, welcomeChannelId: null },
+  }, { canUseChannel: () => false });
+  assert.deepEqual(chatOnly, { ok: true, issues: [] });
   guild.channels.cache.clear();
   guild.channels.fetch = async () => null;
   const broken = await reviewPublicConfiguration(guild, config, {

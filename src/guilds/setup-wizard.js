@@ -11,6 +11,9 @@ const CHAT_PERMISSIONS = Object.freeze([
   PermissionFlagsBits.ViewChannel,
   PermissionFlagsBits.SendMessages,
   PermissionFlagsBits.ReadMessageHistory,
+]);
+const SETUP_PERMISSIONS = Object.freeze([
+  ...CHAT_PERMISSIONS,
   PermissionFlagsBits.AttachFiles,
 ]);
 const ALLOWED_CHANNEL_TYPES = new Set([ChannelType.GuildText, ChannelType.GuildAnnouncement]);
@@ -36,7 +39,7 @@ function belongsToGuild(channel, guild) {
   return String(channelGuildId || '') === String(guild?.id || '');
 }
 
-function canUseSetupChannel(channel, guild) {
+function hasChannelPermissions(channel, guild, required) {
   if (
     !belongsToGuild(channel, guild)
     || !ALLOWED_CHANNEL_TYPES.has(channel?.type)
@@ -46,7 +49,15 @@ function canUseSetupChannel(channel, guild) {
   const botMember = guild?.members?.me;
   const permissions = botMember && channel.permissionsFor?.(botMember);
   return Boolean(permissions)
-    && CHAT_PERMISSIONS.every(permission => permissions.has(permission));
+    && required.every(permission => permissions.has(permission));
+}
+
+function canUseChatChannel(channel, guild) {
+  return hasChannelPermissions(channel, guild, CHAT_PERMISSIONS);
+}
+
+function canUseSetupChannel(channel, guild) {
+  return hasChannelPermissions(channel, guild, SETUP_PERMISSIONS);
 }
 
 async function resolveSelectedChannel(guild, channelId) {
@@ -67,7 +78,7 @@ async function reviewPublicConfiguration(guild, config, communityPack) {
   const channelScope = resolveChannelScope(config);
   if (channelScope.channelMode === 'current') {
     const channel = await resolveSelectedChannel(guild, channelScope.channelId);
-    if (!canUseSetupChannel(channel, guild)) issues.push('CHAT_CHANNEL_UNAVAILABLE');
+    if (!canUseChatChannel(channel, guild)) issues.push('CHAT_CHANNEL_UNAVAILABLE');
   }
   const welcome = resolveCommunityWelcome(config);
   if (welcome.welcomeEnabled) {
@@ -81,8 +92,10 @@ async function reviewPublicConfiguration(guild, config, communityPack) {
 
 module.exports = {
   CHAT_PERMISSIONS,
+  SETUP_PERMISSIONS,
   SETUP_STANDARD_CHANNEL_ID,
   buildSetupWizardComponents,
+  canUseChatChannel,
   canUseSetupChannel,
   isSetupWizardInteraction,
   resolveSelectedChannel,

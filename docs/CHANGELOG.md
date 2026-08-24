@@ -5,6 +5,34 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-08-25
+
+### Added
+- `/setup dashboard` opens one private Community Control Center for pending or active public guilds.
+- Active panels show fixed setup status, language, style, channel scope, Community Pack state,
+  seven-day usage, trend, and configuration health without exposing channel IDs or names.
+- Exact buttons provide refresh, channel repair through the existing picker, private welcome-card
+  preview, aggregate Owner Insights, and confirmed disable actions.
+
+### Changed
+- `/setup disable` now opens the same two-step confirmation used by the dashboard instead of
+  deleting configuration immediately.
+- The global `/setup` schema adds one `dashboard` subcommand. The combined v1.26.0 and v1.27.0
+  deployment therefore requires one command registration after health acceptance.
+
+### Security
+- Every dashboard click rechecks the current guild scope and owner or Administrator permission.
+- Components accept only exact allowlisted IDs. Refresh and cancel are read-only, Repair does not
+  write before a valid channel selection, and Preview cannot publish or mention a member.
+- Confirm Disable purges aggregate Owner Insights before removing the exact guild config. Purge
+  failure preserves the config and returns only fixed privacy-safe copy.
+- The dashboard adds no persistent state, session identifier, member data, chat content, or AI call.
+
+### Verification
+- Focused Control Center, routing, and release verification passes 50/50. The complete local suite
+  passes 449/449, production dependency audit reports 0 vulnerability, and runtime source contains
+  no em dash or en dash.
+
 ## [1.26.0] - 2026-08-25
 
 ### Added

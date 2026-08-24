@@ -556,13 +556,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (setupCommand.handleSetupWizard && String(interaction.customId || '').startsWith('hengs-setup:')) {
+  if (setupCommand.handleSetupComponent && String(interaction.customId || '').startsWith('hengs-setup:')) {
     try {
-      const handled = await setupCommand.handleSetupWizard(interaction, {
+      const handled = await setupCommand.handleSetupComponent(interaction, {
         guildAccess,
         guildConfigStore,
         communityPack,
         publicGuildLimit,
+        publicInsightsStore,
       });
       if (handled) return;
     } catch {

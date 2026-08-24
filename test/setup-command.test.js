@@ -56,7 +56,8 @@ function interaction({
       getString: name => ({ preset, mode, range, action }[name] ?? null),
     },
     inGuild: () => guild,
-    isChannelSelectMenu: () => customId !== null,
+    isButton: () => String(customId || '').startsWith('hengs-setup:dashboard:'),
+    isChannelSelectMenu: () => customId === 'hengs-setup:standard-channel',
     async reply(payload) { this.replyPayload = payload; },
     async update(payload) { this.updatePayload = payload; },
   };
@@ -179,7 +180,7 @@ test('/setup is a guild-only command with public server settings', () => {
   assert.equal(json.name, 'setup');
   assert.equal(json.dm_permission, false);
   assert.deepEqual(json.options.map(option => option.name), [
-    'start', 'status', 'style', 'language', 'channel', 'insights', 'welcome', 'disable',
+    'start', 'dashboard', 'status', 'style', 'language', 'channel', 'insights', 'welcome', 'disable',
   ]);
   const style = json.options.find(option => option.name === 'style');
   assert.deepEqual(style.options[0].choices.map(choice => choice.value), [
@@ -217,6 +218,102 @@ test('/setup start opens a private one-channel wizard without mutating state', a
     assert.deepEqual(selector.channel_types, [ChannelType.GuildText, ChannelType.GuildAnnouncement]);
     assert.equal(deps.calls.length, 0);
   }
+});
+
+test('/setup dashboard renders private pending and active control panels', async () => {
+  const pendingDeps = dependencies('pending');
+  const pending = interaction({ subcommand: 'dashboard' });
+  await setup.execute(pending, pendingDeps);
+  assertPrivate(pending.replyPayload);
+  assert.match(pending.replyPayload.content, /Belum aktif/i);
+  assert.deepEqual(
+    pending.replyPayload.components[0].toJSON().components.map(button => button.custom_id),
+    ['hengs-setup:dashboard:start', 'hengs-setup:dashboard:refresh'],
+  );
+  assert.deepEqual(pendingDeps.calls, []);
+
+  const publicDeps = dependencies('public');
+  const active = interaction({ subcommand: 'dashboard' });
+  await setup.execute(active, publicDeps);
+  assertPrivate(active.replyPayload);
+  assert.match(active.replyPayload.content, /Status: \*\*Aktif\*\*/i);
+  assert.match(active.replyPayload.content, /Pemakaian 7 hari.*6/i);
+  assert.match(active.replyPayload.content, /Kesehatan konfigurasi.*Sehat/i);
+  const buttons = active.replyPayload.components.flatMap(row => row.toJSON().components);
+  assert.deepEqual(buttons.map(button => button.custom_id), [
+    'hengs-setup:dashboard:refresh',
+    'hengs-setup:dashboard:repair',
+    'hengs-setup:dashboard:preview',
+    'hengs-setup:dashboard:insights',
+    'hengs-setup:dashboard:disable',
+  ]);
+  assert.deepEqual(publicDeps.calls, [{ getSummary: [GUILD, 7] }]);
+});
+
+test('/setup dashboard degrades safely when aggregate health cannot be read', async () => {
+  const deps = dependencies('public');
+  deps.publicInsightsStore.getSummary = () => { throw new Error('private path detail'); };
+  const value = interaction({ subcommand: 'dashboard' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /belum dapat dibaca/i);
+  assert.deepEqual(deps.calls, [{ log: '[public-dashboard] PUBLIC_DASHBOARD_READ_FAILED' }]);
+});
+
+test('dashboard repair opens the existing picker and preview stays private', async () => {
+  const repairDeps = dependencies('public');
+  const repair = interaction({ customId: 'hengs-setup:dashboard:repair' });
+  assert.equal(await setup.handleSetupComponent(repair, repairDeps), true);
+  assert.match(repair.updatePayload.content, /Hengs Standard/i);
+  assert.equal(repair.updatePayload.components[0].toJSON().components[0].type, 8);
+  assert.deepEqual(repairDeps.calls, []);
+
+  const previewDeps = dependencies('public');
+  const preview = interaction({ customId: 'hengs-setup:dashboard:preview' });
+  assert.equal(await setup.handleSetupComponent(preview, previewDeps), true);
+  assertPrivate(preview.replyPayload);
+  assert.match(preview.replyPayload.content, /preview Community Pack/i);
+  assert.deepEqual(previewDeps.calls, [{ preview: true }]);
+});
+
+test('dashboard insights reuses the aggregate-only report', async () => {
+  const deps = dependencies('public');
+  const value = interaction({ customId: 'hengs-setup:dashboard:insights' });
+  assert.equal(await setup.handleSetupDashboard(value, deps), true);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /Owner Insights, 7 hari/i);
+  assert.match(value.replyPayload.content, /Isi chat.*tidak masuk/i);
+  assert.deepEqual(deps.calls, [{ getSummary: [GUILD, 7] }]);
+});
+
+test('dashboard components recheck authorization and reject forged IDs', async () => {
+  const deps = dependencies('public');
+  const unauthorized = interaction({
+    userId: ADMIN,
+    administrator: false,
+    customId: 'hengs-setup:dashboard:disable',
+  });
+  assert.equal(await setup.handleSetupDashboard(unauthorized, deps), true);
+  assert.match(unauthorized.updatePayload.content, /pemilik server|Administrator/i);
+  assert.deepEqual(deps.calls, []);
+
+  const forged = interaction({ customId: 'hengs-setup:dashboard:forged' });
+  assert.equal(await setup.handleSetupDashboard(forged, deps), false);
+  assert.equal(forged.updatePayload, undefined);
+  assert.deepEqual(deps.calls, []);
+});
+
+test('dashboard disable first asks for confirmation and cancel is read-only', async () => {
+  const deps = dependencies('public');
+  const request = interaction({ customId: 'hengs-setup:dashboard:disable' });
+  assert.equal(await setup.handleSetupDashboard(request, deps), true);
+  assert.match(request.updatePayload.content, /Konfirmasi nonaktifkan/i);
+  assert.deepEqual(deps.calls, []);
+
+  const cancel = interaction({ customId: 'hengs-setup:dashboard:disable-cancel' });
+  assert.equal(await setup.handleSetupDashboard(cancel, deps), true);
+  assert.match(cancel.updatePayload.content, /Control Center/i);
+  assert.deepEqual(deps.calls, [{ getSummary: [GUILD, 7] }]);
 });
 
 test('setup wizard atomically applies Hengs Standard for an owner or Administrator', async () => {
@@ -549,30 +646,52 @@ test('usage trend copy handles new, up, down, and steady states without long das
   }
 });
 
-test('/setup disable removes public config and is idempotent', async () => {
+test('/setup disable requires confirmation before removing anything', async () => {
   for (const kind of ['public', 'pending']) {
     const deps = dependencies(kind);
-    if (kind === 'pending') deps.guildConfigStore.remove = () => ({ removed: false });
     const value = interaction({ subcommand: 'disable' });
     await setup.execute(value, deps);
     assertPrivate(value.replyPayload);
-    assert.match(value.replyPayload.content, kind === 'public' ? /dinonaktifkan/i : /belum aktif/i);
-    assert.equal(deps.calls.length, kind === 'public' ? 2 : 0);
-    if (kind === 'public') assert.deepEqual(deps.calls, [
-      { removeInsights: GUILD },
-      { remove: GUILD },
-    ]);
+    assert.match(value.replyPayload.content, kind === 'public' ? /Konfirmasi/i : /belum aktif/i);
+    assert.equal(deps.calls.length, 0);
+    if (kind === 'public') {
+      const buttons = value.replyPayload.components[0].toJSON().components;
+      assert.deepEqual(buttons.map(button => button.custom_id), [
+        'hengs-setup:dashboard:disable-confirm',
+        'hengs-setup:dashboard:disable-cancel',
+      ]);
+    }
   }
 });
 
-test('/setup disable keeps config active when insights cannot be purged', async () => {
+test('confirmed dashboard disable purges insights before config', async () => {
+  const deps = dependencies('public');
+  const value = interaction({ customId: 'hengs-setup:dashboard:disable-confirm' });
+  assert.equal(await setup.handleSetupDashboard(value, deps), true);
+  assert.match(value.updatePayload.content, /sudah dinonaktifkan/i);
+  assert.deepEqual(value.updatePayload.components, []);
+  assert.deepEqual(deps.calls, [
+    { removeInsights: GUILD },
+    { remove: GUILD },
+  ]);
+});
+
+test('confirmed dashboard disable keeps config active when insights cannot be purged', async () => {
   const deps = dependencies('public');
   deps.publicInsightsStore.remove = () => { throw new Error('private path detail'); };
-  const value = interaction({ subcommand: 'disable' });
-  await setup.execute(value, deps);
-  assertPrivate(value.replyPayload);
-  assert.match(value.replyPayload.content, /belum dinonaktifkan/i);
+  const value = interaction({ customId: 'hengs-setup:dashboard:disable-confirm' });
+  await setup.handleSetupDashboard(value, deps);
+  assert.match(value.updatePayload.content, /belum dinonaktifkan/i);
+  assert.equal(value.updatePayload.components.length, 1);
   assert.deepEqual(deps.calls, [{ log: '[public-insights] PUBLIC_INSIGHTS_PURGE_FAILED' }]);
+});
+
+test('stale disable confirmation cannot remove an already inactive guild', async () => {
+  const deps = dependencies('pending');
+  const value = interaction({ customId: 'hengs-setup:dashboard:disable-confirm' });
+  assert.equal(await setup.handleSetupDashboard(value, deps), true);
+  assert.match(value.updatePayload.content, /Belum aktif/i);
+  assert.deepEqual(deps.calls, []);
 });
 
 test('/setup cannot disable the home guild', async () => {

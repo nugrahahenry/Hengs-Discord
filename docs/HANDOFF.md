@@ -2,7 +2,29 @@
 
 Updated: 2026-08-25
 
-## Current local checkpoint: v1.26.0 - Guided Setup and Owner Insights Phase 3
+## Current local checkpoint: v1.27.0 - Community Control Center
+
+- `/setup dashboard` opens an ephemeral panel for pending and active public guilds. It summarizes
+  fixed setup state, existing seven-day aggregate usage, trend, and read-time configuration health.
+- Active panels expose exact Refresh, Select Channel Again, Preview Welcome, Open Insights, and
+  Disable Hengs buttons. Pending panels expose only Start Setup and Refresh.
+- Every component rechecks fresh guild scope plus owner or Administrator authorization. Repair
+  reuses the v1.26.0 Discord picker and writes nothing until a valid selection is submitted.
+- Preview and Insights stay ephemeral. The panel stores no session, identifier, preference, chat,
+  member data, or new schema field, and it never calls an AI provider.
+- `/setup disable` and the dashboard disable button now share a two-step confirmation. Confirm
+  purges aggregate insights before deleting the exact guild config; purge failure preserves config.
+- The `/setup` global schema adds one `dashboard` subcommand. A later combined v1.26.0 and v1.27.0
+  deployment requires exactly one authorized command registration after service health acceptance.
+- Focused Control Center, routing, and release verification passes 50/50. The complete local suite
+  passes 449/449, syntax checks pass for 115 JavaScript files and four Linux shell scripts,
+  production dependency audit reports 0 vulnerability, and runtime source contains no em dash or
+  en dash.
+- v1.25.0 remains cloud production. No Discord write, registration, deployment, restart, or cloud
+  mutation occurred.
+- Planned checkpoint subject: `feat(discord): Hengs Discord v1.27.0 - add community control center`.
+
+## Previous local checkpoint: v1.26.0 - Guided Setup and Owner Insights Phase 3
 
 - `/setup start` is now read-only until the authorized owner or Administrator selects exactly one
   existing text or announcement channel from Discord's private channel picker.
@@ -22,7 +44,8 @@ Updated: 2026-08-25
   immutable deployment metadata are aligned to v1.26.0.
 - v1.25.0 remains cloud production. No deployment, command registration, service restart, Discord
   write, public-guild activation, or cloud mutation occurred.
-- Planned checkpoint subject: `feat(discord): Hengs Discord v1.26.0 - add guided setup and owner trends`.
+- Commit `967ac10` is pushed to `origin/main` with subject
+  `feat(discord): Hengs Discord v1.26.0 - add guided setup and owner trends`.
 
 ## Current production checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
 
