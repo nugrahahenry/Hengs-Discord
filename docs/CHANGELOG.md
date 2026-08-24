@@ -5,6 +5,37 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-08-24
+
+### Added
+- `/setup welcome` lets a public server owner or Administrator preview the Aurora card privately,
+  enable welcome and leave cards in the current channel, or disable them without manual IDs.
+- Owner Insights now reports active days, average requests per active day, the busiest aggregate
+  day, feedback coverage, helpful rate, and up to two deterministic recommendations.
+
+### Security
+- Community Pack is disabled by default for new and migrated guilds. It requires View Channel,
+  Send Messages, and Attach Files, targets only the configured channel, and never falls back.
+- New public invite links request Attach Files in addition to the existing minimal chat permissions
+  so Community Pack can render its selected channel card.
+- Public member events cannot run home-only auto-role, stats, moderation, or private welcome copy.
+- Richer insights are calculated from the existing schema 1 aggregate buckets. No chat content,
+  answer, member identity, channel identity, or new persistent field is collected.
+
+### Changed
+- Guild config schema 4 adds only the Community Pack enabled flag and selected channel ID. Schemas
+  1 through 3 remain readable and migrate on an authorized write with Community Pack disabled.
+- Public setup status now shows whether Community Pack is active.
+
+### Operations
+- This checkpoint is local-only. No command registration, deployment, service restart, Discord
+  write, or public guild mutation occurred.
+
+### Verification
+- The complete suite passes 429/429 on local Node 24.15.0. Syntax checks pass for 111 JavaScript
+  files and four Linux shell files, whitespace checks pass, runtime source contains no em dash or
+  en dash, and the production dependency audit reports 0 vulnerabilities.
+
 ## [1.24.0] - 2026-08-23
 
 ### Added

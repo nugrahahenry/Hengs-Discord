@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.24.0 Layered Welcome Cards
+**Current local checkpoint:** v1.25.0 Community Pack and Owner Insights Phase 2
 
 **Current cloud production:** v1.24.0
 
@@ -13,8 +13,10 @@
   bahasa, dan channel. Member bisa memakai `/hengs ask`, `/hengs reset`, `/hengs help`,
   `/hengs privacy`, atau `/hengs invite` tanpa Server ID manual
 - **Owner Insights:** owner atau Administrator dapat membuka ringkasan penggunaan privat lewat
-  `/setup insights`. Hengs hanya menyimpan angka agregat harian dan feedback, tanpa isi chat,
-  jawaban, channel, atau identitas member
+  `/setup insights`. Laporan menampilkan hari aktif, rata-rata, hari tersibuk, cakupan feedback,
+  tingkat membantu, dan saran tetap tanpa menyimpan isi chat atau identitas member
+- **Community Pack publik:** owner dapat memakai `/setup welcome` untuk preview privat, lalu
+  mengaktifkan kartu masuk dan keluar di channel saat ini tanpa mencari Server ID atau Channel ID
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
 - **Utility** — `/announce`, `/fun` (quote · 8ball · roll · flip · meme)
 - **Ops Hub** — `/ops draft` menyusun pengumuman dengan AI; editor allowlist dapat membuat dan merevisi draft, sedangkan owner memegang Publish Now, jadwal, pembatalan, dan Discard
@@ -97,7 +99,7 @@ berhenti.
 |---|---|
 | `@Hengs <pesan>` | Ngobrol sama AI |
 | `/hengs ask` · `/hengs reset` · `/hengs help` · `/hengs privacy` · `/hengs invite` | Tanya Hengs, kelola ingatanmu, pahami privasi, buka panduan, atau undang Hengs ke server lain |
-| `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup insights` · `/setup disable` | Kelola Public Beta dan lihat ringkasan penggunaan privat untuk owner atau Administrator server |
+| `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup welcome` · `/setup insights` · `/setup disable` | Kelola Public Beta, Community Pack, dan ringkasan penggunaan privat untuk owner atau Administrator server |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
 | `/ops draft` · `/ops status` · `/ops history` · `/ops overview` | Draft pengumuman, approval owner, audit, dan ringkasan operasi privat |

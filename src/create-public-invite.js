@@ -7,7 +7,8 @@ function createPublicInviteUrl({ clientId }) {
   if (!SNOWFLAKE.test(normalized)) throw new Error('CLIENT_ID_INVALID');
   const permissions = PermissionFlagsBits.ViewChannel
     | PermissionFlagsBits.SendMessages
-    | PermissionFlagsBits.ReadMessageHistory;
+    | PermissionFlagsBits.ReadMessageHistory
+    | PermissionFlagsBits.AttachFiles;
   const query = new URLSearchParams({
     client_id: normalized,
     permissions: permissions.toString(),

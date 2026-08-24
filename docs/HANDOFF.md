@@ -1,6 +1,30 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-23
+Updated: 2026-08-24
+
+## Current local checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
+
+- v1.24.0 remains cloud production and the only Discord token consumer. This checkpoint does not
+  authorize command registration, deployment, service restart, or any Discord write.
+- Public owners and Administrators can use `/setup welcome` to preview the existing Aurora card
+  privately, enable member welcome and leave cards in the current channel, or disable them.
+- Community Pack is opt-in for every new and migrated guild. It requires View Channel, Send
+  Messages, and Attach Files, attempts one exact-channel send, and has no channel fallback.
+- Public member events do not run the home server's auto-role, stats, moderation, links, or private
+  welcome wording. The home server behavior remains unchanged.
+- Guild config schema 4 stores only `welcomeEnabled` and `welcomeChannelId` beside the existing
+  fixed settings. Schemas 1 through 3 remain readable and default the feature to disabled.
+- Owner Insights Phase 2 calculates active days, average usage, busiest aggregate day, feedback
+  coverage, helpful rate, and fixed recommendations from the existing schema 1 counters. No new
+  content, identity, channel, or provider data is persisted.
+- Local Node 24.15.0 verification passes 429/429. Syntax passes for 111 JavaScript files and four
+  Linux shell files, whitespace checks pass, the production dependency audit reports
+  zero vulnerabilities, and runtime source contains no em dash or en dash. Release metadata keeps
+  exact Node 22 as the deployment requirement.
+- Security review confirms targeted mentions only on welcome, no mentions on leave or preview,
+  strict member and channel identifiers, exact permission checks, no fallback channel, atomic
+  schema migration, and no new sensitive insight data.
+- Checkpoint subject: `feat(discord): Hengs Discord v1.25.0 - add community welcome controls and richer insights`.
 
 ## Current production checkpoint: v1.24.0 - Layered Welcome Cards
 

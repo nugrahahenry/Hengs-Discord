@@ -8,6 +8,7 @@ const {
   createGuildConfigStore,
   parsePublicGuildLimit,
   resolveChannelScope,
+  resolveCommunityWelcome,
   resolveLanguage,
   resolveReplyStyle,
 } = require('../src/guilds/config-store');
@@ -46,13 +47,17 @@ test('guild config activation is atomic, strict, and idempotent', t => {
   });
 
   assert.equal(first.created, true);
-  assert.equal(first.config.schemaVersion, 3);
+  assert.equal(first.config.schemaVersion, 4);
   assert.equal(first.config.revision, 1);
   assert.equal(first.config.status, 'active');
   assert.equal(first.config.features.mentionChat, true);
   assert.equal(first.config.settings.replyStyle, 'balanced');
   assert.equal(first.config.settings.language, 'auto');
   assert.deepEqual(resolveChannelScope(first.config), { channelMode: 'all', channelId: null });
+  assert.deepEqual(resolveCommunityWelcome(first.config), {
+    welcomeEnabled: false,
+    welcomeChannelId: null,
+  });
   assert.equal(first.config.guildId, GUILD_A);
 
   const repeated = store.activate({
@@ -119,7 +124,7 @@ test('guild config migrates legacy schema on activation without losing ownership
     setupBy: ADMIN,
   });
   assert.equal(migrated.changed, true);
-  assert.equal(migrated.config.schemaVersion, 3);
+  assert.equal(migrated.config.schemaVersion, 4);
   assert.equal(migrated.config.revision, 4);
   assert.equal(migrated.config.settings.replyStyle, 'balanced');
   assert.equal(migrated.config.settings.language, 'auto');
@@ -182,7 +187,7 @@ test('guild language and channel scope use fixed values with schema 2 migration'
 
   const language = store.setLanguage({ guildId: GUILD_A, language: 'id', setupBy: OWNER });
   assert.equal(language.changed, true);
-  assert.equal(language.config.schemaVersion, 3);
+  assert.equal(language.config.schemaVersion, 4);
   assert.equal(language.config.settings.replyStyle, 'technical');
   assert.equal(language.config.settings.language, 'id');
   assert.equal(language.config.revision, 5);
@@ -238,6 +243,72 @@ test('guild language and channel scope use fixed values with schema 2 migration'
     }),
     /CHANNEL_SCOPE_INVALID/,
   );
+});
+
+test('community welcome is opt-in and schema 3 migrates without an automatic public write', t => {
+  const { rootDir, store } = fixture(t);
+  const directory = path.join(rootDir, GUILD_A);
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'config.json'), `${JSON.stringify({
+    schemaVersion: 3,
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    status: 'active',
+    features: { mentionChat: true },
+    settings: {
+      channelId: null,
+      channelMode: 'all',
+      language: 'auto',
+      replyStyle: 'balanced',
+    },
+    revision: 7,
+    createdAt: '2026-08-20T12:00:00.000Z',
+    updatedAt: '2026-08-20T12:00:00.000Z',
+  })}\n`);
+
+  assert.deepEqual(resolveCommunityWelcome(store.get(GUILD_A)), {
+    welcomeEnabled: false,
+    welcomeChannelId: null,
+  });
+  const enabled = store.setCommunityWelcome({
+    guildId: GUILD_A,
+    enabled: true,
+    channelId: '523456789012345678',
+    setupBy: OWNER,
+  });
+  assert.equal(enabled.config.schemaVersion, 4);
+  assert.equal(enabled.config.revision, 8);
+  assert.deepEqual(resolveCommunityWelcome(enabled.config), {
+    welcomeEnabled: true,
+    welcomeChannelId: '523456789012345678',
+  });
+
+  const repeated = store.setCommunityWelcome({
+    guildId: GUILD_A,
+    enabled: true,
+    channelId: '523456789012345678',
+    setupBy: ADMIN,
+  });
+  assert.equal(repeated.changed, false);
+  assert.equal(repeated.config.revision, 8);
+
+  const disabled = store.setCommunityWelcome({
+    guildId: GUILD_A,
+    enabled: false,
+    channelId: null,
+    setupBy: ADMIN,
+  });
+  assert.deepEqual(resolveCommunityWelcome(disabled.config), {
+    welcomeEnabled: false,
+    welcomeChannelId: null,
+  });
+  assert.throws(() => store.setCommunityWelcome({
+    guildId: GUILD_A,
+    enabled: true,
+    channelId: 'arbitrary',
+    setupBy: OWNER,
+  }), /COMMUNITY_WELCOME_INVALID/);
 });
 
 test('guild config enforces active capacity without blocking existing guilds', t => {

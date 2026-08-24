@@ -53,7 +53,8 @@ test('public invite has minimal permissions and no token', () => {
   assert.deepEqual(url.searchParams.get('scope').split(' ').sort(), ['applications.commands', 'bot']);
   const expectedPermissions = PermissionFlagsBits.ViewChannel
     | PermissionFlagsBits.SendMessages
-    | PermissionFlagsBits.ReadMessageHistory;
+    | PermissionFlagsBits.ReadMessageHistory
+    | PermissionFlagsBits.AttachFiles;
   assert.equal(BigInt(url.searchParams.get('permissions')), expectedPermissions);
   assert.equal(url.searchParams.has('token'), false);
   assert.throws(() => createPublicInviteUrl({ clientId: 'unsafe' }), /CLIENT_ID_INVALID/);
@@ -127,7 +128,10 @@ test('runtime gates legacy paths before public traffic', () => {
   assert.match(source, /\[public-command\] PUBLIC_COMMAND_FAILED/);
   assert.match(source, /publicTrafficGuard,/);
   assert.match(source, /publicInsightsStore,/);
-  assert.match(source, /if \(!guildAccess\.isHome\(member\.guild\.id\)\) return;/);
+  assert.match(source, /createCommunityPack/);
+  assert.match(source, /communityPack\.sendMemberEvent\(member, 'welcome', scope\.config\)/);
+  assert.match(source, /communityPack\.sendMemberEvent\(member, 'leave', scope\.config\)/);
+  assert.match(source, /if \(scope\.kind !== 'home'\) return;/);
   assert.match(source, /if \(!guildAccess\.isHome\(reaction\.message\.guildId\)\) return;/);
 });
 

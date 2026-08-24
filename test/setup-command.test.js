@@ -17,16 +17,22 @@ function interaction({
   preset = 'balanced',
   mode = 'all',
   range = null,
+  action = 'preview',
 } = {}) {
+  const member = { id: userId, guild: null };
+  const guildValue = guild ? { id: GUILD, ownerId, members: { me: { id: 'bot' } } } : null;
+  member.guild = guildValue;
   return {
     guildId: guild ? GUILD : null,
     channelId: guild ? '523456789012345678' : null,
-    guild: guild ? { id: GUILD, ownerId } : null,
+    guild: guildValue,
+    channel: guild ? { id: '523456789012345678', isTextBased: () => true } : null,
+    member,
     user: { id: userId },
     memberPermissions: { has: permission => permission === PermissionFlagsBits.Administrator && administrator },
     options: {
       getSubcommand: () => subcommand,
-      getString: name => ({ preset, mode, range }[name] ?? null),
+      getString: name => ({ preset, mode, range, action }[name] ?? null),
     },
     inGuild: () => guild,
     async reply(payload) { this.replyPayload = payload; },
@@ -42,12 +48,14 @@ function dependencies(kind = 'pending') {
         ? {
           kind,
           config: {
-            schemaVersion: 3,
+            schemaVersion: 4,
             settings: {
               channelId: null,
               channelMode: 'all',
               language: 'auto',
               replyStyle: 'balanced',
+              welcomeChannelId: null,
+              welcomeEnabled: false,
             },
           },
         }
@@ -80,6 +88,21 @@ function dependencies(kind = 'pending') {
           config: { settings: { channelMode: input.channelMode, channelId: input.channelId } },
         };
       },
+      setCommunityWelcome(input) {
+        calls.push(input);
+        return { changed: true, config: { settings: input } };
+      },
+    },
+    communityPack: {
+      canUseChannel() { return true; },
+      async preview() {
+        calls.push({ preview: true });
+        return {
+          content: 'Ini preview Community Pack.',
+          files: [{ attachment: Buffer.from('png'), name: 'welcome.png' }],
+          allowedMentions: { parse: [] },
+        };
+      },
     },
     publicInsightsStore: {
       getSummary(guildId, days) {
@@ -94,6 +117,13 @@ function dependencies(kind = 'pending') {
           needsWork: 1,
           todayUsed: 2,
           dailyLimit: 100,
+          activeDays: 3,
+          averagePerActiveDay: 2.7,
+          busiestDay: '2026-08-22',
+          busiestAccepted: 4,
+          feedbackRated: 5,
+          feedbackCoverage: 63,
+          helpfulRate: 80,
         };
       },
       remove(guildId) {
@@ -117,7 +147,7 @@ test('/setup is a guild-only command with public server settings', () => {
   assert.equal(json.name, 'setup');
   assert.equal(json.dm_permission, false);
   assert.deepEqual(json.options.map(option => option.name), [
-    'start', 'status', 'style', 'language', 'channel', 'insights', 'disable',
+    'start', 'status', 'style', 'language', 'channel', 'insights', 'welcome', 'disable',
   ]);
   const style = json.options.find(option => option.name === 'style');
   assert.deepEqual(style.options[0].choices.map(choice => choice.value), [
@@ -130,6 +160,10 @@ test('/setup is a guild-only command with public server settings', () => {
   const insights = json.options.find(option => option.name === 'insights');
   assert.deepEqual(insights.options[0].choices.map(choice => choice.value), ['7_days', '30_days']);
   assert.equal(insights.options[0].required, false);
+  const welcome = json.options.find(option => option.name === 'welcome');
+  assert.deepEqual(welcome.options[0].choices.map(choice => choice.value), [
+    'enable', 'disable', 'preview',
+  ]);
 });
 
 test('/setup start activates any valid public guild for its owner or administrator', async () => {
@@ -157,6 +191,7 @@ test('/setup denies DMs, invalid configs, and unauthorized members without mutat
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'language' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'channel' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'insights' }), kind: 'public' },
+    { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'welcome' }), kind: 'public' },
     { value: interaction({ userId: ADMIN, administrator: false, subcommand: 'disable' }), kind: 'public' },
   ];
 
@@ -184,6 +219,7 @@ test('/setup status reports fixed states without exposing stored IDs', async () 
       assert.match(value.replyPayload.content, /santai/i);
       assert.match(value.replyPayload.content, /otomatis/i);
       assert.match(value.replyPayload.content, /semua channel/i);
+      assert.match(value.replyPayload.content, /Community Pack.*nonaktif/i);
     }
   }
 });
@@ -235,6 +271,49 @@ test('/setup channel derives current channel from Discord and never accepts an a
   }
 });
 
+test('/setup welcome binds the current channel, supports private preview, and disables cleanly', async () => {
+  const enabledDeps = dependencies('public');
+  const enabled = interaction({ subcommand: 'welcome', action: 'enable' });
+  await setup.execute(enabled, enabledDeps);
+  assertPrivate(enabled.replyPayload);
+  assert.match(enabled.replyPayload.content, /aktif di channel ini/i);
+  assert.deepEqual(enabledDeps.calls, [{
+    guildId: GUILD,
+    enabled: true,
+    channelId: enabled.channelId,
+    setupBy: OWNER,
+  }]);
+
+  const previewDeps = dependencies('public');
+  const preview = interaction({ subcommand: 'welcome', action: 'preview' });
+  await setup.execute(preview, previewDeps);
+  assertPrivate(preview.replyPayload);
+  assert.equal(preview.replyPayload.files.length, 1);
+  assert.deepEqual(previewDeps.calls, [{ preview: true }]);
+
+  const disabledDeps = dependencies('public');
+  const disabled = interaction({ subcommand: 'welcome', action: 'disable' });
+  await setup.execute(disabled, disabledDeps);
+  assertPrivate(disabled.replyPayload);
+  assert.match(disabled.replyPayload.content, /dinonaktifkan/i);
+  assert.deepEqual(disabledDeps.calls, [{
+    guildId: GUILD,
+    enabled: false,
+    channelId: null,
+    setupBy: OWNER,
+  }]);
+});
+
+test('/setup welcome fails closed when the selected channel lacks required permissions', async () => {
+  const deps = dependencies('public');
+  deps.communityPack.canUseChannel = () => false;
+  const value = interaction({ subcommand: 'welcome', action: 'enable' });
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /belum punya izin/i);
+  assert.equal(deps.calls.length, 0);
+});
+
 test('/setup style updates only active public guilds with fixed presets', async () => {
   const deps = dependencies('public');
   const value = interaction({ subcommand: 'style', preset: 'technical' });
@@ -281,6 +360,10 @@ test('/setup insights returns private aggregate-only ranges to public server man
     assert.match(value.replyPayload.content, new RegExp(`${days} hari`, 'i'));
     assert.match(value.replyPayload.content, /8/);
     assert.match(value.replyPayload.content, /5/);
+    assert.match(value.replyPayload.content, /Hari aktif.*3/i);
+    assert.match(value.replyPayload.content, /63%/);
+    assert.match(value.replyPayload.content, /80%/);
+    assert.match(value.replyPayload.content, /Saran Hengs/i);
     assert.match(value.replyPayload.content, /isi chat.*tidak masuk/i);
     assert.doesNotMatch(value.replyPayload.content, /[\u2013\u2014]/);
     assert.deepEqual(deps.calls, [{ getSummary: [GUILD, days] }]);
@@ -308,6 +391,13 @@ test('/setup insights explains an empty aggregate without exposing identifiers',
     needsWork: 0,
     todayUsed: 0,
     dailyLimit: 100,
+    activeDays: 0,
+    averagePerActiveDay: 0,
+    busiestDay: null,
+    busiestAccepted: 0,
+    feedbackRated: 0,
+    feedbackCoverage: 0,
+    helpfulRate: 0,
   });
   const value = interaction({ subcommand: 'insights' });
   await setup.execute(value, deps);

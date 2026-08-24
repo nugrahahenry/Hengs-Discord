@@ -42,6 +42,7 @@ const {
 const { buildPublicFeedbackComponents, handlePublicFeedback } = require('./guilds/public-feedback');
 const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
+const { createCommunityPack } = require('./guilds/community-pack');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -78,6 +79,7 @@ const publicDailyRequestLimit = parsePublicDailyRequestLimit(
   process.env.HENGS_PUBLIC_DAILY_REQUEST_LIMIT,
 );
 const publicInsightsStore = createPublicInsightsStore({ dailyLimit: publicDailyRequestLimit });
+const communityPack = createCommunityPack();
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
@@ -276,7 +278,12 @@ client.on(Events.GuildCreate, guild => {
 
 // ── Welcome member baru ──────────────────────────────────────────────────────
 client.on(Events.GuildMemberAdd, async (member) => {
-  if (!guildAccess.isHome(member.guild.id)) return;
+  const scope = guildAccess.classify(member.guild.id);
+  if (scope.kind === 'public') {
+    await communityPack.sendMemberEvent(member, 'welcome', scope.config);
+    return;
+  }
+  if (scope.kind !== 'home') return;
   // Auto-role and stats remain operational even when the welcome channel is missing.
   await updateServerStats(member.guild).catch(() => {});
   await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
@@ -333,7 +340,12 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
 // Leave message
 client.on(Events.GuildMemberRemove, async (member) => {
-  if (!guildAccess.isHome(member.guild.id)) return;
+  const scope = guildAccess.classify(member.guild.id);
+  if (scope.kind === 'public') {
+    await communityPack.sendMemberEvent(member, 'leave', scope.config);
+    return;
+  }
+  if (scope.kind !== 'home') return;
   // Bisa ke channel sendiri (LEAVE_CHANNEL_ID), atau default ke welcome channel
   const channelId = process.env.LEAVE_CHANNEL_ID || process.env.WELCOME_CHANNEL_ID;
   if (!channelId) return;
@@ -661,6 +673,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       clientId: process.env.DISCORD_CLIENT_ID,
       guildAccess,
       guildConfigStore,
+      communityPack,
       publicGuildLimit,
       publicInsightsStore,
       publicTrafficGuard,

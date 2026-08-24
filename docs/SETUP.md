@@ -112,8 +112,9 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.24.0 hanya membuka `/setup`, `/hengs`, dan chat lewat mention. Command admin, moderasi,
-laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus server utama.
+Public Beta v1.25.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
+harus diaktifkan owner. Command admin, moderasi, laporan, Ops Hub, Event Hub, reaction role, dan
+voice tetap khusus server utama.
 
 ### Langkah pengelola Hengs
 
@@ -124,8 +125,9 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
    hari UTC. Nilai valid adalah 10 sampai 300.
 3. Setelah deployment dan registrasi command mendapat izin owner, jalankan
    `npm run invite:public` untuk membuat URL undangan publik. Generator hanya meminta View
-   Channel, Send Messages, dan Read Message History. Generator tidak membaca atau mencetak token.
-4. Bagikan URL itu. Setelah v1.24.0 terdaftar, member juga dapat meminta link yang sama lewat
+   Channel, Send Messages, Read Message History, dan Attach Files. Generator tidak membaca atau
+   mencetak token.
+4. Bagikan URL itu. Setelah v1.25.0 terdaftar, member juga dapat meminta link yang sama lewat
    `/hengs invite`. Server ID tidak perlu diminta atau dimasukkan secara manual.
 
 ### Langkah teman yang memasang Hengs
@@ -140,8 +142,11 @@ laporan, Ops Hub, Event Hub, welcome, reaction role, dan voice tetap khusus serv
 7. Pilih bahasa lewat `/setup language`: Otomatis, Bahasa Indonesia, atau English.
 8. Jika Hengs hanya boleh menjawab di satu channel, jalankan `/setup channel` di channel tersebut
    dan pilih `current`. Pilih `all` untuk mengizinkan semua channel.
-9. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
-10. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
+9. Jalankan `/setup welcome action:preview` untuk melihat kartu secara privat. Jika sudah cocok,
+   jalankan `/setup welcome action:enable` di channel tujuan. Gunakan action `disable` untuk
+   menghentikannya tanpa mematikan AI chat.
+10. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
+11. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
    `/hengs ask`. `/hengs reset` hanya menghapus ingatan percakapan milik pemanggil.
 11. Gunakan `/setup insights` untuk melihat angka penggunaan dan feedback 7 atau 30 hari. Laporan
    ini privat dan tidak menyimpan isi chat, jawaban, channel, atau identitas member.

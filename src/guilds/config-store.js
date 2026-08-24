@@ -15,6 +15,10 @@ const REPLY_STYLES = Object.freeze(['balanced', 'concise', 'technical']);
 const LANGUAGES = Object.freeze(['auto', 'id', 'en']);
 const CHANNEL_MODES = Object.freeze(['all', 'current']);
 const SETTINGS_V3_KEYS = ['channelId', 'channelMode', 'language', 'replyStyle'];
+const SETTINGS_V4_KEYS = [
+  'channelId', 'channelMode', 'language', 'replyStyle',
+  'welcomeChannelId', 'welcomeEnabled',
+];
 const MAX_CONFIG_BYTES = 16 * 1024;
 const DEFAULT_PUBLIC_GUILD_LIMIT = 25;
 const MAX_PUBLIC_GUILD_LIMIT = 100;
@@ -47,7 +51,7 @@ function validateConfig(value, expectedGuildId) {
   if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(expectedKeys)) {
     throw new Error('GUILD_CONFIG_INVALID');
   }
-  if (![1, 2, 3].includes(value.schemaVersion) || value.status !== 'active') {
+  if (![1, 2, 3, 4].includes(value.schemaVersion) || value.status !== 'active') {
     throw new Error('GUILD_CONFIG_INVALID');
   }
   const guildId = assertSnowflake(value.guildId, 'GUILD_CONFIG_INVALID');
@@ -87,6 +91,30 @@ function validateConfig(value, expectedGuildId) {
       assertSnowflake(value.settings.channelId, 'GUILD_CONFIG_INVALID');
     }
   }
+  if (value.schemaVersion === 4) {
+    if (
+      !value.settings
+      || typeof value.settings !== 'object'
+      || Array.isArray(value.settings)
+      || JSON.stringify(Object.keys(value.settings).sort()) !== JSON.stringify(SETTINGS_V4_KEYS)
+      || !REPLY_STYLES.includes(value.settings.replyStyle)
+      || !LANGUAGES.includes(value.settings.language)
+      || !CHANNEL_MODES.includes(value.settings.channelMode)
+      || typeof value.settings.welcomeEnabled !== 'boolean'
+    ) throw new Error('GUILD_CONFIG_INVALID');
+    if (value.settings.channelMode === 'all' && value.settings.channelId !== null) {
+      throw new Error('GUILD_CONFIG_INVALID');
+    }
+    if (value.settings.channelMode === 'current') {
+      assertSnowflake(value.settings.channelId, 'GUILD_CONFIG_INVALID');
+    }
+    if (!value.settings.welcomeEnabled && value.settings.welcomeChannelId !== null) {
+      throw new Error('GUILD_CONFIG_INVALID');
+    }
+    if (value.settings.welcomeEnabled) {
+      assertSnowflake(value.settings.welcomeChannelId, 'GUILD_CONFIG_INVALID');
+    }
+  }
   if (!Number.isInteger(value.revision) || value.revision < 1) throw new Error('GUILD_CONFIG_INVALID');
   if (!isIsoTimestamp(value.createdAt) || !isIsoTimestamp(value.updatedAt)) {
     throw new Error('GUILD_CONFIG_INVALID');
@@ -121,13 +149,38 @@ function resolveChannelScope(config) {
   throw new Error('CHANNEL_SCOPE_INVALID');
 }
 
+function resolveCommunityWelcome(config) {
+  if ([1, 2, 3].includes(config?.schemaVersion)) {
+    return { welcomeEnabled: false, welcomeChannelId: null };
+  }
+  const welcomeEnabled = config?.settings?.welcomeEnabled;
+  const welcomeChannelId = config?.settings?.welcomeChannelId;
+  if (welcomeEnabled === false && welcomeChannelId === null) {
+    return { welcomeEnabled, welcomeChannelId };
+  }
+  if (welcomeEnabled === true) {
+    return {
+      welcomeEnabled,
+      welcomeChannelId: assertSnowflake(welcomeChannelId, 'COMMUNITY_WELCOME_INVALID'),
+    };
+  }
+  throw new Error('COMMUNITY_WELCOME_INVALID');
+}
+
 function resolvedSettings(config, overrides = {}) {
   const channel = resolveChannelScope(config);
+  const welcome = resolveCommunityWelcome(config);
   return {
     channelId: overrides.channelId !== undefined ? overrides.channelId : channel.channelId,
     channelMode: overrides.channelMode || channel.channelMode,
     language: overrides.language || resolveLanguage(config),
     replyStyle: overrides.replyStyle || resolveReplyStyle(config),
+    welcomeChannelId: overrides.welcomeChannelId !== undefined
+      ? overrides.welcomeChannelId
+      : welcome.welcomeChannelId,
+    welcomeEnabled: overrides.welcomeEnabled !== undefined
+      ? overrides.welcomeEnabled
+      : welcome.welcomeEnabled,
   };
 }
 
@@ -220,7 +273,7 @@ function createGuildConfigStore({
     const timestamp = now();
     if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
     const desired = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       guildId: paths.guildId,
       ownerId: normalizedOwner,
       setupBy: normalizedSetupBy,
@@ -231,13 +284,15 @@ function createGuildConfigStore({
         channelMode: 'all',
         language: 'auto',
         replyStyle: 'balanced',
+        welcomeChannelId: null,
+        welcomeEnabled: false,
       },
       revision: existing ? existing.revision : 1,
       createdAt: existing ? existing.createdAt : timestamp,
       updatedAt: existing ? existing.updatedAt : timestamp,
     };
     const unchanged = existing
-      && existing.schemaVersion === 3
+      && existing.schemaVersion === 4
       && existing.ownerId === desired.ownerId
       && existing.setupBy === desired.setupBy;
     if (unchanged) return { config: existing, created: false, changed: false };
@@ -256,13 +311,13 @@ function createGuildConfigStore({
     if (!REPLY_STYLES.includes(replyStyle)) throw new Error('REPLY_STYLE_INVALID');
     const existing = get(paths.guildId);
     if (!existing) throw new Error('GUILD_CONFIG_NOT_ACTIVE');
-    if (existing.schemaVersion === 3 && resolveReplyStyle(existing) === replyStyle) {
+    if (existing.schemaVersion === 4 && resolveReplyStyle(existing) === replyStyle) {
       return { config: existing, changed: false };
     }
     const timestamp = now();
     if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
     const desired = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       guildId: existing.guildId,
       ownerId: existing.ownerId,
       setupBy: normalizedSetupBy,
@@ -284,13 +339,13 @@ function createGuildConfigStore({
     if (!LANGUAGES.includes(language)) throw new Error('LANGUAGE_INVALID');
     const existing = get(paths.guildId);
     if (!existing) throw new Error('GUILD_CONFIG_NOT_ACTIVE');
-    if (existing.schemaVersion === 3 && resolveLanguage(existing) === language) {
+    if (existing.schemaVersion === 4 && resolveLanguage(existing) === language) {
       return { config: existing, changed: false };
     }
     const timestamp = now();
     if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
     const desired = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       guildId: existing.guildId,
       ownerId: existing.ownerId,
       setupBy: normalizedSetupBy,
@@ -324,20 +379,60 @@ function createGuildConfigStore({
     if (!existing) throw new Error('GUILD_CONFIG_NOT_ACTIVE');
     const current = resolveChannelScope(existing);
     if (
-      existing.schemaVersion === 3
+      existing.schemaVersion === 4
       && current.channelMode === channelMode
       && current.channelId === normalizedChannelId
     ) return { config: existing, changed: false };
     const timestamp = now();
     if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
     const desired = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       guildId: existing.guildId,
       ownerId: existing.ownerId,
       setupBy: normalizedSetupBy,
       status: 'active',
       features: { mentionChat: true },
       settings: resolvedSettings(existing, { channelMode, channelId: normalizedChannelId }),
+      revision: existing.revision + 1,
+      createdAt: existing.createdAt,
+      updatedAt: timestamp,
+    };
+    validateConfig(desired, paths.guildId);
+    write(paths, desired);
+    return { config: desired, changed: true };
+  }
+
+  function setCommunityWelcome({ guildId, enabled, channelId, setupBy }) {
+    const paths = pathsFor(guildId);
+    const normalizedSetupBy = assertSnowflake(setupBy, 'SETUP_BY_INVALID');
+    if (typeof enabled !== 'boolean') throw new Error('COMMUNITY_WELCOME_INVALID');
+    let normalizedChannelId = null;
+    if (enabled) {
+      normalizedChannelId = assertSnowflake(channelId, 'COMMUNITY_WELCOME_INVALID');
+    } else if (channelId !== null) {
+      throw new Error('COMMUNITY_WELCOME_INVALID');
+    }
+    const existing = get(paths.guildId);
+    if (!existing) throw new Error('GUILD_CONFIG_NOT_ACTIVE');
+    const current = resolveCommunityWelcome(existing);
+    if (
+      existing.schemaVersion === 4
+      && current.welcomeEnabled === enabled
+      && current.welcomeChannelId === normalizedChannelId
+    ) return { config: existing, changed: false };
+    const timestamp = now();
+    if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
+    const desired = {
+      schemaVersion: 4,
+      guildId: existing.guildId,
+      ownerId: existing.ownerId,
+      setupBy: normalizedSetupBy,
+      status: 'active',
+      features: { mentionChat: true },
+      settings: resolvedSettings(existing, {
+        welcomeChannelId: normalizedChannelId,
+        welcomeEnabled: enabled,
+      }),
       revision: existing.revision + 1,
       createdAt: existing.createdAt,
       updatedAt: timestamp,
@@ -364,6 +459,7 @@ function createGuildConfigStore({
     countActive,
     get,
     remove,
+    setCommunityWelcome,
     setChannelScope,
     setLanguage,
     setReplyStyle,
@@ -377,6 +473,7 @@ module.exports = {
   createGuildConfigStore,
   parsePublicGuildLimit,
   resolveChannelScope,
+  resolveCommunityWelcome,
   resolveLanguage,
   resolveReplyStyle,
   validateConfig,

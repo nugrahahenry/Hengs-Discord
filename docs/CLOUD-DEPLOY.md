@@ -1,13 +1,13 @@
 # Hengs Discord Always Free Deployment
 
-Panduan ini adalah kontrak operasi upgrade Hengs Discord v1.24.0 di Ubuntu. Cloud production
+Panduan ini adalah kontrak operasi upgrade Hengs Discord v1.25.0 di Ubuntu. Cloud production
 saat ini menjalankan v1.24.0. Deployment berikutnya, registrasi command, perubahan billing, dan cutover tetap memerlukan persetujuan
 Henry pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
 permission, atau kebijakan Anti-Raid. State produksi v1.24.0 mempertahankan konfigurasi
-`active` yang sudah ada tanpa audit perubahan mode saat deployment. Registrasi v1.24.0
+`active` yang sudah ada tanpa audit perubahan mode saat deployment. Registrasi v1.25.0
 memperbarui schema global `/setup` dengan Owner Insights, mempertahankan `/hengs`,
 serta mempertahankan 12 command lama di home guild.
 
@@ -24,7 +24,7 @@ serta mempertahankan 12 command lama di home guild.
 
 ## Prerequisites
 
-- Checkout Git yang bersih dan checkpoint `1.24.0` sudah di-commit.
+- Checkout Git yang bersih dan checkpoint `1.25.0` sudah di-commit.
 - Node.js 22 untuk membuat release lokal.
 - Akun Oracle Cloud dengan home region dan entitlement Always Free yang telah dicek
   ulang di Console. Hentikan proses bila label biaya atau entitlement tidak jelas.
@@ -182,8 +182,8 @@ Transfer arsip dan file `.sha256` yang dihasilkan ke VM. Dengan service masih be
 
 ```bash
 sudo bash deploy/linux/deploy-release.sh \
-  /root/hengs-discord-1.24.0-<commit>.tar.gz \
-  /root/hengs-discord-1.24.0-<commit>.tar.gz.sha256
+  /root/hengs-discord-1.25.0-<commit>.tar.gz \
+  /root/hengs-discord-1.25.0-<commit>.tar.gz.sha256
 ```
 
 Deployer memvalidasi checksum dan path archive, menolak symlink/hardlink, menjalankan
@@ -222,7 +222,7 @@ Cutover memerlukan approval baru. Urutannya tidak boleh dibalik:
 6. Lakukan acceptance read-only: bot online, guild/channel sesuai, command termuat, dan
    tidak ada pesan atau tindakan moderasi tak terduga.
 
-Public Beta memperbarui schema global `/setup` dan mempertahankan `/hengs`. Setelah release v1.24.0 sehat dan tindakan eksternal
+Public Beta memperbarui schema global `/setup` dan mempertahankan `/hengs`. Setelah release v1.25.0 sehat dan tindakan eksternal
 sudah diizinkan owner, jalankan `npm run deploy` tepat satu kali dari checkout tervalidasi. Perintah
 itu mendaftarkan hanya `/setup` dan `/hengs` secara global serta mempertahankan command lama di home guild. Jangan
 ubah Anti-Raid dari `monitor` selama acceptance deployment.

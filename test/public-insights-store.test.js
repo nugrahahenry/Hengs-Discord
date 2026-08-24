@@ -57,6 +57,13 @@ test('accepted requests are claimed atomically before the daily limit', t => {
     needsWork: 0,
     todayUsed: 2,
     dailyLimit: 2,
+    activeDays: 1,
+    averagePerActiveDay: 2,
+    busiestDay: '2026-08-23',
+    busiestAccepted: 2,
+    feedbackRated: 0,
+    feedbackCoverage: 0,
+    helpfulRate: 0,
   });
 });
 
@@ -79,6 +86,8 @@ test('feedback only accepts issued IDs and one rating per response', t => {
   });
   assert.equal(store.getSummary(GUILD, 7).helpful, 1);
   assert.equal(store.getSummary(GUILD, 7).needsWork, 0);
+  assert.equal(store.getSummary(GUILD, 7).feedbackCoverage, 100);
+  assert.equal(store.getSummary(GUILD, 7).helpfulRate, 100);
 });
 
 test('summary rolls over by UTC day and retains at most 31 daily buckets', t => {
@@ -95,6 +104,9 @@ test('summary rolls over by UTC day and retains at most 31 daily buckets', t => 
   assert.equal(raw.feedbackClaims.length, 31);
   assert.equal(store.getSummary(GUILD, 30).accepted, 30);
   assert.equal(store.getSummary(GUILD, 7).accepted, 7);
+  assert.equal(store.getSummary(GUILD, 7).activeDays, 7);
+  assert.equal(store.getSummary(GUILD, 7).averagePerActiveDay, 1);
+  assert.equal(store.getSummary(GUILD, 7).busiestAccepted, 1);
 });
 
 test('persistent state contains aggregates only and rejects unknown fields', t => {
@@ -105,6 +117,7 @@ test('persistent state contains aggregates only and rejects unknown fields', t =
   const file = path.join(root, `${GUILD}.json`);
   const text = fs.readFileSync(file, 'utf8');
   assert.doesNotMatch(text, /user|channel|prompt|answer|username|displayName/i);
+  assert.doesNotMatch(text, /activeDays|averagePerActiveDay|busiestDay|feedbackCoverage|helpfulRate/);
 
   const raw = JSON.parse(text);
   raw.privateDetail = 'must fail closed';

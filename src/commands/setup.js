@@ -1,6 +1,7 @@
 const { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 const {
   resolveChannelScope,
+  resolveCommunityWelcome,
   resolveLanguage,
   resolveReplyStyle,
 } = require('../guilds/config-store');
@@ -72,6 +73,18 @@ const data = new SlashCommandBuilder()
         { name: '7 hari', value: '7_days' },
         { name: '30 hari', value: '30_days' },
       )))
+  .addSubcommand(subcommand => subcommand
+    .setName('welcome')
+    .setDescription('Kelola kartu sambutan Community Pack')
+    .addStringOption(option => option
+      .setName('action')
+      .setDescription('Aktifkan, nonaktifkan, atau lihat preview di channel ini')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Aktifkan di channel ini', value: 'enable' },
+        { name: 'Nonaktifkan', value: 'disable' },
+        { name: 'Lihat preview', value: 'preview' },
+      )))
   .addSubcommand(subcommand => subcommand.setName('disable').setDescription('Nonaktifkan Hengs di server ini'));
 
 function canManage(interaction) {
@@ -84,9 +97,33 @@ async function replyPrivate(interaction, content) {
   await interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
 }
 
+function ownerRecommendations(summary, config) {
+  const recommendations = [];
+  if (summary.accepted === 0) {
+    recommendations.push('Ajak member mencoba mention Hengs atau memakai `/hengs ask`.');
+  }
+  if (summary.accepted >= 5 && summary.feedbackCoverage < 40) {
+    recommendations.push('Minta beberapa member menekan tombol feedback agar kualitas balasan lebih mudah dinilai.');
+  }
+  if (summary.feedbackRated >= 3 && summary.helpfulRate < 60) {
+    recommendations.push('Coba sesuaikan gaya atau bahasa Hengs lewat `/setup style` dan `/setup language`.');
+  }
+  if (summary.dailyLimit > 0 && summary.todayUsed >= Math.ceil(summary.dailyLimit * 0.8)) {
+    recommendations.push('Pemakaian hari ini mendekati batas. Sisakan kapasitas untuk pertanyaan penting.');
+  }
+  if (!resolveCommunityWelcome(config).welcomeEnabled) {
+    recommendations.push('Community Pack belum aktif. Gunakan `/setup welcome action:enable` bila ingin menyambut member baru.');
+  }
+  if (recommendations.length === 0) {
+    recommendations.push('Pemakaian terlihat sehat. Pertahankan pengaturan sekarang dan cek lagi setelah ada lebih banyak feedback.');
+  }
+  return recommendations.slice(0, 2);
+}
+
 async function execute(interaction, {
   guildAccess,
   guildConfigStore,
+  communityPack,
   publicGuildLimit,
   publicInsightsStore,
   logger = console,
@@ -112,6 +149,9 @@ async function execute(interaction, {
     const publicChannel = scope.kind === 'public'
       ? CHANNEL_LABELS[resolveChannelScope(scope.config).channelMode]
       : CHANNEL_LABELS.all;
+    const publicWelcome = scope.kind === 'public' && resolveCommunityWelcome(scope.config).welcomeEnabled
+      ? 'Aktif'
+      : 'Nonaktif';
     const messages = {
       home: 'Ini server utama Hengs. Semua fitur lama tetap dikelola dari sini.',
       public: [
@@ -119,12 +159,56 @@ async function execute(interaction, {
         `Gaya balasan: **${publicStyle}**.`,
         `Bahasa: **${publicLanguage}**.`,
         `Cakupan: **${publicChannel}**.`,
+        `Community Pack: **${publicWelcome}**.`,
       ].join('\n'),
       pending: 'Hengs belum aktif di server ini. Jalankan /setup start untuk memulai.',
       denied: 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.',
       dm: 'Setup hanya tersedia di dalam server Discord.',
     };
     await replyPrivate(interaction, messages[scope.kind] || messages.denied);
+    return;
+  }
+  if (subcommand === 'welcome') {
+    if (scope.kind === 'home') {
+      await replyPrivate(interaction, 'Server utama memakai sistem sambutan pribadi dan tidak diubah lewat setup publik.');
+      return;
+    }
+    if (scope.kind === 'pending') {
+      await replyPrivate(interaction, 'Aktifkan Hengs lebih dulu lewat /setup start sebelum mengatur Community Pack.');
+      return;
+    }
+    if (scope.kind !== 'public') {
+      await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+      return;
+    }
+    if (!communityPack) throw new Error('SETUP_DEPENDENCY_MISSING');
+    const action = interaction.options.getString('action', true);
+    if (!['enable', 'disable', 'preview'].includes(action)) {
+      await replyPrivate(interaction, 'Pilihan Community Pack tidak dikenali.');
+      return;
+    }
+    if (action !== 'disable' && !communityPack.canUseChannel(interaction.channel, interaction.guild)) {
+      await replyPrivate(interaction, 'Hengs belum punya izin View Channel, Send Messages, dan Attach Files di channel ini. Pengaturan belum diubah.');
+      return;
+    }
+    if (action === 'preview') {
+      const payload = await communityPack.preview(interaction.member);
+      await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+      return;
+    }
+    const enabled = action === 'enable';
+    const result = guildConfigStore.setCommunityWelcome({
+      guildId: interaction.guildId,
+      enabled,
+      channelId: enabled ? interaction.channelId : null,
+      setupBy: interaction.user.id,
+    });
+    const message = enabled
+      ? 'Community Pack aktif di channel ini. Hengs akan mengirim kartu saat member masuk atau keluar.'
+      : 'Community Pack sudah dinonaktifkan. Hengs tidak akan mengirim kartu member di server ini.';
+    await replyPrivate(interaction, result.changed
+      ? message
+      : `${message} Tidak ada pengaturan yang diubah.`);
     return;
   }
   if (subcommand === 'insights') {
@@ -155,14 +239,23 @@ async function execute(interaction, {
       await replyPrivate(interaction, 'Owner Insights belum dapat dibaca. Coba lagi nanti ya.');
       return;
     }
+    const recommendations = ownerRecommendations(summary, scope.config);
     await replyPrivate(interaction, [
       `**Owner Insights, ${days} hari**`,
       summary.accepted === 0 ? 'Belum ada permintaan publik yang tercatat pada rentang ini.' : null,
       `Permintaan diterima: **${summary.accepted}**`,
+      `Hari aktif: **${summary.activeDays}** dengan rata-rata **${summary.averagePerActiveDay}** permintaan per hari aktif.`,
+      summary.busiestDay
+        ? `Hari tersibuk: **${summary.busiestDay}** dengan **${summary.busiestAccepted}** permintaan.`
+        : 'Hari tersibuk: belum ada data.',
       `Dibatasi sementara: **${summary.busyRejected + summary.rateLimited}**`,
       `Batas harian tercapai: **${summary.dailyLimited}**`,
-      `Feedback: **${summary.helpful} membantu | ${summary.needsWork} kurang pas**`,
+      `Feedback: **${summary.helpful} membantu | ${summary.needsWork} kurang pas** dari **${summary.feedbackCoverage}%** balasan.`,
+      `Tingkat membantu: **${summary.helpfulRate}%** dari feedback yang masuk.`,
       `Hari ini: **${summary.todayUsed}/${summary.dailyLimit}** permintaan. Hitungan berganti setiap pukul 00.00 UTC.`,
+      '',
+      '**Saran Hengs**',
+      ...recommendations.map(item => `• ${item}`),
       '',
       'Hengs hanya menyimpan angka agregat. Isi chat, jawaban, dan identitas member tidak masuk laporan ini.',
     ].filter(line => line !== null).join('\n'));
@@ -316,4 +409,4 @@ async function execute(interaction, {
     : 'Hengs Public Beta sudah aktif sebelumnya. Tidak ada pengaturan yang diubah.');
 }
 
-module.exports = { data, execute };
+module.exports = { data, execute, ownerRecommendations };

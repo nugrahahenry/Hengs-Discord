@@ -307,6 +307,13 @@ function createPublicInsightsStore({
       needsWork: 0,
       todayUsed: 0,
       dailyLimit,
+      activeDays: 0,
+      averagePerActiveDay: 0,
+      busiestDay: null,
+      busiestAccepted: 0,
+      feedbackRated: 0,
+      feedbackCoverage: 0,
+      helpfulRate: 0,
     };
     if (!loaded.state) return summary;
     const cutoff = retentionCutoff(current.date, days);
@@ -315,8 +322,23 @@ function createPublicInsightsStore({
       for (const key of ['accepted', 'busyRejected', 'rateLimited', 'dailyLimited', 'helpful', 'needsWork']) {
         summary[key] += day[key];
       }
+      if (day.accepted > 0) summary.activeDays += 1;
+      if (day.accepted > summary.busiestAccepted) {
+        summary.busiestDay = day.date;
+        summary.busiestAccepted = day.accepted;
+      }
       if (day.date === current.date) summary.todayUsed = day.accepted;
     }
+    summary.averagePerActiveDay = summary.activeDays === 0
+      ? 0
+      : Number((summary.accepted / summary.activeDays).toFixed(1));
+    summary.feedbackRated = summary.helpful + summary.needsWork;
+    summary.feedbackCoverage = summary.accepted === 0
+      ? 0
+      : Math.round((summary.feedbackRated / summary.accepted) * 100);
+    summary.helpfulRate = summary.feedbackRated === 0
+      ? 0
+      : Math.round((summary.helpful / summary.feedbackRated) * 100);
     return summary;
   }
 
