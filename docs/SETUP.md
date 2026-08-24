@@ -112,7 +112,7 @@ tetap diverifikasi sebagai tindakan owner-only saat interaksi dijalankan.
 
 ## 7. Public Self-Service Beta untuk server lain
 
-Public Beta v1.25.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
+Public Beta v1.26.0 hanya membuka `/setup`, `/hengs`, chat lewat mention, dan Community Pack yang
 harus diaktifkan owner. Command admin, moderasi, laporan, Ops Hub, Event Hub, reaction role, dan
 voice tetap khusus server utama.
 
@@ -127,7 +127,7 @@ voice tetap khusus server utama.
    `npm run invite:public` untuk membuat URL undangan publik. Generator hanya meminta View
    Channel, Send Messages, Read Message History, dan Attach Files. Generator tidak membaca atau
    mencetak token.
-4. Bagikan URL itu. Setelah v1.25.0 terdaftar, member juga dapat meminta link yang sama lewat
+4. Bagikan URL itu. Member juga dapat meminta link yang sama lewat
    `/hengs invite`. Server ID tidak perlu diminta atau dimasukkan secara manual.
 
 ### Langkah teman yang memasang Hengs
@@ -138,18 +138,17 @@ voice tetap khusus server utama.
 4. Hengs mengirim satu panduan ke channel yang dapat ditulis. Jika tidak ada channel yang cocok,
    `/setup` tetap dapat digunakan tanpa pesan sambutan.
 5. Di server tersebut, pemilik server atau Administrator menjalankan `/setup start`.
-6. Pilih gaya dengan `/setup style`: Santai, Ringkas, atau Teknis.
-7. Pilih bahasa lewat `/setup language`: Otomatis, Bahasa Indonesia, atau English.
-8. Jika Hengs hanya boleh menjawab di satu channel, jalankan `/setup channel` di channel tersebut
-   dan pilih `current`. Pilih `all` untuk mengizinkan semua channel.
-9. Jalankan `/setup welcome action:preview` untuk melihat kartu secara privat. Jika sudah cocok,
-   jalankan `/setup welcome action:enable` di channel tujuan. Gunakan action `disable` untuk
-   menghentikannya tanpa mematikan AI chat.
-10. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
-11. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
+6. Pilih satu text channel atau announcement channel dari menu Discord. Hengs Standard langsung
+   memakai gaya Santai, bahasa Otomatis, menjawab hanya di channel itu, dan mengaktifkan Community
+   Pack di channel yang sama. Tidak ada ID yang perlu dicari atau diketik.
+7. Bila perlu, ubah gaya melalui `/setup style`, bahasa melalui `/setup language`, cakupan melalui
+   `/setup channel`, atau Community Pack melalui `/setup welcome`.
+8. Jalankan `/setup welcome action:preview` untuk melihat kartu secara privat.
+9. Baca `/hengs privacy` untuk memahami pemrosesan AI, memori percakapan, dan data konfigurasi.
+10. Setelah respons aktif muncul, member dapat menulis `@Hengs pertanyaan` atau memakai
    `/hengs ask`. `/hengs reset` hanya menghapus ingatan percakapan milik pemanggil.
-11. Gunakan `/setup insights` untuk melihat angka penggunaan dan feedback 7 atau 30 hari. Laporan
-   ini privat dan tidak menyimpan isi chat, jawaban, channel, atau identitas member.
+11. Gunakan `/setup insights` untuk melihat penggunaan, feedback, tren tujuh hari, dan kesehatan
+   konfigurasi. Laporan ini privat dan tidak menyimpan isi chat, jawaban, atau identitas member.
 12. Gunakan `/setup status` untuk memeriksa status atau `/setup disable` untuk menonaktifkan Hengs
    dan menghapus konfigurasi serta Owner Insights server tersebut.
 
@@ -158,8 +157,12 @@ satu jawaban AI berjalan per server, dan 30 permintaan per 10 menit per server. 
 membawa profil pribadi Henry.
 
 Pesan sambutan tidak membuat channel, tidak menyebut pengguna, tidak retry, dan tidak mengaktifkan
-server secara otomatis. Preset gaya dan bahasa adalah enum tetap. Channel `current` selalu diambil
-dari tempat command dijalankan, bukan ID yang diketik pengguna.
+server secara otomatis. Wizard hanya menerima satu channel dari pemilih bawaan Discord dan
+memeriksa izin sebelum satu write atomik. Preset Hengs Standard adalah mapping publik tetap dan
+tidak menyalin pengaturan, channel, role, atau data server utama Henry.
+
+Checkpoint v1.26.0 tidak mengubah schema `/setup` atau `/hengs`, sehingga `npm run deploy` tidak
+perlu dijalankan ulang saat rilis ini dipasang.
 
 Jangan menjalankan `npm run deploy` dari laptop yang belum direview. Perintah itu melakukan
 registrasi eksternal: `/setup` dan `/hengs` menjadi global, sedangkan seluruh command lama tetap didaftarkan

@@ -1,6 +1,28 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-08-24
+Updated: 2026-08-25
+
+## Current local checkpoint: v1.26.0 - Guided Setup and Owner Insights Phase 3
+
+- `/setup start` is now read-only until the authorized owner or Administrator selects exactly one
+  existing text or announcement channel from Discord's private channel picker.
+- One successful selection applies Hengs Standard in one atomic schema 4 write: balanced style,
+  automatic language, current-channel scope, and Community Pack enabled in the same channel.
+  The preset does not read or copy home-guild settings, IDs, roles, channels, prompts, history, or
+  member data.
+- Component completion rechecks the fresh guild scope, actor permission, active-guild capacity,
+  selected-channel ownership and type, plus View Channel, Send Messages, Read Message History, and
+  Attach Files before mutation. Reapplying the exact preset is idempotent.
+- Owner Insights Phase 3 compares the latest seven UTC days with the preceding seven days and
+  reports a fixed new, up, down, or steady trend. It also checks configured channels and permissions
+  at read time. No new field is written to config or schema 1 insight state.
+- Focused verification passes 64/64 and the complete suite passes 438/438 on local Node 24.15.0.
+  Syntax checks pass for 113 JavaScript files and four Linux shell scripts, production dependency
+  audit reports 0 vulnerability, and runtime source contains no em dash or en dash. Version and
+  immutable deployment metadata are aligned to v1.26.0.
+- v1.25.0 remains cloud production. No deployment, command registration, service restart, Discord
+  write, public-guild activation, or cloud mutation occurred.
+- Planned checkpoint subject: `feat(discord): Hengs Discord v1.26.0 - add guided setup and owner trends`.
 
 ## Current production checkpoint: v1.25.0 - Community Pack and Owner Insights Phase 2
 

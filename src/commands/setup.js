@@ -5,6 +5,13 @@ const {
   resolveLanguage,
   resolveReplyStyle,
 } = require('../guilds/config-store');
+const {
+  buildSetupWizardComponents,
+  canUseSetupChannel,
+  isSetupWizardInteraction,
+  resolveSelectedChannel,
+  reviewPublicConfiguration,
+} = require('../guilds/setup-wizard');
 
 const STYLE_LABELS = Object.freeze({
   balanced: 'Santai',
@@ -93,14 +100,28 @@ function canManage(interaction) {
   return interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) === true;
 }
 
-async function replyPrivate(interaction, content) {
-  await interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+async function replyPrivate(interaction, content, components = []) {
+  await interaction.reply({
+    content,
+    components,
+    flags: MessageFlags.Ephemeral,
+    allowedMentions: { parse: [] },
+  });
 }
 
-function ownerRecommendations(summary, config) {
+function ownerRecommendations(summary, config, configuration = { issues: [] }) {
   const recommendations = [];
+  if (configuration.issues.includes('CHAT_CHANNEL_UNAVAILABLE')) {
+    recommendations.push('Pilih ulang channel chat melalui `/setup start` agar member dapat memakai Hengs lagi.');
+  }
+  if (configuration.issues.includes('COMMUNITY_CHANNEL_UNAVAILABLE')) {
+    recommendations.push('Pilih ulang channel Community Pack atau perbaiki izin View, Send, Read History, dan Attach Files.');
+  }
   if (summary.accepted === 0) {
     recommendations.push('Ajak member mencoba mention Hengs atau memakai `/hengs ask`.');
+  }
+  if (summary.usageTrend === 'down' && summary.previousAccepted >= 3) {
+    recommendations.push('Pemakaian tujuh hari terakhir menurun. Cek apakah channel Hengs masih mudah ditemukan member.');
   }
   if (summary.accepted >= 5 && summary.feedbackCoverage < 40) {
     recommendations.push('Minta beberapa member menekan tombol feedback agar kualitas balasan lebih mudah dinilai.');
@@ -118,6 +139,102 @@ function ownerRecommendations(summary, config) {
     recommendations.push('Pemakaian terlihat sehat. Pertahankan pengaturan sekarang dan cek lagi setelah ada lebih banyak feedback.');
   }
   return recommendations.slice(0, 2);
+}
+
+function usageTrendCopy(summary) {
+  if (summary.usageTrend === 'new') {
+    return `Tren 7 hari: **baru aktif**, dari ${summary.previousAccepted} menjadi ${summary.recentAccepted} permintaan.`;
+  }
+  if (summary.usageTrend === 'up') {
+    return `Tren 7 hari: **naik ${summary.trendPercent}%**, dari ${summary.previousAccepted} menjadi ${summary.recentAccepted} permintaan.`;
+  }
+  if (summary.usageTrend === 'down') {
+    return `Tren 7 hari: **turun ${summary.trendPercent}%**, dari ${summary.previousAccepted} menjadi ${summary.recentAccepted} permintaan.`;
+  }
+  return `Tren 7 hari: **stabil**, ${summary.recentAccepted} permintaan pada masing-masing periode.`;
+}
+
+const CONFIGURATION_ISSUE_COPY = Object.freeze({
+  CHAT_CHANNEL_UNAVAILABLE: 'Channel chat tidak tersedia atau izin Hengs tidak lengkap.',
+  COMMUNITY_CHANNEL_UNAVAILABLE: 'Channel Community Pack tidak tersedia atau izin lampiran tidak lengkap.',
+});
+
+function setupWizardCopy(scopeKind) {
+  const intro = scopeKind === 'public'
+    ? 'Hengs sudah aktif. Memilih channel di bawah akan menerapkan ulang preset Hengs Standard.'
+    : 'Pilih satu channel untuk mengaktifkan Hengs dengan preset Hengs Standard.';
+  return [
+    '**Setup cepat Hengs**',
+    intro,
+    '',
+    'Preset: gaya Santai, bahasa Otomatis, balasan hanya di channel pilihan, dan Community Pack aktif di sana.',
+    'Hengs memakai pilihan Discord secara langsung. Kamu tidak perlu mencari atau mengetik Server ID maupun Channel ID.',
+  ].join('\n');
+}
+
+async function updateWizard(interaction, content, { retry = false } = {}) {
+  await interaction.update({
+    content,
+    components: retry ? buildSetupWizardComponents() : [],
+    allowedMentions: { parse: [] },
+  });
+}
+
+async function handleSetupWizard(interaction, {
+  guildAccess,
+  guildConfigStore,
+  communityPack,
+  publicGuildLimit,
+}) {
+  if (!isSetupWizardInteraction(interaction)) return false;
+  if (!interaction.inGuild?.() || !interaction.guildId || !guildAccess || !guildConfigStore) {
+    await updateWizard(interaction, 'Setup hanya tersedia di dalam server Discord.');
+    return true;
+  }
+  if (!canManage(interaction)) {
+    await updateWizard(interaction, 'Setup hanya dapat diselesaikan oleh pemilik server atau Administrator.');
+    return true;
+  }
+  const scope = guildAccess.classify(interaction.guildId);
+  if (scope.kind === 'home') {
+    await updateWizard(interaction, 'Ini server utama Hengs dan pengaturannya tidak diubah lewat setup publik.');
+    return true;
+  }
+  if (!['pending', 'public'].includes(scope.kind)) {
+    await updateWizard(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
+    return true;
+  }
+  if (!Array.isArray(interaction.values) || interaction.values.length !== 1) {
+    await updateWizard(interaction, 'Pilih tepat satu channel untuk melanjutkan setup.', { retry: true });
+    return true;
+  }
+  const channel = await resolveSelectedChannel(interaction.guild, interaction.values[0]);
+  if (!canUseSetupChannel(channel, interaction.guild) || !communityPack?.canUseChannel?.(channel, interaction.guild)) {
+    await updateWizard(
+      interaction,
+      'Channel itu belum dapat dipakai. Hengs memerlukan View Channel, Send Messages, Read Message History, dan Attach Files. Pilih channel lain setelah izinnya siap.',
+      { retry: true },
+    );
+    return true;
+  }
+  let result;
+  try {
+    result = guildConfigStore.applyStandardPreset({
+      guildId: interaction.guildId,
+      ownerId: interaction.guild.ownerId,
+      setupBy: interaction.user.id,
+      channelId: channel.id,
+      maxActiveGuilds: publicGuildLimit,
+    });
+  } catch (error) {
+    if (error.message !== 'PUBLIC_GUILD_LIMIT_REACHED') throw error;
+    await updateWizard(interaction, 'Kapasitas Hengs Public Beta sedang penuh. Coba lagi setelah tersedia tempat.');
+    return true;
+  }
+  await updateWizard(interaction, result.changed
+    ? 'Hengs Standard sudah aktif. Member dapat mention Hengs atau memakai `/hengs ask` di channel pilihanmu. Community Pack juga aktif di channel yang sama.'
+    : 'Hengs Standard memang sudah memakai channel dan pengaturan tersebut. Tidak ada data yang diubah.');
+  return true;
 }
 
 async function execute(interaction, {
@@ -239,7 +356,15 @@ async function execute(interaction, {
       await replyPrivate(interaction, 'Owner Insights belum dapat dibaca. Coba lagi nanti ya.');
       return;
     }
-    const recommendations = ownerRecommendations(summary, scope.config);
+    let configuration;
+    try {
+      configuration = await reviewPublicConfiguration(interaction.guild, scope.config, communityPack);
+    } catch {
+      logger.error('[public-insights] PUBLIC_CONFIGURATION_REVIEW_FAILED');
+      await replyPrivate(interaction, 'Owner Insights belum dapat memeriksa konfigurasi. Coba lagi nanti ya.');
+      return;
+    }
+    const recommendations = ownerRecommendations(summary, scope.config, configuration);
     await replyPrivate(interaction, [
       `**Owner Insights, ${days} hari**`,
       summary.accepted === 0 ? 'Belum ada permintaan publik yang tercatat pada rentang ini.' : null,
@@ -252,7 +377,10 @@ async function execute(interaction, {
       `Batas harian tercapai: **${summary.dailyLimited}**`,
       `Feedback: **${summary.helpful} membantu | ${summary.needsWork} kurang pas** dari **${summary.feedbackCoverage}%** balasan.`,
       `Tingkat membantu: **${summary.helpfulRate}%** dari feedback yang masuk.`,
+      usageTrendCopy(summary),
       `Hari ini: **${summary.todayUsed}/${summary.dailyLimit}** permintaan. Hitungan berganti setiap pukul 00.00 UTC.`,
+      `Kesehatan konfigurasi: **${configuration.ok ? 'Sehat' : `Perlu perhatian (${configuration.issues.length})`}**.`,
+      ...configuration.issues.map(code => `• ${CONFIGURATION_ISSUE_COPY[code]}`),
       '',
       '**Saran Hengs**',
       ...recommendations.map(item => `• ${item}`),
@@ -391,22 +519,14 @@ async function execute(interaction, {
     await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
     return;
   }
-  let result;
-  try {
-    result = guildConfigStore.activate({
-      guildId: interaction.guildId,
-      ownerId: interaction.guild.ownerId,
-      setupBy: interaction.user.id,
-      maxActiveGuilds: publicGuildLimit,
-    });
-  } catch (error) {
-    if (error.message !== 'PUBLIC_GUILD_LIMIT_REACHED') throw error;
-    await replyPrivate(interaction, 'Kapasitas Hengs Public Beta sedang penuh. Coba lagi setelah tersedia tempat.');
-    return;
-  }
-  await replyPrivate(interaction, result.changed
-    ? 'Hengs Public Beta sudah aktif. Sekarang member dapat mention Hengs untuk mengobrol.'
-    : 'Hengs Public Beta sudah aktif sebelumnya. Tidak ada pengaturan yang diubah.');
+  await replyPrivate(interaction, setupWizardCopy(scope.kind), buildSetupWizardComponents());
 }
 
-module.exports = { data, execute, ownerRecommendations };
+module.exports = {
+  data,
+  execute,
+  handleSetupWizard,
+  ownerRecommendations,
+  setupWizardCopy,
+  usageTrendCopy,
+};

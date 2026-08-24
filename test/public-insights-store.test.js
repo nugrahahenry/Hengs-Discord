@@ -64,6 +64,11 @@ test('accepted requests are claimed atomically before the daily limit', t => {
     feedbackRated: 0,
     feedbackCoverage: 0,
     helpfulRate: 0,
+    comparisonDays: 7,
+    recentAccepted: 2,
+    previousAccepted: 0,
+    usageTrend: 'new',
+    trendPercent: 0,
   });
 });
 
@@ -107,6 +112,26 @@ test('summary rolls over by UTC day and retains at most 31 daily buckets', t => 
   assert.equal(store.getSummary(GUILD, 7).activeDays, 7);
   assert.equal(store.getSummary(GUILD, 7).averagePerActiveDay, 1);
   assert.equal(store.getSummary(GUILD, 7).busiestAccepted, 1);
+});
+
+test('summary compares the latest seven days with the preceding seven days at read time', t => {
+  let now = new Date('2026-08-15T12:00:00.000Z');
+  const { root, store } = fixture({ now: () => now });
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  store.claimAccepted(GUILD);
+  store.claimAccepted(GUILD);
+  now = new Date('2026-08-22T12:00:00.000Z');
+  for (let index = 0; index < 4; index += 1) store.claimAccepted(GUILD);
+
+  const summary = store.getSummary(GUILD, 30);
+  assert.equal(summary.comparisonDays, 7);
+  assert.equal(summary.previousAccepted, 2);
+  assert.equal(summary.recentAccepted, 4);
+  assert.equal(summary.usageTrend, 'up');
+  assert.equal(summary.trendPercent, 100);
+
+  const persisted = fs.readFileSync(path.join(root, `${GUILD}.json`), 'utf8');
+  assert.doesNotMatch(persisted, /usageTrend|trendPercent|recentAccepted|previousAccepted/);
 });
 
 test('persistent state contains aggregates only and rejects unknown fields', t => {

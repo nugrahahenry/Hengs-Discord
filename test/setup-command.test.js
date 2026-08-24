@@ -1,12 +1,17 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { PermissionFlagsBits, MessageFlags } = require('discord.js');
+const {
+  ChannelType,
+  MessageFlags,
+  PermissionFlagsBits,
+} = require('discord.js');
 
 const setup = require('../src/commands/setup');
 
 const GUILD = '223456789012345678';
 const OWNER = '323456789012345678';
 const ADMIN = '423456789012345678';
+const CHANNEL = '523456789012345678';
 
 function interaction({
   guild = true,
@@ -18,15 +23,31 @@ function interaction({
   mode = 'all',
   range = null,
   action = 'preview',
+  customId = null,
+  values = [CHANNEL],
 } = {}) {
   const member = { id: userId, guild: null };
   const guildValue = guild ? { id: GUILD, ownerId, members: { me: { id: 'bot' } } } : null;
+  const channelValue = guild ? {
+    id: CHANNEL,
+    guildId: GUILD,
+    type: ChannelType.GuildText,
+    isTextBased: () => true,
+    send() {},
+    permissionsFor: () => ({ has: () => true }),
+  } : null;
+  if (guildValue) guildValue.channels = {
+    cache: new Map([[CHANNEL, channelValue]]),
+    async fetch(channelId) { return channelId === CHANNEL ? channelValue : null; },
+  };
   member.guild = guildValue;
   return {
+    customId,
+    values,
     guildId: guild ? GUILD : null,
-    channelId: guild ? '523456789012345678' : null,
+    channelId: guild ? CHANNEL : null,
     guild: guildValue,
-    channel: guild ? { id: '523456789012345678', isTextBased: () => true } : null,
+    channel: channelValue,
     member,
     user: { id: userId },
     memberPermissions: { has: permission => permission === PermissionFlagsBits.Administrator && administrator },
@@ -35,7 +56,9 @@ function interaction({
       getString: name => ({ preset, mode, range, action }[name] ?? null),
     },
     inGuild: () => guild,
+    isChannelSelectMenu: () => customId !== null,
     async reply(payload) { this.replyPayload = payload; },
+    async update(payload) { this.updatePayload = payload; },
   };
 }
 
@@ -62,6 +85,10 @@ function dependencies(kind = 'pending') {
         : { kind },
     },
     guildConfigStore: {
+      applyStandardPreset(input) {
+        calls.push(input);
+        return { created: true, changed: true, config: { status: 'active' } };
+      },
       activate(input) {
         calls.push(input);
         return { created: true, changed: true, config: { status: 'active' } };
@@ -124,6 +151,11 @@ function dependencies(kind = 'pending') {
           feedbackRated: 5,
           feedbackCoverage: 63,
           helpfulRate: 80,
+          comparisonDays: 7,
+          recentAccepted: 6,
+          previousAccepted: 3,
+          usageTrend: 'up',
+          trendPercent: 100,
         };
       },
       remove(guildId) {
@@ -166,7 +198,7 @@ test('/setup is a guild-only command with public server settings', () => {
   ]);
 });
 
-test('/setup start activates any valid public guild for its owner or administrator', async () => {
+test('/setup start opens a private one-channel wizard without mutating state', async () => {
   for (const actor of [
     { userId: OWNER, administrator: false },
     { userId: ADMIN, administrator: true },
@@ -175,11 +207,75 @@ test('/setup start activates any valid public guild for its owner or administrat
     const value = interaction({ ...actor, subcommand: 'start' });
     await setup.execute(value, deps);
     assertPrivate(value.replyPayload);
-    assert.match(value.replyPayload.content, /aktif/i);
-    assert.equal(deps.calls.length, 1);
-    assert.equal(deps.calls[0].guildId, GUILD);
-    assert.equal(deps.calls[0].maxActiveGuilds, 25);
+    assert.match(value.replyPayload.content, /Hengs Standard/i);
+    assert.match(value.replyPayload.content, /tidak perlu.*Server ID/i);
+    assert.equal(value.replyPayload.components.length, 1);
+    const selector = value.replyPayload.components[0].toJSON().components[0];
+    assert.equal(selector.custom_id, 'hengs-setup:standard-channel');
+    assert.equal(selector.min_values, 1);
+    assert.equal(selector.max_values, 1);
+    assert.deepEqual(selector.channel_types, [ChannelType.GuildText, ChannelType.GuildAnnouncement]);
+    assert.equal(deps.calls.length, 0);
   }
+});
+
+test('setup wizard atomically applies Hengs Standard for an owner or Administrator', async () => {
+  for (const actor of [
+    { userId: OWNER, administrator: false },
+    { userId: ADMIN, administrator: true },
+  ]) {
+    const deps = dependencies('pending');
+    const value = interaction({
+      ...actor,
+      customId: 'hengs-setup:standard-channel',
+    });
+    assert.equal(await setup.handleSetupWizard(value, deps), true);
+    assert.match(value.updatePayload.content, /sudah aktif/i);
+    assert.deepEqual(value.updatePayload.components, []);
+    assert.deepEqual(deps.calls, [{
+      guildId: GUILD,
+      ownerId: OWNER,
+      setupBy: actor.userId,
+      channelId: CHANNEL,
+      maxActiveGuilds: 25,
+    }]);
+  }
+});
+
+test('setup wizard rejects forged actors, channel cardinality, cross-guild channels, and missing permissions', async () => {
+  const unauthorized = interaction({
+    userId: ADMIN,
+    administrator: false,
+    customId: 'hengs-setup:standard-channel',
+  });
+  const unauthorizedDeps = dependencies('pending');
+  await setup.handleSetupWizard(unauthorized, unauthorizedDeps);
+  assert.match(unauthorized.updatePayload.content, /pemilik server|Administrator/i);
+  assert.equal(unauthorizedDeps.calls.length, 0);
+
+  const multiple = interaction({
+    customId: 'hengs-setup:standard-channel',
+    values: [CHANNEL, '623456789012345678'],
+  });
+  const multipleDeps = dependencies('pending');
+  await setup.handleSetupWizard(multiple, multipleDeps);
+  assert.match(multiple.updatePayload.content, /tepat satu channel/i);
+  assert.equal(multiple.updatePayload.components.length, 1);
+  assert.equal(multipleDeps.calls.length, 0);
+
+  const crossGuild = interaction({ customId: 'hengs-setup:standard-channel' });
+  crossGuild.guild.channels.cache.get(CHANNEL).guildId = '623456789012345678';
+  const crossGuildDeps = dependencies('pending');
+  await setup.handleSetupWizard(crossGuild, crossGuildDeps);
+  assert.match(crossGuild.updatePayload.content, /belum dapat dipakai/i);
+  assert.equal(crossGuildDeps.calls.length, 0);
+
+  const missingPermission = interaction({ customId: 'hengs-setup:standard-channel' });
+  missingPermission.guild.channels.cache.get(CHANNEL).permissionsFor = () => ({ has: () => false });
+  const permissionDeps = dependencies('pending');
+  await setup.handleSetupWizard(missingPermission, permissionDeps);
+  assert.match(missingPermission.updatePayload.content, /Read Message History/i);
+  assert.equal(permissionDeps.calls.length, 0);
 });
 
 test('/setup denies DMs, invalid configs, and unauthorized members without mutation', async () => {
@@ -342,13 +438,13 @@ test('/setup style updates only active public guilds with fixed presets', async 
   assert.equal(forged.calls.length, 0);
 });
 
-test('/setup start reports full capacity without exposing operational data', async () => {
+test('setup wizard reports full capacity without exposing operational data', async () => {
   const deps = dependencies('pending');
-  deps.guildConfigStore.activate = () => { throw new Error('PUBLIC_GUILD_LIMIT_REACHED'); };
-  const value = interaction({ subcommand: 'start' });
-  await setup.execute(value, deps);
-  assertPrivate(value.replyPayload);
-  assert.match(value.replyPayload.content, /kapasitas/i);
+  deps.guildConfigStore.applyStandardPreset = () => { throw new Error('PUBLIC_GUILD_LIMIT_REACHED'); };
+  const value = interaction({ customId: 'hengs-setup:standard-channel' });
+  await setup.handleSetupWizard(value, deps);
+  assert.match(value.updatePayload.content, /kapasitas/i);
+  assert.doesNotMatch(value.updatePayload.content, /\d{15,22}/);
 });
 
 test('/setup insights returns private aggregate-only ranges to public server managers', async () => {
@@ -363,6 +459,8 @@ test('/setup insights returns private aggregate-only ranges to public server man
     assert.match(value.replyPayload.content, /Hari aktif.*3/i);
     assert.match(value.replyPayload.content, /63%/);
     assert.match(value.replyPayload.content, /80%/);
+    assert.match(value.replyPayload.content, /Tren 7 hari.*naik 100%/i);
+    assert.match(value.replyPayload.content, /Kesehatan konfigurasi.*Sehat/i);
     assert.match(value.replyPayload.content, /Saran Hengs/i);
     assert.match(value.replyPayload.content, /isi chat.*tidak masuk/i);
     assert.doesNotMatch(value.replyPayload.content, /[\u2013\u2014]/);
@@ -398,11 +496,57 @@ test('/setup insights explains an empty aggregate without exposing identifiers',
     feedbackRated: 0,
     feedbackCoverage: 0,
     helpfulRate: 0,
+    comparisonDays: 7,
+    recentAccepted: 0,
+    previousAccepted: 0,
+    usageTrend: 'steady',
+    trendPercent: 0,
   });
   const value = interaction({ subcommand: 'insights' });
   await setup.execute(value, deps);
   assertPrivate(value.replyPayload);
   assert.match(value.replyPayload.content, /belum ada permintaan publik/i);
+});
+
+test('/setup insights reports fixed configuration problems without exposing channel IDs', async () => {
+  const deps = dependencies('public');
+  deps.guildAccess.classify = () => ({
+    kind: 'public',
+    config: {
+      schemaVersion: 4,
+      settings: {
+        channelId: '623456789012345678',
+        channelMode: 'current',
+        language: 'auto',
+        replyStyle: 'balanced',
+        welcomeChannelId: '623456789012345678',
+        welcomeEnabled: true,
+      },
+    },
+  });
+  const value = interaction({ subcommand: 'insights' });
+  value.guild.channels.cache.clear();
+  value.guild.channels.fetch = async () => null;
+  deps.communityPack.canUseChannel = channel => Boolean(channel);
+  await setup.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /Perlu perhatian \(2\)/i);
+  assert.match(value.replyPayload.content, /Channel chat tidak tersedia/i);
+  assert.match(value.replyPayload.content, /Community Pack tidak tersedia/i);
+  assert.doesNotMatch(value.replyPayload.content, /623456789012345678/);
+});
+
+test('usage trend copy handles new, up, down, and steady states without long dashes', () => {
+  for (const summary of [
+    { usageTrend: 'new', previousAccepted: 0, recentAccepted: 2, trendPercent: 0 },
+    { usageTrend: 'up', previousAccepted: 2, recentAccepted: 4, trendPercent: 100 },
+    { usageTrend: 'down', previousAccepted: 4, recentAccepted: 2, trendPercent: 50 },
+    { usageTrend: 'steady', previousAccepted: 2, recentAccepted: 2, trendPercent: 0 },
+  ]) {
+    const copy = setup.usageTrendCopy(summary);
+    assert.doesNotMatch(copy, /[\u2013\u2014]/);
+    assert.doesNotMatch(copy, /\d{15,22}/);
+  }
 });
 
 test('/setup disable removes public config and is idempotent', async () => {

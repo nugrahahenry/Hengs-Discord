@@ -43,6 +43,7 @@ const { buildPublicFeedbackComponents, handlePublicFeedback } = require('./guild
 const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
+const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -553,6 +554,31 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
     return;
+  }
+
+  if (setupCommand.handleSetupWizard && String(interaction.customId || '').startsWith('hengs-setup:')) {
+    try {
+      const handled = await setupCommand.handleSetupWizard(interaction, {
+        guildAccess,
+        guildConfigStore,
+        communityPack,
+        publicGuildLimit,
+      });
+      if (handled) return;
+    } catch {
+      console.error('[public-setup] PUBLIC_SETUP_COMPONENT_FAILED');
+      const payload = {
+        content: 'Setup belum dapat disimpan. Coba jalankan `/setup start` lagi ya.',
+        flags: MessageFlags.Ephemeral,
+        allowedMentions: { parse: [] },
+      };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
+      return;
+    }
   }
 
   if (!interaction.isChatInputCommand() && interactionScope.kind !== 'home') return;

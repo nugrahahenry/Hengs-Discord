@@ -314,10 +314,25 @@ function createPublicInsightsStore({
       feedbackRated: 0,
       feedbackCoverage: 0,
       helpfulRate: 0,
+      comparisonDays: 7,
+      recentAccepted: 0,
+      previousAccepted: 0,
+      usageTrend: 'steady',
+      trendPercent: 0,
     };
     if (!loaded.state) return summary;
     const cutoff = retentionCutoff(current.date, days);
+    const recentCutoff = retentionCutoff(current.date, summary.comparisonDays);
+    const previousEndDate = new Date(`${current.date}T00:00:00.000Z`);
+    previousEndDate.setUTCDate(previousEndDate.getUTCDate() - summary.comparisonDays);
+    const previousEnd = previousEndDate.toISOString().slice(0, 10);
+    const previousCutoff = retentionCutoff(previousEnd, summary.comparisonDays);
     for (const day of loaded.state.days) {
+      if (day.date >= recentCutoff && day.date <= current.date) {
+        summary.recentAccepted += day.accepted;
+      } else if (day.date >= previousCutoff && day.date <= previousEnd) {
+        summary.previousAccepted += day.accepted;
+      }
       if (day.date < cutoff || day.date > current.date) continue;
       for (const key of ['accepted', 'busyRejected', 'rateLimited', 'dailyLimited', 'helpful', 'needsWork']) {
         summary[key] += day[key];
@@ -339,6 +354,17 @@ function createPublicInsightsStore({
     summary.helpfulRate = summary.feedbackRated === 0
       ? 0
       : Math.round((summary.helpful / summary.feedbackRated) * 100);
+    if (summary.previousAccepted === 0 && summary.recentAccepted > 0) {
+      summary.usageTrend = 'new';
+    } else if (summary.recentAccepted > summary.previousAccepted) {
+      summary.usageTrend = 'up';
+    } else if (summary.recentAccepted < summary.previousAccepted) {
+      summary.usageTrend = 'down';
+    }
+    summary.trendPercent = summary.previousAccepted === 0
+      ? 0
+      : Math.round((Math.abs(summary.recentAccepted - summary.previousAccepted)
+        / summary.previousAccepted) * 100);
     return summary;
   }
 

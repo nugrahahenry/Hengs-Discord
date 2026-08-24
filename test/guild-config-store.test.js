@@ -77,6 +77,48 @@ test('guild config activation is atomic, strict, and idempotent', t => {
   );
 });
 
+test('Hengs Standard applies one fixed channel-bound preset atomically and idempotently', t => {
+  const { rootDir, store } = fixture(t);
+  const channelId = '523456789012345678';
+  const first = store.applyStandardPreset({
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    channelId,
+    maxActiveGuilds: 1,
+  });
+  assert.equal(first.created, true);
+  assert.equal(first.changed, true);
+  assert.deepEqual(first.config.settings, {
+    channelId,
+    channelMode: 'current',
+    language: 'auto',
+    replyStyle: 'balanced',
+    welcomeChannelId: channelId,
+    welcomeEnabled: true,
+  });
+  assert.equal(first.config.revision, 1);
+  const before = fs.readFileSync(path.join(rootDir, GUILD_A, 'config.json'), 'utf8');
+  const repeated = store.applyStandardPreset({
+    guildId: GUILD_A,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    channelId,
+    maxActiveGuilds: 1,
+  });
+  assert.equal(repeated.changed, false);
+  assert.equal(repeated.config.revision, 1);
+  assert.equal(fs.readFileSync(path.join(rootDir, GUILD_A, 'config.json'), 'utf8'), before);
+  assert.throws(() => store.applyStandardPreset({
+    guildId: GUILD_B,
+    ownerId: OWNER,
+    setupBy: ADMIN,
+    channelId,
+    maxActiveGuilds: 1,
+  }), /PUBLIC_GUILD_LIMIT_REACHED/);
+  assert.equal(store.get(GUILD_B), null);
+});
+
 test('guild config refresh keeps creation time and increments revision only on change', t => {
   const { store } = fixture(t);
   const first = store.activate({

@@ -22,6 +22,10 @@ const SETTINGS_V4_KEYS = [
 const MAX_CONFIG_BYTES = 16 * 1024;
 const DEFAULT_PUBLIC_GUILD_LIMIT = 25;
 const MAX_PUBLIC_GUILD_LIMIT = 100;
+const STANDARD_PUBLIC_SETTINGS = Object.freeze({
+  language: 'auto',
+  replyStyle: 'balanced',
+});
 
 function parsePublicGuildLimit(value) {
   if (value === undefined || value === null || value === '') return DEFAULT_PUBLIC_GUILD_LIMIT;
@@ -305,6 +309,52 @@ function createGuildConfigStore({
     return { config: desired, created: !existing, changed: true };
   }
 
+  function applyStandardPreset({ guildId, ownerId, setupBy, channelId, maxActiveGuilds }) {
+    const paths = pathsFor(guildId);
+    const normalizedOwner = assertSnowflake(ownerId, 'OWNER_ID_INVALID');
+    const normalizedSetupBy = assertSnowflake(setupBy, 'SETUP_BY_INVALID');
+    const normalizedChannelId = assertSnowflake(channelId, 'CHANNEL_SCOPE_INVALID');
+    const existing = get(paths.guildId);
+    const limit = parsePublicGuildLimit(maxActiveGuilds);
+    if (!existing && countActive() >= limit) throw new Error('PUBLIC_GUILD_LIMIT_REACHED');
+    const settings = {
+      channelId: normalizedChannelId,
+      channelMode: 'current',
+      language: STANDARD_PUBLIC_SETTINGS.language,
+      replyStyle: STANDARD_PUBLIC_SETTINGS.replyStyle,
+      welcomeChannelId: normalizedChannelId,
+      welcomeEnabled: true,
+    };
+    const unchanged = existing
+      && existing.schemaVersion === 4
+      && existing.ownerId === normalizedOwner
+      && existing.setupBy === normalizedSetupBy
+      && existing.settings.channelId === settings.channelId
+      && existing.settings.channelMode === settings.channelMode
+      && existing.settings.language === settings.language
+      && existing.settings.replyStyle === settings.replyStyle
+      && existing.settings.welcomeChannelId === settings.welcomeChannelId
+      && existing.settings.welcomeEnabled === settings.welcomeEnabled;
+    if (unchanged) return { config: existing, created: false, changed: false };
+    const timestamp = now();
+    if (!isIsoTimestamp(timestamp)) throw new Error('CLOCK_INVALID');
+    const desired = {
+      schemaVersion: 4,
+      guildId: paths.guildId,
+      ownerId: normalizedOwner,
+      setupBy: normalizedSetupBy,
+      status: 'active',
+      features: { mentionChat: true },
+      settings,
+      revision: existing ? existing.revision + 1 : 1,
+      createdAt: existing ? existing.createdAt : timestamp,
+      updatedAt: timestamp,
+    };
+    validateConfig(desired, paths.guildId);
+    write(paths, desired);
+    return { config: desired, created: !existing, changed: true };
+  }
+
   function setReplyStyle({ guildId, replyStyle, setupBy }) {
     const paths = pathsFor(guildId);
     const normalizedSetupBy = assertSnowflake(setupBy, 'SETUP_BY_INVALID');
@@ -456,6 +506,7 @@ function createGuildConfigStore({
 
   return {
     activate,
+    applyStandardPreset,
     countActive,
     get,
     remove,
@@ -470,6 +521,7 @@ module.exports = {
   CHANNEL_MODES,
   LANGUAGES,
   REPLY_STYLES,
+  STANDARD_PUBLIC_SETTINGS,
   createGuildConfigStore,
   parsePublicGuildLimit,
   resolveChannelScope,

@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-08-25
+
+### Added
+- `/setup start` now opens a private Discord channel picker. One selection applies the fixed Hengs
+  Standard preset with balanced replies, automatic language, current-channel scope, and Community
+  Pack enabled in the same channel.
+- Owner Insights compares the latest seven UTC days with the preceding seven days and reports a
+  fixed new, up, down, or steady trend.
+- Owner Insights checks configured chat and Community Pack channels at read time and reports fixed
+  permission or availability issues without exposing channel IDs or names.
+
+### Security
+- Wizard completion rechecks owner or Administrator access, fresh guild scope, active-guild
+  capacity, one-channel cardinality, current-guild ownership, channel type, and four required bot
+  permissions before any write.
+- Hengs Standard is a static public mapping. It never reads or copies home-guild settings, IDs,
+  roles, channels, prompts, history, or member data.
+- Preset activation uses one atomic schema 4 write. Trend and configuration-health fields are
+  calculated from existing state and are not persisted.
+
+### Changed
+- Reopening `/setup start` is read-only until a channel is selected. Reapplying an exact preset is
+  idempotent, while applying it after customization clearly replaces only the four public settings.
+- Setup guidance no longer asks a friend to find Server ID or Channel ID.
+
+### Verification
+- Focused guided-setup, config-store, insights, routing, and release verification passes 55/55.
+- The complete local suite passes 438/438. Deployment and Discord registration remain pending
+  separate authorization.
+
 ## [1.25.0] - 2026-08-24
 
 ### Added

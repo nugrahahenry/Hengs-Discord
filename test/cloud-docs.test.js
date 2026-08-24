@@ -52,7 +52,7 @@ test('cloud guide covers acquisition, deployment, cutover, and recovery gates', 
     assert.match(guide, new RegExp(`^## ${heading}$`, 'm'));
   }
   assert.match(guide, /one Discord token consumer/i);
-  assert.match(guide, /Anti-Raid.*`monitor`/i);
+  assert.match(guide, /tidak mengubah mode,[\s\S]*Anti-Raid/i);
   assert.match(guide, /stop.*local.*before.*start.*cloud/is);
   assert.match(guide, /stop.*cloud.*before.*start.*local/is);
 });
@@ -63,4 +63,3 @@ test('cloud guide excludes secrets and unsafe release instructions', () => {
   assert.doesNotMatch(guide, /ocid1\.|BEGIN (?:OPENSSH |RSA )?PRIVATE KEY|DISCORD_TOKEN\s*=\s*\S+/i);
   assert.match(guide, /never.*\.env.*release archive/i);
 });
-

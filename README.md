@@ -2,19 +2,20 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.25.0 Community Pack and Owner Insights Phase 2
+**Current local checkpoint:** v1.26.0 Guided Setup and Owner Insights Phase 3
 
 **Current cloud production:** v1.25.0
 
 ## ✨ Fitur Utama
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
-- **Public Server Essentials:** owner cukup menjalankan `/setup start`, lalu dapat memilih gaya,
-  bahasa, dan channel. Member bisa memakai `/hengs ask`, `/hengs reset`, `/hengs help`,
-  `/hengs privacy`, atau `/hengs invite` tanpa Server ID manual
+- **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel
+  dari menu Discord. Hengs Standard mengaktifkan gaya Santai, bahasa Otomatis, cakupan channel
+  tersebut, dan Community Pack dalam satu langkah tanpa Server ID atau Channel ID manual
 - **Owner Insights:** owner atau Administrator dapat membuka ringkasan penggunaan privat lewat
   `/setup insights`. Laporan menampilkan hari aktif, rata-rata, hari tersibuk, cakupan feedback,
-  tingkat membantu, dan saran tetap tanpa menyimpan isi chat atau identitas member
+  tingkat membantu, tren tujuh hari, kesehatan konfigurasi, dan saran tetap tanpa menyimpan isi
+  chat atau identitas member
 - **Community Pack publik:** owner dapat memakai `/setup welcome` untuk preview privat, lalu
   mengaktifkan kartu masuk dan keluar di channel saat ini tanpa mencari Server ID atau Channel ID
 - **Mode fokus** — `/study on/off/status`, `/scrim on/off`
@@ -94,13 +95,17 @@ diaktifkan pada server publik mana pun oleh deployment. Ikuti
 [panduan cloud](docs/CLOUD-DEPLOY.md) dan jangan menyalakan consumer lokal sebelum cloud dibuktikan
 berhenti.
 
+Checkpoint lokal v1.26.0 tidak mengubah schema slash command. Ia menambahkan channel-picker privat
+ke `/setup start`, preset Hengs Standard atomik, tren Owner Insights, dan pemeriksaan channel serta
+izin saat laporan dibuka. Fitur ini belum dideploy dan tidak memerlukan registrasi command ulang.
+
 ## 💬 Commands
 
 | Command | Fungsi |
 |---|---|
 | `@Hengs <pesan>` | Ngobrol sama AI |
 | `/hengs ask` · `/hengs reset` · `/hengs help` · `/hengs privacy` · `/hengs invite` | Tanya Hengs, kelola ingatanmu, pahami privasi, buka panduan, atau undang Hengs ke server lain |
-| `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup welcome` · `/setup insights` · `/setup disable` | Kelola Public Beta, Community Pack, dan ringkasan penggunaan privat untuk owner atau Administrator server |
+| `/setup start` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup welcome` · `/setup insights` · `/setup disable` | Jalankan setup terpandu, kelola Community Pack, dan buka tren serta kesehatan konfigurasi privat |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |
 | `/announce` · `/fun ...` | Pengumuman & hiburan |
 | `/ops draft` · `/ops status` · `/ops history` · `/ops overview` | Draft pengumuman, approval owner, audit, dan ringkasan operasi privat |
