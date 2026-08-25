@@ -6,6 +6,11 @@
 
 **Current cloud production:** v1.28.0
 
+**Development status:** frozen for normal feature work. Production bugs, security fixes, and
+Discord platform compatibility remain maintained.
+
+**Public invite:** [Add Hengs to a Discord server](https://discord.com/oauth2/authorize?client_id=1512417103138000948&permissions=101376&scope=bot+applications.commands)
+
 ## ✨ Fitur Utama
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
