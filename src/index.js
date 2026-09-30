@@ -43,6 +43,7 @@ const { buildPublicFeedbackComponents, handlePublicFeedback } = require('./guild
 const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
+const { MAX_PROMPT_LENGTH, resolvePrompt } = require('./prompt-assistant');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 
@@ -434,6 +435,27 @@ client.on(Events.MessageCreate, async (msg) => {
   if (!text) {
     await msg.reply({
       content: 'Ada yang bisa aku bantu? Tulis apa yang mau kamu tanya 😊',
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+  if (text.length > MAX_PROMPT_LENGTH) {
+    await msg.reply({
+      content: `Prompt terlalu panjang. Batasnya ${MAX_PROMPT_LENGTH} karakter supaya Hengs tetap fokus.`,
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+
+  const promptRoute = resolvePrompt({
+    prompt: text,
+    scopeKind: messageScope.kind,
+    actor: msg,
+    guild: msg.guild,
+  });
+  if (promptRoute.handled) {
+    await msg.reply({
+      content: promptRoute.content,
       allowedMentions: { parse: [] },
     });
     return;

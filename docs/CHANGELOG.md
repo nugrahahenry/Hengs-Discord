@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-09-30
+
+### Added
+- Prompt-first Community Assistant untuk mention Hengs dan `/hengs ask`.
+- Prompt bantuan dan prompt rancangan struktur komunitas memakai blueprint deterministik untuk
+  lobi masuk, server core, area gaming, dan creator studio.
+- Blueprint menandai channel yang sudah ada tanpa menyimpan state baru atau mengirim prompt ke
+  provider AI.
+
+### Security
+- Rancangan struktur hanya tersedia di home guild untuk pemilik server atau Administrator.
+- v1.29.0 tidak membuat, menghapus, atau mengubah channel, kategori, role, permission, atau pesan.
+- Prompt biasa tetap mengikuti rate limit, history, dan policy provider yang sudah ada.
+
+### Verification
+- Fokus prompt assistant dan routing command lulus 19/19.
+- Cloud tetap v1.28.0. Belum ada deployment, restart, registrasi command, atau mutasi Discord.
+
 ## [1.28.0] - 2026-08-25
 
 ### Added

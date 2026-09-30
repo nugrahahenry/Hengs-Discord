@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.28.0 Control Center Settings
+**Current local checkpoint:** v1.29.0 Prompt-first Community Assistant
 
 **Current cloud production:** v1.28.0
 
@@ -14,6 +14,9 @@ Discord platform compatibility remain maintained.
 ## ✨ Fitur Utama
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
+- **Prompt-first community planning:** owner atau Administrator dapat menulis prompt natural untuk
+  merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint read-only, tanpa mengubah
+  channel, role, permission, atau pesan sebelum ada review lanjutan
 - **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel
   dari menu Discord. Hengs Standard mengaktifkan gaya Santai, bahasa Otomatis, cakupan channel
   tersebut, dan Community Pack dalam satu langkah tanpa Server ID atau Channel ID manual
@@ -115,7 +118,7 @@ berhenti dan Hengs WA cloud tetap aktif tanpa restart atau perubahan auth.
 
 | Command | Fungsi |
 |---|---|
-| `@Hengs <pesan>` | Ngobrol sama AI |
+| `@Hengs <pesan>` | Ngobrol sama AI atau tulis prompt natural untuk rancangan komunitas |
 | `/hengs ask` · `/hengs reset` · `/hengs help` · `/hengs privacy` · `/hengs invite` | Tanya Hengs, kelola ingatanmu, pahami privasi, buka panduan, atau undang Hengs ke server lain |
 | `/setup start` · `/setup dashboard` · `/setup status` · `/setup style` · `/setup language` · `/setup channel` · `/setup welcome` · `/setup insights` · `/setup disable` | Jalankan setup terpandu, buka pusat kontrol privat, kelola Community Pack, dan lihat tren serta kesehatan konfigurasi |
 | `/study on/off/status` · `/scrim on/off` | Mode fokus |

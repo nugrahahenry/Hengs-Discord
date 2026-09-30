@@ -3,6 +3,7 @@ const { createPublicInviteUrl } = require('../create-public-invite');
 const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
 const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
+const { resolvePrompt } = require('../prompt-assistant');
 
 const MAX_PROMPT_LENGTH = 1800;
 
@@ -106,7 +107,8 @@ async function execute(interaction, {
     }
     await replyPrivate(interaction, [
       '**Mulai pakai Hengs**',
-      '`/hengs ask` untuk bertanya langsung, atau mention Hengs lalu tulis pertanyaanmu.',
+      'Tulis prompt langsung saat mention Hengs atau lewat `/hengs ask`, tanpa format rumit.',
+      'Contoh: "rancang struktur server gaming dengan area mabar dan creator".',
       '`/hengs reset` untuk menghapus ingatan percakapanmu sendiri.',
       'Pemilik server atau Administrator dapat mengatur Hengs lewat `/setup`.',
       '`/hengs privacy` menjelaskan penggunaan data.',
@@ -145,6 +147,17 @@ async function execute(interaction, {
   const prompt = String(interaction.options.getString('prompt', true) || '').trim();
   if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
     await replyPrivate(interaction, 'Pertanyaan harus berisi 1 sampai 1800 karakter.');
+    return;
+  }
+
+  const promptRoute = resolvePrompt({
+    prompt,
+    scopeKind: scope.kind,
+    actor: interaction,
+    guild: interaction.guild,
+  });
+  if (promptRoute.handled) {
+    await replyPrivate(interaction, promptRoute.content);
     return;
   }
 

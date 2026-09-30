@@ -187,6 +187,21 @@ test('/hengs ask shares public admission and sends mention-safe output', async (
   assert.deepEqual(deps.releases, [GUILD]);
 });
 
+test('/hengs ask handles an owner community prompt without provider traffic', async () => {
+  const deps = dependencies('home');
+  const value = interaction({ subcommand: 'ask', prompt: 'Buatkan struktur server gaming' });
+  value.guild = {
+    ownerId: USER,
+    channels: { cache: new Map([['1', { name: 'announcements' }]]) },
+  };
+  await hengs.execute(value, deps);
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /Rancangan komunitas Hengs/i);
+  assert.match(value.replyPayload.content, /#info-mabar/);
+  assert.equal(deps.calls.some(call => call.chat), false);
+  assert.equal(deps.calls.some(call => call.acquire), false);
+});
+
 test('/hengs ask enforces selected channel before consuming traffic', async () => {
   const deps = dependencies('public', config({ channelMode: 'current', channelId: CHANNEL }));
   const value = interaction({ subcommand: 'ask', channelId: '523456789012345678' });
