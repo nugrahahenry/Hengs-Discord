@@ -77,19 +77,28 @@ function existingChannelNames(guild) {
   const channels = guild?.channels?.cache;
   if (!channels?.values) return new Set();
   return new Set([...channels.values()]
+    .filter(channel => channel?.viewable !== false)
+    .filter(channel => typeof channel?.isTextBased !== 'function' || channel.isTextBased())
     .map(channel => String(channel?.name || '').trim().toLowerCase())
     .filter(Boolean));
 }
 
-function buildCommunityPlan(prompt, guild) {
+function selectBlueprintKeys(prompt) {
+  return selectBlueprints(prompt).map(blueprint => blueprint.key);
+}
+
+function buildCommunityPlanFromKeys(blueprintKeys, guild) {
+  const selected = new Set(Array.isArray(blueprintKeys) ? blueprintKeys : []);
   const existing = existingChannelNames(guild);
-  const sections = selectBlueprints(prompt).map(blueprint => {
-    const channels = blueprint.channels.map(name => {
-      const marker = existing.has(name) ? 'sudah ada' : 'disarankan';
-      return `  • #${name} (${marker})`;
+  const sections = BLUEPRINTS
+    .filter(blueprint => selected.has(blueprint.key))
+    .map(blueprint => {
+      const channels = blueprint.channels.map(name => {
+        const marker = existing.has(name) ? 'sudah ada' : 'disarankan';
+        return `  • #${name} (${marker})`;
+      });
+      return `**${blueprint.title}**\n${channels.join('\n')}`;
     });
-    return `**${blueprint.title}**\n${channels.join('\n')}`;
-  });
 
   return [
     '🧭 **Rancangan komunitas Hengs**',
@@ -97,7 +106,13 @@ function buildCommunityPlan(prompt, guild) {
     ...sections,
     '',
     'Status: ini baru rancangan. Belum ada channel, role, permission, atau pesan yang diubah.',
-    'Kalau sudah cocok, lanjutkan dengan prompt: "Hengs, buatkan draft penerapannya".',
+  ].join('\n').slice(0, 1900);
+}
+
+function buildCommunityPlan(prompt, guild) {
+  return [
+    buildCommunityPlanFromKeys(selectBlueprintKeys(prompt), guild),
+    'Kalau sudah cocok, tekan tombol **Tinjau sekarang** untuk membuka preview privat.',
   ].join('\n').slice(0, 1900);
 }
 
@@ -126,7 +141,12 @@ function resolvePrompt({ prompt, scopeKind, actor, guild } = {}) {
       content: 'Rancangan struktur server hanya bisa diminta pemilik server atau Administrator. Pertanyaan biasa tetap bisa kamu ajukan ke Hengs.',
     };
   }
-  return { handled: true, kind: 'community_plan', content: buildCommunityPlan(result.prompt, guild) };
+  return {
+    handled: true,
+    kind: 'community_plan',
+    content: buildCommunityPlan(result.prompt, guild),
+    blueprintKeys: selectBlueprintKeys(result.prompt),
+  };
 }
 
 module.exports = {
@@ -135,6 +155,9 @@ module.exports = {
   normalizePrompt,
   classifyPrompt,
   buildCommunityPlan,
+  buildCommunityPlanFromKeys,
   buildPromptHelp,
+  existingChannelNames,
   resolvePrompt,
+  selectBlueprintKeys,
 };

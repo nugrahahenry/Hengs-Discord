@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.29.0 Prompt-first Community Assistant
+**Current local checkpoint:** v1.30.0 Prompt Review Assistant
 
 **Current cloud production:** v1.28.0
 
@@ -17,6 +17,8 @@ Discord platform compatibility remain maintained.
 - **Prompt-first community planning:** owner atau Administrator dapat menulis prompt natural untuk
   merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint read-only, tanpa mengubah
   channel, role, permission, atau pesan sebelum ada review lanjutan
+- **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.
+  Konfirmasi hanya mencatat persetujuan sementara dan belum menerapkan perubahan server
 - **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel
   dari menu Discord. Hengs Standard mengaktifkan gaya Santai, bahasa Otomatis, cakupan channel
   tersebut, dan Community Pack dalam satu langkah tanpa Server ID atau Channel ID manual

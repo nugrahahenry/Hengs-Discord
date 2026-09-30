@@ -4,6 +4,7 @@ const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
 const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
 const { resolvePrompt } = require('../prompt-assistant');
+const { issueReview } = require('../prompt-review');
 
 const MAX_PROMPT_LENGTH = 1800;
 
@@ -32,10 +33,11 @@ const data = new SlashCommandBuilder()
     .setName('privacy')
     .setDescription('Lihat cara Hengs menangani chat dan data'));
 
-async function replyPrivate(interaction, content) {
+async function replyPrivate(interaction, content, components = []) {
   await interaction.reply({
     content,
     flags: MessageFlags.Ephemeral,
+    components,
     allowedMentions: { parse: [] },
   });
 }
@@ -157,7 +159,27 @@ async function execute(interaction, {
     guild: interaction.guild,
   });
   if (promptRoute.handled) {
-    await replyPrivate(interaction, promptRoute.content);
+    if (promptRoute.kind !== 'community_plan') {
+      await replyPrivate(interaction, promptRoute.content);
+      return;
+    }
+    const review = issueReview({
+      guild: interaction.guild,
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      requesterId: interaction.user.id,
+      blueprintKeys: promptRoute.blueprintKeys,
+    });
+    if (!review.ok) {
+      const copy = review.code === 'PROMPT_REVIEW_COOLDOWN'
+        ? 'Kita baru saja membuat preview. Pakai tombol yang sudah ada atau tunggu sebentar.'
+        : 'Preview privat belum bisa dibuat. Coba lagi sebentar ya.';
+      await replyPrivate(interaction, copy);
+      return;
+    }
+    await replyPrivate(interaction, review.ticket
+      ? `${promptRoute.content}\n\nPreview privat siap. Belum ada perubahan pada server.`
+      : promptRoute.content, review.components);
     return;
   }
 

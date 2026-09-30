@@ -44,6 +44,7 @@ const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
 const { MAX_PROMPT_LENGTH, resolvePrompt } = require('./prompt-assistant');
+const { handleComponent: handlePromptReviewComponent } = require('./prompt-review');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 
@@ -454,8 +455,11 @@ client.on(Events.MessageCreate, async (msg) => {
     guild: msg.guild,
   });
   if (promptRoute.handled) {
+    const content = promptRoute.kind === 'community_plan'
+      ? 'Rancangan struktur server dibuat privat. Pakai `/hengs ask` dengan prompt yang sama supaya preview dan konfirmasi tidak terlihat member lain.'
+      : promptRoute.content;
     await msg.reply({
-      content: promptRoute.content,
+      content,
       allowedMentions: { parse: [] },
     });
     return;
@@ -536,6 +540,24 @@ client.on(Events.MessageCreate, async (msg) => {
 // ── Slash command handler ─────────────────────────────────────────────────────
 client.on(Events.InteractionCreate, async (interaction) => {
   const interactionScope = guildAccess.classify(interaction.guildId);
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-prompt:')) {
+    try {
+      await handlePromptReviewComponent(interaction, {
+        guildAccess,
+        botUserId: client.user?.id,
+      });
+    } catch (error) {
+      console.error('[prompt-review] PROMPT_REVIEW_COMPONENT_FAILED', { code: error.code || 'COMPONENT_FAILED' });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'Preview belum bisa diproses. Coba buat rancangan baru ya.',
+          flags: MessageFlags.Ephemeral,
+          allowedMentions: { parse: [] },
+        }).catch(() => {});
+      }
+    }
+    return;
+  }
   if (interaction.isAutocomplete()) {
     if (interactionScope.kind !== 'home') {
       await interaction.respond([]).catch(() => {});

@@ -5,11 +5,12 @@ Updated: 2026-09-30
 ## Prompt reprioritization - 2026-09-30
 
 - Henry explicitly reprioritized Hengs Discord toward prompt-first usage after reviewing the server
-  layout screenshot. The local checkpoint is v1.29.0. Cloud remains v1.28.0 until a separate deploy
+  layout screenshot. The local checkpoint is v1.30.0. Cloud remains v1.28.0 until a separate deploy
   approval.
 - Mention Hengs and `/hengs ask` now recognize provider-free help prompts and safe community-plan
-  prompts. A home-guild owner or Administrator can receive a read-only blueprint for lobby, core,
-  gaming, and creator sections. No Discord mutation is performed.
+  prompts. `/hengs ask` can issue a private five-minute preview ticket with review, cancel, and
+  owner confirmation buttons. A home-guild owner or Administrator can receive a read-only blueprint
+  for lobby, core, gaming, and creator sections. No Discord mutation is performed.
 - Ordinary prompts still use the existing AI path, public traffic guard, history, and privacy rules.
   The next possible slice is a private draft-apply preview with owner confirmation. Do not implement
   direct channel or permission mutation from free text.
@@ -19,11 +20,12 @@ Updated: 2026-09-30
 - `main` is synchronized with `origin/main`; the older GitHub credential blocker note is resolved.
   Discord remains live and monitored while this local prompt checkpoint awaits deployment approval.
 
-## Current local checkpoint: v1.29.0 - Prompt-first Community Assistant
+## Current local checkpoint: v1.30.0 - Prompt Review Assistant
 
-- `src/prompt-assistant.js` contains the bounded classifier and fixed community blueprint. It has no
-  provider call, persistent state, queue, scheduler, or arbitrary Discord API action.
-- Focused routing and prompt tests pass 19/19. Cloud deployment and slash-command registration are
+- `src/prompt-assistant.js` contains the bounded classifier and fixed community blueprint. `src/prompt-review.js`
+  adds RAM-only, five-minute review tickets with fingerprint and owner checks. It has no provider
+  call, persistent state, queue, scheduler, or arbitrary Discord API action.
+- Focused routing and prompt-review tests pass 26/26. Cloud deployment and slash-command registration are
   intentionally pending explicit approval.
 
 ## Current production checkpoint: v1.28.0 - Control Center Settings

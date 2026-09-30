@@ -5,6 +5,22 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-09-30
+
+### Added
+- Preview privat berbasis tombol untuk prompt rancangan komunitas.
+- Ticket RAM-only dengan TTL lima menit, fingerprint inventory, batas kapasitas, dan aksi satu kali.
+- Review ulang, batalkan, dan konfirmasi owner yang tetap belum menerapkan perubahan server.
+
+### Security
+- Setiap komponen memeriksa ulang sumber pesan bot, guild, channel, scope home, requester, owner,
+  expiry, dan perubahan inventory. Channel yang tidak terlihat bot tidak dihitung.
+- Administrator dapat meminta preview tetapi tidak dapat mengonfirmasi. Tidak ada state persisten,
+  prompt mentah, provider call, arbitrary Discord API action, atau fallback publik.
+
+### Verification
+- Cloud tetap v1.28.0. Belum ada deployment, restart, registrasi command, atau mutasi Discord.
+
 ## [1.29.0] - 2026-09-30
 
 ### Added
