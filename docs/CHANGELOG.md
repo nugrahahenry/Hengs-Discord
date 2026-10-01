@@ -5,6 +5,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-10-01
+
+### Added
+- Prompt fokus natural untuk owner atau Administrator: belajar, scrim, status, dan handback.
+- Prompt fokus memakai state mode yang sama dengan `/study` dan `/scrim`, tanpa provider AI atau
+  mutasi channel, role, permission, maupun pesan.
+
+### Security
+- Prompt fokus hanya aktif di home scope dengan pemeriksaan owner atau Administrator. Pertanyaan,
+  negasi, jadwal, durasi, dan pilihan mode ganda tidak mengubah state.
+
+### Verification
+- Fokus prompt, permission, dan state action tests lulus. Cloud tetap v1.28.0; belum ada deploy,
+  restart, registrasi command, atau mutasi Discord.
+
 ## [1.30.0] - 2026-09-30
 
 ### Added

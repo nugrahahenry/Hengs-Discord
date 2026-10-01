@@ -2,12 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.30.0 Prompt Review Assistant
+**Current local checkpoint:** v1.31.0 Natural Focus Prompts
 
 **Current cloud production:** v1.28.0
 
-**Development status:** frozen for normal feature work. Production bugs, security fixes, and
-Discord platform compatibility remain maintained.
+**Development status:** local feature work continues in bounded checkpoints. Cloud stays on the
+last accepted release until a separate deployment approval.
 
 **Public invite:** [Add Hengs to a Discord server](https://discord.com/oauth2/authorize?client_id=1512417103138000948&permissions=101376&scope=bot+applications.commands)
 
@@ -19,6 +19,8 @@ Discord platform compatibility remain maintained.
   channel, role, permission, atau pesan sebelum ada review lanjutan
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.
   Konfirmasi hanya mencatat persetujuan sementara dan belum menerapkan perubahan server
+- **Prompt fokus natural:** owner atau Administrator dapat menulis "fokus belajar", "mulai scrim",
+  "status mode", atau "selesai fokus" tanpa slash command. Perintah ambigu tetap meminta klarifikasi
 - **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel
   dari menu Discord. Hengs Standard mengaktifkan gaya Santai, bahasa Otomatis, cakupan channel
   tersebut, dan Community Pack dalam satu langkah tanpa Server ID atau Channel ID manual

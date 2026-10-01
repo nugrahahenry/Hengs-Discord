@@ -1,6 +1,17 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-09-30
+Updated: 2026-10-01
+
+## Natural Focus Prompts - 2026-10-01
+
+- Local checkpoint is v1.31.0. Owner or Administrator can say `fokus belajar`, `mulai scrim`,
+  `status mode`, or `selesai fokus` in the home guild. The action uses the existing in-memory
+  state behind `/study` and `/scrim`.
+- Questions, negation, schedules, durations, and ambiguous multiple modes remain non-mutating.
+  Public scope stays on the ordinary AI path. No Discord API mutation, provider call, persistence,
+  token, or deployment was added. Cloud remains v1.28.0.
+- Focus prompt tests pass. Next action is local dogfooding in the home guild before any deployment
+  approval.
 
 ## Prompt reprioritization - 2026-09-30
 

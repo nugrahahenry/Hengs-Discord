@@ -43,7 +43,7 @@ const { buildPublicFeedbackComponents, handlePublicFeedback } = require('./guild
 const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
-const { MAX_PROMPT_LENGTH, resolvePrompt } = require('./prompt-assistant');
+const { MAX_PROMPT_LENGTH, applyFocusAction, resolvePrompt } = require('./prompt-assistant');
 const { handleComponent: handlePromptReviewComponent } = require('./prompt-review');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
@@ -457,7 +457,9 @@ client.on(Events.MessageCreate, async (msg) => {
   if (promptRoute.handled) {
     const content = promptRoute.kind === 'community_plan'
       ? 'Rancangan struktur server dibuat privat. Pakai `/hengs ask` dengan prompt yang sama supaya preview dan konfirmasi tidak terlihat member lain.'
-      : promptRoute.content;
+      : promptRoute.kind === 'focus_action'
+        ? applyFocusAction({ route: promptRoute, state })
+        : promptRoute.content;
     await msg.reply({
       content,
       allowedMentions: { parse: [] },

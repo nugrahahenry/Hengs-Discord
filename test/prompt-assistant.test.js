@@ -3,9 +3,11 @@ const test = require('node:test');
 
 const {
   BLUEPRINTS,
+  applyFocusAction,
   buildCommunityPlan,
   buildPromptHelp,
   classifyPrompt,
+  parseFocusPrompt,
   resolvePrompt,
 } = require('../src/prompt-assistant');
 
@@ -91,4 +93,55 @@ test('prompt help stays provider-free and does not promise mutations', () => {
   assert.match(result.content, /rancang struktur server/i);
   assert.match(buildPromptHelp(), /menunggu review dan konfirmasi owner/i);
   assert.doesNotMatch(result.content, /[\u2013\u2014]/);
+});
+
+test('focus prompts become bounded owner actions', () => {
+  assert.deepEqual(parseFocusPrompt('fokus belajar topik AI'), {
+    action: 'start', mode: 'study', topic: 'AI',
+  });
+  assert.deepEqual(classifyPrompt('mulai scrim MLBB'), {
+    kind: 'focus_action', prompt: 'mulai scrim MLBB', action: 'start', mode: 'scrim', topic: null,
+  });
+  assert.deepEqual(parseFocusPrompt('selesai fokus'), { action: 'off', mode: null });
+  assert.deepEqual(parseFocusPrompt('status mode'), { action: 'status' });
+  for (const prompt of [
+    'jangan aktifkan mode belajar',
+    'cara fokus belajar?',
+    'aktifkan scrim besok jam 9',
+  ]) assert.equal(classifyPrompt(prompt).kind, 'chat', prompt);
+  assert.deepEqual(parseFocusPrompt('fokus belajar atau scrim'), { action: 'clarify' });
+});
+
+test('focus actions are home-owner only and mutate only the in-memory mode state', () => {
+  const denied = resolvePrompt({
+    prompt: 'fokus belajar',
+    scopeKind: 'home',
+    actor: actor(MEMBER),
+    guild: guild(),
+  });
+  assert.equal(denied.kind, 'permission');
+
+  const publicRoute = resolvePrompt({
+    prompt: 'fokus belajar',
+    scopeKind: 'public',
+    actor: actor(OWNER),
+    guild: guild(),
+  });
+  assert.equal(publicRoute.handled, false);
+
+  const calls = [];
+  const state = {
+    mode: 'off',
+    topic: null,
+    setMode(mode, topic) { this.mode = mode; this.topic = topic || null; calls.push([mode, topic || null]); },
+    getMode() { return this.mode; },
+    getTopic() { return this.topic; },
+    getDuration() { return 12; },
+  };
+  const allowed = resolvePrompt({ prompt: 'fokus belajar topik AI', scopeKind: 'home', actor: actor(OWNER), guild: guild() });
+  assert.equal(allowed.kind, 'focus_action');
+  assert.match(applyFocusAction({ route: allowed, state }), /BELAJAR aktif/);
+  assert.deepEqual(calls, [['study', 'AI']]);
+  assert.match(applyFocusAction({ route: { kind: 'focus_action', action: 'status' }, state }), /Topik: AI/);
+  assert.match(applyFocusAction({ route: { kind: 'focus_action', action: 'off', mode: 'study' }, state }), /dimatikan/);
 });

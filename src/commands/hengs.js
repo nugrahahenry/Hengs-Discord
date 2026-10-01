@@ -3,7 +3,7 @@ const { createPublicInviteUrl } = require('../create-public-invite');
 const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
 const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
-const { resolvePrompt } = require('../prompt-assistant');
+const { applyFocusAction, resolvePrompt } = require('../prompt-assistant');
 const { issueReview } = require('../prompt-review');
 
 const MAX_PROMPT_LENGTH = 1800;
@@ -47,6 +47,7 @@ function activeScope(kind) {
 }
 
 async function execute(interaction, {
+  state,
   agent,
   clientId,
   guildAccess,
@@ -111,6 +112,7 @@ async function execute(interaction, {
       '**Mulai pakai Hengs**',
       'Tulis prompt langsung saat mention Hengs atau lewat `/hengs ask`, tanpa format rumit.',
       'Contoh: "rancang struktur server gaming dengan area mabar dan creator".',
+      'Di server utama, owner atau Administrator juga bisa bilang "fokus belajar", "mulai scrim", atau "selesai fokus".',
       '`/hengs reset` untuk menghapus ingatan percakapanmu sendiri.',
       'Pemilik server atau Administrator dapat mengatur Hengs lewat `/setup`.',
       '`/hengs privacy` menjelaskan penggunaan data.',
@@ -159,6 +161,10 @@ async function execute(interaction, {
     guild: interaction.guild,
   });
   if (promptRoute.handled) {
+    if (promptRoute.kind === 'focus_action') {
+      await replyPrivate(interaction, applyFocusAction({ route: promptRoute, state }));
+      return;
+    }
     if (promptRoute.kind !== 'community_plan') {
       await replyPrivate(interaction, promptRoute.content);
       return;
