@@ -2,6 +2,20 @@
 
 Updated: 2026-10-02
 
+## Natural Operation Drafts - 2026-10-02
+
+- Local checkpoint is v1.35.0. Owner or configured Ops editor can use a natural prompt to create a
+  private announcement or project update draft in the existing Ops Hub, or an event and reminder
+  draft in the existing Event Hub.
+- Event prompts require an explicit WIB time in `HH:mm` or `YYYY-MM-DD HH:mm`. Relative wording such
+  as "besok" is held for clarification instead of guessed. The parser is bounded and provider-free.
+- The adapter adds no scheduler, database, queue, or command schema. Existing private panels remain
+  the only review boundary. Ops publish, schedule, discard, Event publish, and Event discard keep
+  their existing authorization rules.
+- Full local suite passes 487/487. Cloud remains v1.28.0. No deployment, restart, registration,
+  external write, or live dogfooding occurred.
+- Checkpoint subject: `feat(prompt-assistant): Hengs Discord v1.35.0 - add natural operation drafts`.
+
 ## Text-and-Visual Community Preview - 2026-10-02
 
 - Local checkpoint is v1.34.0. Generic prompts still ask bounded questions, while specific prompts
@@ -13,7 +27,7 @@ Updated: 2026-10-02
   categories, change roles or permissions, send messages, or accept arbitrary names.
 - Prompt-card, review, apply, and cloud-release tests pass. Cloud remains v1.28.0. No deployment,
   restart, command registration, or live Discord mutation occurred.
-- Commit: e863b16 feat(prompt-assistant): Hengs Discord v1.34.0 - add text and visual community preview.
+- Commit: 5c73f0d feat(prompt-assistant): Hengs Discord v1.34.0 - add text and visual community preview.
 
 ## Natural Focus Prompts - 2026-10-01
 

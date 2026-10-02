@@ -293,3 +293,63 @@ test('/hengs denies DM and pending AI actions without provider calls', async () 
     assert.equal(deps.calls.length, 0);
   }
 });
+
+test('/hengs ask sends a natural announcement into the existing Ops Hub draft flow', async () => {
+  const deps = dependencies('home');
+  deps.agent.draftAnnouncement = async (brief, title) => {
+    deps.calls.push({ draftAnnouncement: { brief, title } });
+    return { title: 'Maintenance server', body: 'Server akan dipelihara.' };
+  };
+  deps.opsHub = {
+    findSettingsChannel: () => '#bot-settings',
+    async createDraftPanel(guild, input) {
+      deps.calls.push({ createDraftPanel: { guild, input } });
+      return { created: true, draft: { title: input.title } };
+    },
+  };
+  const value = interaction({ subcommand: 'ask', prompt: 'Buat pengumuman maintenance server jam 20:00' });
+  value.guild = { ownerId: USER };
+  const previous = process.env.OWNER_ID;
+  process.env.OWNER_ID = USER;
+  try {
+    await hengs.execute(value, deps);
+  } finally {
+    if (previous === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previous;
+  }
+  assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.match(value.editPayload.content, /Maintenance server/);
+  assert.deepEqual(deps.calls.map(call => Object.keys(call)[0]), [
+    'draftAnnouncement',
+    'createDraftPanel',
+  ]);
+  assert.equal(deps.calls[1].createDraftPanel.input.externalId, `prompt-ops:${value.id}`);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});
+
+test('/hengs ask sends a natural event into the existing Event Hub draft flow', async () => {
+  const deps = dependencies('home');
+  deps.opsHub = { findSettingsChannel: () => '#bot-settings' };
+  deps.eventHub = {
+    async createDraftPanel(guild, input) {
+      deps.calls.push({ createEventDraft: { guild, input } });
+      return { created: true, event: { title: input.title } };
+    },
+  };
+  const value = interaction({ subcommand: 'ask', prompt: 'Buat event mabar jam 23:59' });
+  value.guild = { ownerId: USER };
+  const previous = process.env.OWNER_ID;
+  process.env.OWNER_ID = USER;
+  try {
+    await hengs.execute(value, deps);
+  } finally {
+    if (previous === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previous;
+  }
+  assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.match(value.editPayload.content, /Draft event/);
+  assert.equal(deps.calls.length, 1);
+  assert.equal(deps.calls[0].createEventDraft.input.externalId, `prompt-event:${value.id}`);
+  assert.match(deps.calls[0].createEventDraft.input.startAt, /T/);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});

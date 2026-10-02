@@ -5,6 +5,8 @@
 // Ia hanya mengenali permintaan yang aman untuk dijawab sebagai rancangan.
 
 const MAX_PROMPT_LENGTH = 1800;
+const { isEditor } = require('./ops/permissions');
+const { parseOperationPrompt, operationReply } = require('./prompt-operations');
 
 const COMMUNITY_ACTION = /\b(?:buat|buatkan|bikin|rancang|siapkan|susun|atur|desain|rapikan)\b/i;
 const COMMUNITY_OBJECT = /\b(?:server|channel|kategori|ruang|komunitas|struktur|lobi|gaming|mabar|creator|galeri)\b/i;
@@ -114,6 +116,11 @@ function isGuildManager({ actor, guild } = {}) {
     || permissions?.has?.(0x0000000000000008n) === true;
 }
 
+function isOperationsManager({ actor, guild } = {}) {
+  if (!process.env.OWNER_ID) return false;
+  return isGuildManager({ actor, guild }) || isEditor(actor);
+}
+
 function selectBlueprints(prompt) {
   const lower = prompt.toLowerCase();
   const requested = BLUEPRINTS.filter((blueprint) => (
@@ -193,6 +200,8 @@ function buildPromptHelp() {
     '• "Rancang struktur server gaming dengan area mabar dan creator."',
     '• "Rapikan lobi masuk dan tunjukkan channel yang masih kurang."',
     '• "Buatkan rancangan area creator untuk live stream dan showcase."',
+    '• "Buat pengumuman maintenance server malam ini" untuk membuat draft privat di Ops Hub.',
+    '• "Buat event mabar jam 20:00" untuk membuat draft reminder di Event Hub.',
     '• "Fokus belajar topik AI" atau "selesai fokus" untuk kontrol mode pemilik.',
     '• Pertanyaan biasa tetap bisa langsung ditulis tanpa format khusus.',
     '',
@@ -237,6 +246,26 @@ function applyFocusAction({ route, state } = {}) {
 function resolvePrompt({ prompt, scopeKind, actor, guild } = {}) {
   const result = classifyPrompt(prompt);
   if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp() };
+  const operation = parseOperationPrompt(prompt);
+  if (operation) {
+    if (scopeKind !== 'home') return { handled: false, kind: operation.kind };
+    if (!isOperationsManager({ actor, guild })) {
+      return {
+        handled: true,
+        kind: 'permission',
+        content: 'Draft pengumuman dan event hanya bisa dibuat owner atau editor Ops Hub. Pertanyaan biasa tetap bisa kamu ajukan ke Hengs.',
+      };
+    }
+    if (operation.kind === 'operation_questions') {
+      return {
+        handled: true,
+        kind: operation.kind,
+        operation: operation.operation,
+        content: operationReply(operation),
+      };
+    }
+    return { handled: true, ...operation };
+  }
   if (result.kind === 'focus_action') {
     if (scopeKind !== 'home') return { handled: false, kind: result.kind };
     if (!isGuildManager({ actor, guild })) {

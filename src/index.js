@@ -44,6 +44,7 @@ const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
 const { MAX_PROMPT_LENGTH, applyFocusAction, resolvePrompt } = require('./prompt-assistant');
+const { parseScheduleInput } = require('./ops/time');
 const { handleComponent: handlePromptReviewComponent } = require('./prompt-review');
 const { applyCommunityPlan } = require('./prompt-apply');
 const setupCommand = require('./commands/setup');
@@ -456,6 +457,56 @@ client.on(Events.MessageCreate, async (msg) => {
     guild: msg.guild,
   });
   if (promptRoute.handled) {
+    if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'event_draft') {
+      try {
+        if (promptRoute.kind === 'ops_draft') {
+          const generated = await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
+          const result = await opsHub.createDraftPanel(msg.guild, {
+            ...generated,
+            brief: promptRoute.brief,
+            source: 'discord',
+            createdBy: msg.author.id,
+            externalId: `prompt-ops:${msg.id}`,
+          });
+          await msg.reply({
+            content: result.created
+              ? 'Draft pengumuman privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang memutuskan publish atau jadwal.'
+              : 'Draft dari prompt ini sudah pernah dibuat.',
+            allowedMentions: { parse: [] },
+          });
+          return;
+        }
+
+        const schedule = parseScheduleInput(promptRoute.scheduleInput);
+        const result = await eventHub.createDraftPanel(msg.guild, {
+          title: promptRoute.title,
+          description: promptRoute.description,
+          startAt: schedule.scheduledAt,
+          location: promptRoute.location,
+          capacity: promptRoute.capacity,
+          source: 'discord',
+          createdBy: msg.author.id,
+          externalId: `prompt-event:${msg.id}`,
+        });
+        await msg.reply({
+          content: result.created
+            ? 'Draft event privat sudah masuk ke `bot-settings`. Belum dipublikasikan.'
+            : 'Draft event dari prompt ini sudah pernah dibuat.',
+          allowedMentions: { parse: [] },
+        });
+      } catch {
+        console.error(promptRoute.kind === 'ops_draft'
+          ? '[prompt-operations] OPS_DRAFT_FAILED'
+          : '[prompt-operations] EVENT_DRAFT_FAILED');
+        await msg.reply({
+          content: promptRoute.kind === 'ops_draft'
+            ? 'Draft pengumuman belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.'
+            : 'Draft event belum bisa dibuat. Cek format waktu WIB dan pastikan channel `bot-settings` tersedia.',
+          allowedMentions: { parse: [] },
+        }).catch(() => {});
+      }
+      return;
+    }
     const content = promptRoute.kind === 'community_plan'
       ? 'Rancangan struktur server dibuat privat. Pakai `/hengs ask` dengan prompt yang sama supaya preview dan konfirmasi tidak terlihat member lain.'
       : promptRoute.kind === 'focus_action'

@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.34.0 Text-and-Visual Community Preview
+**Current local checkpoint:** v1.35.0 Natural Operation Drafts
 
 **Current cloud production:** v1.28.0
 
@@ -22,6 +22,9 @@ last accepted release until a separate deployment approval.
   kurang dari blueprint tetap
 - **Prompt fokus natural:** owner atau Administrator dapat menulis "fokus belajar", "mulai scrim",
   "status mode", atau "selesai fokus" tanpa slash command. Perintah ambigu tetap meminta klarifikasi
+- **Prompt operasi natural:** owner atau editor Ops Hub dapat menulis pengumuman proyek atau event
+  dengan bahasa biasa. Hengs membuat draft privat di Ops Hub atau Event Hub, lalu review dan publish
+  tetap mengikuti approval yang sudah ada
 - **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel
   dari menu Discord. Hengs Standard mengaktifkan gaya Santai, bahasa Otomatis, cakupan channel
   tersebut, dan Community Pack dalam satu langkah tanpa Server ID atau Channel ID manual

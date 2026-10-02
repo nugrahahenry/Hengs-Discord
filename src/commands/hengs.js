@@ -3,6 +3,7 @@ const { createPublicInviteUrl } = require('../create-public-invite');
 const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
 const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
+const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt } = require('../prompt-assistant');
 const { issueReview } = require('../prompt-review');
 
@@ -53,6 +54,8 @@ async function execute(interaction, {
   guildAccess,
   publicInsightsStore,
   publicTrafficGuard,
+  opsHub,
+  eventHub,
   logger = console,
 }) {
   if (!interaction.inGuild?.() || !interaction.guildId) {
@@ -163,6 +166,69 @@ async function execute(interaction, {
   if (promptRoute.handled) {
     if (promptRoute.kind === 'focus_action') {
       await replyPrivate(interaction, applyFocusAction({ route: promptRoute, state }));
+      return;
+    }
+    if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'event_draft') {
+      if (promptRoute.kind === 'ops_draft' && !opsHub) {
+        logger.error('[prompt-operations] OPS_HUB_MISSING');
+        await replyPrivate(interaction, 'Draft pengumuman belum tersedia di runtime ini. Coba lagi nanti ya.');
+        return;
+      }
+      if (promptRoute.kind === 'event_draft' && !eventHub) {
+        logger.error('[prompt-operations] EVENT_HUB_MISSING');
+        await replyPrivate(interaction, 'Draft event belum tersedia di runtime ini. Coba lagi nanti ya.');
+        return;
+      }
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      try {
+        if (promptRoute.kind === 'ops_draft') {
+          const generated = await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
+          const result = await opsHub.createDraftPanel(interaction.guild, {
+            ...generated,
+            brief: promptRoute.brief,
+            source: 'discord',
+            createdBy: interaction.user.id,
+            externalId: `prompt-ops:${interaction.id}`,
+          });
+          const settingsChannel = opsHub.findSettingsChannel(interaction.guild);
+          await interaction.editReply({
+            content: result.created
+              ? `📋 Draft **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner yang memutuskan publish atau jadwal.`
+              : 'ℹ️ Draft dari prompt ini sudah pernah dibuat.',
+            allowedMentions: { parse: [] },
+          });
+          return;
+        }
+
+        const schedule = parseScheduleInput(promptRoute.scheduleInput);
+        const result = await eventHub.createDraftPanel(interaction.guild, {
+          title: promptRoute.title,
+          description: promptRoute.description,
+          startAt: schedule.scheduledAt,
+          location: promptRoute.location,
+          capacity: promptRoute.capacity,
+          source: 'discord',
+          createdBy: interaction.user.id,
+          externalId: `prompt-event:${interaction.id}`,
+        });
+        const settingsChannel = opsHub?.findSettingsChannel?.(interaction.guild);
+        await interaction.editReply({
+          content: result.created
+            ? `🗓️ Draft event **${result.event.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Waktu: ${schedule.label}. Belum dipublikasikan.`
+            : 'ℹ️ Draft event dari prompt ini sudah pernah dibuat.',
+          allowedMentions: { parse: [] },
+        });
+      } catch {
+        logger.error(promptRoute.kind === 'ops_draft'
+          ? '[prompt-operations] OPS_DRAFT_FAILED'
+          : '[prompt-operations] EVENT_DRAFT_FAILED');
+        await interaction.editReply({
+          content: promptRoute.kind === 'ops_draft'
+            ? 'Draft pengumuman belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.'
+            : 'Draft event belum bisa dibuat. Cek format waktu WIB dan pastikan channel `bot-settings` tersedia.',
+          allowedMentions: { parse: [] },
+        }).catch(() => {});
+      }
       return;
     }
     if (promptRoute.kind !== 'community_plan') {

@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.35.0] - 2026-10-02
+
+### Added
+
+- Prompt natural untuk pengumuman, update proyek, event, dan reminder kini masuk ke draft privat
+  Ops Hub atau Event Hub yang sudah ada.
+- Prompt event menerima waktu WIB eksplisit dalam format `HH:mm` atau `YYYY-MM-DD HH:mm`.
+
+### Security
+
+- Parser operation bersifat deterministik, bounded, dan hanya aktif di home guild untuk owner atau
+  editor Ops Hub. Tidak ada scheduler, database, atau Discord write baru.
+- Draft tetap menunggu review panel dan keputusan owner. Waktu relatif seperti "besok" tidak ditebak
+  dan meminta klarifikasi.
+
+### Verification
+
+- Full local suite passes 487/487. Cloud tetap v1.28.0; belum ada deploy, restart, command
+  registration, atau dogfooding live.
+
 ## [1.34.0] - 2026-10-02
 
 ### Added
