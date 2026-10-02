@@ -12,8 +12,12 @@ Updated: 2026-10-02
 - The adapter adds no scheduler, database, queue, or command schema. Existing private panels remain
   the only review boundary. Ops publish, schedule, discard, Event publish, and Event discard keep
   their existing authorization rules.
-- Full local suite passes 487/487. Cloud remains v1.28.0. No deployment, restart, registration,
-  external write, or live dogfooding occurred.
+- Full local suite passes 487/487. Cloud production is now v1.35.0 with two advancing
+  `CONNECTED`/`OK`/fresh heartbeats, one active cloud process, zero local Discord processes, and
+  enabled autostart. The immutable v1.28.0 release remains available for rollback. No token,
+  auth, WhatsApp, VM reboot, command registration, or live prompt dogfooding changed during deploy.
+- Remote release staging was cleaned after acceptance. Remote dependency audit still reports one
+  high advisory and was not auto-fixed during this deploy.
 - Checkpoint subject: `feat(prompt-assistant): Hengs Discord v1.35.0 - add natural operation drafts`.
 
 ## Text-and-Visual Community Preview - 2026-10-02
