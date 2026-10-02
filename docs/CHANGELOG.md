@@ -5,6 +5,25 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-10-03
+
+### Added
+
+- `/hengs ask` kini mendukung catatan pribadi dan pengingat satu kali dengan bahasa natural.
+- Catatan menunggu preview dan konfirmasi. Pengingat yang belum punya jam meminta follow-up, lalu
+  dikirim satu kali melalui DM owner.
+
+### Security
+
+- Jalur personal hanya aktif untuk owner atau Administrator di home guild dan selalu ephemeral.
+  Mention publik, member biasa, dan server publik tidak boleh menulis state pribadi.
+- State dibatasi per guild dan user, ditulis atomik, tanpa provider AI baru, dan scheduler membatasi
+  percobaan pengiriman serta memulihkan pengiriman yang tertahan.
+
+### Verification
+
+- Suite lokal penuh lulus. Cloud tetap v1.35.0 sampai deployment berikutnya disetujui.
+
 ## [1.36.0] - 2026-10-02
 
 ### Added

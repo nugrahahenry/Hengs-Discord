@@ -7,6 +7,7 @@
 const MAX_PROMPT_LENGTH = 1800;
 const { isEditor } = require('./ops/permissions');
 const { parseOperationPrompt, operationReply } = require('./prompt-operations');
+const { parsePersonalPrompt } = require('./personal-assistant');
 
 const COMMUNITY_ACTION = /\b(?:buat|buatkan|bikin|rancang|siapkan|susun|atur|desain|rapikan)\b/i;
 const COMMUNITY_OBJECT = /\b(?:server|channel|kategori|ruang|komunitas|struktur|lobi|gaming|mabar|creator|galeri)\b/i;
@@ -202,6 +203,7 @@ function buildPromptHelp() {
     '• "Buatkan rancangan area creator untuk live stream dan showcase."',
     '• "Buat pengumuman maintenance server malam ini" untuk membuat draft privat di Ops Hub.',
     '• "Buat event mabar jam 20:00" untuk membuat draft reminder di Event Hub.',
+    '• "Catat daftar tugas" atau "ingatkan aku besok jam 7 pagi cek tugas" untuk memori pribadi owner.',
     '• "Fokus belajar topik AI" atau "selesai fokus" untuk kontrol mode pemilik.',
     '• Pertanyaan biasa tetap bisa langsung ditulis tanpa format khusus.',
     '',
@@ -243,9 +245,20 @@ function applyFocusAction({ route, state } = {}) {
   return `✅ ${modeLabel(route.mode)} aktif di Discord.${topic}`;
 }
 
-function resolvePrompt({ prompt, scopeKind, actor, guild } = {}) {
+function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false } = {}) {
   const result = classifyPrompt(prompt);
   if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp() };
+  const personal = parsePersonalPrompt(prompt);
+  if (personal) {
+    if (!privateReply || scopeKind !== 'home' || !isGuildManager({ actor, guild })) {
+      return {
+        handled: true,
+        kind: 'permission',
+        content: 'Catatan dan pengingat pribadi hanya diproses lewat `/hengs ask` di server utama supaya hasilnya tetap privat.',
+      };
+    }
+    return { handled: true, ...personal, kind: 'personal_action' };
+  }
   const operation = parseOperationPrompt(prompt);
   if (operation) {
     if (scopeKind !== 'home') return { handled: false, kind: operation.kind };

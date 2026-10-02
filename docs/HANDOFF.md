@@ -1,6 +1,21 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-02
+Updated: 2026-10-03
+
+## Private Personal Assistant - 2026-10-03
+
+- Local checkpoint is v1.37.0. `/hengs ask` now supports private owner notes and one-shot reminders
+  with deterministic Indonesian prompts. Notes require preview confirmation; reminders ask for a
+  missing time and are delivered once by DM.
+- Personal state is bounded and atomically replaced in ignored `data/personal-memory-state.json`,
+  scoped by guild and user. Pending confirmations stay in memory for five minutes and are never
+  written to disk.
+- Only the home guild owner or an Administrator can use this path. Mentions, ordinary members, and
+  public guilds receive a fixed privacy response without a state write. Existing Event Hub reminders
+  remain separate.
+- Focused personal, store, prompt, and command tests pass. Cloud remains v1.35.0; no deployment,
+  restart, token change, auth change, or live dogfooding occurred in this checkpoint.
+- Checkpoint subject: `feat(personal-assistant): Hengs Discord v1.37.0 - add private natural notes and reminders`.
 
 ## Natural Operation Status - 2026-10-02
 

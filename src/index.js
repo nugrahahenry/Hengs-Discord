@@ -48,8 +48,10 @@ const { formatOperationStatus } = require('./prompt-operations');
 const { parseScheduleInput } = require('./ops/time');
 const { handleComponent: handlePromptReviewComponent } = require('./prompt-review');
 const { applyCommunityPlan } = require('./prompt-apply');
+const { createPersonalAssistant } = require('./personal-assistant');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
+const personalAssistant = createPersonalAssistant();
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
 // event dobel, ini menutup kemungkinan dua instance mem-publish draft yang sama.
@@ -69,6 +71,7 @@ const runtimeHealth = createRuntimeHealth({ version: packageMetadata.version });
 runtimeHealth.start();
 process.on('exit', () => {
   runtimeHealth.stop();
+  personalAssistant.stop();
   instanceLock.release();
 });
 
@@ -224,6 +227,7 @@ client.once(Events.ClientReady, async (c) => {
   }
   opsHub.startCanoxInbox(c);
   eventHub.start(c);
+  personalAssistant.start(c);
   try {
     await reportHub.start(c);
     console.log('  → Report Hub privat siap menerima laporan member.');
@@ -456,6 +460,7 @@ client.on(Events.MessageCreate, async (msg) => {
     scopeKind: messageScope.kind,
     actor: msg,
     guild: msg.guild,
+    privateReply: false,
   });
   if (promptRoute.handled) {
     if (promptRoute.kind === 'operation_status') {
@@ -798,6 +803,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       agent,
       opsHub,
       eventHub,
+      personalAssistant,
       reportHub,
       reportQueue,
       moderationHub,

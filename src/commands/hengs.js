@@ -57,6 +57,7 @@ async function execute(interaction, {
   publicTrafficGuard,
   opsHub,
   eventHub,
+  personalAssistant,
   logger = console,
 }) {
   if (!interaction.inGuild?.() || !interaction.guildId) {
@@ -163,8 +164,22 @@ async function execute(interaction, {
     scopeKind: scope.kind,
     actor: interaction,
     guild: interaction.guild,
+    privateReply: true,
   });
   if (promptRoute.handled) {
+    if (promptRoute.kind === 'personal_action') {
+      if (!personalAssistant) {
+        await replyPrivate(interaction, 'Catatan pribadi belum tersedia di runtime ini.');
+        return;
+      }
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const result = await personalAssistant.handle(prompt, {
+        guildId: interaction.guildId,
+        userId: interaction.user.id,
+      });
+      await interaction.editReply({ content: result.reply, allowedMentions: { parse: [] } });
+      return;
+    }
     if (promptRoute.kind === 'focus_action') {
       await replyPrivate(interaction, applyFocusAction({ route: promptRoute, state }));
       return;

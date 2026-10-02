@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.36.0 Natural Operation Status
+**Current local checkpoint:** v1.37.0 Private Personal Assistant
 
 **Current cloud production:** v1.35.0
 
@@ -27,6 +27,9 @@ last accepted release until a separate deployment approval.
   tetap mengikuti approval yang sudah ada
 - **Status operasi natural:** owner atau editor Ops Hub dapat menulis "lihat status draft" untuk
   melihat jumlah draft dan event secara privat tanpa membuka isi, mengubah state, atau memicu publish
+- **Catatan dan pengingat pribadi:** owner atau Administrator dapat memakai `/hengs ask` dengan
+  bahasa biasa. Hengs memberi preview catatan sebelum menyimpan, menanyakan jam jika pengingat belum
+  lengkap, lalu mengirim pengingat satu kali melalui DM tanpa menulis ke channel publik
 - **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel
   dari menu Discord. Hengs Standard mengaktifkan gaya Santai, bahasa Otomatis, cakupan channel
   tersebut, dan Community Pack dalam satu langkah tanpa Server ID atau Channel ID manual

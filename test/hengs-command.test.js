@@ -377,3 +377,19 @@ test('/hengs ask shows a bounded operation status without creating or publishing
   assert.match(value.replyPayload.content, /1 draft, 1 event aktif/);
   assert.equal(deps.calls.some(call => call.chat), false);
 });
+
+test('/hengs ask keeps personal notes ephemeral and delegates to the fixed assistant', async () => {
+  const deps = dependencies('home');
+  deps.personalAssistant = {
+    async handle(prompt, scope) {
+      deps.calls.push({ personal: { prompt, scope } });
+      return { reply: '✅ Sudah dicatat sebagai note-0001.' };
+    },
+  };
+  const value = interaction({ subcommand: 'ask', prompt: 'catat daftar tugas' });
+  value.guild = { ownerId: USER };
+  await hengs.execute(value, deps);
+  assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.equal(value.editPayload.content, '✅ Sudah dicatat sebagai note-0001.');
+  assert.deepEqual(deps.calls, [{ personal: { prompt: 'catat daftar tugas', scope: { guildId: GUILD, userId: USER } } }]);
+});

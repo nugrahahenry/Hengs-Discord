@@ -166,3 +166,35 @@ test('focus actions are home-owner only and mutate only the in-memory mode state
   assert.match(applyFocusAction({ route: { kind: 'focus_action', action: 'status' }, state }), /Topik: AI/);
   assert.match(applyFocusAction({ route: { kind: 'focus_action', action: 'off', mode: 'study' }, state }), /dimatikan/);
 });
+
+test('personal notes and reminders stay private and require the home owner path', () => {
+  const allowed = resolvePrompt({
+    prompt: 'catat daftar tugas',
+    scopeKind: 'home',
+    actor: actor(OWNER),
+    guild: guild(),
+    privateReply: true,
+  });
+  assert.equal(allowed.kind, 'personal_action');
+  assert.equal(allowed.kind === 'personal_action', true);
+
+  const mention = resolvePrompt({
+    prompt: 'catat daftar tugas',
+    scopeKind: 'home',
+    actor: actor(OWNER),
+    guild: guild(),
+    privateReply: false,
+  });
+  assert.equal(mention.kind, 'permission');
+  assert.match(mention.content, /tetap privat/i);
+
+  const publicScope = resolvePrompt({
+    prompt: 'ingatkan aku besok jam 7 pagi cek tugas',
+    scopeKind: 'public',
+    actor: actor(OWNER),
+    guild: guild(),
+    privateReply: true,
+  });
+  assert.equal(publicScope.kind, 'permission');
+  assert.doesNotMatch(publicScope.content, /cek tugas/);
+});

@@ -40,6 +40,7 @@ docs/*
 !docs/EVENT-HUB.md
 !docs/RUNTIME-HEALTH.md
 !docs/COMMUNITY-OPERATIONS.md
+!docs/PERSONAL-ASSISTANT.md
 !docs/REPORT-HUB.md
 !docs/ANTI-RAID.md
 !docs/CLOUD-DEPLOY.md
