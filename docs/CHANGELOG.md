@@ -5,6 +5,25 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-10-02
+
+### Added
+
+- Community planning prompts that lack enough detail now ask three bounded preference questions
+  before producing a preview.
+- Community previews now show a tree with separate text and voice channels, including existing
+  versus suggested markers.
+
+### Security
+
+- The new flow remains provider-free and read-only. It stores no answers or prompts, performs no
+  Discord mutation, and keeps the existing owner or Administrator gate and private review ticket.
+
+### Verification
+
+- Focused prompt and preview tests pass. Cloud remains v1.28.0 and no command registration,
+  deployment, or live Discord change was performed.
+
 ## [1.31.0] - 2026-10-01
 
 ### Added

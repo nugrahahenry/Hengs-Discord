@@ -5,6 +5,7 @@ const {
   BLUEPRINTS,
   applyFocusAction,
   buildCommunityPlan,
+  buildCommunityQuestions,
   buildPromptHelp,
   classifyPrompt,
   parseFocusPrompt,
@@ -41,6 +42,13 @@ test('prompt classifier recognizes safe community planning language', () => {
   assert.equal(result.prompt, 'Rancang struktur server gaming dengan area mabar dan creator');
 });
 
+test('generic community prompts ask bounded preference questions before preview', () => {
+  const result = classifyPrompt('Buatkan server');
+  assert.equal(result.kind, 'community_questions');
+  assert.match(buildCommunityQuestions(), /Fokus komunitasnya/);
+  assert.match(buildCommunityQuestions(), /Voice room/);
+});
+
 test('community blueprint is fixed, bounded, and marks existing channels', () => {
   const content = buildCommunityPlan(
     'Buat struktur server gaming dan creator',
@@ -51,6 +59,7 @@ test('community blueprint is fixed, bounded, and marks existing channels', () =>
   assert.match(content, /CREATOR STUDIO/);
   assert.match(content, /#announcements \(sudah ada\)/);
   assert.match(content, /#info-mabar \(disarankan\)/);
+  assert.match(content, /🔊 mabar-1 \(disarankan\)/);
   assert.ok(content.length <= 1900);
   assert.doesNotMatch(content, /[\u2013\u2014]/);
   assert.equal(BLUEPRINTS.length, 4);
@@ -84,6 +93,18 @@ test('community plan is home owner or administrator only', () => {
     guild: guild(),
   });
   assert.equal(publicScope.handled, false);
+});
+
+test('generic community request stays private and does not issue a review ticket', () => {
+  const result = resolvePrompt({
+    prompt: 'Buatkan server',
+    scopeKind: 'home',
+    actor: actor(OWNER),
+    guild: guild(),
+  });
+  assert.equal(result.kind, 'community_questions');
+  assert.match(result.content, /tiga hal/i);
+  assert.equal(Object.hasOwn(result, 'blueprintKeys'), false);
 });
 
 test('prompt help stays provider-free and does not promise mutations', () => {

@@ -24,24 +24,28 @@ const BLUEPRINTS = Object.freeze([
     title: 'LOBI MASUK',
     cues: [],
     channels: ['announcements', 'selamat-datang', 'aturan-server', 'verify-here', 'ambil-role', 'intro-dulu-ngab'],
+    voiceChannels: ['ruang-tunggu'],
   }),
   Object.freeze({
     key: 'core',
     title: 'SERVER CORE',
     cues: ['boost', 'server core'],
     channels: ['boost'],
+    voiceChannels: ['AFK'],
   }),
   Object.freeze({
     key: 'gaming',
     title: 'AREA GAMING',
     cues: ['gaming', 'game', 'mabar', 'moba', 'roblox', 'valorant', 'mobile legend'],
     channels: ['ngobrol-santai', 'info-mabar', 'galeri-mix', 'galeri-moba', 'galeri-roblox'],
+    voiceChannels: ['mabar-1', 'mabar-2', 'tournament-room'],
   }),
   Object.freeze({
     key: 'creator',
     title: 'CREATOR STUDIO',
     cues: ['creator', 'stream', 'live', 'showcase', 'promosi-konten'],
     channels: ['live-stream', 'showcase', 'promosi-konten'],
+    voiceChannels: ['live-room'],
   }),
 ]);
 
@@ -84,11 +88,21 @@ function classifyPrompt(value) {
   if (prompt.length > MAX_PROMPT_LENGTH) return { kind: 'too_long', prompt };
   if (HELP_PROMPT.test(prompt)) return { kind: 'help', prompt };
   if (COMMUNITY_ACTION.test(prompt) && COMMUNITY_OBJECT.test(prompt)) {
-    return { kind: 'community_plan', prompt };
+    return {
+      kind: hasSpecificCommunityCue(prompt) ? 'community_plan' : 'community_questions',
+      prompt,
+    };
   }
   const focus = parseFocusPrompt(prompt);
   if (focus) return { kind: 'focus_action', prompt, ...focus };
   return { kind: 'chat', prompt };
+}
+
+function hasSpecificCommunityCue(prompt) {
+  const lower = normalizePrompt(prompt).toLowerCase();
+  return BLUEPRINTS.slice(1).some(blueprint => (
+    blueprint.cues.some(cue => lower.includes(cue))
+  )) || /\b(?:text|voice|suara|kategori|lobi|ruang)\b/i.test(lower);
 }
 
 function isGuildManager({ actor, guild } = {}) {
@@ -132,11 +146,15 @@ function buildCommunityPlanFromKeys(blueprintKeys, guild) {
   const sections = BLUEPRINTS
     .filter(blueprint => selected.has(blueprint.key))
     .map(blueprint => {
-      const channels = blueprint.channels.map(name => {
+      const textChannels = blueprint.channels.map(name => {
         const marker = existing.has(name) ? 'sudah ada' : 'disarankan';
-        return `  • #${name} (${marker})`;
+        return '  ├─ 💬 #' + name + ' (' + marker + ')';
       });
-      return `**${blueprint.title}**\n${channels.join('\n')}`;
+      const voiceChannels = (blueprint.voiceChannels || []).map(name => {
+        const marker = existing.has(name) ? 'sudah ada' : 'disarankan';
+        return '  └─ 🔊 ' + name + ' (' + marker + ')';
+      });
+      return ['**' + blueprint.title + '**', ...textChannels, ...voiceChannels].join('\n');
     });
 
   return [
@@ -153,6 +171,19 @@ function buildCommunityPlan(prompt, guild) {
     buildCommunityPlanFromKeys(selectBlueprintKeys(prompt), guild),
     'Kalau sudah cocok, tekan tombol **Tinjau sekarang** untuk membuka preview privat.',
   ].join('\n').slice(0, 1900);
+}
+
+function buildCommunityQuestions() {
+  return [
+    '🧩 **Biar rancangan servernya sesuai selera kamu, jawab tiga hal ini:**',
+    '',
+    '1. Fokus komunitasnya apa: gaming, creator, belajar, atau campuran?',
+    '2. Area text apa yang wajib ada: lobi, mabar, karya, promosi, atau lainnya?',
+    '3. Voice room-nya mau berapa dan untuk apa: santai, mabar, tournament, atau live?',
+    '',
+    'Contoh: "gaming santai, text mabar dan galeri, tiga voice room untuk mabar dan tournament".',
+    'Setelah itu Hengs kirim preview visual privat. Belum ada channel yang diubah.',
+  ].join('\n');
 }
 
 function buildPromptHelp() {
@@ -217,7 +248,9 @@ function resolvePrompt({ prompt, scopeKind, actor, guild } = {}) {
     }
     return { handled: true, ...result };
   }
-  if (result.kind !== 'community_plan') return { handled: false, kind: result.kind };
+  if (!['community_plan', 'community_questions'].includes(result.kind)) {
+    return { handled: false, kind: result.kind };
+  }
   if (scopeKind !== 'home') return { handled: false, kind: result.kind };
   if (!isGuildManager({ actor, guild })) {
     return {
@@ -228,9 +261,11 @@ function resolvePrompt({ prompt, scopeKind, actor, guild } = {}) {
   }
   return {
     handled: true,
-    kind: 'community_plan',
-    content: buildCommunityPlan(result.prompt, guild),
-    blueprintKeys: selectBlueprintKeys(result.prompt),
+    kind: result.kind,
+    content: result.kind === 'community_questions'
+      ? buildCommunityQuestions()
+      : buildCommunityPlan(result.prompt, guild),
+    ...(result.kind === 'community_plan' ? { blueprintKeys: selectBlueprintKeys(result.prompt) } : {}),
   };
 }
 
@@ -241,10 +276,12 @@ module.exports = {
   classifyPrompt,
   buildCommunityPlan,
   buildCommunityPlanFromKeys,
+  buildCommunityQuestions,
   buildPromptHelp,
   applyFocusAction,
   existingChannelNames,
   parseFocusPrompt,
   resolvePrompt,
   selectBlueprintKeys,
+  hasSpecificCommunityCue,
 };

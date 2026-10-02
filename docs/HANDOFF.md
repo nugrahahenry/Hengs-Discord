@@ -1,6 +1,18 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-01
+Updated: 2026-10-02
+
+## Conversational Community Blueprint - 2026-10-02
+
+- Local checkpoint is v1.32.0. Generic community prompts now ask three bounded questions about
+  community purpose, text areas, and voice rooms before any preview is created.
+- Specific prompts produce a private visual tree with text and voice channels. Existing visible
+  channels are marked as already present and missing channels as suggested.
+- The flow is provider-free, RAM-only, read-only, and home owner or Administrator gated. It does
+  not create, rename, delete, or reconfigure channels, roles, permissions, or messages.
+- Focused prompt and review tests pass. Cloud remains v1.28.0. No deployment, restart, command
+  registration, or live Discord mutation occurred.
+- Commit: 44d0f40 feat(prompt-assistant): Hengs Discord v1.32.0 - add conversational community blueprint.
 
 ## Natural Focus Prompts - 2026-10-01
 
