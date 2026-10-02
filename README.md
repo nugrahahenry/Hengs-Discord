@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.33.0 Owner-Confirmed Community Apply
+**Current local checkpoint:** v1.34.0 Text-and-Visual Community Preview
 
 **Current cloud production:** v1.28.0
 
@@ -15,10 +15,11 @@ last accepted release until a separate deployment approval.
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
 - **Prompt-first community planning:** owner atau Administrator dapat menulis prompt natural untuk
-  merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint read-only, tanpa mengubah
-  channel, role, permission, atau pesan sebelum ada review lanjutan
+  merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint teks serta kartu visual
+  privat sebelum ada perubahan
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.
-  Konfirmasi hanya mencatat persetujuan sementara dan belum menerapkan perubahan server
+  Owner dapat melihat kartu visual, mengonfirmasi, lalu menerapkan channel text dan voice yang masih
+  kurang dari blueprint tetap
 - **Prompt fokus natural:** owner atau Administrator dapat menulis "fokus belajar", "mulai scrim",
   "status mode", atau "selesai fokus" tanpa slash command. Perintah ambigu tetap meminta klarifikasi
 - **Public Server Essentials:** owner cukup menjalankan `/setup start` lalu memilih satu channel

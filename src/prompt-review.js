@@ -12,10 +12,11 @@ const {
   buildCommunityPlanFromKeys,
 } = require('./prompt-assistant');
 const { channelInventoryFingerprint, visibleChannels } = require('./prompt-apply');
+const { renderCommunityPreviewCard } = require('./prompt-preview-card');
 
 const SNOWFLAKE = /^\d{17,20}$/;
 const TICKET_ID = /^[a-f0-9]{24}$/;
-const CUSTOM_ID = /^hengs-prompt:(review|approve|apply|cancel):([a-f0-9]{24})$/;
+const CUSTOM_ID = /^hengs-prompt:(review|visual|approve|apply|cancel):([a-f0-9]{24})$/;
 const MAX_TICKETS = 100;
 const MAX_CHANNELS = 500;
 const TTL_MS = 5 * 60 * 1000;
@@ -66,10 +67,18 @@ function makeComponents(ticket, stage = 'issued') {
       .setStyle(ButtonStyle.Primary));
   } else if (stage === 'reviewed') {
     buttons.push(new ButtonBuilder()
+      .setCustomId(`hengs-prompt:visual:${ticket.id}`)
+      .setLabel('Lihat kartu visual')
+      .setStyle(ButtonStyle.Primary));
+    buttons.push(new ButtonBuilder()
       .setCustomId(`hengs-prompt:approve:${ticket.id}`)
       .setLabel('Konfirmasi rencana')
       .setStyle(ButtonStyle.Success));
   } else {
+    buttons.push(new ButtonBuilder()
+      .setCustomId(`hengs-prompt:visual:${ticket.id}`)
+      .setLabel('Lihat kartu visual')
+      .setStyle(ButtonStyle.Primary));
     buttons.push(new ButtonBuilder()
       .setCustomId(`hengs-prompt:apply:${ticket.id}`)
       .setLabel('Terapkan sekarang')
@@ -201,6 +210,33 @@ async function handleComponent(interaction, {
     await interaction.update({
       content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild)}\n\nReview privat aktif. Belum ada yang diterapkan.`,
       components: makeComponents(ticket, 'reviewed'),
+      allowedMentions: { parse: [] },
+    }).catch(() => {});
+    return true;
+  }
+  if (action === 'visual') {
+    if (!['reviewed', 'approved'].includes(ticket.stage)) {
+      await fail('Buka review privat dulu sebelum melihat kartu visual.');
+      return true;
+    }
+    let card;
+    try {
+      card = renderCommunityPreviewCard({ blueprintKeys: ticket.blueprintKeys, guild: interaction.guild });
+    } catch {
+      logger.error('[prompt-review] PROMPT_PREVIEW_CARD_FAILED');
+      card = null;
+    }
+    if (!card) {
+      await fail('Kartu visual belum tersedia di runtime ini. Preview teks tetap aman.');
+      return true;
+    }
+    const applyHint = ticket.stage === 'approved'
+      ? 'Tombol Terapkan sekarang sudah siap.'
+      : 'Pilihan apply tetap menunggu konfirmasi owner.';
+    await interaction.update({
+      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild)}\n\nKartu visual privat siap. ${applyHint}`,
+      files: [{ attachment: card, name: 'hengs-community-preview.png' }],
+      components: makeComponents(ticket, ticket.stage),
       allowedMentions: { parse: [] },
     }).catch(() => {});
     return true;

@@ -77,12 +77,12 @@ test('review is private, rechecks drift, and apply needs two owner confirmations
   assert.equal(review.updated, true);
   assert.match(review.updatePayload.content, /Review privat aktif/);
   assert.equal(review.updatePayload.allowedMentions.parse.length, 0);
-  assert.equal(review.updatePayload.components[0].components[0].data.label, 'Konfirmasi rencana');
+  assert.equal(review.updatePayload.components[0].components[0].data.label, 'Lihat kartu visual');
 
   const approved = component(`hengs-prompt:approve:${result.ticket.id}`);
   await handleComponent(approved, { guildAccess: access, botUserId: BOT, now: 1002 });
   assert.match(approved.updatePayload.content, /Terapkan sekarang/);
-  assert.equal(approved.updatePayload.components[0].components.length, 2);
+  assert.equal(approved.updatePayload.components[0].components.length, 3);
   assert.equal(getTicket(result.ticket.id, 1002).stage, 'approved');
 
   const applied = component(`hengs-prompt:apply:${result.ticket.id}`);
@@ -103,6 +103,19 @@ test('review is private, rechecks drift, and apply needs two owner confirmations
   const replay = component(`hengs-prompt:apply:${result.ticket.id}`);
   await handleComponent(replay, { guildAccess: access, botUserId: BOT, now: 1004 });
   assert.match(replay.replyPayload.content, /kedaluwarsa/i);
+});
+
+test('visual preview stays private and does not change ticket stage', async () => {
+  const result = issueReview({ guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER, blueprintKeys: ['lobby'], now: 1000 });
+  const access = { classify: () => ({ kind: 'home' }) };
+  const review = component(`hengs-prompt:review:${result.ticket.id}`);
+  await handleComponent(review, { guildAccess: access, botUserId: BOT, now: 1001 });
+  const visual = component(`hengs-prompt:visual:${result.ticket.id}`);
+  await handleComponent(visual, { guildAccess: access, botUserId: BOT, now: 1002 });
+  assert.equal(visual.updated, true);
+  assert.equal(visual.updatePayload.files[0].name, 'hengs-community-preview.png');
+  assert.match(visual.updatePayload.content, /Kartu visual privat siap/);
+  assert.equal(getTicket(result.ticket.id, 1002).stage, 'reviewed');
 });
 
 test('approve cannot skip the private review stage', async () => {

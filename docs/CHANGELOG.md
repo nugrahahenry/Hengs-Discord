@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-10-02
+
+### Added
+
+- Community preview tickets now offer an optional private PNG card alongside the text tree.
+- The card uses the existing Canvas runtime and marks fixed text and voice channels as already
+  available or still suggested.
+
+### Security
+
+- The image is generated locally from the same allowlisted blueprint and inventory fingerprint.
+  It contains no prompt, guild ID, channel ID, member data, or provider output.
+
+### Verification
+
+- Preview-card, prompt-review, apply, and cloud-release tests pass locally. Cloud remains v1.28.0;
+  no deployment or live Discord mutation was performed.
+
 ## [1.33.0] - 2026-10-02
 
 ### Added
