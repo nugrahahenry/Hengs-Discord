@@ -14,9 +14,9 @@ test('release deploy refuses an active service and validates package version', (
   assert.equal(activeCheck < extraction, true);
   assert.match(deploy, /SERVICE_MUST_BE_STOPPED/);
   assert.match(deploy, /PACKAGE_VERSION/);
-  assert.match(deploy, /"\$\{PACKAGE_VERSION\}" != '1\.35\.0'/);
-  assert.match(deploy, /hengs-discord-1\\\.35\\\.0-/);
-  assert.match(deploy, /RELEASE_ID="1\.35\.0-/);
+  assert.match(deploy, /"\$\{PACKAGE_VERSION\}" != '1\.36\.0'/);
+  assert.match(deploy, /hengs-discord-1\\\.36\\\.0-/);
+  assert.match(deploy, /RELEASE_ID="1\.36\.0-/);
 });
 
 test('deployed release becomes root-owned and service-group-readable after dependency installation', () => {

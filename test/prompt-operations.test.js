@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { parseOperationPrompt, buildOperationQuestions } = require('../src/prompt-operations');
+const { formatOperationStatus, parseOperationPrompt, buildOperationQuestions } = require('../src/prompt-operations');
 const { resolvePrompt } = require('../src/prompt-assistant');
 
 const OWNER = '323456789012345678';
@@ -53,6 +53,19 @@ test('ordinary community prompts do not enter the operation adapter', () => {
   assert.equal(parseOperationPrompt('Tolong jelaskan cara membuat reminder'), null);
 });
 
+test('natural operation status stays read-only and exposes only bounded counts', () => {
+  assert.deepEqual(parseOperationPrompt('cek draft dan event'), {
+    kind: 'operation_status', operation: 'status',
+  });
+  const content = formatOperationStatus({
+    opsHub: { getStatus: () => ({ pending: 2, scheduled: 1, published: 5 }) },
+    eventHub: { getStatus: () => ({ draft: 3, upcoming: [{}, {}], closed: 4 }) },
+  });
+  assert.match(content, /2 draft menunggu/);
+  assert.match(content, /3 draft, 2 event aktif/);
+  assert.doesNotMatch(content, /[\u2013\u2014]/);
+});
+
 test('home owner receives an event draft route while another member is denied', () => {
   const previous = process.env.OWNER_ID;
   process.env.OWNER_ID = OWNER;
@@ -75,6 +88,32 @@ test('home owner receives an event draft route while another member is denied', 
     assert.equal(denied.handled, true);
     assert.equal(denied.kind, 'permission');
     assert.match(denied.content, /owner atau editor Ops Hub/i);
+  } finally {
+    if (previous === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previous;
+  }
+});
+
+test('operation status is home-owner only and never creates a draft', () => {
+  const previous = process.env.OWNER_ID;
+  process.env.OWNER_ID = OWNER;
+  try {
+    const owner = resolvePrompt({
+      prompt: 'lihat status draft',
+      scopeKind: 'home',
+      actor: actor(OWNER),
+      guild: GUILD,
+    });
+    assert.equal(owner.kind, 'operation_status');
+    assert.equal(owner.operation, 'status');
+
+    const denied = resolvePrompt({
+      prompt: 'lihat status event',
+      scopeKind: 'home',
+      actor: actor(OTHER),
+      guild: GUILD,
+    });
+    assert.equal(denied.kind, 'permission');
   } finally {
     if (previous === undefined) delete process.env.OWNER_ID;
     else process.env.OWNER_ID = previous;

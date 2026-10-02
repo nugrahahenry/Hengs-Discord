@@ -44,6 +44,7 @@ const { isPublicChannelAllowed } = require('./guilds/public-channel-policy');
 const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
 const { MAX_PROMPT_LENGTH, applyFocusAction, resolvePrompt } = require('./prompt-assistant');
+const { formatOperationStatus } = require('./prompt-operations');
 const { parseScheduleInput } = require('./ops/time');
 const { handleComponent: handlePromptReviewComponent } = require('./prompt-review');
 const { applyCommunityPlan } = require('./prompt-apply');
@@ -457,6 +458,13 @@ client.on(Events.MessageCreate, async (msg) => {
     guild: msg.guild,
   });
   if (promptRoute.handled) {
+    if (promptRoute.kind === 'operation_status') {
+      await msg.reply({
+        content: formatOperationStatus({ opsHub, eventHub }),
+        allowedMentions: { parse: [] },
+      });
+      return;
+    }
     if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'event_draft') {
       try {
         if (promptRoute.kind === 'ops_draft') {

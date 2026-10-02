@@ -5,6 +5,23 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-10-02
+
+### Added
+
+- Prompt owner atau editor Ops Hub seperti `lihat status draft` kini menampilkan ringkasan bounded
+  dari jumlah draft dan event aktif secara privat.
+
+### Security
+
+- Status operasi hanya membaca store yang sudah ada, tidak menampilkan isi draft, tidak membuat
+  draft baru, dan tidak memiliki jalur publish atau scheduler baru.
+
+### Verification
+
+- Focused prompt operation, prompt assistant, dan command tests pass. Cloud tetap v1.35.0 sampai
+  deployment berikutnya disetujui.
+
 ## [1.35.0] - 2026-10-02
 
 ### Added

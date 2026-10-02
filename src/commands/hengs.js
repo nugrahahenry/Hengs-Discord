@@ -5,6 +5,7 @@ const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
 const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt } = require('../prompt-assistant');
+const { formatOperationStatus } = require('../prompt-operations');
 const { issueReview } = require('../prompt-review');
 
 const MAX_PROMPT_LENGTH = 1800;
@@ -166,6 +167,10 @@ async function execute(interaction, {
   if (promptRoute.handled) {
     if (promptRoute.kind === 'focus_action') {
       await replyPrivate(interaction, applyFocusAction({ route: promptRoute, state }));
+      return;
+    }
+    if (promptRoute.kind === 'operation_status') {
+      await replyPrivate(interaction, formatOperationStatus({ opsHub, eventHub }));
       return;
     }
     if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'event_draft') {

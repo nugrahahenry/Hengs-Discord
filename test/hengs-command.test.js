@@ -353,3 +353,27 @@ test('/hengs ask sends a natural event into the existing Event Hub draft flow', 
   assert.match(deps.calls[0].createEventDraft.input.startAt, /T/);
   assert.equal(deps.calls.some(call => call.chat), false);
 });
+
+test('/hengs ask shows a bounded operation status without creating or publishing anything', async () => {
+  const deps = dependencies('home');
+  deps.opsHub = {
+    getStatus: () => ({ pending: 2, scheduled: 1, published: 4 }),
+  };
+  deps.eventHub = {
+    getStatus: () => ({ draft: 1, upcoming: [{}], closed: 3 }),
+  };
+  const value = interaction({ subcommand: 'ask', prompt: 'lihat status draft' });
+  value.guild = { ownerId: USER };
+  const previous = process.env.OWNER_ID;
+  process.env.OWNER_ID = USER;
+  try {
+    await hengs.execute(value, deps);
+  } finally {
+    if (previous === undefined) delete process.env.OWNER_ID;
+    else process.env.OWNER_ID = previous;
+  }
+  assertPrivate(value.replyPayload);
+  assert.match(value.replyPayload.content, /2 draft menunggu/);
+  assert.match(value.replyPayload.content, /1 draft, 1 event aktif/);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});

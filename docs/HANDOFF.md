@@ -2,6 +2,15 @@
 
 Updated: 2026-10-02
 
+## Natural Operation Status - 2026-10-02
+
+- Local checkpoint is v1.36.0. Owner or editor Ops Hub can ask `lihat status draft`, `cek status
+  event`, or equivalent wording for a private, bounded count summary.
+- The route reads existing Ops Hub and Event Hub status only. It does not expose draft content,
+  create state, publish, schedule, or add a new store, command schema, queue, or scheduler.
+- Focused prompt operation, prompt assistant, and command tests pass. Cloud remains v1.35.0;
+  no deployment, restart, command registration, or live operation mutation occurred in this slice.
+
 ## Natural Operation Drafts - 2026-10-02
 
 - Local checkpoint is v1.35.0. Owner or configured Ops editor can use a natural prompt to create a

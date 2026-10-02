@@ -11,6 +11,7 @@ const MAX_BRIEF_LENGTH = 1500;
 const OPERATION_SIGNAL = /\b(?:buat|buatkan|bikin|siapkan|susun|atur|jadwalkan|adakan|ingatkan|umumkan|sampaikan|beritahu|post)\b/i;
 const ANNOUNCEMENT_SIGNAL = /\b(?:umumkan|pengumuman|sampaikan|beritahu|post|update|proyek|project|maintenance|info)\b/i;
 const EVENT_SIGNAL = /\b(?:event|acara|jadwal|reminder|pengingat|ingatkan|meeting|rapat|mabar|turnamen|tournament|scrim)\b/i;
+const OPERATION_STATUS_SIGNAL = /\b(?:lihat|cek|tampilkan|status|ada)\b.*\b(?:draft|pengumuman|event|reminder|pengingat|operasi|ops)\b/i;
 const TIME_SIGNAL = /\b(?:jam|pukul|at)\s*\d{1,2}(?:[:.]\d{2})\b|\b\d{4}-\d{2}-\d{2}[ T]\d{1,2}[:.]\d{2}\b/i;
 const RELATIVE_TIME_SIGNAL = /\b(?:besok|lusa|nanti|minggu depan)\b/i;
 
@@ -126,6 +127,9 @@ function parseEvent(prompt) {
 function parseOperationPrompt(value) {
   const prompt = normalizePrompt(value);
   if (!prompt || prompt.length > MAX_PROMPT_LENGTH) return null;
+  if (OPERATION_STATUS_SIGNAL.test(prompt)) {
+    return { kind: 'operation_status', operation: 'status' };
+  }
   if (!OPERATION_SIGNAL.test(prompt)) return null;
   const event = parseEvent(prompt);
   if (event) return event;
@@ -140,6 +144,18 @@ function operationReply(route) {
   return null;
 }
 
+function formatOperationStatus({ opsHub, eventHub } = {}) {
+  const ops = opsHub?.getStatus?.() || {};
+  const events = eventHub?.getStatus?.() || {};
+  const upcomingCount = Array.isArray(events.upcoming) ? events.upcoming.length : 0;
+  return [
+    '📊 Status operasi Hengs',
+    `Ops Hub: ${Number(ops.pending) || 0} draft menunggu, ${Number(ops.scheduled) || 0} terjadwal, ${Number(ops.published) || 0} sudah publish.`,
+    `Event Hub: ${Number(events.draft) || 0} draft, ${upcomingCount} event aktif, ${Number(events.closed) || 0} selesai.`,
+    'Detail isi draft tetap berada di ruang review privat.',
+  ].join('\n');
+}
+
 module.exports = {
   MAX_PROMPT_LENGTH,
   MAX_TITLE_LENGTH,
@@ -149,4 +165,5 @@ module.exports = {
   parseOperationPrompt,
   buildOperationQuestions,
   operationReply,
+  formatOperationStatus,
 };
