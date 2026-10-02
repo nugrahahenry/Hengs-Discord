@@ -22,7 +22,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Suite lokal penuh lulus. Cloud tetap v1.35.0 sampai deployment berikutnya disetujui.
+- Suite lokal penuh lulus 496/496. Acceptance release di VM lulus 493 test dengan 3 skip dan 0
+  failure. Cloud sekarang v1.37.0 active/enabled dengan dua heartbeat `CONNECTED/OK/fresh`.
+- Deploy tidak mengubah token, auth, state lama, VM, atau WA. Archive, checksum, deployer sementara,
+  dan staging remote sudah dibersihkan setelah acceptance.
 
 ## [1.36.0] - 2026-10-02
 

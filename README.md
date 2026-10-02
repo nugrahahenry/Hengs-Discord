@@ -4,7 +4,7 @@
 
 **Current local checkpoint:** v1.37.0 Private Personal Assistant
 
-**Current cloud production:** v1.35.0
+**Current cloud production:** v1.37.0
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud stays on the
 last accepted release until a separate deployment approval.

@@ -1,7 +1,7 @@
 # Personal Assistant Contract
 
-Status: local implementation complete for Hengs Discord v1.37.0. Cloud remains v1.35.0
-until a separate deployment approval.
+Status: Hengs Discord v1.37.0 is deployed in cloud production after controlled acceptance.
+The personal state file remains empty until the owner uses the feature.
 
 ## Product contract
 

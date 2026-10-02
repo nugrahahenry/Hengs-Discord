@@ -13,8 +13,12 @@ Updated: 2026-10-03
 - Only the home guild owner or an Administrator can use this path. Mentions, ordinary members, and
   public guilds receive a fixed privacy response without a state write. Existing Event Hub reminders
   remain separate.
-- Focused personal, store, prompt, and command tests pass. Cloud remains v1.35.0; no deployment,
-  restart, token change, auth change, or live dogfooding occurred in this checkpoint.
+- Focused personal, store, prompt, and command tests pass. The committed release was deployed as
+  v1.37.0-f62be05af4a1. Cloud service is active/enabled with two fresh `CONNECTED/OK` heartbeats,
+  one valid systemd main process, and zero local Discord consumers.
+- Remote release staging and transfer files were cleaned after acceptance. The previous cloud release
+  remains available for rollback. No token, auth, WA, VM reboot, or command registration changed;
+  the slash-command schema is unchanged. Live personal dogfooding is still pending.
 - Checkpoint subject: `feat(personal-assistant): Hengs Discord v1.37.0 - add private natural notes and reminders`.
 
 ## Natural Operation Status - 2026-10-02

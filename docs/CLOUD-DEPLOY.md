@@ -1,8 +1,8 @@
 # Hengs Discord Always Free Deployment
 
-Panduan ini adalah kontrak operasi Hengs Discord v1.28.0 di Ubuntu. Cloud production
-saat ini menjalankan v1.28.0. Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan
-Henry pada saat tindakan dilakukan.
+Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
+v1.37.0. Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
