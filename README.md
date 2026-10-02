@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.32.0 Conversational Community Blueprint
+**Current local checkpoint:** v1.33.0 Owner-Confirmed Community Apply
 
 **Current cloud production:** v1.28.0
 

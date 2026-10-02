@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-10-02
+
+### Added
+
+- Owner confirmation now has a separate apply step for community blueprints.
+- The executor can create only missing fixed text and voice channels, with a bounded maximum of
+  24 creates per ticket.
+
+### Security
+
+- Apply is home-owner-only, fingerprint-bound, permission-checked, create-only, and protected by
+  a per-guild in-memory lock. It cannot rename, delete, move, create categories, change roles or
+  permissions, send messages, or accept arbitrary channel names.
+- Stale, partial, failed, or unavailable applies consume the ticket and never retry automatically.
+
+### Verification
+
+- Prompt, review, apply, and cloud-release tests pass locally. Cloud remains v1.28.0 and no live
+  Discord mutation or deployment was performed.
+
 ## [1.32.0] - 2026-10-02
 
 ### Added

@@ -2,17 +2,18 @@
 
 Updated: 2026-10-02
 
-## Conversational Community Blueprint - 2026-10-02
+## Owner-Confirmed Community Apply - 2026-10-02
 
-- Local checkpoint is v1.32.0. Generic community prompts now ask three bounded questions about
-  community purpose, text areas, and voice rooms before any preview is created.
-- Specific prompts produce a private visual tree with text and voice channels. Existing visible
-  channels are marked as already present and missing channels as suggested.
-- The flow is provider-free, RAM-only, read-only, and home owner or Administrator gated. It does
-  not create, rename, delete, or reconfigure channels, roles, permissions, or messages.
-- Focused prompt and review tests pass. Cloud remains v1.28.0. No deployment, restart, command
-  registration, or live Discord mutation occurred.
-- Commit: 44d0f40 feat(prompt-assistant): Hengs Discord v1.32.0 - add conversational community blueprint.
+- Local checkpoint is v1.33.0. Generic prompts still ask bounded questions, while specific prompts
+  produce a private visual tree before any action.
+- The owner now gets a separate confirmation and apply step. The executor can create only missing
+  fixed text and voice channels, at most 24 per ticket. It cannot rename, delete, move, create
+  categories, change roles or permissions, send messages, or accept arbitrary names.
+- Apply rechecks home scope, owner identity, ticket stage, inventory fingerprint, Manage Channels,
+  and a per-guild lock. Stale or partial execution consumes the ticket and never retries.
+- Prompt, review, apply, and cloud-release tests pass. Cloud remains v1.28.0. No deployment,
+  restart, command registration, or live Discord mutation occurred.
+- Commit: c295be8 feat(prompt-assistant): Hengs Discord v1.33.0 - add owner-confirmed community apply.
 
 ## Natural Focus Prompts - 2026-10-01
 

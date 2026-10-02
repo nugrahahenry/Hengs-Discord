@@ -45,6 +45,7 @@ const { sendPublicGuildWelcome } = require('./guilds/public-onboarding');
 const { createCommunityPack } = require('./guilds/community-pack');
 const { MAX_PROMPT_LENGTH, applyFocusAction, resolvePrompt } = require('./prompt-assistant');
 const { handleComponent: handlePromptReviewComponent } = require('./prompt-review');
+const { applyCommunityPlan } = require('./prompt-apply');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 
@@ -547,6 +548,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await handlePromptReviewComponent(interaction, {
         guildAccess,
         botUserId: client.user?.id,
+        applyPlan: applyCommunityPlan,
       });
     } catch (error) {
       console.error('[prompt-review] PROMPT_REVIEW_COMPONENT_FAILED', { code: error.code || 'COMPONENT_FAILED' });

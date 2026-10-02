@@ -10,12 +10,12 @@ const {
 const {
   BLUEPRINTS,
   buildCommunityPlanFromKeys,
-  existingChannelNames,
 } = require('./prompt-assistant');
+const { channelInventoryFingerprint, visibleChannels } = require('./prompt-apply');
 
 const SNOWFLAKE = /^\d{17,20}$/;
 const TICKET_ID = /^[a-f0-9]{24}$/;
-const CUSTOM_ID = /^hengs-prompt:(review|approve|cancel):([a-f0-9]{24})$/;
+const CUSTOM_ID = /^hengs-prompt:(review|approve|apply|cancel):([a-f0-9]{24})$/;
 const MAX_TICKETS = 100;
 const MAX_CHANNELS = 500;
 const TTL_MS = 5 * 60 * 1000;
@@ -37,21 +37,10 @@ function cleanup(now = Date.now()) {
 }
 
 function visibleInventory(guild) {
-  const channels = guild?.channels?.cache;
-  if (!channels?.values) return null;
-  const entries = [...channels.values()]
-    .filter(channel => channel?.viewable !== false)
-    .filter(channel => typeof channel?.isTextBased !== 'function' || channel.isTextBased())
-    .map(channel => ({
-      id: String(channel?.id || ''),
-      name: String(channel?.name || '').trim().toLowerCase(),
-    }))
-    .filter(channel => SNOWFLAKE.test(channel.id) && channel.name)
-    .sort((left, right) => left.id.localeCompare(right.id));
-  if (entries.length > MAX_CHANNELS) return null;
-  const material = entries.map(channel => `${channel.id}\u0000${channel.name}`).join('\n');
+  const entries = visibleChannels(guild);
+  if (!entries || entries.length > MAX_CHANNELS) return null;
   return {
-    fingerprint: crypto.createHash('sha256').update(material).digest('hex'),
+    fingerprint: channelInventoryFingerprint(guild),
     count: entries.length,
   };
 }
@@ -75,10 +64,15 @@ function makeComponents(ticket, stage = 'issued') {
       .setCustomId(`hengs-prompt:review:${ticket.id}`)
       .setLabel('Tinjau sekarang')
       .setStyle(ButtonStyle.Primary));
-  } else {
+  } else if (stage === 'reviewed') {
     buttons.push(new ButtonBuilder()
       .setCustomId(`hengs-prompt:approve:${ticket.id}`)
       .setLabel('Konfirmasi rencana')
+      .setStyle(ButtonStyle.Success));
+  } else {
+    buttons.push(new ButtonBuilder()
+      .setCustomId(`hengs-prompt:apply:${ticket.id}`)
+      .setLabel('Terapkan sekarang')
       .setStyle(ButtonStyle.Success));
   }
   buttons.push(new ButtonBuilder()
@@ -144,7 +138,13 @@ function isRequester(interaction, ticket) {
   return String(interaction?.user?.id || '') === ticket.requesterId;
 }
 
-async function handleComponent(interaction, { guildAccess, botUserId, now = Date.now(), logger = console } = {}) {
+async function handleComponent(interaction, {
+  guildAccess,
+  botUserId,
+  applyPlan,
+  now = Date.now(),
+  logger = console,
+} = {}) {
   if (!interaction?.isButton?.()) return false;
   const match = String(interaction.customId || '').match(CUSTOM_ID);
   if (!match) return false;
@@ -175,7 +175,7 @@ async function handleComponent(interaction, { guildAccess, botUserId, now = Date
     await fail('Preview ini hanya bisa dibuka oleh orang yang memintanya.');
     return true;
   }
-  if (action === 'approve' && !isOwner(interaction, interaction.guild)) {
+  if ((action === 'approve' || action === 'apply') && !isOwner(interaction, interaction.guild)) {
     await fail('Konfirmasi rencana hanya bisa dilakukan owner. Belum ada perubahan yang diterapkan.');
     return true;
   }
@@ -210,10 +210,51 @@ async function handleComponent(interaction, { guildAccess, botUserId, now = Date
       await fail('Review privat belum dibuka. Tekan Tinjau sekarang terlebih dahulu.');
       return true;
     }
+    ticket.stage = 'approved';
+    await interaction.update({
+      content: 'Rencana dikonfirmasi owner. Belum ada perubahan. Jika sudah siap, tekan **Terapkan sekarang** untuk membuat channel yang masih kurang.',
+      components: makeComponents(ticket, 'approved'),
+      allowedMentions: { parse: [] },
+    }).catch(() => {});
+    return true;
+  }
+  if (action === 'apply') {
+    if (ticket.stage !== 'approved') {
+      await fail('Rencana belum dikonfirmasi. Tinjau lalu konfirmasi dulu.');
+      return true;
+    }
+    if (typeof applyPlan !== 'function') {
+      await fail('Penerapan belum tersedia di runtime ini. Belum ada perubahan pada server.');
+      return true;
+    }
+    let result;
+    try {
+      result = await applyPlan({
+        guild: interaction.guild,
+        blueprintKeys: ticket.blueprintKeys,
+        expectedFingerprint: ticket.fingerprint,
+      });
+    } catch {
+      logger.error('[prompt-review] PROMPT_APPLY_FAILED');
+      result = { ok: false, code: 'PROMPT_APPLY_FAILED' };
+    }
     ticket.terminal = true;
     tickets.delete(ticket.id);
+    if (!result?.ok) {
+      await interaction.update({
+        content: 'Penerapan belum selesai. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Buat preview baru setelah kondisi server siap.',
+        components: [],
+        allowedMentions: { parse: [] },
+      }).catch(() => {});
+      return true;
+    }
+    const createdCount = Number.isSafeInteger(result.createdCount) && result.createdCount >= 0
+      ? result.createdCount
+      : 0;
     await interaction.update({
-      content: 'Rencana dikonfirmasi owner. Belum ada channel, role, permission, atau pesan yang diubah. Tahap penerapan akan dibuat sebagai checkpoint terpisah.',
+      content: createdCount > 0
+        ? `Selesai. ${createdCount} channel dibuat sesuai blueprint. Tidak ada role, permission, rename, delete, atau pesan yang diubah.`
+        : 'Selesai. Semua channel pada blueprint sudah tersedia. Tidak ada perubahan lain yang dilakukan.',
       components: [],
       allowedMentions: { parse: [] },
     }).catch(() => {});

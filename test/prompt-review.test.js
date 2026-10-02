@@ -69,7 +69,7 @@ test('review checks source message, same guild, same channel, and expiry', async
   assert.match(expired.replyPayload.content, /kedaluwarsa/i);
 });
 
-test('review is private, rechecks drift, and approve is one-shot owner-only', async () => {
+test('review is private, rechecks drift, and apply needs two owner confirmations', async () => {
   const result = issueReview({ guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER, blueprintKeys: ['creator'], now: 1000 });
   const access = { classify: () => ({ kind: 'home' }) };
   const review = component(`hengs-prompt:review:${result.ticket.id}`);
@@ -81,12 +81,27 @@ test('review is private, rechecks drift, and approve is one-shot owner-only', as
 
   const approved = component(`hengs-prompt:approve:${result.ticket.id}`);
   await handleComponent(approved, { guildAccess: access, botUserId: BOT, now: 1002 });
-  assert.match(approved.updatePayload.content, /Belum ada channel/);
-  assert.equal(approved.updatePayload.components.length, 0);
-  assert.equal(getTicket(result.ticket.id, 1002), null);
+  assert.match(approved.updatePayload.content, /Terapkan sekarang/);
+  assert.equal(approved.updatePayload.components[0].components.length, 2);
+  assert.equal(getTicket(result.ticket.id, 1002).stage, 'approved');
 
-  const replay = component(`hengs-prompt:approve:${result.ticket.id}`);
-  await handleComponent(replay, { guildAccess: access, botUserId: BOT, now: 1003 });
+  const applied = component(`hengs-prompt:apply:${result.ticket.id}`);
+  await handleComponent(applied, {
+    guildAccess: access,
+    botUserId: BOT,
+    now: 1003,
+    applyPlan: async input => {
+      assert.equal(input.blueprintKeys.join(','), 'creator');
+      assert.equal(input.expectedFingerprint, result.ticket.fingerprint);
+      return { ok: true, createdCount: 2 };
+    },
+  });
+  assert.match(applied.updatePayload.content, /2 channel dibuat/);
+  assert.equal(applied.updatePayload.components.length, 0);
+  assert.equal(getTicket(result.ticket.id, 1003), null);
+
+  const replay = component(`hengs-prompt:apply:${result.ticket.id}`);
+  await handleComponent(replay, { guildAccess: access, botUserId: BOT, now: 1004 });
   assert.match(replay.replyPayload.content, /kedaluwarsa/i);
 });
 
@@ -97,6 +112,33 @@ test('approve cannot skip the private review stage', async () => {
   await handleComponent(approve, { guildAccess: access, botUserId: BOT, now: 1001 });
   assert.match(approve.replyPayload.content, /belum dibuka/i);
   assert.ok(getTicket(result.ticket.id, 1001));
+});
+
+test('apply cannot skip approval or run for a non-owner', async () => {
+  const result = issueReview({ guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER, blueprintKeys: ['lobby'], now: 1000 });
+  const access = { classify: () => ({ kind: 'home' }) };
+  const apply = component(`hengs-prompt:apply:${result.ticket.id}`);
+  await handleComponent(apply, {
+    guildAccess: access,
+    botUserId: BOT,
+    now: 1001,
+    applyPlan: async () => ({ ok: true, createdCount: 1 }),
+  });
+  assert.match(apply.replyPayload.content, /belum dikonfirmasi/i);
+
+  const reviewed = component(`hengs-prompt:review:${result.ticket.id}`);
+  await handleComponent(reviewed, { guildAccess: access, botUserId: BOT, now: 1002 });
+  const approved = component(`hengs-prompt:approve:${result.ticket.id}`);
+  await handleComponent(approved, { guildAccess: access, botUserId: BOT, now: 1003 });
+  const nonOwner = component(`hengs-prompt:apply:${result.ticket.id}`, { user: { id: ADMIN } });
+  await handleComponent(nonOwner, {
+    guildAccess: access,
+    botUserId: BOT,
+    now: 1004,
+    applyPlan: async () => ({ ok: true, createdCount: 1 }),
+  });
+  assert.match(nonOwner.replyPayload.content, /hanya bisa dibuka|hanya bisa dilakukan owner/i);
+  assert.ok(getTicket(result.ticket.id, 1004));
 });
 
 test('administrator may issue a preview but cannot approve it', async () => {
