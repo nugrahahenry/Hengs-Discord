@@ -18,7 +18,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Test command membuktikan scope home memakai flag ephemeral, sedangkan scope public tetap memakai
   jalur balasan publik dan guard penggunaan yang sama.
-- Tidak ada state baru, provider baru, perubahan schema, token, auth, atau deployment cloud.
+- Deployment terkontrol ke cloud lulus dengan service active/enabled, dua heartbeat
+  `CONNECTED/OK/fresh`, satu MainPID Node, dan nol consumer Discord lokal. Token, auth, dan state
+  persisten dipertahankan; v1.39.1 tetap tersedia sebagai rollback.
 
 ## [1.39.1] - 2026-10-03
 

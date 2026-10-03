@@ -4,7 +4,7 @@
 
 **Current local checkpoint:** v1.40.0 private Discord assistant visibility fix
 
-**Current cloud production:** v1.39.1 active/enabled after controlled cutover
+**Current cloud production:** v1.40.0 active/enabled after controlled restart
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.

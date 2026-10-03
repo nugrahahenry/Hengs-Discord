@@ -10,9 +10,19 @@ Updated: 2026-10-03
 - History tetap RAM-only, bounded maksimal 10 pesan per guild dan user, serta tetap dihapus oleh
   `/hengs reset`. Tidak ada database, schema, provider, token, auth, atau kontrak Canox baru.
 - Test terarah ditambahkan untuk memastikan home AI privat, public AI tetap public, dan identitas prompt
-  memakai Hengs. Cloud tetap v1.39.1 active/enabled; deployment dan restart belum dilakukan.
+  memakai Hengs. Cloud sudah v1.40.0 active/enabled setelah restart terkontrol; v1.39.1 tetap tersedia
+  sebagai rollback.
 - Suite lokal penuh lulus `501/501`, `git diff --check`, syntax check, dan scan long dash pada
-  perubahan. Deployment hanya setelah approval cutover terpisah.
+  perubahan.
+
+## Cloud Deployment v1.40.0 - 2026-10-03
+
+- Archive dari commit `f734f6f` ditransfer melalui peer privat, checksum diverifikasi, lalu deployer
+  menjalankan dependency install, full test, prune, dan perpindahan pointer `current` secara atomik.
+- Service Hengs Discord di-restart terkontrol tanpa mengubah token, auth, state persisten, VM, atau
+  command registration. Dua heartbeat berjarak minimal 30 detik lulus `CONNECTED/OK/fresh`.
+- Acceptance akhir menunjukkan service active/enabled, satu MainPID Node, nol proses Discord lokal, dan
+  seluruh staging transfer sudah dibersihkan. v1.39.1 tetap menjadi rollback release.
 
 ## Cloud Cutover and Canox Dogfood - 2026-10-03
 

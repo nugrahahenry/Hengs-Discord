@@ -1,14 +1,14 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
-v1.37.0. Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+v1.40.0. Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
 pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
 permission, atau kebijakan Anti-Raid. State produksi mempertahankan konfigurasi `active` yang
-v1.39.1 kini aktif/enabled sebagai satu-satunya consumer Discord setelah cutover terkontrol;
-v1.37.0 tetap tersedia sebagai rollback. Registrasi v1.28.0 mempertahankan `/hengs`,
+v1.40.0 kini aktif/enabled sebagai satu-satunya consumer Discord setelah restart terkontrol;
+v1.39.1 tetap tersedia sebagai rollback. Registrasi v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.
 
 ## Canonical Paths
@@ -182,8 +182,8 @@ Transfer arsip dan file `.sha256` yang dihasilkan ke VM. Dengan service masih be
 
 ```bash
 sudo bash deploy/linux/deploy-release.sh \
-  /root/hengs-discord-1.28.0-<commit>.tar.gz \
-  /root/hengs-discord-1.28.0-<commit>.tar.gz.sha256
+  /root/hengs-discord-1.40.0-<commit>.tar.gz \
+  /root/hengs-discord-1.40.0-<commit>.tar.gz.sha256
 ```
 
 Deployer memvalidasi checksum dan path archive, menolak symlink/hardlink, menjalankan
@@ -238,7 +238,7 @@ satu tahap berarti service cloud dihentikan dan prosedur rollback dijalankan.
 Rollback cloud ke sibling release yang sudah ada:
 
 ```bash
-sudo bash deploy/linux/rollback.sh 1.19.1-<12-char-commit>
+sudo bash deploy/linux/rollback.sh 1.39.1-<12-char-commit>
 ```
 
 Script menghentikan service, mengganti pointer, menyalakan release tujuan, lalu memeriksa
