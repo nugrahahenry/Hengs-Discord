@@ -9,10 +9,14 @@ Updated: 2026-10-04
   timer setelah hasil atau error, tanpa menulis state baru atau mengirim isi prompt ke log.
 - System prompt home dan public lebih tegas tentang identitas Hengs, larangan mengklaim tindakan Henry,
   dan perilaku klarifikasi untuk pertanyaan lanjutan. Konteks privat/public v1.41.0 tetap dipertahankan.
-- Test terarah lulus `28/28` dan suite penuh lulus `509/509`. Cloud masih v1.41.0 active/enabled;
-  v1.42.0 belum ditransfer atau dideploy.
-- Next action: jalankan suite penuh, commit, push, lalu minta approval deployment terpisah jika dogfooding
-  cloud diperlukan.
+- Test terarah lulus `28/28` dan suite penuh lulus `509/509`. Cloud sekarang v1.42.0 active/enabled
+  setelah restart terkontrol dan dua heartbeat `CONNECTED/OK/fresh`; satu MainPID Node menjadi consumer
+  Discord, staging bersih, dan proses Discord lokal tetap nol.
+- Archive dari commit `4d11891` ditransfer lewat peer privat, diverifikasi checksum, diuji oleh deployer,
+  lalu pointer release dipindahkan secara atomik. Token, auth, state persisten, VM, registrasi command,
+  dan WhatsApp tidak disentuh.
+- Next action: dogfooding live tiga jalur, yaitu `/hengs ask` privat, mention publik, lalu `/hengs reset`.
+  Rollback v1.41.0 tetap tersedia.
 
 ## Private and Shared Conversation Isolation v1.41.0 - 2026-10-03
 

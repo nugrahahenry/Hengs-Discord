@@ -22,8 +22,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Test terarah lulus `28/28` dan suite penuh lulus `509/509`. Cloud tetap v1.41.0 active/enabled;
-  v1.42.0 belum dideploy.
+- Test terarah lulus `28/28` dan suite penuh lulus `509/509`.
+- Deployment terkontrol v1.42.0 lulus dengan service active/enabled, dua heartbeat
+  `CONNECTED/OK/fresh`, satu MainPID Node, staging bersih, dan nol consumer Discord lokal. Token,
+  auth, state persisten, dan WhatsApp tidak disentuh.
 
 ## [1.41.0] - 2026-10-03
 
