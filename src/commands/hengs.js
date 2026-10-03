@@ -7,6 +7,7 @@ const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt } = require('../prompt-assistant');
 const { formatOperationStatus } = require('../prompt-operations');
 const { issueReview } = require('../prompt-review');
+const { thinkingReplyPayload } = require('../assistant-ux');
 
 const MAX_PROMPT_LENGTH = 1800;
 
@@ -325,6 +326,7 @@ async function execute(interaction, {
     ? { flags: MessageFlags.Ephemeral }
     : {});
   try {
+    await interaction.editReply(thinkingReplyPayload());
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);
     const context = scope.kind === 'public'
       ? {

@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.42.0] - 2026-10-04
+
+### Added
+
+- `/hengs ask` menampilkan status `Hengs sedang menyusun jawaban` sebelum hasil akhir, tetap mengikuti
+  visibilitas privat atau publik yang dipilih interaction.
+- Mention memperbarui typing indicator secara bounded selama provider fallback dan menghentikannya setelah
+  jawaban atau error selesai.
+
+### Fixed
+
+- Prompt home dan public mempertegas bahwa Hengs adalah bot, bukan Henry, tidak boleh mengklaim tindakan
+  yang belum terjadi, dan harus memakai konteks saat menjawab pertanyaan lanjutan.
+- Progress copy dan typing path tidak menerima mention atau konten dinamis dari pengguna.
+
+### Verification
+
+- Test terarah lulus `28/28` dan suite penuh lulus `509/509`. Cloud tetap v1.41.0 active/enabled;
+  v1.42.0 belum dideploy.
+
 ## [1.41.0] - 2026-10-03
 
 ### Fixed

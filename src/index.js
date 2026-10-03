@@ -52,6 +52,7 @@ const { createPersonalAssistant } = require('./personal-assistant');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
+const { startTypingIndicator } = require('./assistant-ux');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
 // event dobel, ini menutup kemungkinan dua instance mem-publish draft yang sama.
@@ -581,9 +582,9 @@ client.on(Events.MessageCreate, async (msg) => {
     }
   }
 
+  let stopTyping = () => {};
   try {
-    // Typing indicator biar keliatan lagi "mikir"
-    await msg.channel.sendTyping();
+    stopTyping = await startTypingIndicator(msg.channel);
     const conversationKey = agent.buildConversationKey(msg.guildId, msg.author.id);
     const reply = await agent.chat(text, conversationKey, {
       kind: messageScope.kind,
@@ -610,6 +611,7 @@ client.on(Events.MessageCreate, async (msg) => {
       allowedMentions: { parse: [] },
     }).catch(() => {});
   } finally {
+    stopTyping();
     if (lease) lease.release();
   }
 });

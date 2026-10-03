@@ -1,6 +1,18 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-03
+Updated: 2026-10-04
+
+## Assistant Response Experience v1.42.0 - 2026-10-04
+
+- Local checkpoint `1.42.0` menambahkan progress message fixed untuk `/hengs ask` dan typing indicator
+  bounded yang diperbarui setiap delapan detik selama mention AI masih berjalan. Keduanya menghentikan
+  timer setelah hasil atau error, tanpa menulis state baru atau mengirim isi prompt ke log.
+- System prompt home dan public lebih tegas tentang identitas Hengs, larangan mengklaim tindakan Henry,
+  dan perilaku klarifikasi untuk pertanyaan lanjutan. Konteks privat/public v1.41.0 tetap dipertahankan.
+- Test terarah lulus `28/28` dan suite penuh lulus `509/509`. Cloud masih v1.41.0 active/enabled;
+  v1.42.0 belum ditransfer atau dideploy.
+- Next action: jalankan suite penuh, commit, push, lalu minta approval deployment terpisah jika dogfooding
+  cloud diperlukan.
 
 ## Private and Shared Conversation Isolation v1.41.0 - 2026-10-03
 

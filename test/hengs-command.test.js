@@ -20,7 +20,12 @@ function interaction({ guild = true, subcommand = 'help', prompt = 'Halo Hengs',
     inGuild: () => guild,
     async reply(payload) { this.replyPayload = payload; this.replied = true; },
     async deferReply(payload) { this.deferPayload = payload; this.deferred = true; },
-    async editReply(payload) { this.editPayload = payload; this.replied = true; },
+    async editReply(payload) {
+      this.editPayloads = this.editPayloads || [];
+      this.editPayloads.push(payload);
+      this.editPayload = payload;
+      this.replied = true;
+    },
   };
 }
 
@@ -169,6 +174,7 @@ test('/hengs ask shares public admission and sends mention-safe output', async (
   const value = interaction({ subcommand: 'ask', prompt: 'Explain queues' });
   await hengs.execute(value, deps);
   assert.deepEqual(value.deferPayload, {});
+  assert.match(value.editPayloads[0].content, /sedang menyusun jawaban/i);
   assert.equal(value.editPayload.content, '@everyone jawaban aman');
   assert.deepEqual(value.editPayload.allowedMentions, { parse: [] });
   assert.deepEqual(deps.calls, [
@@ -192,6 +198,7 @@ test('/hengs ask keeps home-guild AI conversation private', async () => {
   const value = interaction({ subcommand: 'ask', prompt: 'Bantu aku memahami queue' });
   await hengs.execute(value, deps);
   assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.match(value.editPayloads[0].content, /sedang menyusun jawaban/i);
   assert.equal(value.editPayload.content, '@everyone jawaban aman');
   assert.deepEqual(value.editPayload.allowedMentions, { parse: [] });
   assert.deepEqual(deps.calls, [
