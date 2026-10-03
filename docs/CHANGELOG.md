@@ -12,6 +12,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Deployer Linux sekarang menerima dan memvalidasi release v1.39.1, bukan gate versi lama.
 - Metadata package, lockfile, release builder, dan regression test disinkronkan.
 
+### Verification
+
+- Archive v1.39.1 terpasang di VM dengan checksum cocok. Service sengaja tetap `inactive/disabled`,
+  proses cloud nol, dan seluruh file transfer sementara sudah dibersihkan.
+
 ## [1.39.0] - 2026-10-03
 
 ### Added

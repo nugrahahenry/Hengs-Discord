@@ -2,6 +2,18 @@
 
 Updated: 2026-10-03
 
+## Cloud Staging v1.39.1 - 2026-10-03
+
+- Release `1.39.1-f0927b259cc1` is installed on the VM and the immutable `current` pointer was
+  switched atomically after archive, checksum, dependency, and VM-side test validation.
+- The Discord service is intentionally `inactive/disabled` with main PID zero. No token, auth,
+  persistent state, command registration, reboot, or production cutover was performed.
+- Remote archive, checksum, deploy script, and temporary logs were removed after verification.
+  Local release storage retains only the active rollback archive v1.37.0 and the staged v1.39.1
+  archive.
+- Next action: perform a separate activation and two-heartbeat acceptance only after explicit
+  cutover approval.
+
 ## Deployment Gate Fix - 2026-10-03
 
 - Local checkpoint is v1.39.1. The Linux deployer and release metadata now validate the

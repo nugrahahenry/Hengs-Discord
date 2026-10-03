@@ -4,10 +4,10 @@
 
 **Current local checkpoint:** v1.39.1 Canox Project Handoff deployment gate fix
 
-**Current cloud production:** v1.37.0
+**Current cloud staging:** v1.39.1 installed, service inactive/disabled, no cutover
 
-**Development status:** local feature work continues in bounded checkpoints. Cloud stays on the
-last accepted release until a separate deployment approval.
+**Development status:** local feature work continues in bounded checkpoints. Release v1.39.1 is
+staged on the VM, while activation and production cutover remain separate approvals.
 
 **Public invite:** [Add Hengs to a Discord server](https://discord.com/oauth2/authorize?client_id=1512417103138000948&permissions=101376&scope=bot+applications.commands)
 
