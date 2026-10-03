@@ -178,7 +178,7 @@ test('/hengs ask shares public admission and sends mention-safe output', async (
     { chat: {
       prompt: 'Explain queues',
       key: `${GUILD}:${USER}`,
-      context: { kind: 'public', replyStyle: 'technical', language: 'en' },
+      context: { kind: 'public', visibility: 'shared', replyStyle: 'technical', language: 'en' },
     } },
   ]);
   const feedback = value.editPayload.components[0].toJSON().components;
@@ -199,7 +199,7 @@ test('/hengs ask keeps home-guild AI conversation private', async () => {
     { chat: {
       prompt: 'Bantu aku memahami queue',
       key: `${GUILD}:${USER}`,
-      context: { kind: 'home' },
+      context: { kind: 'home', visibility: 'private' },
     } },
   ]);
 });

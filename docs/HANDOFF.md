@@ -2,6 +2,17 @@
 
 Updated: 2026-10-03
 
+## Private and Shared Conversation Isolation v1.41.0 - 2026-10-03
+
+- Local checkpoint `1.41.0` memisahkan history `/hengs ask` privat dari mention publik untuk setiap guild
+  dan user. Keduanya tetap RAM-only, bounded maksimal 10 pesan per surface, dan tidak memakai database,
+  schema, provider, token, auth, atau state persisten baru.
+- `/hengs reset` menghapus kedua surface hanya untuk caller terkait. Jawaban provider yang selesai setelah
+  reset tidak boleh masuk kembali ke percakapan aktif, dan cooldown tetap berlaku lintas surface.
+- Suite terarah lulus `33/33`. Cloud masih v1.40.0 active/enabled; v1.41.0 belum ditransfer atau dideploy.
+- Next action: jalankan suite penuh, commit checkpoint ini, lalu push branch aktif. Deployment membutuhkan
+  approval terpisah.
+
 ## Private Discord Assistant v1.40.0 - 2026-10-03
 
 - Local checkpoint `1.40.0` memperbaiki visibilitas `/hengs ask` di home guild. Balasan AI percakapan

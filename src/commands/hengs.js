@@ -89,9 +89,9 @@ async function execute(interaction, {
       '**Privasi Hengs**',
       'Pertanyaanmu dan konteks percakapan terbaru dikirim ke penyedia AI untuk membuat balasan.',
       'Cara penyedia menyimpan data mengikuti kebijakan layanan yang sedang dipakai. Jangan kirim kata sandi, token, atau data sensitif.',
-      'Riwayat chat tidak disimpan ke file. Proses Hengs hanya mengingat sampai 10 pesan terbaru untuk setiap pengguna di setiap server.',
+      'Riwayat chat tidak disimpan ke file. Hengs memisahkan konteks percakapan publik dan privat, masing-masing maksimal 10 pesan terbaru per pengguna dan server.',
       'Untuk server publik, Hengs menyimpan angka penggunaan harian dan pilihan feedback tanpa isi chat, jawaban, atau identitas member.',
-      'Gunakan `/hengs reset` kapan saja untuk menghapus ingatan percakapanmu sendiri.',
+      'Gunakan `/hengs reset` kapan saja untuk menghapus kedua konteks percakapanmu.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
     ].join('\n'));
     return;
@@ -332,7 +332,8 @@ async function execute(interaction, {
         replyStyle: resolveReplyStyle(scope.config),
         language: resolveLanguage(scope.config),
       }
-      : { kind: 'home' };
+      : { kind: 'home', visibility: 'private' };
+    if (scope.kind === 'public') context.visibility = 'shared';
     const answer = await agent.chat(prompt, conversationKey, context);
     await interaction.editReply({
       content: answer.substring(0, 2000),

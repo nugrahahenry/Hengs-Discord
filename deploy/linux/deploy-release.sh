@@ -21,11 +21,11 @@ fi
 ARCHIVE="$(realpath -e -- "$1")"
 CHECKSUM="$(realpath -e -- "$2")"
 ARCHIVE_NAME="$(basename -- "${ARCHIVE}")"
-if [[ ! "${ARCHIVE_NAME}" =~ ^hengs-discord-1\.40\.0-([0-9a-f]{12})\.tar\.gz$ ]]; then
+if [[ ! "${ARCHIVE_NAME}" =~ ^hengs-discord-1\.41\.0-([0-9a-f]{12})\.tar\.gz$ ]]; then
   printf '%s\n' 'RELEASE_NAME_INVALID' >&2
   exit 1
 fi
-RELEASE_ID="1.40.0-${BASH_REMATCH[1]}"
+RELEASE_ID="1.41.0-${BASH_REMATCH[1]}"
 
 read -r EXPECTED_HASH EXPECTED_NAME EXTRA < "${CHECKSUM}" || true
 if [[ ! "${EXPECTED_HASH:-}" =~ ^[0-9a-f]{64}$ || "${EXPECTED_NAME:-}" != "${ARCHIVE_NAME}" || -n "${EXTRA:-}" ]]; then
@@ -98,7 +98,7 @@ if ! PACKAGE_VERSION="$(node -p 'require(process.argv[1]).version' "${STAGING_DI
   printf '%s\n' 'RELEASE_CONTENT_INVALID' >&2
   exit 1
 fi
-if [[ "${PACKAGE_VERSION}" != '1.40.0' ]]; then
+if [[ "${PACKAGE_VERSION}" != '1.41.0' ]]; then
   printf '%s\n' 'RELEASE_VERSION_INVALID' >&2
   exit 1
 fi

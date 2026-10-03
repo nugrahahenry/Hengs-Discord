@@ -587,6 +587,7 @@ client.on(Events.MessageCreate, async (msg) => {
     const conversationKey = agent.buildConversationKey(msg.guildId, msg.author.id);
     const reply = await agent.chat(text, conversationKey, {
       kind: messageScope.kind,
+      visibility: 'shared',
       replyStyle: messageScope.config?.settings?.replyStyle || 'balanced',
       language: messageScope.config?.settings?.language || 'auto',
     });

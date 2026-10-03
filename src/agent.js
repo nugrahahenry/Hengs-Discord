@@ -81,11 +81,12 @@ async function callWithTimeout(client, params, ms) {
   }
 }
 
-// Simpan history percakapan per user (max 10 pesan)
-const histories  = new Map();       // key: guildId:userId
+// Simpan history terpisah per user dan permukaan chat (max 10 pesan per permukaan)
+const histories  = new Map();       // key: guildId:userId -> { shared: [], private: [], generation }
 const lastChatAt = new Map();       // key: guildId:userId
 const CHAT_COOLDOWN_MS = 3000;      // jeda min antar-pesan per user
 const MAX_USERS = 300;              // cap memori histories (cegah numpuk selamanya)
+const CHAT_VISIBILITIES = new Set(['shared', 'private']);
 
 const SYSTEM_PROMPT = `Kamu adalah bot AI Hengs di server Discord milik Henry, mahasiswa Sistem Informasi semester 4.
 Kepribadian kamu:
@@ -147,6 +148,8 @@ async function chat(userMessage, conversationKey, context = {}) {
   if (!/^\d{17,20}:\d{17,20}$/.test(String(conversationKey || ''))) {
     throw new Error('CONVERSATION_KEY_INVALID');
   }
+  const visibility = context?.visibility || 'shared';
+  if (!CHAT_VISIBILITIES.has(visibility)) throw new Error('CONVERSATION_VISIBILITY_INVALID');
   // Rate-limit per user untuk mencegah spam mention yang menguras kuota API.
   const now = Date.now();
   if (now - (lastChatAt.get(conversationKey) || 0) < CHAT_COOLDOWN_MS) {
@@ -161,8 +164,10 @@ async function chat(userMessage, conversationKey, context = {}) {
     lastChatAt.delete(oldest);
   }
 
-  if (!histories.has(conversationKey)) histories.set(conversationKey, []);
-  const history = histories.get(conversationKey);
+  if (!histories.has(conversationKey)) histories.set(conversationKey, { shared: [], private: [], generation: 0 });
+  const conversation = histories.get(conversationKey);
+  const history = conversation[visibility];
+  const generation = conversation.generation;
 
   // user-turn baru masuk ke 'messages' tapi BELUM di-commit ke history agar kalau
   // semua model gagal, history nggak ketambahan user-turn yatim (bikin context rusak).
@@ -172,8 +177,10 @@ async function chat(userMessage, conversationKey, context = {}) {
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
   const params = { messages, max_tokens: 700, temperature: 0.7 };
   const commit = (reply) => {
+    if (conversation.generation !== generation) return false;
     history.push(pendingUser, { role: 'assistant', content: reply });
     if (history.length > 10) history.splice(0, history.length - 10);
+    return true;
   };
 
   // ── Lapis 1 & 2: Groq ──
@@ -183,7 +190,7 @@ async function chat(userMessage, conversationKey, context = {}) {
         const res = await callWithTimeout(groq, { ...params, model }, 8000);
         const reply = res.choices[0]?.message?.content?.trim();
         if (reply) {
-          commit(reply);
+          if (!commit(reply)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
           console.log(`  ✓ AI replied (groq/${model})`);
           return reply;
         }
@@ -200,7 +207,7 @@ async function chat(userMessage, conversationKey, context = {}) {
       const reply = res.choices[0]?.message?.content?.trim();
       if (reply) {
         modelStats.set(model, { ...modelStats.get(model) || {}, lastSuccessAt: Date.now() });
-        commit(reply);
+        if (!commit(reply)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
         console.log(`  ✓ AI replied (${model.split('/')[1]})`);
         return reply;
       }
@@ -229,7 +236,11 @@ async function chat(userMessage, conversationKey, context = {}) {
 
 // Reset history user tertentu
 function clearHistory(conversationKey) {
-  histories.delete(conversationKey);
+  const conversation = histories.get(conversationKey);
+  if (conversation) {
+    conversation.generation += 1;
+    histories.delete(conversationKey);
+  }
   lastChatAt.delete(conversationKey);
 }
 

@@ -5,6 +5,22 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-10-03
+
+### Fixed
+
+- `/hengs ask` privat dan mention publik sekarang memakai konteks percakapan terpisah per guild dan user.
+- `/hengs reset` menghapus kedua konteks, membatalkan jawaban AI yang masih berjalan, dan menjaga cooldown
+  bersama agar perpindahan visibilitas tidak menjadi jalan pintas.
+- Memori percakapan tetap RAM-only, dibatasi, dan tidak menambah database, schema, provider, token, atau
+  state persisten baru.
+
+### Verification
+
+- Test terarah membuktikan isolasi privat dan publik, reset caller-only, stale in-flight guard, batas sepuluh
+  pesan, validasi visibilitas, dan isolasi antar server.
+- Cloud tetap v1.40.0 active/enabled. Release v1.41.0 belum dideploy.
+
 ## [1.40.0] - 2026-10-03
 
 ### Fixed

@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.40.0 private Discord assistant visibility fix
+**Current local checkpoint:** v1.41.0 private and shared conversation isolation
 
 **Current cloud production:** v1.40.0 active/enabled after controlled restart
 
@@ -15,8 +15,8 @@ Discord token consumer; local Discord remains stopped as rollback only.
 
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
 - **Private Discord assistant:** `/hengs ask` di server utama menjawab ephemeral, jadi percakapan LLM
-  tidak tampil di channel. Konteks tetap dibatasi maksimal 10 pesan terbaru per user dan bisa dihapus
-  lewat `/hengs reset`.
+  tidak tampil di channel. Konteks privat dan mention publik memakai ruang memori terpisah, masing-masing
+  dibatasi maksimal 10 pesan terbaru per user dan bisa dihapus lewat `/hengs reset`.
 - **Prompt-first community planning:** owner atau Administrator dapat menulis prompt natural untuk
   merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint teks serta kartu visual
   privat sebelum ada perubahan
