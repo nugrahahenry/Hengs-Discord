@@ -203,6 +203,7 @@ function buildPromptHelp() {
     '• "Buatkan rancangan area creator untuk live stream dan showcase."',
     '• "Buat pengumuman maintenance server malam ini" untuk membuat draft privat di Ops Hub.',
     '• "Buat event mabar jam 20:00" untuk membuat draft reminder di Event Hub.',
+    '• "Buat tugas proyek landing page: rapikan hero dan cek mobile" untuk membuat rencana tugas privat di Ops Hub.',
     '• "Catat daftar tugas" atau "ingatkan aku besok jam 7 pagi cek tugas" untuk memori pribadi owner.',
     '• "Fokus belajar topik AI" atau "selesai fokus" untuk kontrol mode pemilik.',
     '• Pertanyaan biasa tetap bisa langsung ditulis tanpa format khusus.',

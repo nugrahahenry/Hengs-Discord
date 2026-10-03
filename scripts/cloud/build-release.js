@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync: defaultSpawnSync } = require('node:child_process');
 
-const RELEASE_VERSION = '1.37.0';
+const RELEASE_VERSION = '1.38.0';
 const TEXT_SCAN_LIMIT = 10 * 1024 * 1024;
 
 class ReleaseBuildError extends Error {

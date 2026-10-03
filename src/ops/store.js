@@ -72,7 +72,7 @@ function appendAudit(state, draftId, action, actor, details = null) {
   state.audit = state.audit.slice(0, MAX_AUDIT);
 }
 
-function createDraft({ title, body, brief = null, source = 'discord', createdBy = null, externalId = null }) {
+function createDraft({ title, body, brief = null, source = 'discord', createdBy = null, externalId = null, kind = 'announcement' }) {
   const state = readState();
   const normalizedExternalId = externalId ? String(externalId).trim().slice(0, 200) : null;
   if (normalizedExternalId) {
@@ -88,6 +88,7 @@ function createDraft({ title, body, brief = null, source = 'discord', createdBy 
     // Sisakan ruang untuk prefix emoji/label pada Discord embed (maks. 256 karakter).
     title: String(title || 'Pengumuman').trim().slice(0, 230) || 'Pengumuman',
     body: normalizedBody,
+    kind: kind === 'project' ? 'project' : 'announcement',
     brief: brief ? String(brief).trim().slice(0, 1500) : null,
     source: source === 'canox' ? 'canox' : 'discord',
     createdBy: createdBy ? String(createdBy).slice(0, 100) : null,

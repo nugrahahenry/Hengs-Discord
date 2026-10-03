@@ -470,20 +470,25 @@ client.on(Events.MessageCreate, async (msg) => {
       });
       return;
     }
-    if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'event_draft') {
+    if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft' || promptRoute.kind === 'event_draft') {
       try {
-        if (promptRoute.kind === 'ops_draft') {
-          const generated = await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
+        if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft') {
+          const generated = promptRoute.kind === 'project_draft'
+            ? await agent.draftProjectTask(promptRoute.brief, promptRoute.titleOverride)
+            : await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
           const result = await opsHub.createDraftPanel(msg.guild, {
             ...generated,
             brief: promptRoute.brief,
+            kind: promptRoute.kind === 'project_draft' ? 'project' : 'announcement',
             source: 'discord',
             createdBy: msg.author.id,
-            externalId: `prompt-ops:${msg.id}`,
+            externalId: `${promptRoute.kind === 'project_draft' ? 'prompt-project' : 'prompt-ops'}:${msg.id}`,
           });
           await msg.reply({
             content: result.created
-              ? 'Draft pengumuman privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang memutuskan publish atau jadwal.'
+              ? (promptRoute.kind === 'project_draft'
+                ? 'Rencana tugas proyek privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang menentukan langkah berikutnya.'
+                : 'Draft pengumuman privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang memutuskan publish atau jadwal.')
               : 'Draft dari prompt ini sudah pernah dibuat.',
             allowedMentions: { parse: [] },
           });
@@ -508,13 +513,17 @@ client.on(Events.MessageCreate, async (msg) => {
           allowedMentions: { parse: [] },
         });
       } catch {
-        console.error(promptRoute.kind === 'ops_draft'
-          ? '[prompt-operations] OPS_DRAFT_FAILED'
-          : '[prompt-operations] EVENT_DRAFT_FAILED');
+        console.error(promptRoute.kind === 'event_draft'
+          ? '[prompt-operations] EVENT_DRAFT_FAILED'
+          : promptRoute.kind === 'project_draft'
+            ? '[prompt-operations] PROJECT_DRAFT_FAILED'
+            : '[prompt-operations] OPS_DRAFT_FAILED');
         await msg.reply({
-          content: promptRoute.kind === 'ops_draft'
-            ? 'Draft pengumuman belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.'
-            : 'Draft event belum bisa dibuat. Cek format waktu WIB dan pastikan channel `bot-settings` tersedia.',
+          content: promptRoute.kind === 'event_draft'
+            ? 'Draft event belum bisa dibuat. Cek format waktu WIB dan pastikan channel `bot-settings` tersedia.'
+            : promptRoute.kind === 'project_draft'
+              ? 'Rencana tugas proyek belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.'
+              : 'Draft pengumuman belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.',
           allowedMentions: { parse: [] },
         }).catch(() => {});
       }

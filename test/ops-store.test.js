@@ -72,6 +72,18 @@ test('failed publish can return to pending and discard wins only once', () => {
   assert.equal(store.finalizeDraft(draft.id, 'discarded', 'owner-1'), null);
 });
 
+test('project drafts keep a bounded kind without changing approval flow', () => {
+  const { draft } = store.createDraft({
+    title: 'Landing page',
+    body: 'Tujuan: merapikan hero.',
+    kind: 'project',
+  });
+  assert.equal(draft.kind, 'project');
+  assert.equal(store.claimPublish(draft.id, 'owner-1').status, 'publishing');
+  assert.equal(store.releasePublish(draft.id).status, 'pending');
+  store.removeDraft(draft.id);
+});
+
 test('draft validation and Canox inbox contract reject ambiguous input', () => {
   assert.throws(
     () => store.createDraft({ title: 'Kosong', body: '   ' }),

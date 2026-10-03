@@ -5,6 +5,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-10-03
+
+### Added
+
+- Prompt `tugas proyek`, `rencana proyek`, dan `backlog proyek` membuat kartu tugas privat di Ops Hub.
+- Kartu tugas memakai editor bounded, fallback lokal, dan approval yang sama dengan draft operasi.
+- State draft lama tetap kompatibel karena `kind` hanya menerima `announcement` atau `project`.
+
 ## [1.37.0] - 2026-10-03
 
 ### Added

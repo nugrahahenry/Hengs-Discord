@@ -188,10 +188,12 @@ async function execute(interaction, {
       await replyPrivate(interaction, formatOperationStatus({ opsHub, eventHub }));
       return;
     }
-    if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'event_draft') {
-      if (promptRoute.kind === 'ops_draft' && !opsHub) {
+    if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft' || promptRoute.kind === 'event_draft') {
+      if ((promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft') && !opsHub) {
         logger.error('[prompt-operations] OPS_HUB_MISSING');
-        await replyPrivate(interaction, 'Draft pengumuman belum tersedia di runtime ini. Coba lagi nanti ya.');
+        await replyPrivate(interaction, promptRoute.kind === 'project_draft'
+          ? 'Rencana tugas proyek belum tersedia di runtime ini. Coba lagi nanti ya.'
+          : 'Draft pengumuman belum tersedia di runtime ini. Coba lagi nanti ya.');
         return;
       }
       if (promptRoute.kind === 'event_draft' && !eventHub) {
@@ -201,19 +203,24 @@ async function execute(interaction, {
       }
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       try {
-        if (promptRoute.kind === 'ops_draft') {
-          const generated = await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
+        if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft') {
+          const generated = promptRoute.kind === 'project_draft'
+            ? await agent.draftProjectTask(promptRoute.brief, promptRoute.titleOverride)
+            : await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
           const result = await opsHub.createDraftPanel(interaction.guild, {
             ...generated,
             brief: promptRoute.brief,
+            kind: promptRoute.kind === 'project_draft' ? 'project' : 'announcement',
             source: 'discord',
             createdBy: interaction.user.id,
-            externalId: `prompt-ops:${interaction.id}`,
+            externalId: `${promptRoute.kind === 'project_draft' ? 'prompt-project' : 'prompt-ops'}:${interaction.id}`,
           });
           const settingsChannel = opsHub.findSettingsChannel(interaction.guild);
           await interaction.editReply({
             content: result.created
-              ? `📋 Draft **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner yang memutuskan publish atau jadwal.`
+              ? (promptRoute.kind === 'project_draft'
+                ? `🧭 Rencana tugas **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner menentukan langkah berikutnya.`
+                : `📋 Draft **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner yang memutuskan publish atau jadwal.`)
               : 'ℹ️ Draft dari prompt ini sudah pernah dibuat.',
             allowedMentions: { parse: [] },
           });
@@ -239,13 +246,17 @@ async function execute(interaction, {
           allowedMentions: { parse: [] },
         });
       } catch {
-        logger.error(promptRoute.kind === 'ops_draft'
-          ? '[prompt-operations] OPS_DRAFT_FAILED'
-          : '[prompt-operations] EVENT_DRAFT_FAILED');
+        logger.error(promptRoute.kind === 'event_draft'
+          ? '[prompt-operations] EVENT_DRAFT_FAILED'
+          : promptRoute.kind === 'project_draft'
+            ? '[prompt-operations] PROJECT_DRAFT_FAILED'
+            : '[prompt-operations] OPS_DRAFT_FAILED');
         await interaction.editReply({
-          content: promptRoute.kind === 'ops_draft'
-            ? 'Draft pengumuman belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.'
-            : 'Draft event belum bisa dibuat. Cek format waktu WIB dan pastikan channel `bot-settings` tersedia.',
+          content: promptRoute.kind === 'event_draft'
+            ? 'Draft event belum bisa dibuat. Cek format waktu WIB dan pastikan channel `bot-settings` tersedia.'
+            : promptRoute.kind === 'project_draft'
+              ? 'Rencana tugas proyek belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.'
+              : 'Draft pengumuman belum bisa dibuat. Pastikan channel `bot-settings` tersedia, lalu coba lagi.',
           allowedMentions: { parse: [] },
         }).catch(() => {});
       }

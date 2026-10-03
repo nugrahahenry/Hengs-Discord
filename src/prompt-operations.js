@@ -8,8 +8,9 @@ const MAX_PROMPT_LENGTH = 1800;
 const MAX_TITLE_LENGTH = 200;
 const MAX_BRIEF_LENGTH = 1500;
 
-const OPERATION_SIGNAL = /\b(?:buat|buatkan|bikin|siapkan|susun|atur|jadwalkan|adakan|ingatkan|umumkan|sampaikan|beritahu|post)\b/i;
+const OPERATION_SIGNAL = /\b(?:buat|buatkan|bikin|siapkan|susun|atur|jadwalkan|adakan|ingatkan|umumkan|sampaikan|beritahu|post|catat|tulis)\b/i;
 const ANNOUNCEMENT_SIGNAL = /\b(?:umumkan|pengumuman|sampaikan|beritahu|post|update|proyek|project|maintenance|info)\b/i;
+const PROJECT_SIGNAL = /\b(?:tugas proyek|task proyek|rencana proyek|project task|backlog proyek|milestone proyek)\b/i;
 const EVENT_SIGNAL = /\b(?:event|acara|jadwal|reminder|pengingat|ingatkan|meeting|rapat|mabar|turnamen|tournament|scrim)\b/i;
 const OPERATION_STATUS_SIGNAL = /\b(?:lihat|cek|tampilkan|status|ada)\b.*\b(?:draft|pengumuman|event|reminder|pengingat|operasi|ops)\b/i;
 const TIME_SIGNAL = /\b(?:jam|pukul|at)\s*\d{1,2}(?:[:.]\d{2})\b|\b\d{4}-\d{2}-\d{2}[ T]\d{1,2}[:.]\d{2}\b/i;
@@ -46,6 +47,13 @@ function stripOperationLead(value) {
     .trim();
 }
 
+function stripProjectLead(value) {
+  return normalizePrompt(value)
+    .replace(/^(?:tolong\s+)?(?:buat(?:kan)?|bikin(?:kan)?|siapkan|susun(?:kan)?|catat|tulis(?:kan)?)\s+/i, '')
+    .replace(/^(?:sebuah\s+|satu\s+)?(?:tugas proyek|task proyek|rencana proyek|project task|backlog proyek|milestone proyek)\s*[:,-]?\s*/i, '')
+    .trim();
+}
+
 function stripSchedule(value) {
   return normalizePrompt(value)
     .replace(/\b(?:jam|pukul|at)\s*\d{1,2}(?::\d{2})?\b/ig, '')
@@ -71,6 +79,15 @@ function extractCapacity(value) {
 }
 
 function buildOperationQuestions(kind = 'operation') {
+  if (kind === 'project') {
+    return [
+      '🧭 **Aku bisa siapkan rencana tugas proyek privat.**',
+      '',
+      'Tulis tujuan dan pekerjaan yang mau dicatat, misalnya `Buat tugas proyek landing page: rapikan hero dan cek mobile`.',
+      'Kalau ada deadline, tulis jelas. Kalau belum ada, Hengs tidak akan menebak tanggal.',
+      'Draft masuk ke `bot-settings` dan belum dipublikasikan.',
+    ].join('\n');
+  }
   if (kind === 'event') {
     return [
       '🗓️ **Aku bisa siapkan draft event atau reminder.**',
@@ -86,6 +103,18 @@ function buildOperationQuestions(kind = 'operation') {
     'Tulis inti pesannya, misalnya `Buat pengumuman maintenance server malam ini`.',
     'Draft masuk ke `bot-settings`. Hengs tidak akan publish tanpa review dan keputusan owner.',
   ].join('\n');
+}
+
+function parseProject(prompt) {
+  if (!PROJECT_SIGNAL.test(prompt)) return null;
+  const brief = stripProjectLead(prompt).slice(0, MAX_BRIEF_LENGTH).trim();
+  if (!brief || brief.length < 4) return { kind: 'operation_questions', operation: 'project' };
+  return {
+    kind: 'project_draft',
+    operation: 'project',
+    brief,
+    titleOverride: null,
+  };
 }
 
 function parseAnnouncement(prompt) {
@@ -131,6 +160,8 @@ function parseOperationPrompt(value) {
     return { kind: 'operation_status', operation: 'status' };
   }
   if (!OPERATION_SIGNAL.test(prompt)) return null;
+  const project = parseProject(prompt);
+  if (project) return project;
   const event = parseEvent(prompt);
   if (event) return event;
   const announcement = parseAnnouncement(prompt);
@@ -160,9 +191,11 @@ module.exports = {
   MAX_PROMPT_LENGTH,
   MAX_TITLE_LENGTH,
   MAX_BRIEF_LENGTH,
+  PROJECT_SIGNAL,
   normalizePrompt,
   extractScheduleInput,
   parseOperationPrompt,
+  parseProject,
   buildOperationQuestions,
   operationReply,
   formatOperationStatus,

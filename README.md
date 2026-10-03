@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.37.0 Private Personal Assistant
+**Current local checkpoint:** v1.38.0 Project Task Drafts
 
 **Current cloud production:** v1.37.0
 
@@ -22,7 +22,7 @@ last accepted release until a separate deployment approval.
   kurang dari blueprint tetap
 - **Prompt fokus natural:** owner atau Administrator dapat menulis "fokus belajar", "mulai scrim",
   "status mode", atau "selesai fokus" tanpa slash command. Perintah ambigu tetap meminta klarifikasi
-- **Prompt operasi natural:** owner atau editor Ops Hub dapat menulis pengumuman proyek atau event
+- **Prompt operasi natural:** owner atau editor Ops Hub dapat menulis pengumuman, tugas proyek, atau event
   dengan bahasa biasa. Hengs membuat draft privat di Ops Hub atau Event Hub, lalu review dan publish
   tetap mengikuti approval yang sudah ada
 - **Status operasi natural:** owner atau editor Ops Hub dapat menulis "lihat status draft" untuk

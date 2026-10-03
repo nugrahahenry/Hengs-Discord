@@ -72,16 +72,19 @@ function draftEmbed(draft) {
     published: 'Sudah dipublikasikan',
     discarded: 'Dibuang',
   }[draft.status] || draft.status;
+  const kindLabel = draft.kind === 'project' ? '🧭 Tugas proyek' : '📋 Draft';
   const embed = new EmbedBuilder()
     .setColor(color)
-    .setTitle(`📋 Draft: ${draft.title}`.slice(0, 256))
+    .setTitle(`${kindLabel}: ${draft.title}`.slice(0, 256))
     .setDescription(draft.body || '_Tidak ada isi_')
     .addFields(
       { name: 'Status', value: status, inline: true },
       { name: 'Sumber', value: source, inline: true },
       { name: 'ID', value: `\`${draft.id}\``, inline: true },
     )
-    .setFooter({ text: 'Ops Hub · editor merevisi, owner memutuskan final' })
+    .setFooter({ text: draft.kind === 'project'
+      ? 'Ops Hub · rencana privat, owner memutuskan langkah berikutnya'
+      : 'Ops Hub · editor merevisi, owner memutuskan final' })
     .setTimestamp(new Date(draft.createdAt));
   if (draft.brief) {
     embed.addFields({

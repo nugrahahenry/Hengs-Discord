@@ -2,6 +2,21 @@
 
 Updated: 2026-10-03
 
+## Canox Bridge Status and Project Drafts - 2026-10-03
+
+- Local checkpoint is v1.38.0. Prompt-first Discord now recognizes explicit project task phrases,
+  such as `Buat tugas proyek landing page: rapikan hero dan cek mobile`.
+- The result is a private project draft in the existing Ops Hub. It keeps the existing review,
+  owner approval, schedule, publish, and discard boundary. It never creates a channel or publishes
+  automatically.
+- Ops state stores a bounded `kind` field (`announcement` or `project`); older state without the
+  field remains compatible. Provider fallback still produces a truthful local draft if the editor
+  is unavailable.
+- Canox v0.155.0 now exposes a separate read-only local bridge status contract. Discord does not
+  open a new network path to Canox in this checkpoint; cloud deployment is intentionally pending.
+- Focused prompt, Ops store, assistant, syntax, and Canox bridge API checks pass. No cloud restart,
+  command registration, token, auth, or production state change occurred.
+
 ## Private Personal Assistant - 2026-10-03
 
 - Local checkpoint is v1.37.0. `/hengs ask` now supports private owner notes and one-shot reminders

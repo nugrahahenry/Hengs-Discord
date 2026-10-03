@@ -26,6 +26,27 @@ test('natural announcement prompt becomes an Ops draft brief without a provider 
   });
 });
 
+test('natural project prompt becomes a private project draft brief', () => {
+  assert.deepEqual(
+    parseOperationPrompt('Buat tugas proyek landing page: rapikan hero dan cek mobile'),
+    {
+      kind: 'project_draft',
+      operation: 'project',
+      brief: 'landing page: rapikan hero dan cek mobile',
+      titleOverride: null,
+    },
+  );
+});
+
+test('incomplete project prompt asks for bounded details', () => {
+  assert.deepEqual(
+    parseOperationPrompt('Buat tugas proyek'),
+    { kind: 'operation_questions', operation: 'project' },
+  );
+  assert.match(buildOperationQuestions('project'), /deadline/i);
+  assert.doesNotMatch(buildOperationQuestions('project'), /[–—]/);
+});
+
 test('natural event prompt extracts title and explicit WIB time', () => {
   const route = parseOperationPrompt('Buat event mabar jam 20:00');
   assert.equal(route.kind, 'event_draft');
