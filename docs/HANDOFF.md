@@ -2,6 +2,18 @@
 
 Updated: 2026-10-03
 
+## Private Discord Assistant v1.40.0 - 2026-10-03
+
+- Local checkpoint `1.40.0` memperbaiki visibilitas `/hengs ask` di home guild. Balasan AI percakapan
+  biasa sekarang selalu ephemeral, sementara routing catatan, reminder, focus, Ops Hub, dan Event Hub
+  tetap memakai jalur fixed-code yang sudah ada.
+- History tetap RAM-only, bounded maksimal 10 pesan per guild dan user, serta tetap dihapus oleh
+  `/hengs reset`. Tidak ada database, schema, provider, token, auth, atau kontrak Canox baru.
+- Test terarah ditambahkan untuk memastikan home AI privat, public AI tetap public, dan identitas prompt
+  memakai Hengs. Cloud tetap v1.39.1 active/enabled; deployment dan restart belum dilakukan.
+- Suite lokal penuh lulus `501/501`, `git diff --check`, syntax check, dan scan long dash pada
+  perubahan. Deployment hanya setelah approval cutover terpisah.
+
 ## Cloud Cutover and Canox Dogfood - 2026-10-03
 
 - Release `1.39.1-f0927b259cc1` is active/enabled as the single cloud Discord consumer after two

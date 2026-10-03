@@ -187,6 +187,23 @@ test('/hengs ask shares public admission and sends mention-safe output', async (
   assert.deepEqual(deps.releases, [GUILD]);
 });
 
+test('/hengs ask keeps home-guild AI conversation private', async () => {
+  const deps = dependencies('home');
+  const value = interaction({ subcommand: 'ask', prompt: 'Bantu aku memahami queue' });
+  await hengs.execute(value, deps);
+  assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.equal(value.editPayload.content, '@everyone jawaban aman');
+  assert.deepEqual(value.editPayload.allowedMentions, { parse: [] });
+  assert.deepEqual(deps.calls, [
+    { buildConversationKey: [GUILD, USER] },
+    { chat: {
+      prompt: 'Bantu aku memahami queue',
+      key: `${GUILD}:${USER}`,
+      context: { kind: 'home' },
+    } },
+  ]);
+});
+
 test('/hengs ask handles an owner community prompt without provider traffic', async () => {
   const deps = dependencies('home');
   const value = interaction({ subcommand: 'ask', prompt: 'Buatkan struktur server gaming' });

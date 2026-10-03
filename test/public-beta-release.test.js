@@ -89,6 +89,12 @@ test('AI context is separated by guild and public prompt has no Henry biography'
   );
 });
 
+test('home AI prompt uses the Hengs identity', () => {
+  const prompt = buildSystemPrompt();
+  assert.match(prompt, /bot AI Hengs/i);
+  assert.doesNotMatch(prompt, /Henzzz/i);
+});
+
 test('AI module can load during secretless immutable release acceptance', () => {
   const env = { ...process.env };
   delete env.GROQ_API_KEY;

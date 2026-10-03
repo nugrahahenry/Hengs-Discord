@@ -5,6 +5,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-10-03
+
+### Fixed
+
+- `/hengs ask` pada server utama sekarang menahan balasan LLM sebagai ephemeral sehingga pertanyaan
+  dan jawaban privat tidak muncul di channel.
+- Prompt percakapan privat memakai identitas Hengs secara konsisten dan tetap melarang em dash serta
+  en dash.
+
+### Verification
+
+- Test command membuktikan scope home memakai flag ephemeral, sedangkan scope public tetap memakai
+  jalur balasan publik dan guard penggunaan yang sama.
+- Tidak ada state baru, provider baru, perubahan schema, token, auth, atau deployment cloud.
+
 ## [1.39.1] - 2026-10-03
 
 ### Fixed

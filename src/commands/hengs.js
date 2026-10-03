@@ -321,7 +321,9 @@ async function execute(interaction, {
     }
   }
 
-  await interaction.deferReply({});
+  await interaction.deferReply(scope.kind === 'home'
+    ? { flags: MessageFlags.Ephemeral }
+    : {});
   try {
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);
     const context = scope.kind === 'public'
