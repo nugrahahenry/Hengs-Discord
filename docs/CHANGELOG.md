@@ -16,6 +16,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Archive v1.39.1 terpasang di VM dengan checksum cocok. Service sengaja tetap `inactive/disabled`,
   proses cloud nol, dan seluruh file transfer sementara sudah dibersihkan.
+- Setelah approval cutover, service v1.39.1 aktif/enabled dengan dua heartbeat `CONNECTED/OK/fresh`,
+  satu main PID cloud, dan nol proses Discord lokal. Dogfood Canox project card menghasilkan satu
+  draft `project` pending di Ops Hub tanpa publish otomatis.
 
 ## [1.39.0] - 2026-10-03
 

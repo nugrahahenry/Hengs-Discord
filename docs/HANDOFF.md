@@ -2,6 +2,17 @@
 
 Updated: 2026-10-03
 
+## Cloud Cutover and Canox Dogfood - 2026-10-03
+
+- Release `1.39.1-f0927b259cc1` is active/enabled as the single cloud Discord consumer after two
+  bounded `CONNECTED/OK/fresh` heartbeats. The cloud main PID is nonzero and the local Discord
+  process count is zero.
+- Canox generated one sanitized `kind=project` payload. Hengs consumed it into a private pending
+  Ops draft with the Canox external id. The inbox and processing files were removed, no failed
+  payload remained, and no publish action occurred.
+- No token, auth, persistent state migration, command registration, reboot, or unrelated service
+  change was performed. The v1.37.0 release remains available for rollback.
+
 ## Cloud Staging v1.39.1 - 2026-10-03
 
 - Release `1.39.1-f0927b259cc1` is installed on the VM and the immutable `current` pointer was

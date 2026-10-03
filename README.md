@@ -4,10 +4,10 @@
 
 **Current local checkpoint:** v1.39.1 Canox Project Handoff deployment gate fix
 
-**Current cloud staging:** v1.39.1 installed, service inactive/disabled, no cutover
+**Current cloud production:** v1.39.1 active/enabled after controlled cutover
 
-**Development status:** local feature work continues in bounded checkpoints. Release v1.39.1 is
-staged on the VM, while activation and production cutover remain separate approvals.
+**Development status:** local feature work continues in bounded checkpoints. Cloud is the single
+Discord token consumer; local Discord remains stopped as rollback only.
 
 **Public invite:** [Add Hengs to a Discord server](https://discord.com/oauth2/authorize?client_id=1512417103138000948&permissions=101376&scope=bot+applications.commands)
 

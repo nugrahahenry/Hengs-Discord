@@ -7,8 +7,8 @@ pada saat tindakan dilakukan.
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
 permission, atau kebijakan Anti-Raid. State produksi mempertahankan konfigurasi `active` yang
-v1.37.0 adalah release terakhir yang aktif sebelum maintenance; v1.39.1 kini sudah terpasang
-sebagai staging `inactive/disabled` tanpa cutover. Registrasi v1.28.0 mempertahankan `/hengs`,
+v1.39.1 kini aktif/enabled sebagai satu-satunya consumer Discord setelah cutover terkontrol;
+v1.37.0 tetap tersedia sebagai rollback. Registrasi v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.
 
 ## Canonical Paths
