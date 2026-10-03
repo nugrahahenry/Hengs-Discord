@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.38.0 Project Task Drafts
+**Current local checkpoint:** v1.39.0 Canox Project Handoff
 
 **Current cloud production:** v1.37.0
 
@@ -25,6 +25,8 @@ last accepted release until a separate deployment approval.
 - **Prompt operasi natural:** owner atau editor Ops Hub dapat menulis pengumuman, tugas proyek, atau event
   dengan bahasa biasa. Hengs membuat draft privat di Ops Hub atau Event Hub, lalu review dan publish
   tetap mengikuti approval yang sudah ada
+- **Canox project handoff:** kartu tugas dari Canox masuk melalui inbox file lokal yang sama dan
+  tetap menunggu review privat di `bot-settings`.
 - **Status operasi natural:** owner atau editor Ops Hub dapat menulis "lihat status draft" untuk
   melihat jumlah draft dan event secara privat tanpa membuka isi, mengubah state, atau memicu publish
 - **Catatan dan pengingat pribadi:** owner atau Administrator dapat memakai `/hengs ask` dengan

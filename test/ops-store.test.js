@@ -98,6 +98,12 @@ test('draft validation and Canox inbox contract reject ambiguous input', () => {
   assert.deepEqual(normalized, [
     { id: 'event-002', title: 'Valid', body: 'Isi valid', context: 'Canox' },
   ]);
+  assert.equal(
+    normalizeCanoxEntries({ drafts: [
+      { id: 'project-002', title: 'Landing page', body: 'Rapikan hero.', kind: 'project' },
+    ] })[0].kind,
+    'project',
+  );
 });
 
 test('review channel never falls back to the general bot channel', () => {

@@ -2,6 +2,17 @@
 
 Updated: 2026-10-03
 
+## Canox Project Handoff - 2026-10-03
+
+- Local checkpoint is v1.39.0. The existing Canox Ops inbox now accepts an allowlisted `kind`
+  value for project cards while keeping announcement payloads compatible.
+- Canox validates and writes the atomic file; Discord consumes it into the existing private
+  `bot-settings` review panel. No new network path, provider secret, chat history, or automatic
+  publish was added.
+- Unknown kinds are treated as announcements on the Discord consumer boundary. Project cards keep
+  the owner review, schedule, publish, and discard controls already used by Ops Hub.
+- Focused bridge and consumer tests pass. Cloud deployment remains intentionally pending.
+
 ## Canox Bridge Status and Project Drafts - 2026-10-03
 
 - Local checkpoint is v1.38.0. Prompt-first Discord now recognizes explicit project task phrases,

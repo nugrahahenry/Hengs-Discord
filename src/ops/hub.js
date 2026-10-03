@@ -567,6 +567,7 @@ async function consumeCanoxInbox(client) {
         title: entry.title,
         body: entry.body,
         brief: entry.context || null,
+        kind: entry.kind === 'project' ? 'project' : 'announcement',
         source: 'canox',
         createdBy: 'canox',
         externalId: `canox:${entry.id}`,

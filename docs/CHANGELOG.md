@@ -5,6 +5,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-10-03
+
+### Added
+
+- Canox dapat mengirim kartu tugas proyek melalui inbox Ops Hub lokal.
+- Discord mempertahankan `kind=project` sebagai label kartu privat tanpa publish otomatis.
+- Payload announcement lama tetap kompatibel dan jenis draft dibatasi secara eksplisit.
+
 ## [1.38.0] - 2026-10-03
 
 ### Added
