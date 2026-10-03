@@ -2,6 +2,15 @@
 
 Updated: 2026-10-03
 
+## Deployment Gate Fix - 2026-10-03
+
+- Local checkpoint is v1.39.1. The Linux deployer and release metadata now validate the
+  current immutable release instead of the stale v1.37.0 gate.
+- This patch changes only release validation and packaging metadata. It does not change the
+  Canox inbox contract, service activation, token, auth, or persistent state.
+- Full QA must pass before transferring the archive. Cloud remains v1.37.0 active/enabled until
+  a controlled maintenance window is explicitly completed.
+
 ## Canox Project Handoff - 2026-10-03
 
 - Local checkpoint is v1.39.0. The existing Canox Ops inbox now accepts an allowlisted `kind`

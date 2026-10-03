@@ -5,6 +5,13 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.39.1] - 2026-10-03
+
+### Fixed
+
+- Deployer Linux sekarang menerima dan memvalidasi release v1.39.1, bukan gate versi lama.
+- Metadata package, lockfile, release builder, dan regression test disinkronkan.
+
 ## [1.39.0] - 2026-10-03
 
 ### Added

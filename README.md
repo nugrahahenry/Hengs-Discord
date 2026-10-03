@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.39.0 Canox Project Handoff
+**Current local checkpoint:** v1.39.1 Canox Project Handoff deployment gate fix
 
 **Current cloud production:** v1.37.0
 
