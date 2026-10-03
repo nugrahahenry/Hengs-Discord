@@ -9,9 +9,14 @@ Updated: 2026-10-03
   schema, provider, token, auth, atau state persisten baru.
 - `/hengs reset` menghapus kedua surface hanya untuk caller terkait. Jawaban provider yang selesai setelah
   reset tidak boleh masuk kembali ke percakapan aktif, dan cooldown tetap berlaku lintas surface.
-- Suite terarah lulus `33/33`. Cloud masih v1.40.0 active/enabled; v1.41.0 belum ditransfer atau dideploy.
-- Next action: jalankan suite penuh, commit checkpoint ini, lalu push branch aktif. Deployment membutuhkan
-  approval terpisah.
+- Suite terarah lulus `33/33` dan suite penuh lulus `506/506`. Cloud sekarang v1.41.0 active/enabled
+  setelah restart terkontrol dan dua heartbeat `CONNECTED/OK/fresh`; satu MainPID Node menjadi consumer
+  Discord, staging bersih, dan proses Discord lokal tetap nol.
+- Archive dibangun dari commit `bf85952`, ditransfer lewat peer privat, diverifikasi checksum, diuji oleh
+  deployer, lalu pointer release dipindahkan secara atomik. Token, auth, state persisten, VM, registrasi
+  command, dan WhatsApp tidak disentuh.
+- Next action: dogfooding tiga jalur secara read-only dari sisi produk: `/hengs ask` privat, mention publik,
+  lalu `/hengs reset`. Rollback v1.40.0 tetap tersedia.
 
 ## Private Discord Assistant v1.40.0 - 2026-10-03
 

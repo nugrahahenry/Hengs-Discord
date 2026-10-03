@@ -4,7 +4,7 @@
 
 **Current local checkpoint:** v1.41.0 private and shared conversation isolation
 
-**Current cloud production:** v1.40.0 active/enabled after controlled restart
+**Current cloud production:** v1.41.0 active/enabled after controlled restart
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.

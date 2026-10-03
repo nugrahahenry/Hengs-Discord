@@ -19,7 +19,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Test terarah membuktikan isolasi privat dan publik, reset caller-only, stale in-flight guard, batas sepuluh
   pesan, validasi visibilitas, dan isolasi antar server.
-- Cloud tetap v1.40.0 active/enabled. Release v1.41.0 belum dideploy.
+- Deployment terkontrol v1.41.0 lulus dengan service active/enabled, dua heartbeat
+  `CONNECTED/OK/fresh`, satu MainPID Node, staging bersih, dan nol consumer Discord lokal.
+  Token, auth, state persisten, dan WhatsApp tidak disentuh.
 
 ## [1.40.0] - 2026-10-03
 
