@@ -2,6 +2,31 @@
 
 Updated: 2026-10-08
 
+## Hengs Discord v1.44.0 selective memory local checkpoint
+
+- Henry approved the shared selective-memory design/plan. Implemented default-off memory only
+  for exact configured owner + home guild + ephemeral /hengs ask, not other admins or public chat.
+  Explicit new entries have preview/correction/confirmation and scoped list/edit/disable/trash.
+- Dedicated capability cannot read general Canox notes/UI or provider controls. DC keeps its
+  existing generation provider and project bridge. Ordinary local notes/reminders are unchanged.
+  No automatic chat harvesting/training, replica, scheduler, embeddings or database was added.
+- Approved bounded recall is data, not authority. ETag change/unavailability/reset clears private
+  RAM, pending/receipts and stale leases; final revision recheck prevents outdated delivery. Stable
+  per-conversation serial distinguishes evicted/reset records. Memory API latency is deferred
+  privately before await, uncertain writes never retry or fall back to local notes.
+- Full Node 22.23.3 regression 529/529, zero skip, serial mode; actual command tests prove owner/
+  guild/private scope and no calls for public/other actors. Release metadata/escaped pins align
+  to 1.44.0; scanner false positives were fixed by correct non-secret variable names, not weaker
+  rules. Moderation code/tests untouched. No real bot, provider, registration or cloud operation.
+- Canox v0.168.0 passed 1,083 tests with three existing skips; WA v0.43.0 318/318. Required Python
+  review findings resolved, including bounded withdrawal beyond the read cap and Windows signal-
+  free liveness reuse. Shared canonical contract is WA docs/architecture/SELECTIVE_MEMORY.md.
+- No production state/schema read or migration, secret transfer, QR, backup or service change.
+  Cloud remains last accepted v1.42.0, not freshly audited. Deploy and memory activation held.
+- Commit subject: feat(memory): Hengs Discord v1.44.0 - add private owner memory through Canox.
+  Next: exact-scope commit/push and inspect CI; operator endpoint/credentials/migration/live
+  acceptance remain a separate gate, not authorization inferred from older deployment messages.
+
 ## Hengs Discord v1.43.0 connected conversation local checkpoint
 
 - Henry approved package 1 of the shared assistant batch, with deployment still explicitly held.

@@ -5,6 +5,17 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-10-08
+
+### Added
+
+- Default-off consent-scoped Canox memory for the exact configured owner, home guild and ephemeral
+  `/hengs ask` only; preview/correction/confirmation, memory-only list/edit/disable/confirmed trash.
+- Bounded approved context and revision recheck; consent loss/unavailability/reset clears private
+  derived RAM and rejects late output. Public mentions, other users and administrators are excluded.
+- Dedicated capability client with HTTPS/loopback restrictions, bounded responses and no retries.
+  No ordinary-note promotion, model training, new deployment, provider registration or secret transfer.
+
 ## [1.43.0] - 2026-10-08
 
 ### Added

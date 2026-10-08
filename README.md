@@ -2,7 +2,15 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.43.0 connected conversation, not deployed
+**Current local checkpoint:** v1.44.0 selective private memory, default off, not deployed
+
+Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
+in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
+`daftar ingatan`, `ubah ingatan ID: ...`, `lupakan ID`, or confirmed `hapus ingatan ID` manage
+only explicitly approved memory entries. Other administrators, guilds and public mentions cannot
+retrieve them. Ordinary local notes and the Canox project bridge keep their existing behavior.
+Canox must be reachable and configured with a dedicated capability after an approved schema
+migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
 **Current cloud production:** v1.42.0 active/enabled after controlled restart
 

@@ -84,6 +84,7 @@ async function callWithTimeout(client, params, ms) {
 
 // Bounded RAM context, isolated by guild/user and private/shared surface.
 const histories  = new Map();       // key: guildId:userId -> { shared: [], private: [], generation }
+let nextConversationId = 0;
 const lastChatAt = new Map();       // key: guildId:userId
 const CHAT_COOLDOWN_MS = 3000;      // jeda min antar-pesan per user
 const MAX_USERS = 300;              // cap memori histories (cegah numpuk selamanya)
@@ -168,7 +169,7 @@ function ensureConversation(conversationKey) {
       histories.delete(oldest);
       lastChatAt.delete(oldest);
     }
-    histories.set(conversationKey, { shared: [], private: [], generation: 0,
+    histories.set(conversationKey, { shared: [], private: [], generation: 0, serial: ++nextConversationId,
       updatedAt: { shared: Date.now(), private: Date.now() } });
   }
   return histories.get(conversationKey);
@@ -218,6 +219,7 @@ async function chat(userMessage, conversationKey, context = {}) {
   // semua model gagal, history nggak ketambahan user-turn yatim (bikin context rusak).
   const pendingUser = { role: 'user', content: cleanText(userMessage, 1800) };
   const messages = [{ role: 'system', content: buildSystemPrompt(context) },
+    ...(visibility === 'private' && context.memory?.recall ? require('./selective-memory').memoryMessages(context.memory.recall) : []),
     ...selectHistory(history, pendingUser.content, visibility), pendingUser];
   // gpt-oss memakai sebagian budget untuk reasoning internal. 400 token bisa habis
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
@@ -289,6 +291,18 @@ function clearHistory(conversationKey) {
     histories.delete(conversationKey);
   }
   lastChatAt.delete(conversationKey);
+}
+
+function clearPrivateHistory(conversationKey) {
+  const conversation = ensureConversation(conversationKey);
+  conversation.private.length = 0;
+  conversation.generation += 1;
+  lastChatAt.delete(conversationKey);
+}
+
+function getConversationGeneration(conversationKey) {
+  const conversation = ensureConversation(conversationKey);
+  return `${conversation.serial}:${conversation.generation}`;
 }
 
 function parseAnnouncement(raw, fallbackTitle) {
@@ -433,6 +447,8 @@ module.exports = {
   createConversationLease,
   chat,
   clearHistory,
+  clearPrivateHistory,
+  getConversationGeneration,
   draftAnnouncement,
   draftProjectTask,
   reviseAnnouncement,

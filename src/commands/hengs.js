@@ -8,6 +8,27 @@ const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-a
 const { formatOperationStatus } = require('../prompt-operations');
 const { issueReview } = require('../prompt-review');
 const { thinkingReplyPayload } = require('../assistant-ux');
+const { createMemoryClient, createMemoryAssistant, createMemorySession, parseMemoryIntent, STALE: MEMORY_STALE } = require('../selective-memory');
+
+const memoryContexts = new WeakMap();
+function memoryForOwner(agent, personalAssistant, scope) {
+  const key = agent.buildConversationKey(scope.guildId, scope.userId);
+  let memory = memoryContexts.get(agent);
+  if (memory && memory.key === key) return memory;
+  const client = createMemoryClient();
+  memory = { key };
+  memory.assistant = createMemoryAssistant({ client,
+    getRevision: () => agent.getConversationGeneration?.(key) ?? 0,
+    onStart: () => personalAssistant?.clear?.(scope), onChanged: () => memory.session.invalidate() });
+  memory.session = createMemorySession({ client,
+    getRevision: () => agent.getConversationGeneration?.(key) ?? 0, clearContext: () => {
+    agent.clearPrivateHistory?.(key);
+    personalAssistant?.clear?.(scope);
+    memory.assistant.clear();
+  } });
+  memoryContexts.set(agent, memory);
+  return memory;
+}
 
 const MAX_PROMPT_LENGTH = 1800;
 
@@ -94,6 +115,7 @@ async function execute(interaction, {
       'Hasil fitur privat hanya memberi status minimal ke konteks AI, bukan isi catatan, pengingat, atau data privat lainnya.',
       'Untuk server publik, Hengs menyimpan angka penggunaan harian dan pilihan feedback tanpa isi chat, jawaban, atau identitas member.',
       'Gunakan `/hengs reset` kapan saja untuk menghapus kedua konteks percakapanmu.',
+      'Fitur ingatan Canox opsional hanya untuk owner privat, disimpan setelah konfirmasi. Reset percakapan tidak menghapus catatan/ingatan tersimpan atau backup.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
     ].join('\n'));
     return;
@@ -141,6 +163,8 @@ async function execute(interaction, {
   if (subcommand === 'reset') {
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);
     agent.clearHistory(conversationKey);
+    const memory = memoryContexts.get(agent);
+    if (memory?.key === conversationKey) memory.session.invalidate();
     personalAssistant?.clear?.({ guildId: interaction.guildId, userId: interaction.user.id });
     await replyPrivate(interaction, 'Ingatan percakapanmu dengan Hengs di server ini sudah dihapus.');
     return;
@@ -163,6 +187,28 @@ async function execute(interaction, {
   }
 
   const personalScope = { guildId: interaction.guildId, userId: interaction.user.id };
+  const memoryOwner = scope.kind === 'home' && /^\d{17,20}$/.test(process.env.OWNER_ID || '')
+    && interaction.user.id === process.env.OWNER_ID && interaction.guildId === process.env.DISCORD_GUILD_ID;
+  const memory = memoryOwner ? memoryForOwner(agent, personalAssistant, personalScope) : null;
+  if (!memoryOwner && parseMemoryIntent(prompt)) {
+    await replyPrivate(interaction, 'Ingatan Canox hanya tersedia untuk owner yang dikonfigurasi, lewat chat privat di server utama.');
+    return;
+  }
+  if (memory) {
+    const memoryRequest = Boolean(parseMemoryIntent(prompt) || memory.assistant.canContinue(prompt)
+      || /^(?:oke simpan ingatan|simpan ingatan|oke hapus ingatan)[.!]*$/i.test(prompt));
+    if (memoryRequest) await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await memory.assistant.handle(prompt);
+    if (result.handled) {
+      if (result.conversationRevision !== (agent.getConversationGeneration?.(memory.key) ?? 0)) {
+        await interaction.editReply({ content: MEMORY_STALE, allowedMentions: { parse: [] } });
+        return;
+      }
+      if (memoryRequest) await interaction.editReply({ content: result.reply.slice(0, 2000), allowedMentions: { parse: [] } });
+      else await replyPrivate(interaction, result.reply.slice(0, 2000));
+      return;
+    }
+  }
   const personalPending = scope.kind === 'home' && isGuildManager({ actor: interaction, guild: interaction.guild })
     && personalAssistant?.canContinue?.(prompt, personalScope) === true;
   const promptRoute = resolvePrompt({
@@ -352,7 +398,18 @@ async function execute(interaction, {
       }
       : { kind: 'home', visibility: 'private' };
     if (scope.kind === 'public') context.visibility = 'shared';
+    const evidence = memory ? await memory.session.prepare(prompt) : null;
+    if (evidence?.stale) {
+      await interaction.editReply({ content: MEMORY_STALE, allowedMentions: { parse: [] } });
+      return;
+    }
+    if (evidence) context.memory = evidence;
+    const answerLease = agent.createConversationLease?.(conversationKey);
     const answer = await agent.chat(prompt, conversationKey, context);
+    if (evidence && !await memory.session.validate(evidence) || answerLease?.isCurrent && !answerLease.isCurrent()) {
+      await interaction.editReply({ content: MEMORY_STALE, allowedMentions: { parse: [] } });
+      return;
+    }
     await interaction.editReply({
       content: answer.substring(0, 2000),
       components: scope.kind === 'public'

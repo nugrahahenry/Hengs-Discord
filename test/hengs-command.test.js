@@ -3,6 +3,7 @@ const test = require('node:test');
 const { MessageFlags } = require('discord.js');
 
 const hengs = require('../src/commands/hengs');
+const crypto = require('node:crypto');
 
 const GUILD = '223456789012345678';
 const USER = '323456789012345678';
@@ -85,6 +86,48 @@ function assertPrivate(payload) {
   assert.equal(payload.flags, MessageFlags.Ephemeral);
   assert.deepEqual(payload.allowedMentions, { parse: [] });
 }
+
+test('Canox memory admits only configured home owner and stays ephemeral through save/recall', async (t) => {
+  const names = ['OWNER_ID', 'DISCORD_GUILD_ID', 'HENGS_MEMORY_ENABLED', 'CANOX_MEMORY_URL', 'CANOX_MEMORY_TOKEN'];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  const fetchBefore = globalThis.fetch;
+  t.after(() => { for (const name of names) { if (previous[name] === undefined) delete process.env[name]; else process.env[name] = previous[name]; } globalThis.fetch = fetchBefore; });
+  const capability = crypto.randomBytes(32).toString('hex');
+  Object.assign(process.env, { OWNER_ID: USER, DISCORD_GUILD_ID: GUILD, HENGS_MEMORY_ENABLED: '1',
+    CANOX_MEMORY_URL: 'http://127.0.0.1/integrations/hengs/memory', CANOX_MEMORY_TOKEN: capability });
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ path: new URL(url).pathname, body: options.body ? JSON.parse(options.body) : null });
+    return new Response(JSON.stringify(url.endsWith('/change')
+      ? { schema_version: 1, ok: true, item: { id: 'abcdef123456', revision: 1, enabled: true } }
+      : { schema_version: 1, ok: true, etag: 'a'.repeat(64), preferences: {}, knowledge: [] }));
+  };
+  const deps = dependencies('home');
+  const preview = interaction({ subcommand: 'ask', prompt: 'ingat: materi gradient descent' });
+  await hengs.execute(preview, deps);
+  assert.equal(preview.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.match(preview.editPayload.content, /provider AI/);
+  assert.equal(calls.length, 0);
+  const confirm = interaction({ subcommand: 'ask', prompt: 'oke simpan ingatan' });
+  await hengs.execute(confirm, deps);
+  assert.match(confirm.editPayload.content, /tersimpan/);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].body.operation, 'create');
+  const ask = interaction({ subcommand: 'ask', prompt: 'jelaskan gradient descent' });
+  await hengs.execute(ask, deps);
+  assert.equal(ask.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.deepEqual(calls.slice(1).map(call => call.path), ['/integrations/hengs/memory/recall', '/integrations/hengs/memory/revision']);
+  const other = interaction({ subcommand: 'ask', prompt: 'ingat: materi lain' });
+  other.user.id = '923456789012345678';
+  other.guild = { ownerId: other.user.id };
+  await hengs.execute(other, deps);
+  assertPrivate(other.replyPayload);
+  assert.match(other.replyPayload.content, /hanya tersedia untuk owner/);
+  const publicAsk = interaction({ subcommand: 'ask', prompt: 'ingat: materi publik' });
+  await hengs.execute(publicAsk, dependencies('public'));
+  assert.match(publicAsk.replyPayload.content, /hanya tersedia untuk owner/);
+  assert.equal(calls.length, 3);
+});
 
 test('/hengs exposes bounded chat, self-service, privacy, and caller-only reset', () => {
   const json = hengs.data.toJSON();
