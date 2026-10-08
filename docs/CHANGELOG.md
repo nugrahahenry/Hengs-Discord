@@ -5,6 +5,39 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-10-08
+
+### Added
+
+- Bounded RAM context: private 64 entries/48,000 characters, shared 24/24,000; six-hour expiry.
+  Requests select recent complete exchanges plus older lexically relevant topics within separate
+  24-entry/16,000 and 16-entry/10,000 character limits. Guild/user/private/public isolation remains.
+- Private personal/focus/operations replies add minimal allowlisted feature/status receipts, not
+  original input, note/reminder bodies, lists or identifiers. RESPONDED is not a success claim.
+
+### Fixed
+
+- "Ada lagi?" stays with ordinary chat unless a personal request is waiting. Actual `/hengs ask`
+  wiring now routes time/confirmation continuations to the proper caller-scoped pending request.
+- Discussion, negation and quoted commands no longer become personal writes. Reset clears pending
+  requests and invalidates late chat/feature receipts, without undoing stored notes/reminders.
+- Home/public prompts follow recent context/corrections and optional contextual humor without
+  generic menus, forced laughter, unsupported action/status claims or permanent-learning claims.
+- Code formatting is preserved, long dashes are removed and chat failure logs omit raw provider errors.
+
+### Scope
+
+- Local batch only. Production remains accepted v1.42.0; no deployment, service restart, token,
+  state migration, command registration, provider call, durable learning or Canox change occurred.
+  Offline fixtures prove routing/context plumbing, not the quality of every live model answer.
+
+### Verification
+
+- Isolated Node 22.23.3 suite passed 520/520, 0 skip, in serial mode. Actual command fixtures cover
+  missing time, note confirmation, ordinary continuation, reset during await and role/surface gates.
+- JS/shell syntax, LF, whitespace, privacy and new-long-dash checks passed. A parallel run hit an
+  existing moderation retry test's fixed 80 ms wait; moderation code/test was not changed to mask it.
+
 ## [1.42.0] - 2026-10-04
 
 ### Added

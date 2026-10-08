@@ -1,6 +1,62 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-04
+Updated: 2026-10-08
+
+## Hengs Discord v1.43.0 connected conversation local checkpoint
+
+- Henry approved package 1 of the shared assistant batch, with deployment still explicitly held.
+  Implementation stays on active main; no worktree, cloud write, bot process, provider call,
+  token/state migration, command registration or Canox mutation occurred.
+- Added isolated bounded RAM context: private 64 entries/48k chars, shared 24/24k; six-hour logical
+  idle expiry on next access. Requests select recent complete exchanges plus older lexical matches
+  within private 24/16k and shared 16/10k. No embeddings, new provider call or durable memory.
+  Max 300 guild/user records; reset/eviction/expiry guards reject late provider/feature reinsertion.
+- Fixed actual command wiring: ordinary "ada lagi?" reaches chat instead of a personal menu;
+  caller-scoped five-minute time/confirmation continuations reach the existing personal handler.
+  Topics clear pending state; reset clears pending too, not durable notes/reminders. Explicit
+  prefix/strict-delete parsing rejects discussion, negation and quoted commands as writes.
+- Private personal/focus/status replies project allowlisted family/status receipts only after
+  delivery. Note save/preview exposes SAVED/FAILED/PENDING_CONFIRMATION; RESPONDED is not success.
+  No note/reminder contents, lists, contacts, IDs or paths cross the feature-to-LLM boundary.
+  A result awaited across reset suppresses its stale body and truthfully says reset is not undo.
+  Other guilds/users and shared chat cannot read these private receipts. Existing role gates remain.
+- Prompt tone follows recent context/corrections, permits optional light humor, avoids generic
+  menus and unverified activity/action/learning claims. Removed stale semester claim from home
+  identity. Formatting is preserved, long dashes removed, raw chat provider errors no longer logged.
+  Humanizer guided wording; this is prompt policy, not proof of every live model response.
+- Offline regression fixtures first reproduced routing/version faults. Integrated Node 22.23.3
+  suite ultimately passed 520/520, 0 skip, in serial mode with isolated workspace state/TEMP/TMP
+  under approved local execution. Default sandbox later denied atomic rename/hard-link fixtures
+  and timed out isolated Python in the sibling WA suite; this was not fixed by weakening code or
+  host security. Approved read-only syntax/privacy checks passed (12 JS, 1 shell, LF, whitespace,
+  added-long-dash and tracked-content policy). New command schedule fixture has a fixed clock.
+- One parallel full run left the pre-existing moderation panel retry test failing at its fixed
+  80 ms sleep. Full serial run passed with moderation code/test untouched. Do not claim default
+  parallel CI or live model dogfood passed. No external CI settings/retries were changed.
+- Version/lock/release guards and public privacy contract synchronized to 1.43.0. Internal
+  docs/ASSISTANT-CONTEXT.md is ignored; existing tracked internal docs were not untracked or deleted.
+  No new temporary spec/plan/archive. Current accepted cloud remains v1.42.0 code 4d11891.
+- Commit subject: feat(assistant): Hengs Discord v1.43.0 - connect private feature follow-ups and bounded context.
+  Next: commit/push/build a clean-HEAD local archive, keep deploy held. Long-term approved knowledge
+  and richer task edits remain the next separately scoped design/implementation work, not completed.
+
+## Proposed shared assistant batch and deployment hold - 2026-10-08
+
+- Henry deferred new deployments and asked to accumulate coherent WA/DC assistant improvements.
+  Discord checkpoint remains 1.42.0/cbba9c6 (accepted deployed code 4d11891); checkout clean.
+  Current agent.js still retains ten message entries per private/shared surface, so longer bounded
+  context is a concrete improvement candidate. Existing notes/reminders/project drafts are not new
+  feature gaps. Preserve guild/user and private/shared boundaries and reset-generation guards.
+- Proposed only, not implementation approval: connected conversational intent/context plus friendly
+  grounded tone; selective owner-approved Canox knowledge under a separate architecture/privacy gate;
+  contextual correction/editing of existing notes/reminders. No automatic private-to-public recall.
+- graphify snapshot is dated 2026-08-13 and cannot establish October behavior. Its configured Python
+  no longer imports graphify; a read-only inline traversal was used as a historical locator, while
+  current source/handoff provided the verified planning facts. No graph rebuild/install or provider
+  calls were made. No token/state/command registration, service change or deployment occurred.
+- Next: agree the bounded batch, verify locally, then obtain new production authority for a shared
+  maintenance window with independent acceptance/rollback for each bot. Batching reduces restart
+  frequency; it does not replace QA or guarantee bug-free live behavior.
 
 ## Assistant Response Experience v1.42.0 - 2026-10-04
 

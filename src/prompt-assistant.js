@@ -246,11 +246,11 @@ function applyFocusAction({ route, state } = {}) {
   return `✅ ${modeLabel(route.mode)} aktif di Discord.${topic}`;
 }
 
-function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false } = {}) {
+function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, personalPending = false } = {}) {
   const result = classifyPrompt(prompt);
   if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp() };
   const personal = parsePersonalPrompt(prompt);
-  if (personal) {
+  if ((personal && personal.kind !== 'follow_up') || personalPending) {
     if (!privateReply || scopeKind !== 'home' || !isGuildManager({ actor, guild })) {
       return {
         handled: true,
@@ -315,6 +315,7 @@ function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false }
 module.exports = {
   MAX_PROMPT_LENGTH,
   BLUEPRINTS,
+  isGuildManager,
   normalizePrompt,
   classifyPrompt,
   buildCommunityPlan,

@@ -4,7 +4,7 @@ const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
 const { buildPublicFeedbackComponents } = require('../guilds/public-feedback');
 const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store');
 const { parseScheduleInput } = require('../ops/time');
-const { applyFocusAction, resolvePrompt } = require('../prompt-assistant');
+const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-assistant');
 const { formatOperationStatus } = require('../prompt-operations');
 const { issueReview } = require('../prompt-review');
 const { thinkingReplyPayload } = require('../assistant-ux');
@@ -90,7 +90,8 @@ async function execute(interaction, {
       '**Privasi Hengs**',
       'Pertanyaanmu dan konteks percakapan terbaru dikirim ke penyedia AI untuk membuat balasan.',
       'Cara penyedia menyimpan data mengikuti kebijakan layanan yang sedang dipakai. Jangan kirim kata sandi, token, atau data sensitif.',
-      'Riwayat chat tidak disimpan ke file. Hengs memisahkan konteks percakapan publik dan privat, masing-masing maksimal 10 pesan terbaru per pengguna dan server.',
+      'Riwayat chat tidak disimpan ke file. Konteks privat maksimal 64 dan publik 24 pesan per pengguna dan server, dengan batas ukuran dan kedaluwarsa enam jam. Hanya bagian terbaru/relevan dikirim ke AI.',
+      'Hasil fitur privat hanya memberi status minimal ke konteks AI, bukan isi catatan, pengingat, atau data privat lainnya.',
       'Untuk server publik, Hengs menyimpan angka penggunaan harian dan pilihan feedback tanpa isi chat, jawaban, atau identitas member.',
       'Gunakan `/hengs reset` kapan saja untuk menghapus kedua konteks percakapanmu.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
@@ -140,6 +141,7 @@ async function execute(interaction, {
   if (subcommand === 'reset') {
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);
     agent.clearHistory(conversationKey);
+    personalAssistant?.clear?.({ guildId: interaction.guildId, userId: interaction.user.id });
     await replyPrivate(interaction, 'Ingatan percakapanmu dengan Hengs di server ini sudah dihapus.');
     return;
   }
@@ -160,12 +162,16 @@ async function execute(interaction, {
     return;
   }
 
+  const personalScope = { guildId: interaction.guildId, userId: interaction.user.id };
+  const personalPending = scope.kind === 'home' && isGuildManager({ actor: interaction, guild: interaction.guild })
+    && personalAssistant?.canContinue?.(prompt, personalScope) === true;
   const promptRoute = resolvePrompt({
     prompt,
     scopeKind: scope.kind,
     actor: interaction,
     guild: interaction.guild,
     privateReply: true,
+    personalPending,
   });
   if (promptRoute.handled) {
     if (promptRoute.kind === 'personal_action') {
@@ -173,20 +179,30 @@ async function execute(interaction, {
         await replyPrivate(interaction, 'Catatan pribadi belum tersedia di runtime ini.');
         return;
       }
+      const featureLease = agent.createConversationLease?.(agent.buildConversationKey(interaction.guildId, interaction.user.id));
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const result = await personalAssistant.handle(prompt, {
         guildId: interaction.guildId,
         userId: interaction.user.id,
       });
+      if (featureLease?.isCurrent && !featureLease.isCurrent()) {
+        await interaction.editReply({ content: 'Percakapan direset saat fitur diproses. Cek daftar catatan atau pengingat untuk melihat hasilnya; reset bukan undo.', allowedMentions: { parse: [] } });
+        return;
+      }
       await interaction.editReply({ content: result.reply, allowedMentions: { parse: [] } });
+      featureLease?.recordFeature(result.contextFamily || 'notes', result.contextCode || 'RESPONDED');
       return;
     }
     if (promptRoute.kind === 'focus_action') {
+      const featureLease = agent.createConversationLease?.(agent.buildConversationKey(interaction.guildId, interaction.user.id));
       await replyPrivate(interaction, applyFocusAction({ route: promptRoute, state }));
+      featureLease?.recordFeature('focus');
       return;
     }
     if (promptRoute.kind === 'operation_status') {
+      const featureLease = agent.createConversationLease?.(agent.buildConversationKey(interaction.guildId, interaction.user.id));
       await replyPrivate(interaction, formatOperationStatus({ opsHub, eventHub }));
+      featureLease?.recordFeature('operations');
       return;
     }
     if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft' || promptRoute.kind === 'event_draft') {

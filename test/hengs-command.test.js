@@ -138,7 +138,7 @@ test('/hengs privacy explains provider processing and bounded memory without mut
     assert.match(value.replyPayload.content, /penyedia AI/i);
     assert.match(value.replyPayload.content, /konteks percakapan/i);
     assert.match(value.replyPayload.content, /kebijakan layanan/i);
-    assert.match(value.replyPayload.content, /10 pesan terbaru/i);
+    assert.match(value.replyPayload.content, /64.*24 pesan/i);
     assert.match(value.replyPayload.content, /tidak disimpan ke file/i);
     assert.match(value.replyPayload.content, /\/hengs reset/i);
     assert.doesNotMatch(value.replyPayload.content, /Henry|[\u2013\u2014]/i);
@@ -303,6 +303,83 @@ test('/hengs reset clears only the caller conversation key', async () => {
     { clearHistory: `${GUILD}:${USER}` },
   ]);
   assert.match(value.replyPayload.content, /percakapanmu/i);
+});
+
+test('/hengs ask routes ordinary continuation to AI instead of a personal feature menu', async () => {
+  const deps = dependencies('home');
+  const value = interaction({ subcommand: 'ask', prompt: 'ada lagi?' });
+  value.guild = { ownerId: USER };
+  await hengs.execute(value, deps);
+  assert.equal(deps.calls.some(call => call.chat), true);
+});
+
+test('/hengs ask resumes missing time and note confirmation through the real command wiring', async t => {
+  t.mock.method(Date, 'now', () => Date.parse('2026-10-08T08:00:00Z'));
+  const notes = [];
+  const reminders = [];
+  const store = { scopeKey: (guildId, userId) => `${guildId}:${userId}`,
+    addNote: ({ text }) => { notes.push(text); return { ok: true, item: { id: 'note-0001' } }; },
+    addReminder: ({ text }) => { reminders.push(text); return { ok: true, item: { text } }; } };
+  const deps = dependencies('home');
+  deps.personalAssistant = require('../src/personal-assistant').createPersonalAssistant({ store });
+  for (const prompt of ['ingatkan aku bayar listrik', 'jam 9 malam', 'catat beli kabel', 'oke catat']) {
+    const value = interaction({ subcommand: 'ask', prompt });
+    value.guild = { ownerId: USER };
+    await hengs.execute(value, deps);
+    assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  }
+  assert.deepEqual(reminders, ['bayar listrik']);
+  assert.deepEqual(notes, ['beli kabel']);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});
+
+test('private feature receipts are recorded only after delivery and a reset invalidates the lease', async () => {
+  const deps = dependencies('home');
+  const receipts = [];
+  let active = true;
+  deps.agent.createConversationLease = () => ({ recordFeature: (family, code) => {
+    if (active) receipts.push({ family, code });
+  } });
+  deps.personalAssistant = { canContinue: () => false,
+    handle: async () => ({ intent: { kind: 'note_add' }, reply: 'PRIVATE_NOTE_BODY', contextFamily: 'notes', contextCode: 'SAVED' }) };
+  const value = interaction({ subcommand: 'ask', prompt: 'catat PRIVATE_NOTE_BODY' });
+  value.guild = { ownerId: USER };
+  await hengs.execute(value, deps);
+  assert.deepEqual(receipts, [{ family: 'notes', code: 'SAVED' }]);
+  assert.doesNotMatch(JSON.stringify(receipts), /PRIVATE_NOTE_BODY/);
+  receipts.length = 0;
+  const cleared = interaction({ subcommand: 'ask', prompt: 'catat PRIVATE_NOTE_BODY' });
+  cleared.guild = { ownerId: USER };
+  cleared.editReply = async () => { active = false; };
+  await hengs.execute(cleared, deps);
+  assert.deepEqual(receipts, []);
+});
+
+test('pending personal state is never inspected by public or non-manager callers', async () => {
+  for (const kind of ['home', 'public']) {
+    const deps = dependencies(kind);
+    deps.personalAssistant = { canContinue: () => { throw new Error('MUST_NOT_INSPECT'); } };
+    const value = interaction({ subcommand: 'ask', prompt: 'jam 9 malam' });
+    value.guild = { ownerId: '523456789012345678' };
+    await hengs.execute(value, deps);
+    assert.equal(deps.calls.some(call => call.chat), true);
+  }
+});
+
+test('a personal result completed after reset does not send its stale body or claim undo', async () => {
+  const deps = dependencies('home');
+  let current = true;
+  deps.agent.createConversationLease = () => ({ isCurrent: () => current,
+    recordFeature: () => { throw new Error('MUST_NOT_RECORD'); } });
+  deps.personalAssistant = { canContinue: () => false, handle: async () => {
+    current = false;
+    return { reply: 'STALE_PRIVATE_BODY', contextFamily: 'notes', contextCode: 'SAVED' };
+  } };
+  const value = interaction({ subcommand: 'ask', prompt: 'catat STALE_PRIVATE_BODY' });
+  value.guild = { ownerId: USER };
+  await hengs.execute(value, deps);
+  assert.match(value.editPayload.content, /direset.*reset bukan undo/);
+  assert.doesNotMatch(value.editPayload.content, /STALE_PRIVATE_BODY/);
 });
 
 test('/hengs denies DM and pending AI actions without provider calls', async () => {

@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.42.0 assistant response experience
+**Current local checkpoint:** v1.43.0 connected conversation, not deployed
 
 **Current cloud production:** v1.42.0 active/enabled after controlled restart
 
@@ -16,10 +16,18 @@ Discord token consumer; local Discord remains stopped as rollback only.
 - **AI chat via mention:** tinggal mention bot, dia bales kontekstual (history terpisah per server dan user)
 - **Private Discord assistant:** `/hengs ask` di server utama menjawab ephemeral, jadi percakapan LLM
   tidak tampil di channel. Konteks privat dan mention publik memakai ruang memori terpisah, masing-masing
-  dibatasi maksimal 10 pesan terbaru per user dan bisa dihapus lewat `/hengs reset`.
+  dibatasi maksimal 64 pesan privat/48.000 karakter dan 24 pesan publik/24.000 karakter per user,
+  dengan kedaluwarsa enam jam. Konteks terbaru dan topik lama yang relevan dipilih dalam batas
+  request, bukan seluruh riwayat. `/hengs reset` menghapus kedua konteks dan permintaan personal
+  yang masih menunggu, bukan catatan/pengingat yang sudah tersimpan.
+- **Connected feature follow-up:** "ada lagi?" melanjutkan chat biasa jika tidak ada permintaan
+  personal yang menunggu. "Jam 9 malam" dan "oke catat" tersambung ke pengingat/catatan yang tepat.
+  Hasil fitur privat memberi status minimal ke konteks AI, tanpa isi catatan atau pengingat.
 - **Assistant response experience:** `/hengs ask` menampilkan status proses yang privat atau sesuai scope,
   mention menjaga typing indicator selama fallback model, dan prompt Hengs lebih tegas soal identitas,
   klaim tindakan, serta pertanyaan lanjutan.
+  Humor ringan boleh saat sesuai, tetapi topik serius tetap jelas dan empatik. Konteks sesi bukan
+  pembelajaran permanen. Checkpoint ini tidak mengubah Canox atau menjalankan provider live.
 - **Prompt-first community planning:** owner atau Administrator dapat menulis prompt natural untuk
   merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint teks serta kartu visual
   privat sebelum ada perubahan

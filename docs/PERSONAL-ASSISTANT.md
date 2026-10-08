@@ -1,9 +1,16 @@
 # Personal Assistant Contract
 
-Status: Hengs Discord v1.37.0 is deployed in cloud production after controlled acceptance.
-The personal state file remains empty until the owner uses the feature.
+Status: the feature was introduced in v1.37.0. Accepted production remains v1.42.0;
+the v1.43.0 connected-conversation update is local-only. State changes only through owner use.
 
 ## Product contract
+
+Local v1.43.0 connects real slash-command continuations to an existing five-minute, caller-scoped
+pending request. Ordinary "ada lagi?" without pending state stays in free chat. Explicit unrelated
+topics clear pending state; discussion, negation and quoted commands do not write. `/hengs reset`
+also clears the caller's pending request, not durable notes/reminders. Private AI history receives
+fixed feature/status receipts only, never note/reminder contents. Reset/eviction invalidates an
+awaited receipt; a completed durable action is not undone by chat reset. Cloud remains v1.42.0.
 
 `/hengs ask` in the home guild accepts natural owner prompts for private notes and one-shot
 reminders. Notes require a preview confirmation. A reminder without a time asks for the missing

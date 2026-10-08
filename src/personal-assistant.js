@@ -68,17 +68,21 @@ function parsePersonalPrompt(value) {
   if (FOLLOW_UP_PATTERN.test(text)) return { kind: 'follow_up' };
   if (CANCEL_PATTERN.test(text)) return { kind: 'cancel_pending' };
 
-  if (/\b(?:lihat|list|daftar|tampilkan|apa)\b.*\b(?:catatan|notes?)\b/i.test(lower)) {
+  const action = lower.replace(/^(?:hengs[, ]+)?(?:(?:tolong|coba|bantu)\s+){0,2}/i, '')
+    .replace(/^(?:(?:aku|saya|gue|gw)\s+)?(?:(?:mau|ingin|pengen)\s+)?(?=catat|simpan|tulis|ingatkan|ingetin|remind)/i, '');
+  if (/^(?:lihat|list|daftar|tampilkan|apa)\b.*\b(?:catatan|notes?)\b/i.test(action)) {
     return { kind: 'note_list' };
   }
-  if (/\b(?:lihat|list|daftar|tampilkan|apa)\b.*\b(?:pengingat|reminder)\b/i.test(lower)) {
+  if (/^(?:lihat|list|daftar|tampilkan|apa)\b.*\b(?:pengingat|reminder)\b/i.test(action)) {
     return { kind: 'reminder_list' };
   }
-  if (/\b(?:hapus|delete|buang)\b.*\bcatatan\b/i.test(lower)) {
+  if (/^(?:hapus|delete|buang)\b.*\bcatatan\b/i.test(action)) {
+    if (!/^(?:hapus|delete|buang)\s+catatan(?:\s+note-[0-9]{4,})?[.!]?$/i.test(action)) return null;
     const id = lower.match(/\bnote-[0-9]{4,}\b/i)?.[0] || '';
     return id ? { kind: 'note_delete', id } : { kind: 'note_delete_missing' };
   }
-  if (/\b(?:hapus|delete|buang)\b.*\b(?:pengingat|reminder)\b/i.test(lower)) {
+  if (/^(?:hapus|delete|buang)\b.*\b(?:pengingat|reminder)\b/i.test(action)) {
+    if (!/^(?:hapus|delete|buang)\s+(?:pengingat|reminder)(?:\s+reminder-[0-9]{4,})?[.!]?$/i.test(action)) return null;
     const id = lower.match(/\breminder-[0-9]{4,}\b/i)?.[0] || '';
     return id ? { kind: 'reminder_delete', id } : { kind: 'reminder_delete_missing' };
   }
@@ -86,13 +90,12 @@ function parsePersonalPrompt(value) {
   const rawText = extractRawNoteText(text);
   if (rawText) return { kind: 'note_add_raw', text: rawText };
 
-  if (/\b(?:ingatkan|ingetin|reminder|pengingat|remind)\b/i.test(lower)) {
+  if (/^(?:ingatkan|ingetin|reminder|pengingat|remind)\b/i.test(action)) {
     if (/\b(?:event|acara|komunitas|turnamen|tournament|mabar|meeting|rapat|scrim)\b/i.test(lower)
       && !/\b(?:aku|saya|gue|gw|pribadi)\b/i.test(lower)) return null;
     const trigger = lower.match(/\b(?:ingatkan|ingetin|reminder|pengingat|remind)\b/i);
-    const beforeTrigger = text.slice(0, trigger?.index || 0);
     const afterTrigger = text.slice((trigger?.index || 0) + (trigger?.[0]?.length || 0));
-    const remainder = `${beforeTrigger} ${afterTrigger}`.trim();
+    const remainder = afterTrigger.trim();
     const clock = findClock(remainder);
     const before = clock ? remainder.slice(0, clock.index) : remainder;
     const after = clock ? remainder.slice(clock.index + clock.raw.length) : '';
@@ -107,7 +110,7 @@ function parsePersonalPrompt(value) {
       : { kind: 'reminder_add_missing_text', timeText: clock.normalized };
   }
 
-  if (/\b(?:catat|simpan(?:kan)?|tulis(?:kan)?)\b/i.test(lower)) {
+  if (/^(?:catat|simpan(?:kan)?|tulis(?:kan)?)\b/i.test(action)) {
     const marker = lower.match(/\b(?:catat|simpan(?:kan)?|tulis(?:kan)?)\b/i);
     const noteText = text.slice((marker?.index || 0) + (marker?.[0]?.length || 0))
       .replace(/^catatan\s*/i, '')
@@ -160,16 +163,35 @@ function createPersonalAssistant({ store = defaultStore, client = null, logger =
     pending.set(keyFor(scope), { kind, ...details, createdAt: Date.now() });
   }
 
+  function canContinue(value, scope) {
+    const waiting = fresh(scope);
+    if (!waiting) return false;
+    const text = normalizePrompt(value);
+    if (CANCEL_PATTERN.test(text) || FOLLOW_UP_PATTERN.test(text)) return true;
+    const action = parsePersonalPrompt(text);
+    const confirmation = waiting.kind === 'note_confirm' && (NOTE_CONFIRM_PATTERN.test(text)
+      || NOTE_REJECT_PATTERN.test(text) || isRawNoteRequest(text) || extractRawNoteText(text)
+      || /^(?:ganti|ubah|bukan)[,:]?\s+\S/i.test(text));
+    if (confirmation) return true;
+    if (action) { clear(scope); return false; }
+    if (waiting.kind === 'reminder_time' && normalizeClock(text)) return true;
+    if (['note_text', 'reminder_text'].includes(waiting.kind)
+        && text && !/[?"“”]|^(?:apa|kenapa|kok|bagaimana|gimana|kalau|kalo|bahas|sekarang bahas)\b/i.test(text)) return true;
+    clear(scope);
+    return false;
+  }
+
   function saveNote(scope, text, intent = { kind: 'note_add' }) {
     const result = store.addNote({ ...scope, text });
-    if (!result.ok) return { intent, reply: result.code === 'TOO_LONG' ? 'Catatan terlalu panjang. Batasnya 500 karakter.' : 'Catatan belum tersimpan.' };
-    return { intent, reply: `✅ Sudah dicatat sebagai ${result.item.id}.` };
+    if (!result.ok) return { intent, contextCode: 'FAILED', reply: result.code === 'TOO_LONG' ? 'Catatan terlalu panjang. Batasnya 500 karakter.' : 'Catatan belum tersimpan.' };
+    return { intent, contextCode: 'SAVED', reply: `✅ Sudah dicatat sebagai ${result.item.id}.` };
   }
 
   function previewNote(scope, text) {
     arm(scope, 'note_confirm', { text });
     return {
       intent: { kind: 'note_add', text },
+      contextCode: 'PENDING_CONFIRMATION',
       reply: `📝 Oke, aku akan catat seperti ini:\n"${text}"\nBalas "oke catat" untuk menyimpan, "batal" untuk membatalkan, atau "catat mentah" jika harus persis.`,
     };
   }
@@ -177,13 +199,13 @@ function createPersonalAssistant({ store = defaultStore, client = null, logger =
   function handlePending(scope, text, value) {
     if (CANCEL_PATTERN.test(text)) {
       clear(scope);
-      return { intent: { kind: 'cancel_pending' }, reply: 'Oke, permintaan tadi dibatalkan.' };
+      return { intent: { kind: 'cancel_pending' }, contextCode: 'CANCELLED', reply: 'Oke, permintaan tadi dibatalkan.' };
     }
     if (value.kind === 'note_confirm') {
       const rawText = extractRawNoteText(text);
       if (rawText) { clear(scope); return saveNote(scope, rawText, { kind: 'note_add_raw', text: rawText }); }
       if (isRawNoteRequest(text)) { clear(scope); return saveNote(scope, value.text, { kind: 'note_add_raw', text: value.text }); }
-      if (NOTE_REJECT_PATTERN.test(text)) { clear(scope); return { intent: { kind: 'note_cancel' }, reply: 'Oke, catatan itu tidak disimpan.' }; }
+      if (NOTE_REJECT_PATTERN.test(text)) { clear(scope); return { intent: { kind: 'note_cancel' }, contextCode: 'CANCELLED', reply: 'Oke, catatan itu tidak disimpan.' }; }
       if (NOTE_CONFIRM_PATTERN.test(text)) { clear(scope); return saveNote(scope, value.text); }
       const replacement = text.match(/^(?:ganti|ubah|bukan)[,:]?\s+(.+)$/i);
       if (replacement?.[1]) return previewNote(scope, replacement[1].trim());
@@ -255,8 +277,8 @@ function createPersonalAssistant({ store = defaultStore, client = null, logger =
         return { intent, reply: 'Jamnya belum terbaca. Pakai format seperti "jam 9 malam" atau "besok jam 7 pagi".' };
       }
       const result = store.addReminder({ ...scope, text: intent.text, dueAt: schedule.scheduledAt });
-      if (!result.ok) return { intent, reply: result.code === 'TOO_LONG' ? 'Isi pengingat terlalu panjang. Batasnya 300 karakter.' : 'Pengingat belum tersimpan.' };
-      return { intent, reply: `✅ Siap, aku ingatkan ${schedule.label}: ${result.item.text}` };
+      if (!result.ok) return { intent, contextCode: 'FAILED', reply: result.code === 'TOO_LONG' ? 'Isi pengingat terlalu panjang. Batasnya 300 karakter.' : 'Pengingat belum tersimpan.' };
+      return { intent, contextCode: 'SAVED', reply: `✅ Siap, aku ingatkan ${schedule.label}: ${result.item.text}` };
     }
     if (intent.kind === 'reminder_list') {
       const reminders = store.listReminders(scope);
@@ -269,7 +291,8 @@ function createPersonalAssistant({ store = defaultStore, client = null, logger =
       const result = store.removeReminder({ ...scope, id: intent.id });
       return { intent, reply: result.ok ? `🗑️ ${intent.id} sudah dihapus.` : 'Pengingat itu tidak ditemukan.' };
     }
-    if (intent.kind === 'follow_up') return { intent, reply: 'Aku bisa bantu catat, pasang pengingat, lihat daftar, atau menghapus item tertentu.' };
+    if (intent.kind === 'cancel_pending') return { intent, reply: 'Tidak ada permintaan yang sedang menunggu.' };
+    if (intent.kind === 'follow_up') return { intent, reply: 'Tidak ada catatan atau pengingat yang sedang menunggu jawaban.' };
     return null;
   }
 
@@ -279,11 +302,12 @@ function createPersonalAssistant({ store = defaultStore, client = null, logger =
     const waiting = fresh(scope);
     if (waiting) {
       const result = handlePending(scope, text, waiting);
-      if (result) return result;
+      if (result) return { ...result, contextFamily: waiting.kind.startsWith('reminder') ? 'reminders' : 'notes' };
     }
     const intent = parsePersonalPrompt(text);
-    return executeIntent(scope, intent || { kind: 'unsupported' })
+    const result = executeIntent(scope, intent || { kind: 'unsupported' })
       || { intent: intent || { kind: 'unsupported' }, reply: 'Coba tulis misalnya "catat beli kabel" atau "ingatkan aku jam 9 malam cek tugas".' };
+    return { ...result, contextFamily: intent?.kind.startsWith('reminder') ? 'reminders' : 'notes' };
   }
 
   async function processDue() {
@@ -319,7 +343,7 @@ function createPersonalAssistant({ store = defaultStore, client = null, logger =
     timer = null;
   }
 
-  return Object.freeze({ handle, start, stop, processDue, getStatus: store.getStatus });
+  return Object.freeze({ handle, canContinue, clear, start, stop, processDue, getStatus: store.getStatus });
 }
 
 module.exports = {
