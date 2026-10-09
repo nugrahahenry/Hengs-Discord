@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.44.0 selective private memory, default off, not deployed
+**Current local checkpoint:** v1.45.0 Community Layout and Welcome refresh, local only, not deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -38,7 +38,8 @@ Discord token consumer; local Discord remains stopped as rollback only.
   pembelajaran permanen. Checkpoint ini tidak mengubah Canox atau menjalankan provider live.
 - **Prompt-first community planning:** owner atau Administrator dapat menulis prompt natural untuk
   merancang struktur lobi, gaming, dan creator. Hengs memberi blueprint teks serta kartu visual
-  privat sebelum ada perubahan
+  privat sebelum ada perubahan. Prompt dapat memilih nama channel polos atau memakai ikon. Saat
+  owner menerapkan rencana, Hengs membuat kategori lalu menempatkan channel text dan voice di dalamnya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.
   Owner dapat melihat kartu visual, mengonfirmasi, lalu menerapkan channel text dan voice yang masih
   kurang dari blueprint tetap

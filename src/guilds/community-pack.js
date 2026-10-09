@@ -21,9 +21,9 @@ function publicCopy(member, type, { preview = false } = {}) {
     return 'Ini preview Community Pack. Saat aktif, Hengs akan menyambut member baru di channel ini.';
   }
   if (type === 'welcome') {
-    return `👋 Halo <@${member.id}>! Aku Hengs, asisten komunitas di server ini. Senang kamu bergabung. Kalau butuh bantuan, mention aku atau pakai \`/hengs help\`.`;
+    return `👋 Halo <@${member.id}>! Aku Hengs, asisten komunitas di sini. Selamat datang. Coba baca aturan, ambil role, lalu kenalan. Kalau bingung, mention Hengs atau pakai \`/hengs help\`.`;
   }
-  return '👋 Satu member baru saja meninggalkan server. Terima kasih sudah pernah menjadi bagian dari komunitas ini.';
+  return '👋 Satu member baru saja meninggalkan server. Makasih sudah pernah mampir dan jadi bagian dari komunitas ini.';
 }
 
 async function buildCommunityPayload(member, type, options = {}) {

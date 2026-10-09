@@ -160,9 +160,9 @@ test('release metadata pins Node 22 and checkpoint version consistently', () => 
   const packageMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lockMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
   assert.equal(fs.readFileSync(path.join(root, '.nvmrc'), 'utf8').trim(), '22');
-  assert.equal(packageMetadata.version, '1.44.0');
+  assert.equal(packageMetadata.version, '1.45.0');
   assert.deepEqual(packageMetadata.engines, { node: '>=22 <23' });
-  assert.equal(lockMetadata.version, '1.44.0');
-  assert.equal(lockMetadata.packages[''].version, '1.44.0');
+  assert.equal(lockMetadata.version, '1.45.0');
+  assert.equal(lockMetadata.packages[''].version, '1.45.0');
   assert.deepEqual(lockMetadata.packages[''].engines, { node: '>=22 <23' });
 });

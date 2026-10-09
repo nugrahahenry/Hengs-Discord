@@ -47,7 +47,7 @@ function guild(entries = [], { manage = true, create } = {}) {
 
 test.afterEach(() => resetForTests());
 
-test('buildCommunityOperations emits only missing fixed text and voice channels', () => {
+test('buildCommunityOperations emits a category plus missing text and voice channels', () => {
   const target = guild([
     { name: 'announcements', type: ChannelType.GuildText },
     { name: 'ruang-tunggu', type: ChannelType.GuildVoice },
@@ -55,7 +55,8 @@ test('buildCommunityOperations emits only missing fixed text and voice channels'
   const operations = buildCommunityOperations({ guild: target, blueprintKeys: ['lobby'] });
   assert.equal(operations.some(operation => operation.name === 'announcements'), false);
   assert.equal(operations.some(operation => operation.name === 'ruang-tunggu'), false);
-  assert.ok(operations.every(operation => ['text', 'voice'].includes(operation.kind)));
+  assert.equal(operations.filter(operation => operation.kind === 'category').length, 1);
+  assert.ok(operations.every(operation => ['category', 'text', 'voice'].includes(operation.kind)));
   assert.ok(operations.every(operation => operation.blueprintKey === 'lobby'));
 });
 
@@ -68,9 +69,19 @@ test('applyCommunityPlan rechecks fingerprint and creates the bounded plan', asy
     expectedFingerprint: fingerprint,
   });
   assert.equal(result.ok, true);
-  assert.equal(result.createdCount, 6);
-  assert.equal(target.created.length, 6);
+  assert.equal(result.createdCount, 7);
+  assert.equal(target.created.length, 7);
   assert.equal(target.created.filter(item => item.type === ChannelType.GuildVoice).length, 1);
+  assert.equal(target.created[0].type, ChannelType.GuildCategory);
+  assert.ok(target.created.slice(1).every(item => item.parent));
+});
+
+test('emoji layout reuses a plain category and only creates missing channels under it', () => {
+  const target = guild([{ id: '923456789012345678', name: 'LOBI MASUK', type: ChannelType.GuildCategory }]);
+  const operations = buildCommunityOperations({ guild: target, blueprintKeys: ['lobby'], nameStyle: 'emoji' });
+  assert.equal(operations.some(operation => operation.kind === 'category'), false);
+  assert.ok(operations.every(operation => operation.categoryId === '923456789012345678'));
+  assert.equal(operations.find(operation => operation.kind === 'text').name, '📢・announcements');
 });
 
 test('applyCommunityPlan fails closed for drift, missing permission, and provider failure', async () => {

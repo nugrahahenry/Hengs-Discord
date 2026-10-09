@@ -6,7 +6,7 @@ try {
 } catch {
   createCanvas = null;
 }
-const { BLUEPRINTS } = require('./prompt-assistant');
+const { BLUEPRINTS, categoryName, channelName, channelNameAliases } = require('./prompt-assistant');
 const { visibleChannels } = require('./prompt-apply');
 
 const WIDTH = 1200;
@@ -23,26 +23,30 @@ function trimText(value, max = 30) {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
 
-function targetRows(blueprintKeys, guild) {
+function targetRows(blueprintKeys, guild, nameStyle = 'plain') {
   const selected = new Set(Array.isArray(blueprintKeys) ? blueprintKeys.map(String) : []);
   const existing = new Set((visibleChannels(guild) || []).map(channel => `${channel.kind}\u0000${channel.name}`));
   const rows = [];
   for (const blueprint of BLUEPRINTS) {
     if (!selected.has(blueprint.key)) continue;
-    for (const name of blueprint.channels) {
+    for (let index = 0; index < blueprint.channels.length; index += 1) {
+      const name = channelName(blueprint, 'text', index, nameStyle);
       rows.push({
-        section: blueprint.title,
+        section: categoryName(blueprint, nameStyle),
         kind: 'text',
         name,
-        present: existing.has(`text\u0000${name}`),
+        present: channelNameAliases(blueprint, 'text', index)
+          .some(alias => existing.has(`text\u0000${alias}`)),
       });
     }
-    for (const name of blueprint.voiceChannels || []) {
+    for (let index = 0; index < (blueprint.voiceChannels || []).length; index += 1) {
+      const name = channelName(blueprint, 'voice', index, nameStyle);
       rows.push({
-        section: blueprint.title,
+        section: categoryName(blueprint, nameStyle),
         kind: 'voice',
         name,
-        present: existing.has(`voice\u0000${name}`),
+        present: channelNameAliases(blueprint, 'voice', index)
+          .some(alias => existing.has(`voice\u0000${alias}`)),
       });
     }
   }
@@ -67,9 +71,9 @@ function drawRoundedRect(ctx, x, y, width, height, radius, fill) {
   ctx.restore();
 }
 
-function renderCommunityPreviewCard({ blueprintKeys, guild } = {}) {
+function renderCommunityPreviewCard({ blueprintKeys, guild, nameStyle = 'plain' } = {}) {
   if (!createCanvas) return null;
-  const rows = targetRows(blueprintKeys, guild);
+  const rows = targetRows(blueprintKeys, guild, nameStyle);
   if (!rows.length) return null;
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');

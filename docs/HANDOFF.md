@@ -1,6 +1,29 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-08
+Updated: 2026-10-09
+
+## Hengs Discord v1.45.0 Community Layout and Welcome refresh
+
+- Local-only checkpoint. No cloud deployment, command registration, token, state, Canox, or
+  Discord runtime mutation was performed.
+- Prompt-first community planning now carries a bounded `nameStyle`: `plain` by default, or
+  `emoji` when the owner asks for icons, emoji, or an aesthetic layout. The private text and
+  visual preview use the same style so the review matches the eventual apply operation.
+- Community blueprints now include reference-style category names. Applying a confirmed plan
+  creates missing categories first, then creates missing text and voice channels inside them.
+  Existing channels are recognized through plain and emoji aliases. Nothing is renamed, moved,
+  deleted, or permission-mutated. Inventory fingerprints include category and parent metadata,
+  so drift closes the ticket before apply.
+- The creation cap is 32 operations to account for up to four categories plus their bounded
+  channels. Owner confirmation, Manage Channels gate, guild lock, and no-retry-on-failure remain.
+- Welcome and leave copy is more conversational while keeping targeted welcome mentions and no
+  leave mentions. Card rendering, account age, join date, member count, and tenure behavior stay
+  intact. No persistent welcome-style schema was added.
+- Targeted suite: 36/36 passed. Node syntax checks passed for all changed modules. Full suite,
+  whitespace, long-dash, secret, and release checks remain before the automatic checkpoint.
+- Next: run the full Node suite, inspect the diff, commit `feat(community-layout): Hengs Discord
+  v1.45.0 - add configurable channel layouts and warmer welcome copy`, and push `main` if all
+  gates pass. Deployment remains a separate explicit action.
 
 ## Hengs Discord v1.44.0 selective memory local checkpoint
 

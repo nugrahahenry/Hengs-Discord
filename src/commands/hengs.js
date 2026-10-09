@@ -335,6 +335,7 @@ async function execute(interaction, {
       channelId: interaction.channelId,
       requesterId: interaction.user.id,
       blueprintKeys: promptRoute.blueprintKeys,
+      nameStyle: promptRoute.nameStyle,
     });
     if (!review.ok) {
       const copy = review.code === 'PROMPT_REVIEW_COOLDOWN'

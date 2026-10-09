@@ -6,6 +6,7 @@ const {
   applyFocusAction,
   buildCommunityPlan,
   buildCommunityQuestions,
+  resolveChannelNameStyle,
   buildPromptHelp,
   classifyPrompt,
   parseFocusPrompt,
@@ -63,6 +64,17 @@ test('community blueprint is fixed, bounded, and marks existing channels', () =>
   assert.ok(content.length <= 1900);
   assert.doesNotMatch(content, /[\u2013\u2014]/);
   assert.equal(BLUEPRINTS.length, 4);
+});
+
+test('community planning supports an emoji layout without changing the safety flow', () => {
+  assert.equal(resolveChannelNameStyle('pakai ikon dan emoji'), 'emoji');
+  const content = buildCommunityPlan(
+    'Rancang server gaming pakai emoji',
+    guild(['📢・announcements']),
+  );
+  assert.match(content, /🎉・LOBI MASUK/);
+  assert.match(content, /📢・announcements \(sudah ada\)/);
+  assert.match(content, /Gaya nama: \*\*ikon dan emoji\*\*/);
 });
 
 test('community plan is home owner or administrator only', () => {

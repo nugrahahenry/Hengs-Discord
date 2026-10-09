@@ -15,6 +15,8 @@ const HELP_PROMPT = /\b(?:apa yang bisa|bisa apa|cara pakai|contoh prompt|prompt
 const FOCUS_SIGNAL = /\b(?:fokus|jagain|jaga|mode|study|scrim|belajar|latihan|turnamen|tournament)\b/i;
 const FOCUS_NEGATION = /[?"“”]|\b(?:jangan|jgn|tidak|nggak|gak|ga|enggak|belum|bukan|kalau|kalo|jika|seandainya|kenapa|mengapa|bagaimana|gimana|cara|apakah|apa|siapa|kapan|mana|harus|bisa|bantu|jelaskan|ajarin|ajari)\b/i;
 const FOCUS_SCHEDULE = /\b(?:besok|nanti|jam|pukul|menit|durasi|selama)\b|\d+\s*(?:j|h|m)\b/i;
+const CHANNEL_STYLE_EMOJI = /\b(?:emoji|ikon|icon|estetik|aesthetic)\b/i;
+const CHANNEL_STYLE_PLAIN = /\b(?:polos|plain|sederhana|minimal)\b/i;
 
 const FOCUS_MODES = Object.freeze([
   Object.freeze({ mode: 'study', words: /\b(?:belajar|study)\b/i }),
@@ -25,32 +27,50 @@ const BLUEPRINTS = Object.freeze([
   Object.freeze({
     key: 'lobby',
     title: 'LOBI MASUK',
+    categoryName: 'LOBI MASUK',
+    emojiCategoryName: '🎉・LOBI MASUK',
     cues: [],
     channels: ['announcements', 'selamat-datang', 'aturan-server', 'verify-here', 'ambil-role', 'intro-dulu-ngab'],
+    emojiChannels: ['📢・announcements', '👋・selamat-datang', '📜・aturan-server', '✅・verify-here', '🎭・ambil-role', '👋・intro-dulu-ngab'],
     voiceChannels: ['ruang-tunggu'],
+    emojiVoiceChannels: ['🛋️・ruang-tunggu'],
   }),
   Object.freeze({
     key: 'core',
     title: 'SERVER CORE',
+    categoryName: 'SERVER CORE',
+    emojiCategoryName: '🖥️・SERVER CORE',
     cues: ['boost', 'server core'],
     channels: ['boost'],
+    emojiChannels: ['💎・boost'],
     voiceChannels: ['AFK'],
+    emojiVoiceChannels: ['💤・AFK'],
   }),
   Object.freeze({
     key: 'gaming',
     title: 'AREA GAMING',
+    categoryName: 'AREA GAMING',
+    emojiCategoryName: '🎮・AREA GAMING',
     cues: ['gaming', 'game', 'mabar', 'moba', 'roblox', 'valorant', 'mobile legend'],
     channels: ['ngobrol-santai', 'info-mabar', 'galeri-mix', 'galeri-moba', 'galeri-roblox'],
+    emojiChannels: ['💬・ngobrol-santai', '⚔️・info-mabar', '📸・galeri-mix', '📸・galeri-moba', '📸・galeri-roblox'],
     voiceChannels: ['mabar-1', 'mabar-2', 'tournament-room'],
+    emojiVoiceChannels: ['🎮・mabar-1', '🎮・mabar-2', '🏆・tournament-room'],
   }),
   Object.freeze({
     key: 'creator',
     title: 'CREATOR STUDIO',
+    categoryName: 'CREATOR STUDIO',
+    emojiCategoryName: '🎥・CREATOR STUDIO',
     cues: ['creator', 'stream', 'live', 'showcase', 'promosi-konten'],
     channels: ['live-stream', 'showcase', 'promosi-konten'],
+    emojiChannels: ['📺・live-stream', '📷・showcase', '🔗・promosi-konten'],
     voiceChannels: ['live-room'],
+    emojiVoiceChannels: ['🎙️・live-room'],
   }),
 ]);
+
+const CHANNEL_NAME_STYLES = Object.freeze(['plain', 'emoji']);
 
 function normalizePrompt(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -108,6 +128,35 @@ function hasSpecificCommunityCue(prompt) {
   )) || /\b(?:text|voice|suara|kategori|lobi|ruang)\b/i.test(lower);
 }
 
+function resolveChannelNameStyle(prompt) {
+  const normalized = normalizePrompt(prompt);
+  if (CHANNEL_STYLE_EMOJI.test(normalized)) return 'emoji';
+  if (CHANNEL_STYLE_PLAIN.test(normalized)) return 'plain';
+  return 'plain';
+}
+
+function channelName(blueprint, kind, index, style = 'plain') {
+  const names = kind === 'voice' ? blueprint.voiceChannels : blueprint.channels;
+  const emojiNames = kind === 'voice' ? blueprint.emojiVoiceChannels : blueprint.emojiChannels;
+  if (style === 'emoji' && Array.isArray(emojiNames) && emojiNames[index]) return emojiNames[index];
+  return names[index];
+}
+
+function channelNameAliases(blueprint, kind, index) {
+  return [...new Set([
+    channelName(blueprint, kind, index, 'plain'),
+    channelName(blueprint, kind, index, 'emoji'),
+  ].filter(Boolean))];
+}
+
+function categoryName(blueprint, style = 'plain') {
+  return style === 'emoji' ? blueprint.emojiCategoryName : blueprint.categoryName;
+}
+
+function categoryNameAliases(blueprint) {
+  return [...new Set([blueprint.categoryName, blueprint.emojiCategoryName].filter(Boolean))];
+}
+
 function isGuildManager({ actor, guild } = {}) {
   if (!actor || !guild) return false;
   const userId = actor.user?.id || actor.author?.id;
@@ -148,21 +197,26 @@ function selectBlueprintKeys(prompt) {
   return selectBlueprints(prompt).map(blueprint => blueprint.key);
 }
 
-function buildCommunityPlanFromKeys(blueprintKeys, guild) {
+function buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle = 'plain') {
   const selected = new Set(Array.isArray(blueprintKeys) ? blueprintKeys : []);
   const existing = existingChannelNames(guild);
   const sections = BLUEPRINTS
     .filter(blueprint => selected.has(blueprint.key))
     .map(blueprint => {
-      const textChannels = blueprint.channels.map(name => {
-        const marker = existing.has(name) ? 'sudah ada' : 'disarankan';
+      const textChannels = blueprint.channels.map((_, index) => {
+        const name = channelName(blueprint, 'text', index, nameStyle);
+        const marker = channelNameAliases(blueprint, 'text', index).some(alias => existing.has(alias))
+          ? 'sudah ada' : 'disarankan';
         return '  ├─ 💬 #' + name + ' (' + marker + ')';
       });
-      const voiceChannels = (blueprint.voiceChannels || []).map(name => {
-        const marker = existing.has(name) ? 'sudah ada' : 'disarankan';
+      const voiceChannels = (blueprint.voiceChannels || []).map((_, index) => {
+        const name = channelName(blueprint, 'voice', index, nameStyle);
+        const marker = channelNameAliases(blueprint, 'voice', index).some(alias => existing.has(alias))
+          ? 'sudah ada' : 'disarankan';
         return '  └─ 🔊 ' + name + ' (' + marker + ')';
       });
-      return ['**' + blueprint.title + '**', ...textChannels, ...voiceChannels].join('\n');
+      const category = categoryName(blueprint, nameStyle);
+      return ['**' + category + '**', ...textChannels, ...voiceChannels].join('\n');
     });
 
   return [
@@ -175,9 +229,10 @@ function buildCommunityPlanFromKeys(blueprintKeys, guild) {
 }
 
 function buildCommunityPlan(prompt, guild) {
+  const nameStyle = resolveChannelNameStyle(prompt);
   return [
-    buildCommunityPlanFromKeys(selectBlueprintKeys(prompt), guild),
-    'Kalau sudah cocok, tekan tombol **Tinjau sekarang** untuk membuka preview privat.',
+    buildCommunityPlanFromKeys(selectBlueprintKeys(prompt), guild, nameStyle),
+    `Gaya nama: **${nameStyle === 'emoji' ? 'ikon dan emoji' : 'polos'}**. Kalau sudah cocok, tekan tombol **Tinjau sekarang** untuk membuka preview privat.`,
   ].join('\n').slice(0, 1900);
 }
 
@@ -188,8 +243,10 @@ function buildCommunityQuestions() {
     '1. Fokus komunitasnya apa: gaming, creator, belajar, atau campuran?',
     '2. Area text apa yang wajib ada: lobi, mabar, karya, promosi, atau lainnya?',
     '3. Voice room-nya mau berapa dan untuk apa: santai, mabar, tournament, atau live?',
+    '4. Nama channel mau polos atau pakai ikon dan emoji?',
     '',
     'Contoh: "gaming santai, text mabar dan galeri, tiga voice room untuk mabar dan tournament".',
+    'Contoh: "gaming santai, text mabar dan galeri, tiga voice room, pakai ikon".',
     'Setelah itu Hengs kirim preview visual privat. Belum ada channel yang diubah.',
   ].join('\n');
 }
@@ -308,13 +365,19 @@ function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, 
     content: result.kind === 'community_questions'
       ? buildCommunityQuestions()
       : buildCommunityPlan(result.prompt, guild),
-    ...(result.kind === 'community_plan' ? { blueprintKeys: selectBlueprintKeys(result.prompt) } : {}),
+    ...(result.kind === 'community_plan'
+      ? {
+        blueprintKeys: selectBlueprintKeys(result.prompt),
+        nameStyle: resolveChannelNameStyle(result.prompt),
+      }
+      : {}),
   };
 }
 
 module.exports = {
   MAX_PROMPT_LENGTH,
   BLUEPRINTS,
+  CHANNEL_NAME_STYLES,
   isGuildManager,
   normalizePrompt,
   classifyPrompt,
@@ -328,4 +391,9 @@ module.exports = {
   resolvePrompt,
   selectBlueprintKeys,
   hasSpecificCommunityCue,
+  channelName,
+  channelNameAliases,
+  categoryName,
+  categoryNameAliases,
+  resolveChannelNameStyle,
 };
