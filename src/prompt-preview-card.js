@@ -6,8 +6,11 @@ try {
 } catch {
   createCanvas = null;
 }
-const { BLUEPRINTS, categoryName, channelName, channelNameAliases } = require('./prompt-assistant');
-const { visibleChannels } = require('./prompt-apply');
+const {
+  BLUEPRINTS,
+  plannedCategoryName,
+  plannedChannel,
+} = require('./prompt-assistant');
 
 const WIDTH = 1200;
 const HEIGHT = 675;
@@ -23,30 +26,25 @@ function trimText(value, max = 30) {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
 
-function targetRows(blueprintKeys, guild, nameStyle = 'plain') {
+function targetRows(blueprintKeys, guild, nameStyle = 'plain', customization = {}) {
   const selected = new Set(Array.isArray(blueprintKeys) ? blueprintKeys.map(String) : []);
-  const existing = new Set((visibleChannels(guild) || []).map(channel => `${channel.kind}\u0000${channel.name}`));
   const rows = [];
   for (const blueprint of BLUEPRINTS) {
     if (!selected.has(blueprint.key)) continue;
     for (let index = 0; index < blueprint.channels.length; index += 1) {
-      const name = channelName(blueprint, 'text', index, nameStyle);
+      const planned = plannedChannel(blueprint, 'text', index, guild, nameStyle, customization);
       rows.push({
-        section: categoryName(blueprint, nameStyle),
+        section: plannedCategoryName(blueprint, guild, nameStyle, customization),
         kind: 'text',
-        name,
-        present: channelNameAliases(blueprint, 'text', index)
-          .some(alias => existing.has(`text\u0000${alias}`)),
+        ...planned,
       });
     }
     for (let index = 0; index < (blueprint.voiceChannels || []).length; index += 1) {
-      const name = channelName(blueprint, 'voice', index, nameStyle);
+      const planned = plannedChannel(blueprint, 'voice', index, guild, nameStyle, customization);
       rows.push({
-        section: categoryName(blueprint, nameStyle),
+        section: plannedCategoryName(blueprint, guild, nameStyle, customization),
         kind: 'voice',
-        name,
-        present: channelNameAliases(blueprint, 'voice', index)
-          .some(alias => existing.has(`voice\u0000${alias}`)),
+        ...planned,
       });
     }
   }
@@ -71,9 +69,9 @@ function drawRoundedRect(ctx, x, y, width, height, radius, fill) {
   ctx.restore();
 }
 
-function renderCommunityPreviewCard({ blueprintKeys, guild, nameStyle = 'plain' } = {}) {
+function renderCommunityPreviewCard({ blueprintKeys, guild, nameStyle = 'plain', customization = {} } = {}) {
   if (!createCanvas) return null;
-  const rows = targetRows(blueprintKeys, guild, nameStyle);
+  const rows = targetRows(blueprintKeys, guild, nameStyle, customization);
   if (!rows.length) return null;
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');

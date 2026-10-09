@@ -5,10 +5,10 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const {
   BLUEPRINTS,
   CHANNEL_NAME_STYLES,
-  categoryName,
-  categoryNameAliases,
-  channelName,
-  channelNameAliases,
+  customizedCategoryName,
+  customizedCategoryAliases,
+  customizedChannelName,
+  customizedChannelAliases,
 } = require('./prompt-assistant');
 
 const MAX_CREATE_OPERATIONS = 32;
@@ -62,7 +62,7 @@ function assertBlueprintKeys(keys) {
   return unique;
 }
 
-function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain' } = {}) {
+function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', customization = {} } = {}) {
   const keys = assertBlueprintKeys(blueprintKeys);
   if (!CHANNEL_NAME_STYLES.includes(nameStyle)) throw new Error('PROMPT_APPLY_NAME_STYLE_INVALID');
   const channels = visibleChannels(guild);
@@ -72,35 +72,37 @@ function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain' } 
   const operations = [];
   for (const blueprint of BLUEPRINTS) {
     if (!selected.has(blueprint.key)) continue;
-    const categoryKey = `category\u0000${categoryName(blueprint, nameStyle).toLowerCase()}`;
-    const categoryAliases = categoryNameAliases(blueprint).map(name => `category\u0000${name.toLowerCase()}`);
+    const categoryLabel = customizedCategoryName(blueprint, nameStyle, customization);
+    const categoryKey = `category\u0000${categoryLabel.toLowerCase()}`;
+    const categoryAliases = customizedCategoryAliases(blueprint, customization)
+      .map(name => `category\u0000${name.toLowerCase()}`);
     const existingCategory = categoryAliases.map(alias => existing.get(alias)).find(Boolean) || null;
     if (!existingCategory) {
       operations.push({
         blueprintKey: blueprint.key,
         kind: 'category',
-        name: categoryName(blueprint, nameStyle),
+        name: categoryLabel,
         type: ChannelType.GuildCategory,
         categoryKey,
         categoryId: null,
       });
-      existing.set(categoryKey, { id: null, kind: 'category', name: categoryName(blueprint, nameStyle).toLowerCase() });
+      existing.set(categoryKey, { id: null, kind: 'category', name: categoryLabel.toLowerCase() });
     } else {
       existing.set(categoryKey, existingCategory);
     }
     for (let index = 0; index < blueprint.channels.length; index += 1) {
-      const aliases = channelNameAliases(blueprint, 'text', index);
+      const aliases = customizedChannelAliases(blueprint, 'text', index, customization);
       const existingChannel = aliases.map(name => existing.get(`text\u0000${name.toLowerCase()}`)).find(Boolean);
-      const name = channelName(blueprint, 'text', index, nameStyle);
+      const name = customizedChannelName(blueprint, 'text', index, nameStyle, customization);
       if (!existingChannel) {
         operations.push({ blueprintKey: blueprint.key, kind: 'text', name, type: ChannelType.GuildText, categoryKey, categoryId: existingCategory?.id || null });
         existing.set(`text\u0000${name.toLowerCase()}`, { id: null, kind: 'text', name: name.toLowerCase() });
       }
     }
     for (let index = 0; index < (blueprint.voiceChannels || []).length; index += 1) {
-      const aliases = channelNameAliases(blueprint, 'voice', index);
+      const aliases = customizedChannelAliases(blueprint, 'voice', index, customization);
       const existingChannel = aliases.map(name => existing.get(`voice\u0000${name.toLowerCase()}`)).find(Boolean);
-      const name = channelName(blueprint, 'voice', index, nameStyle);
+      const name = customizedChannelName(blueprint, 'voice', index, nameStyle, customization);
       if (!existingChannel) {
         operations.push({ blueprintKey: blueprint.key, kind: 'voice', name, type: ChannelType.GuildVoice, categoryKey, categoryId: existingCategory?.id || null });
         existing.set(`voice\u0000${name.toLowerCase()}`, { id: null, kind: 'voice', name: name.toLowerCase() });
@@ -116,7 +118,7 @@ function hasManageChannels(guild) {
   return permissions?.has?.(PermissionFlagsBits.ManageChannels) === true;
 }
 
-async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', expectedFingerprint } = {}) {
+async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, expectedFingerprint } = {}) {
   const guildId = String(guild?.id || '');
   if (!SNOWFLAKE.test(guildId)) return { ok: false, code: 'PROMPT_APPLY_INVALID' };
   if (guildLocks.has(guildId)) return { ok: false, code: 'PROMPT_APPLY_BUSY' };
@@ -127,7 +129,7 @@ async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', e
   }
   let operations;
   try {
-    operations = buildCommunityOperations({ guild, blueprintKeys, nameStyle });
+    operations = buildCommunityOperations({ guild, blueprintKeys, nameStyle, customization });
   } catch (error) {
     return { ok: false, code: error.code || error.message || 'PROMPT_APPLY_INVALID' };
   }

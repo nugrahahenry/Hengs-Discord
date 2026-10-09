@@ -7,6 +7,8 @@ const {
   buildCommunityPlan,
   buildCommunityQuestions,
   resolveChannelNameStyle,
+  parseCommunityCustomization,
+  selectBlueprintKeys,
   buildPromptHelp,
   classifyPrompt,
   parseFocusPrompt,
@@ -75,6 +77,26 @@ test('community planning supports an emoji layout without changing the safety fl
   assert.match(content, /🎉・LOBI MASUK/);
   assert.match(content, /📢・announcements \(sudah ada\)/);
   assert.match(content, /Gaya nama: \*\*ikon dan emoji\*\*/);
+});
+
+test('community planning supports an option number and bounded draft revisions', () => {
+  const prompt = 'rancang opsi gaming, ubah channel "ngobrol-santai" jadi "nongkrong", ubah kategori "AREA GAMING" jadi "TEMPAT MABAR", pakai emoji';
+  const parsed = parseCommunityCustomization(prompt);
+  assert.deepEqual(selectBlueprintKeys(prompt), ['lobby', 'gaming']);
+  assert.equal(parsed.customization.channelNames['gaming:text:0'], 'nongkrong');
+  assert.equal(parsed.customization.categoryNames.gaming, 'TEMPAT MABAR');
+  const content = buildCommunityPlan(prompt, guild());
+  assert.match(content, /#nongkrong/);
+  assert.match(content, /TEMPAT MABAR/);
+  assert.match(content, /tidak akan di-rename atau dipindah/);
+  assert.doesNotMatch(content, /[\u2013\u2014]/);
+});
+
+test('community revisions reject unsafe labels and keep a bounded warning', () => {
+  const parsed = parseCommunityCustomization('rancang opsi 1, ubah channel "announcements" jadi "@everyone https://bad"');
+  assert.equal(Object.keys(parsed.customization.channelNames).length, 0);
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0], /belum dikenali/i);
 });
 
 test('community plan is home owner or administrator only', () => {

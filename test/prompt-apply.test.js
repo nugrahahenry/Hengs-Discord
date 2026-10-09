@@ -84,6 +84,24 @@ test('emoji layout reuses a plain category and only creates missing channels und
   assert.equal(operations.find(operation => operation.kind === 'text').name, '📢・announcements');
 });
 
+test('custom revisions create requested names without renaming existing channels', () => {
+  const target = guild([{ id: '923456789012345678', name: 'AREA GAMING', type: ChannelType.GuildCategory }]);
+  const operations = buildCommunityOperations({
+    guild: target,
+    blueprintKeys: ['lobby', 'gaming'],
+    nameStyle: 'plain',
+    customization: {
+      categoryNames: { gaming: 'TEMPAT MABAR' },
+      channelNames: { 'gaming:text:0': 'nongkrong' },
+      welcomeCopy: 'Halo gaes',
+    },
+  });
+  assert.equal(operations.some(operation => operation.name === 'AREA GAMING'), false);
+  assert.equal(operations.some(operation => operation.name === 'TEMPAT MABAR'), false);
+  assert.equal(operations.some(operation => operation.name === 'nongkrong'), true);
+  assert.equal(operations.some(operation => operation.name === 'ngobrol-santai'), false);
+});
+
 test('applyCommunityPlan fails closed for drift, missing permission, and provider failure', async () => {
   const drifted = guild([{ name: 'announcements' }]);
   const drift = await applyCommunityPlan({

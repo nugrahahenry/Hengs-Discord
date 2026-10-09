@@ -11,6 +11,7 @@ const {
   BLUEPRINTS,
   CHANNEL_NAME_STYLES,
   buildCommunityPlanFromKeys,
+  normalizeCommunityCustomization,
 } = require('./prompt-assistant');
 const { channelInventoryFingerprint, visibleChannels } = require('./prompt-apply');
 const { renderCommunityPreviewCard } = require('./prompt-preview-card');
@@ -92,7 +93,7 @@ function makeComponents(ticket, stage = 'issued') {
   return [new ActionRowBuilder().addComponents(buttons)];
 }
 
-function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, nameStyle = 'plain', now = Date.now() } = {}) {
+function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, nameStyle = 'plain', customization = {}, now = Date.now() } = {}) {
   cleanup(now);
   if (!SNOWFLAKE.test(String(guildId || ''))
     || !SNOWFLAKE.test(String(channelId || ''))
@@ -122,6 +123,7 @@ function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, na
     requesterId: String(requesterId),
     blueprintKeys: keys,
     nameStyle,
+    customization: normalizeCommunityCustomization(customization),
     fingerprint: inventory.fingerprint,
     createdAt: now,
     expiresAt: now + TTL_MS,
@@ -211,7 +213,7 @@ async function handleComponent(interaction, {
   if (action === 'review') {
     ticket.stage = 'reviewed';
     await interaction.update({
-      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle)}\n\nReview privat aktif. Belum ada yang diterapkan.`,
+      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle, ticket.customization)}\n\nReview privat aktif. Belum ada yang diterapkan.`,
       components: makeComponents(ticket, 'reviewed'),
       allowedMentions: { parse: [] },
     }).catch(() => {});
@@ -224,7 +226,7 @@ async function handleComponent(interaction, {
     }
     let card;
     try {
-      card = renderCommunityPreviewCard({ blueprintKeys: ticket.blueprintKeys, nameStyle: ticket.nameStyle, guild: interaction.guild });
+      card = renderCommunityPreviewCard({ blueprintKeys: ticket.blueprintKeys, nameStyle: ticket.nameStyle, customization: ticket.customization, guild: interaction.guild });
     } catch {
       logger.error('[prompt-review] PROMPT_PREVIEW_CARD_FAILED');
       card = null;
@@ -237,7 +239,7 @@ async function handleComponent(interaction, {
       ? 'Tombol Terapkan sekarang sudah siap.'
       : 'Pilihan apply tetap menunggu konfirmasi owner.';
     await interaction.update({
-      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle)}\n\nKartu visual privat siap. ${applyHint}`,
+      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle, ticket.customization)}\n\nKartu visual privat siap. ${applyHint}`,
       files: [{ attachment: card, name: 'hengs-community-preview.png' }],
       components: makeComponents(ticket, ticket.stage),
       allowedMentions: { parse: [] },
@@ -272,6 +274,7 @@ async function handleComponent(interaction, {
         guild: interaction.guild,
         blueprintKeys: ticket.blueprintKeys,
         nameStyle: ticket.nameStyle,
+        customization: ticket.customization,
         expectedFingerprint: ticket.fingerprint,
       });
     } catch {

@@ -2,6 +2,32 @@
 
 Updated: 2026-10-09
 
+## Hengs Discord v1.46.0 Custom Community Revision
+
+- Local-only checkpoint. No cloud deployment, command registration, token, state, Canox, or
+  Discord runtime mutation was performed.
+- Community planning now accepts a bounded revision layer in RAM: `opsi 1` through `opsi 4`,
+  quoted `nama lama` jadi `nama baru` pairs for known categories and channels, and an optional
+  welcome copy draft. The parser normalizes Discord-safe labels, rejects mentions, URLs,
+  permission terms, destructive verbs, and oversized input, and keeps unknown labels as a clear
+  warning instead of guessing.
+- The revision travels through the private text preview, visual card, review ticket, and apply
+  operation. Apply still creates only missing categories and channels. Existing categories and
+  channels are matched through base, emoji, and requested-name aliases; a requested new label is
+  used only when its old slot is absent. Nothing is renamed, moved, deleted, or
+  permission-mutated. Welcome copy is preview-only and is not persisted or activated by this
+  checkpoint.
+- Option mapping is explicit: 1 lobby, 2 server core, 3 area gaming, 4 creator studio. The
+  32-operation cap, owner confirmation, Manage Channels gate, inventory fingerprint, guild lock,
+  and no-retry-on-failure remain unchanged.
+- Release metadata is synchronized to v1.46.0, including the local archive builder and Linux
+  release validator. Cloud remains at the previously accepted production version until a
+  separate deploy approval.
+- Targeted prompt, apply, preview, and review tests pass 28/28. Full Node regression passes
+  534/534, with syntax, whitespace, long-dash, secret, and release checks also passing.
+- Next: commit `feat(community-revision): Hengs Discord v1.46.0 - add bounded prompt revisions`
+  and push `main`. Deployment remains a separate explicit action.
+
 ## Hengs Discord v1.45.0 Community Layout and Welcome refresh
 
 - Local-only checkpoint. No cloud deployment, command registration, token, state, Canox, or

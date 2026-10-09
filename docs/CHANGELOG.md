@@ -5,6 +5,23 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.46.0] - 2026-10-09
+
+### Added
+
+- Owner community prompts can select explicit options 1 through 4 and submit bounded quoted
+  revisions for known category or channel names before the private preview.
+- Revisions flow consistently through text preview, visual preview, review confirmation, and the
+  create-only apply plan. Existing channels are never renamed, moved, deleted, or permission-mutated.
+- Optional welcome copy is shown as a draft only. It is not persisted or activated by this local
+  checkpoint.
+
+### Scope
+
+- Local-only checkpoint. Cloud remains on the accepted production release until a separate deploy
+  approval. No provider call, token change, state migration, Canox change, or Discord mutation was
+  performed.
+
 ## [1.44.0] - 2026-10-08
 
 ### Added
