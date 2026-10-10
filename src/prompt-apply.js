@@ -10,6 +10,7 @@ const {
   customizedChannelName,
   customizedChannelAliases,
   normalizeCommunityCustomization,
+  communityChannelSlots,
 } = require('./prompt-assistant');
 
 const MAX_CREATE_OPERATIONS = 32;
@@ -63,16 +64,19 @@ function assertBlueprintKeys(keys) {
   return unique;
 }
 
-function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', customization = {} } = {}) {
+function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, selection = {} } = {}) {
   const keys = assertBlueprintKeys(blueprintKeys);
   if (!CHANNEL_NAME_STYLES.includes(nameStyle)) throw new Error('PROMPT_APPLY_NAME_STYLE_INVALID');
   const channels = visibleChannels(guild);
   if (!channels) throw new Error('PROMPT_APPLY_INVENTORY_UNAVAILABLE');
   const existing = new Map(channels.map(channel => [`${channel.kind}\u0000${channel.name}`, channel]));
   const selected = new Set(keys);
+  const slots = communityChannelSlots(keys, selection);
   const operations = [];
   for (const blueprint of BLUEPRINTS) {
     if (!selected.has(blueprint.key)) continue;
+    const selectedSlots = slots.filter(slot => slot.blueprintKey === blueprint.key);
+    if (!selectedSlots.length) continue;
     const categoryLabel = customizedCategoryName(blueprint, nameStyle, customization);
     const categoryKey = `category\u0000${categoryLabel.toLowerCase()}`;
     const categoryAliases = customizedCategoryAliases(blueprint, customization)
@@ -91,7 +95,7 @@ function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', c
     } else {
       existing.set(categoryKey, existingCategory);
     }
-    for (let index = 0; index < blueprint.channels.length; index += 1) {
+    for (const { index } of selectedSlots.filter(slot => slot.kind === 'text')) {
       const aliases = customizedChannelAliases(blueprint, 'text', index, customization);
       const existingChannel = aliases.map(name => existing.get(`text\u0000${name.toLowerCase()}`)).find(Boolean);
       const name = customizedChannelName(blueprint, 'text', index, nameStyle, customization);
@@ -100,7 +104,7 @@ function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', c
         existing.set(`text\u0000${name.toLowerCase()}`, { id: null, kind: 'text', name: name.toLowerCase() });
       }
     }
-    for (let index = 0; index < (blueprint.voiceChannels || []).length; index += 1) {
+    for (const { index } of selectedSlots.filter(slot => slot.kind === 'voice')) {
       const aliases = customizedChannelAliases(blueprint, 'voice', index, customization);
       const existingChannel = aliases.map(name => existing.get(`voice\u0000${name.toLowerCase()}`)).find(Boolean);
       const name = customizedChannelName(blueprint, 'voice', index, nameStyle, customization);
@@ -144,7 +148,7 @@ function canSendWelcome(channel, guild) {
   }
 }
 
-async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, expectedFingerprint, welcomeCopyStore } = {}) {
+async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, selection = {}, expectedFingerprint, welcomeCopyStore } = {}) {
   const guildId = String(guild?.id || '');
   if (!SNOWFLAKE.test(guildId)) return { ok: false, code: 'PROMPT_APPLY_INVALID' };
   if (guildLocks.has(guildId)) return { ok: false, code: 'PROMPT_APPLY_BUSY' };
@@ -155,7 +159,7 @@ async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', c
   }
   let operations;
   try {
-    operations = buildCommunityOperations({ guild, blueprintKeys, nameStyle, customization });
+    operations = buildCommunityOperations({ guild, blueprintKeys, nameStyle, customization, selection });
   } catch (error) {
     return { ok: false, code: error.code || error.message || 'PROMPT_APPLY_INVALID' };
   }

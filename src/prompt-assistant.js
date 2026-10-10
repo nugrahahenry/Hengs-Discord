@@ -18,6 +18,9 @@ const FOCUS_NEGATION = /[?"“”]|\b(?:jangan|jgn|tidak|nggak|gak|ga|enggak|bel
 const FOCUS_SCHEDULE = /\b(?:besok|nanti|jam|pukul|menit|durasi|selama)\b|\d+\s*(?:j|h|m)\b/i;
 const CHANNEL_STYLE_EMOJI = /\b(?:emoji|ikon|icon|estetik|aesthetic)\b/i;
 const CHANNEL_STYLE_PLAIN = /\b(?:polos|plain|sederhana|minimal)\b/i;
+const COMMUNITY_LAYOUT_AURORA = /\b(?:aurora|neon|glow|bercahaya)\b/i;
+const COMMUNITY_LAYOUT_MIDNIGHT = /\b(?:midnight|gelap|dark|malam)\b/i;
+const COMMUNITY_LAYOUT_MINIMAL = /\b(?:minimal|clean|bersih|rapi)\b/i;
 const COMMUNITY_LABEL_BLOCKED = /(?:@|https?:\/\/|discord\.gg|\b(?:permission|permis|izin|webhook|token|hapus|delete|pindah|move|rename)\b|```|[<>]|\d{17,20})/i;
 const COMMUNITY_LABEL_MAX = 90;
 const COMMUNITY_COPY_MAX = 180;
@@ -76,6 +79,69 @@ const BLUEPRINTS = Object.freeze([
 ]);
 
 const CHANNEL_NAME_STYLES = Object.freeze(['plain', 'emoji']);
+const COMMUNITY_LAYOUT_STYLES = Object.freeze(['aurora', 'midnight', 'minimal']);
+const COMMUNITY_LAYOUT_LABELS = Object.freeze({
+  aurora: 'Aurora neon',
+  midnight: 'Midnight gelap',
+  minimal: 'Minimal bersih',
+});
+const TEXT_MODES = Object.freeze(['full', 'essential', 'none']);
+const ESSENTIAL_TEXT = Object.freeze({ lobby: [0, 1, 2], core: [0], gaming: [0, 1], creator: [0, 1] });
+
+function normalizeCommunitySelection(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).some(key => !['textMode', 'voiceCount'].includes(key))) {
+    throw new Error('COMMUNITY_SELECTION_INVALID');
+  }
+  const textMode = value.textMode === undefined ? 'full' : value.textMode;
+  const voiceCount = value.voiceCount === undefined ? null : value.voiceCount;
+  if (!TEXT_MODES.includes(textMode) || (voiceCount !== null
+    && (!Number.isInteger(voiceCount) || voiceCount < 0 || voiceCount > 6))) {
+    throw new Error('COMMUNITY_SELECTION_INVALID');
+  }
+  return { textMode, voiceCount };
+}
+
+function communityChannelSlots(blueprintKeys, selection = {}) {
+  const selected = BLUEPRINTS.filter(blueprint => blueprintKeys.includes(blueprint.key));
+  const choices = normalizeCommunitySelection(selection);
+  const voiceOrder = [...selected.filter(blueprint => blueprint.key !== 'lobby'),
+    ...selected.filter(blueprint => blueprint.key === 'lobby')];
+  const voiceSlots = voiceOrder.flatMap(blueprint => blueprint.voiceChannels.map((_, index) => (
+    { blueprintKey: blueprint.key, kind: 'voice', index }
+  )));
+  if (choices.voiceCount !== null && choices.voiceCount > voiceSlots.length) {
+    throw new Error('COMMUNITY_VOICE_LIMIT');
+  }
+  const voiceKeys = new Set(voiceSlots.slice(0, choices.voiceCount ?? voiceSlots.length)
+    .map(slot => `${slot.blueprintKey}:${slot.index}`));
+  return selected.flatMap(blueprint => [
+    ...blueprint.channels.flatMap((_, index) => choices.textMode === 'none'
+      || (choices.textMode === 'essential' && !ESSENTIAL_TEXT[blueprint.key].includes(index))
+      ? [] : [{ blueprintKey: blueprint.key, kind: 'text', index }]),
+    ...blueprint.voiceChannels.flatMap((_, index) => voiceKeys.has(`${blueprint.key}:${index}`)
+      ? [{ blueprintKey: blueprint.key, kind: 'voice', index }] : []),
+  ]);
+}
+
+function parseCommunitySelection(value, previous = {}) {
+  const prompt = normalizePrompt(value).replace(/["“][^"”]*["”]/gu, '');
+  const selection = normalizeCommunitySelection(previous);
+  const modes = [];
+  if (/\b(?:text|teks)\s+(?:lengkap|full|semua)\b/i.test(prompt)) modes.push('full');
+  if (/\b(?:text|teks)\s+(?:inti|essential|ringkas)\b/i.test(prompt)) modes.push('essential');
+  if (/\b(?:tanpa|nol|0)\s+(?:text|teks)\b/i.test(prompt)) modes.push('none');
+  const voiceMatches = [...prompt.matchAll(/\b(\d+|nol|satu|dua|tiga|empat|lima|enam)\s+(?:voice(?:\s+room)?|ruang\s+suara)\b/gi)];
+  const counts = voiceMatches.map(match => /^\d+$/.test(match[1]) ? Number(match[1])
+    : ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam'].indexOf(match[1].toLowerCase()));
+  if (/\btanpa\s+(?:voice|ruang\s+suara)\b/i.test(prompt)) counts.push(0);
+  if (new Set(modes).size > 1 || new Set(counts).size > 1 || counts.some(count => count > 6)) {
+    return { selection, changed: true, error: 'Pilih satu cakupan text dan satu jumlah voice dari 0 sampai 6. Belum ada perubahan.' };
+  }
+  if (modes.length) selection.textMode = modes[0];
+  if (counts.length) selection.voiceCount = counts[0];
+  return { selection, changed: modes.length > 0 || counts.length > 0, error: null };
+}
 
 function normalizePrompt(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -130,24 +196,26 @@ function isCommunityRevisionPrompt(value) {
   if (/\b(?:jangan|jgn|jika|kalau|kalo)\b/i.test(prompt.split(/["“]/)[0])) return false;
   return /^(?:(?:pakai|pilih|ambil)\s+)?(?:opsi|template|preset)\b/i.test(prompt)
     || /^(?:ubah|ganti|revisi|sesuaikan)\b.*(?:\b(?:kategori|channel|kanal|voice|text|welcome|sambutan|sapaan)\b|["“])/i.test(prompt)
-    || /^(?:welcome|sambutan|sapaan)(?:\s+(?:message|pesan))?\s*(?:jadi|menjadi|:|=>)/i.test(prompt);
+    || /^(?:welcome|sambutan|sapaan)(?:\s+(?:message|pesan))?\s*(?:jadi|menjadi|:|=>)/i.test(prompt)
+    || /^(?:pakai|pilih|gunakan|ubah|ganti)\s+(?:tema|gaya|emoji|ikon|polos|text|teks|\d+\s+voice|tanpa\s+voice)\b/i.test(prompt);
 }
 
 function parseHomeWelcomePrompt(value) {
-  const prompt = normalizePrompt(value);
+  const prompt = normalizePrompt(value).replace(/^(?:(?:oke|tolong|coba|sekarang)\s+)+/i, '');
   if (!/\b(?:welcome|sambutan|sapaan)\b/i.test(prompt)) return null;
-
-  if (/(?:\b(?:reset|hapus|matikan|nonaktifkan|disable)\b.*\b(?:welcome|sambutan|sapaan)\b|\b(?:welcome|sambutan|sapaan)\b.*\b(?:reset|hapus|matikan|nonaktifkan|disable)\b)/i.test(prompt)) {
+  const header = prompt.split(/["“]/)[0];
+  if (/[?]/.test(header) || /\b(?:jangan|jgn|tidak|nggak|gak|belum|bukan|kalau|kalo|jika|kenapa|gimana|cara|apakah|bisa)\b/i.test(header)) return null;
+  if (/\b(?:server|struktur|kategori|channel|kanal|opsi|template|preset)\b/i.test(header)) return null;
+  if (/^(?:reset|hapus|matikan|nonaktifkan|disable)\s+(?:(?:pesan|custom)\s+)?(?:welcome|sambutan|sapaan)(?:\s+custom)?[.!]*$/i.test(prompt)) {
     return { action: 'clear' };
   }
-
-  if (/(?:\b(?:lihat|cek|tampilkan|status)\b.*\b(?:welcome|sambutan|sapaan)\b|\b(?:welcome|sambutan|sapaan)\b.*\b(?:sekarang|saat ini|aktif|apa isinya)\b)/i.test(prompt)) {
+  if (/^(?:lihat|cek|tampilkan|status)\s+(?:(?:pesan|custom)\s+)?(?:welcome|sambutan|sapaan)(?:\s+(?:custom|sekarang|saat ini))?[.!?]*$/i.test(prompt)) {
     return { action: 'show' };
   }
-
-  const match = prompt.match(/(?:ubah|ganti|set|jadikan|buat)?\s*(?:custom\s+)?(?:welcome|sambutan|sapaan)(?:\s+(?:message|pesan|custom))?\s*(?:jadi|menjadi|ke|:|=>)\s*["“]([^"”]+)["”]/iu);
+  const match = prompt.match(/^(?:(?:ubah|ganti|set|jadikan|buat)\s+)?(?:custom\s+)?(?:welcome|sambutan|sapaan)(?:\s+(?:message|pesan|custom))?\s*(?:jadi|menjadi|ke|:|=>)\s*["“]([^"”]+)["”][.!]*$/iu);
   if (!match) {
-    if (/\b(?:ubah|ganti|set|jadikan|buat)\b/i.test(prompt)) return { action: 'invalid' };
+    if (/^(?:ubah|ganti|set|jadikan|buat)\s+(?:welcome|sambutan|sapaan)\b/i.test(prompt)
+      && !/\b(?:opsi|kategori|channel|kanal)\b/i.test(header)) return { action: 'invalid' };
     return null;
   }
   const welcomeCopy = normalizeCustomLabel(match[1], 'copy');
@@ -207,7 +275,7 @@ function hasSpecificCommunityCue(prompt) {
   const lower = normalizePrompt(prompt).toLowerCase();
   return BLUEPRINTS.slice(1).some(blueprint => (
     blueprint.cues.some(cue => lower.includes(cue))
-  )) || /\b(?:text|voice|suara|kategori|lobi|ruang|opsi\s*[1-4]|template|preset)\b/i.test(lower)
+  )) || /\b(?:text|voice|suara|kategori|lobi|ruang|campuran|opsi\s*[1-4]|template|preset)\b/i.test(lower)
     || parseCommunityCustomization(prompt).entries.length > 0;
 }
 
@@ -216,6 +284,17 @@ function resolveChannelNameStyle(prompt) {
   if (CHANNEL_STYLE_EMOJI.test(normalized)) return 'emoji';
   if (CHANNEL_STYLE_PLAIN.test(normalized)) return 'plain';
   return 'plain';
+}
+
+function resolveCommunityLayoutStyle(prompt) {
+  const normalized = normalizePrompt(prompt);
+  if (COMMUNITY_LAYOUT_MIDNIGHT.test(normalized)) return 'midnight';
+  if (COMMUNITY_LAYOUT_MINIMAL.test(normalized)) return 'minimal';
+  return 'aurora';
+}
+
+function communityLayoutLabel(style = 'aurora') {
+  return COMMUNITY_LAYOUT_LABELS[style] || COMMUNITY_LAYOUT_LABELS.aurora;
 }
 
 function channelName(blueprint, kind, index, style = 'plain') {
@@ -335,7 +414,8 @@ function parseCommunityCustomization(prompt, previous = {}) {
   if (Object.keys(categoryNames).length + Object.keys(channelNames).length > COMMUNITY_REVISION_MAX) {
     addWarning('Maksimal delapan revisi nama dalam satu draft.');
   }
-  if (entries === 0 && warnings.length === 0 && /\b(?:ubah|ganti|revisi|sesuaikan)\b/i.test(normalized)) {
+  if (entries === 0 && warnings.length === 0 && /\b(?:ubah|ganti|revisi|sesuaikan)\b/i.test(normalized)
+    && !/^(?:ubah|ganti)\s+(?:tema|gaya|text|teks)\b/i.test(normalized)) {
     addWarning('Revisi belum terbaca. Contoh: ubah channel "ngobrol-santai" jadi "nongkrong".');
   }
 
@@ -370,11 +450,13 @@ function isOperationsManager({ actor, guild } = {}) {
 
 function selectBlueprints(prompt) {
   const lower = prompt.toLowerCase();
-  const option = lower.match(/\b(?:opsi|template|preset)\s*([1-4])\b/i);
-  if (option) {
-    const selected = BLUEPRINTS[Number(option[1]) - 1];
-    if (selected) return selected.key === 'lobby' ? [selected] : [BLUEPRINTS[0], selected];
+  const options = [...lower.matchAll(/\b(?:opsi|template|preset)\s*([1-4](?:\s*(?:,|dan|&|\+)\s*[1-4])*)\b/gi)];
+  if (options.length) {
+    const selected = new Set(['lobby', ...options.flatMap(match => match[1].match(/[1-4]/g)
+      .map(number => BLUEPRINTS[Number(number) - 1].key))]);
+    return BLUEPRINTS.filter(blueprint => selected.has(blueprint.key));
   }
+  if (/\b(?:campuran|semua\s+area)\b/i.test(lower)) return [...BLUEPRINTS];
   const requested = BLUEPRINTS.filter((blueprint) => (
     blueprint.cues.length === 0
       || blueprint.cues.some(cue => lower.includes(cue))
@@ -438,25 +520,28 @@ function selectBlueprintKeys(prompt) {
   return selectBlueprints(prompt).map(blueprint => blueprint.key);
 }
 
-function buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle = 'plain', customization = {}) {
+function buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle = 'plain', customization = {}, layoutStyle = 'aurora', selection = {}) {
   const selected = new Set(Array.isArray(blueprintKeys) ? blueprintKeys : []);
   const revision = normalizeCommunityCustomization(customization);
+  const safeLayoutStyle = COMMUNITY_LAYOUT_STYLES.includes(layoutStyle) ? layoutStyle : 'aurora';
+  const slots = communityChannelSlots([...selected], selection);
   const sections = BLUEPRINTS
     .filter(blueprint => selected.has(blueprint.key))
     .map(blueprint => {
-      const textChannels = blueprint.channels.map((_, index) => {
+      const textChannels = slots.filter(slot => slot.blueprintKey === blueprint.key && slot.kind === 'text').map(({ index }) => {
         const { name, present } = plannedChannel(blueprint, 'text', index, guild, nameStyle, revision);
         const marker = present ? 'sudah ada' : 'disarankan';
         return '  ├─ 💬 #' + name + ' (' + marker + ')';
       });
-      const voiceChannels = (blueprint.voiceChannels || []).map((_, index) => {
+      const voiceChannels = slots.filter(slot => slot.blueprintKey === blueprint.key && slot.kind === 'voice').map(({ index }) => {
         const { name, present } = plannedChannel(blueprint, 'voice', index, guild, nameStyle, revision);
         const marker = present ? 'sudah ada' : 'disarankan';
         return '  └─ 🔊 ' + name + ' (' + marker + ')';
       });
+      if (!textChannels.length && !voiceChannels.length) return null;
       const category = plannedCategoryName(blueprint, guild, nameStyle, revision);
       return ['**' + category + '**', ...textChannels, ...voiceChannels].join('\n');
-    });
+    }).filter(Boolean);
 
   const revisionLines = [];
   if (Object.keys(revision.categoryNames).length || Object.keys(revision.channelNames).length) {
@@ -473,6 +558,8 @@ function buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle = 'plain', c
 
   return [
     '🧭 **Rancangan komunitas Hengs**',
+    `Tema preview: **${communityLayoutLabel(safeLayoutStyle)}**`,
+    `Pilihan: ${slots.filter(slot => slot.kind === 'text').length} text, ${slots.filter(slot => slot.kind === 'voice').length} voice. Tema hanya untuk kartu preview.`,
     '',
     ...sections,
     ...(revisionLines.length ? ['', ...revisionLines] : []),
@@ -483,9 +570,12 @@ function buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle = 'plain', c
 
 function buildCommunityPlan(prompt, guild) {
   const nameStyle = resolveChannelNameStyle(prompt);
+  const layoutStyle = resolveCommunityLayoutStyle(prompt);
   const revision = parseCommunityCustomization(prompt).customization;
+  const selection = parseCommunitySelection(prompt);
+  if (selection.error) return selection.error;
   return [
-    buildCommunityPlanFromKeys(selectBlueprintKeys(prompt), guild, nameStyle, revision),
+    buildCommunityPlanFromKeys(selectBlueprintKeys(prompt), guild, nameStyle, revision, layoutStyle, selection.selection),
     `Gaya nama: **${nameStyle === 'emoji' ? 'ikon dan emoji' : 'polos'}**. Kalau sudah cocok, tekan tombol **Tinjau sekarang** untuk membuka preview privat.`,
   ].join('\n').slice(0, 1900);
 }
@@ -496,12 +586,14 @@ function buildCommunityQuestions() {
     '',
     '1. Fokus komunitasnya apa: gaming, creator, belajar, atau campuran?',
     '2. Area text apa yang wajib ada: lobi, mabar, karya, promosi, atau lainnya?',
-    '3. Voice room-nya mau berapa dan untuk apa: santai, mabar, tournament, atau live?',
+    '3. Text mau lengkap, inti saja, atau tanpa text? Voice room mau berapa? Pilih 0 sampai jumlah yang tersedia di template.',
     '4. Nama channel mau polos atau pakai ikon dan emoji?',
+    '5. Tema preview mau aurora neon, midnight gelap, atau minimal bersih?',
     '',
     'Pilihan cepat: opsi 1 = lobi masuk, opsi 2 = server core, opsi 3 = area gaming, opsi 4 = creator studio.',
-    'Contoh: "gaming santai, text mabar dan galeri, tiga voice room untuk mabar dan tournament".',
-    'Contoh: "gaming santai, text mabar dan galeri, tiga voice room, pakai ikon".',
+    'Text inti = pengumuman, sambutan, rules, dan ruang utama tiap area. Voice dipilih dari area utama dulu, lalu lobi.',
+    'Contoh: "rancang opsi 3, text inti, 2 voice room, pakai ikon, tema midnight".',
+    'Opsi boleh digabung, misalnya "rancang opsi 2 dan 3, text lengkap, tanpa voice".',
     'Contoh revisi: ubah channel "ngobrol-santai" jadi "nongkrong", pakai emoji.',
     'Setelah itu Hengs kirim preview visual privat. Belum ada channel yang diubah.',
   ].join('\n');
@@ -512,6 +604,7 @@ function buildPromptHelp() {
     '💬 **Prompt yang bisa kamu pakai ke Hengs**',
     '',
     '• "Rancang struktur server gaming dengan area mabar dan creator."',
+    '• Tambahkan "tema aurora", "tema midnight", atau "tema minimal" untuk memilih gaya kartu preview.',
     '• "Rapikan lobi masuk dan tunjukkan channel yang masih kurang."',
     '• "Buatkan rancangan area creator untuk live stream dan showcase."',
     '• "Buat pengumuman maintenance server malam ini" untuk membuat draft privat di Ops Hub.',
@@ -640,14 +733,33 @@ function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, 
   }
   const hasOption = /\b(?:opsi|template|preset)\s*([1-4])\b/i.test(result.prompt);
   const blueprintKeys = continuing && !hasOption ? communityDraft.blueprintKeys : selectBlueprintKeys(result.prompt);
+  const chosen = parseCommunitySelection(result.prompt, continuing ? communityDraft.selection : {});
+  if (chosen.error) return { handled: true, kind: 'community_selection_invalid', content: chosen.error };
+  let slots;
+  try { slots = communityChannelSlots(blueprintKeys, chosen.selection); } catch {
+    const available = BLUEPRINTS.filter(blueprint => blueprintKeys.includes(blueprint.key))
+      .reduce((total, blueprint) => total + blueprint.voiceChannels.length, 0);
+    return { handled: true, kind: 'community_selection_invalid', content: `Template area ini menyediakan maksimal ${available} voice room. Pilih jumlah dari 0 sampai ${available}. Belum ada perubahan.` };
+  }
+  if (!slots.length || (parsed.customization.welcomeCopy && !slots.some(slot => slot.blueprintKey === 'lobby' && slot.kind === 'text' && slot.index === 1))) {
+    return { handled: true, kind: 'community_selection_invalid', content: 'Pilih minimal satu channel. Untuk memasang sapaan, sertakan text inti atau text lengkap. Belum ada perubahan.' };
+  }
   const hasStyle = CHANNEL_STYLE_EMOJI.test(result.prompt) || CHANNEL_STYLE_PLAIN.test(result.prompt);
   const nameStyle = continuing && !hasStyle ? communityDraft.nameStyle : resolveChannelNameStyle(result.prompt);
+  const hasLayoutStyle = COMMUNITY_LAYOUT_AURORA.test(result.prompt)
+    || COMMUNITY_LAYOUT_MIDNIGHT.test(result.prompt)
+    || COMMUNITY_LAYOUT_MINIMAL.test(result.prompt);
+  const layoutStyle = continuing && !hasLayoutStyle
+    ? (communityDraft.layoutStyle || 'aurora')
+    : resolveCommunityLayoutStyle(result.prompt);
   return {
     handled: true,
     kind: result.kind,
-    content: `${buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle, parsed.customization)}\nGaya nama: **${nameStyle === 'emoji' ? 'ikon dan emoji' : 'polos'}**. Tinjau lalu konfirmasi owner sebelum menerapkan.`.slice(0, 1900),
+    content: `${buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle, parsed.customization, layoutStyle, chosen.selection)}\nGaya nama: **${nameStyle === 'emoji' ? 'ikon dan emoji' : 'polos'}**. Tinjau lalu konfirmasi owner sebelum menerapkan.`.slice(0, 1900),
     blueprintKeys,
     nameStyle,
+    layoutStyle,
+    selection: chosen.selection,
     customization: parsed.customization,
     replaceTicketId: continuing ? communityDraft.id : null,
   };
@@ -657,6 +769,10 @@ module.exports = {
   MAX_PROMPT_LENGTH,
   BLUEPRINTS,
   CHANNEL_NAME_STYLES,
+  COMMUNITY_LAYOUT_STYLES,
+  normalizeCommunitySelection,
+  parseCommunitySelection,
+  communityChannelSlots,
   isGuildManager,
   normalizePrompt,
   classifyPrompt,
@@ -675,6 +791,8 @@ module.exports = {
   categoryName,
   categoryNameAliases,
   resolveChannelNameStyle,
+  resolveCommunityLayoutStyle,
+  communityLayoutLabel,
   COMMUNITY_REVISION_MAX,
   normalizeCommunityCustomization,
   parseCommunityCustomization,

@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { MessageFlags } = require('discord.js');
-const { resetForTests, issueReview, getTicket, handleComponent, TTL_MS } = require('../src/prompt-review');
+const { resetForTests, issueReview, getTicket, getDraftForRequester, handleComponent, TTL_MS } = require('../src/prompt-review');
 
 const GUILD = '223456789012345678';
 const OTHER_GUILD = '523456789012345678';
@@ -51,9 +51,44 @@ test('issueReview stores a bounded ticket and excludes invisible channels from f
   });
   assert.equal(result.ok, true);
   assert.equal(result.ticket.blueprintKeys.join(','), 'lobby,gaming');
+  assert.equal(result.ticket.layoutStyle, 'aurora');
   assert.equal(result.ticket.expiresAt, 1000 + TTL_MS);
   assert.equal(result.components[0].components.length, 2);
   assert.equal(getTicket(result.ticket.id, 1001).fingerprint, result.ticket.fingerprint);
+});
+
+test('issueReview accepts only the fixed community preview themes', () => {
+  const result = issueReview({
+    guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER,
+    blueprintKeys: ['lobby'], layoutStyle: 'midnight', now: 1000,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.ticket.layoutStyle, 'midnight');
+  const invalid = issueReview({
+    guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER,
+    blueprintKeys: ['creator'], layoutStyle: 'custom', now: 20000,
+  });
+  assert.equal(invalid.ok, false);
+  assert.equal(invalid.code, 'PROMPT_REVIEW_LAYOUT_STYLE_INVALID');
+});
+
+test('issueReview preserves bounded channel selection and allows the requester to revise it', () => {
+  const first = issueReview({
+    guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER,
+    blueprintKeys: ['lobby', 'gaming'], selection: { textMode: 'essential', voiceCount: 2 }, now: 1000,
+  });
+  assert.equal(first.ok, true);
+  assert.deepEqual(first.ticket.selection, { textMode: 'essential', voiceCount: 2 });
+  assert.deepEqual(getDraftForRequester({ guildId: GUILD, channelId: CHANNEL, requesterId: OWNER, now: 1001 }).selection,
+    { textMode: 'essential', voiceCount: 2 });
+  const revised = issueReview({
+    guild: guild(), guildId: GUILD, channelId: CHANNEL, requesterId: OWNER,
+    blueprintKeys: ['lobby'], selection: { textMode: 'full', voiceCount: 1 }, replaceTicketId: first.ticket.id, now: 1002,
+  });
+  assert.equal(revised.ok, true);
+  assert.equal(getTicket(first.ticket.id, 1003), null);
+  assert.deepEqual(getDraftForRequester({ guildId: GUILD, channelId: CHANNEL, requesterId: OWNER, now: 1003 }).selection,
+    { textMode: 'full', voiceCount: 1 });
 });
 
 test('review checks source message, same guild, same channel, and expiry', async () => {

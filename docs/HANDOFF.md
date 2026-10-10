@@ -2,6 +2,22 @@
 
 Updated: 2026-10-10
 
+## Hengs Discord v1.50.0 Community Builder Themes
+
+- Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
+  Discord mutation was performed.
+- Community Builder now carries one of three fixed preview themes, Aurora neon, Midnight gelap, or
+  Minimal bersih, plus bounded text coverage and voice count choices through the private text plan,
+  visual card, review ticket, and Apply gate.
+- Text coverage is full, essential, or none. Voice count is zero through the available template
+  slots, prioritizing selected area voices before the lobby. Choices are validated in memory and do
+  not change channel creation safety, existing-name matching, welcome state, public guild
+  configuration, or persistent schema.
+- Release metadata is synchronized to v1.50.0. Cloud remains held at the accepted production
+  version until a separate deploy approval.
+- Focused prompt, preview, review, command, community, and release checks are required before
+  commit. Push remains subject to the existing local GitHub DNS transport blocker.
+
 ## Hengs Discord v1.49.0 Welcome Copy Controls
 
 - Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud

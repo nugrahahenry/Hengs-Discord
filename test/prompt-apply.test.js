@@ -94,6 +94,21 @@ test('emoji layout reuses a plain category and only creates missing channels und
   assert.equal(operations.find(operation => operation.kind === 'text').name, '📢・announcements');
 });
 
+test('apply plan creates only the selected bounded text and voice slots', async () => {
+  const target = guild([]);
+  const fingerprint = channelInventoryFingerprint(target);
+  const result = await applyCommunityPlan({
+    guild: target,
+    blueprintKeys: ['lobby', 'gaming'],
+    selection: { textMode: 'essential', voiceCount: 2 },
+    expectedFingerprint: fingerprint,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(target.created.filter(item => item.type === ChannelType.GuildVoice).length, 2);
+  assert.equal(target.created.filter(item => item.type === ChannelType.GuildText).length, 5);
+  assert.equal(target.created.some(item => item.name === 'galeri-roblox'), false);
+});
+
 test('custom revisions create requested names without renaming existing channels', () => {
   const target = guild([{ id: '923456789012345678', name: 'AREA GAMING', type: ChannelType.GuildCategory }]);
   const operations = buildCommunityOperations({

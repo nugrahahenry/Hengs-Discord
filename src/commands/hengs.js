@@ -6,7 +6,7 @@ const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store')
 const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-assistant');
 const { formatOperationStatus } = require('../prompt-operations');
-const { issueReview } = require('../prompt-review');
+const { issueReview, getDraftForRequester } = require('../prompt-review');
 const { thinkingReplyPayload } = require('../assistant-ux');
 const { applyHomeWelcomeAction } = require('../guilds/home-welcome-actions');
 const { createMemoryClient, createMemoryAssistant, createMemorySession, parseMemoryIntent, STALE: MEMORY_STALE } = require('../selective-memory');
@@ -221,19 +221,24 @@ async function execute(interaction, {
     guild: interaction.guild,
     privateReply: true,
     personalPending,
+    communityDraft: scope.kind === 'home' && isGuildManager({ actor: interaction, guild: interaction.guild })
+      ? getDraftForRequester({ guildId: interaction.guildId, channelId: interaction.channelId, requesterId: interaction.user.id })
+      : null,
   });
   if (promptRoute.handled) {
     if (promptRoute.kind === 'home_welcome_action') {
+      let content;
       try {
-        await replyPrivate(interaction, applyHomeWelcomeAction({
+        content = applyHomeWelcomeAction({
           route: promptRoute,
           guildId: interaction.guildId,
           store: homeWelcomeStore,
-        }));
-      } catch (error) {
-        logger.error('[home-welcome] HOME_WELCOME_ACTION_FAILED', { code: error.code || 'ACTION_FAILED' });
-        await replyPrivate(interaction, 'Welcome custom belum bisa diubah sekarang. Welcome bawaan tetap aman, coba lagi nanti ya.');
+        });
+      } catch {
+        logger.error('[home-welcome] HOME_WELCOME_ACTION_FAILED');
+        content = 'Welcome custom belum bisa diproses. Tidak dicoba ulang otomatis. Cek `lihat welcome` sebelum mencoba lagi.';
       }
+      await replyPrivate(interaction, content);
       return;
     }
     if (promptRoute.kind === 'personal_action') {
@@ -352,6 +357,9 @@ async function execute(interaction, {
       requesterId: interaction.user.id,
       blueprintKeys: promptRoute.blueprintKeys,
       nameStyle: promptRoute.nameStyle,
+      layoutStyle: promptRoute.layoutStyle,
+      selection: promptRoute.selection,
+      replaceTicketId: promptRoute.replaceTicketId,
       customization: promptRoute.customization,
     });
     if (!review.ok) {

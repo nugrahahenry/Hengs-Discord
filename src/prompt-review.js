@@ -10,8 +10,11 @@ const {
 const {
   BLUEPRINTS,
   CHANNEL_NAME_STYLES,
+  COMMUNITY_LAYOUT_STYLES,
   buildCommunityPlanFromKeys,
   normalizeCommunityCustomization,
+  normalizeCommunitySelection,
+  communityChannelSlots,
 } = require('./prompt-assistant');
 const { channelInventoryFingerprint, visibleChannels } = require('./prompt-apply');
 const { renderCommunityPreviewCard } = require('./prompt-preview-card');
@@ -93,14 +96,19 @@ function makeComponents(ticket, stage = 'issued') {
   return [new ActionRowBuilder().addComponents(buttons)];
 }
 
-function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, nameStyle = 'plain', customization = {}, now = Date.now() } = {}) {
+function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, nameStyle = 'plain', layoutStyle = 'aurora', customization = {}, selection = {}, replaceTicketId = null, now = Date.now() } = {}) {
   cleanup(now);
   if (!SNOWFLAKE.test(String(guildId || ''))
     || !SNOWFLAKE.test(String(channelId || ''))
     || !SNOWFLAKE.test(String(requesterId || ''))) {
     return { ok: false, code: 'PROMPT_REVIEW_INVALID' };
   }
-  if (tickets.size >= MAX_TICKETS) return { ok: false, code: 'PROMPT_REVIEW_BUSY' };
+  const previous = replaceTicketId && tickets.get(replaceTicketId);
+  if (replaceTicketId && (!previous || previous.guildId !== guildId
+    || previous.channelId !== channelId || previous.requesterId !== requesterId)) {
+    return { ok: false, code: 'PROMPT_REVIEW_INVALID' };
+  }
+  if (tickets.size >= MAX_TICKETS && !previous) return { ok: false, code: 'PROMPT_REVIEW_BUSY' };
   const inventory = visibleInventory(guild);
   if (!inventory) return { ok: false, code: 'PROMPT_REVIEW_UNAVAILABLE' };
   let keys;
@@ -110,10 +118,20 @@ function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, na
     return { ok: false, code: 'PROMPT_REVIEW_INVALID' };
   }
   if (!CHANNEL_NAME_STYLES.includes(nameStyle)) return { ok: false, code: 'PROMPT_REVIEW_NAME_STYLE_INVALID' };
+  if (!COMMUNITY_LAYOUT_STYLES.includes(layoutStyle)) return { ok: false, code: 'PROMPT_REVIEW_LAYOUT_STYLE_INVALID' };
+  let chosen;
+  try {
+    chosen = normalizeCommunitySelection(selection);
+    const slots = communityChannelSlots(keys, chosen);
+    const welcomeCopy = normalizeCommunityCustomization(customization).welcomeCopy;
+    if (!slots.length || (welcomeCopy && !slots.some(slot => slot.blueprintKey === 'lobby' && slot.kind === 'text' && slot.index === 1))) {
+      return { ok: false, code: 'PROMPT_REVIEW_SELECTION_INVALID' };
+    }
+  } catch { return { ok: false, code: 'PROMPT_REVIEW_SELECTION_INVALID' }; }
   const recent = [...tickets.values()].find(ticket => (
     ticket.requesterId === requesterId && ticket.guildId === guildId && ticket.createdAt + COOLDOWN_MS > now
   ));
-  if (recent) return { ok: false, code: 'PROMPT_REVIEW_COOLDOWN' };
+  if (recent && recent.id !== previous?.id) return { ok: false, code: 'PROMPT_REVIEW_COOLDOWN' };
   let id;
   do id = crypto.randomBytes(12).toString('hex'); while (tickets.has(id));
   const ticket = {
@@ -123,6 +141,8 @@ function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, na
     requesterId: String(requesterId),
     blueprintKeys: keys,
     nameStyle,
+    layoutStyle,
+    selection: chosen,
     customization: normalizeCommunityCustomization(customization),
     fingerprint: inventory.fingerprint,
     createdAt: now,
@@ -131,6 +151,7 @@ function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, na
     stage: 'issued',
     messageId: null,
   };
+  if (previous) tickets.delete(previous.id);
   tickets.set(id, ticket);
   return {
     ok: true,
@@ -142,6 +163,16 @@ function issueReview({ guild, guildId, channelId, requesterId, blueprintKeys, na
 function getTicket(id, now = Date.now()) {
   cleanup(now);
   return TICKET_ID.test(String(id || '')) ? tickets.get(id) || null : null;
+}
+
+function getDraftForRequester({ guildId, channelId, requesterId, now = Date.now() } = {}) {
+  cleanup(now);
+  const ticket = [...tickets.values()].filter(item => item.guildId === guildId
+    && item.channelId === channelId && item.requesterId === requesterId)
+    .sort((left, right) => right.createdAt - left.createdAt)[0];
+  if (!ticket) return null;
+  return structuredClone({ id: ticket.id, blueprintKeys: ticket.blueprintKeys, nameStyle: ticket.nameStyle,
+    layoutStyle: ticket.layoutStyle, customization: ticket.customization, selection: ticket.selection });
 }
 
 function isOwner(interaction, guild) {
@@ -213,7 +244,7 @@ async function handleComponent(interaction, {
   if (action === 'review') {
     ticket.stage = 'reviewed';
     await interaction.update({
-      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle, ticket.customization)}\n\nReview privat aktif. Belum ada yang diterapkan.`,
+      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle, ticket.customization, ticket.layoutStyle, ticket.selection)}\n\nReview privat aktif. Belum ada yang diterapkan.`,
       components: makeComponents(ticket, 'reviewed'),
       allowedMentions: { parse: [] },
     }).catch(() => {});
@@ -226,7 +257,7 @@ async function handleComponent(interaction, {
     }
     let card;
     try {
-      card = renderCommunityPreviewCard({ blueprintKeys: ticket.blueprintKeys, nameStyle: ticket.nameStyle, customization: ticket.customization, guild: interaction.guild });
+      card = renderCommunityPreviewCard({ blueprintKeys: ticket.blueprintKeys, nameStyle: ticket.nameStyle, layoutStyle: ticket.layoutStyle, customization: ticket.customization, selection: ticket.selection, guild: interaction.guild });
     } catch {
       logger.error('[prompt-review] PROMPT_PREVIEW_CARD_FAILED');
       card = null;
@@ -239,7 +270,7 @@ async function handleComponent(interaction, {
       ? 'Tombol Terapkan sekarang sudah siap.'
       : 'Pilihan apply tetap menunggu konfirmasi owner.';
     await interaction.update({
-      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle, ticket.customization)}\n\nKartu visual privat siap. ${applyHint}`,
+      content: `${buildCommunityPlanFromKeys(ticket.blueprintKeys, interaction.guild, ticket.nameStyle, ticket.customization, ticket.layoutStyle, ticket.selection)}\n\nKartu visual privat siap. ${applyHint}`,
       files: [{ attachment: card, name: 'hengs-community-preview.png' }],
       components: makeComponents(ticket, ticket.stage),
       allowedMentions: { parse: [] },
@@ -275,6 +306,7 @@ async function handleComponent(interaction, {
         blueprintKeys: ticket.blueprintKeys,
         nameStyle: ticket.nameStyle,
         customization: ticket.customization,
+        selection: ticket.selection,
         expectedFingerprint: ticket.fingerprint,
       });
     } catch {
@@ -329,6 +361,7 @@ module.exports = {
   TTL_MS,
   issueReview,
   getTicket,
+  getDraftForRequester,
   handleComponent,
   resetForTests,
   visibleInventory,

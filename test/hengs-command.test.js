@@ -265,6 +265,7 @@ test('/hengs ask handles an owner community prompt without provider traffic', as
   assertPrivate(value.replyPayload);
   assert.match(value.replyPayload.content, /Rancangan komunitas Hengs/i);
   assert.match(value.replyPayload.content, /#info-mabar/);
+  assert.match(value.replyPayload.content, /Tema preview: \*\*Aurora neon\*\*/);
   assert.equal(deps.calls.some(call => call.chat), false);
   assert.equal(deps.calls.some(call => call.acquire), false);
 });

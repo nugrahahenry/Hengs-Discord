@@ -5,6 +5,22 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.50.0] - 2026-10-10
+
+### Added
+
+- Community Builder menampilkan tiga tema preview tetap: Aurora neon, Midnight gelap, dan Minimal
+  bersih.
+- Owner dapat memilih text lengkap, text inti, atau tanpa text, serta jumlah voice room yang
+  tersedia untuk area terpilih. Tema, pilihan area, cakupan channel, gaya nama, dan revisi bounded
+  tersimpan hanya di ticket preview privat sampai owner menekan Apply. Tidak ada schema state baru
+  atau provider call.
+
+### Scope
+
+- Local-only checkpoint. Cloud tetap di release produksi yang diterima sampai ada approval deploy
+  terpisah. Tidak ada token change, QR, atau mutasi cloud.
+
 ## [1.49.0] - 2026-10-10
 
 ### Added

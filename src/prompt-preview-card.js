@@ -8,6 +8,8 @@ try {
 }
 const {
   BLUEPRINTS,
+  communityLayoutLabel,
+  communityChannelSlots,
   plannedCategoryName,
   plannedChannel,
 } = require('./prompt-assistant');
@@ -26,12 +28,13 @@ function trimText(value, max = 30) {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
 
-function targetRows(blueprintKeys, guild, nameStyle = 'plain', customization = {}) {
+function targetRows(blueprintKeys, guild, nameStyle = 'plain', customization = {}, selection = {}) {
   const selected = new Set(Array.isArray(blueprintKeys) ? blueprintKeys.map(String) : []);
+  const slots = communityChannelSlots([...selected], selection);
   const rows = [];
   for (const blueprint of BLUEPRINTS) {
     if (!selected.has(blueprint.key)) continue;
-    for (let index = 0; index < blueprint.channels.length; index += 1) {
+    for (const { index } of slots.filter(slot => slot.blueprintKey === blueprint.key && slot.kind === 'text')) {
       const planned = plannedChannel(blueprint, 'text', index, guild, nameStyle, customization);
       rows.push({
         section: plannedCategoryName(blueprint, guild, nameStyle, customization),
@@ -39,7 +42,7 @@ function targetRows(blueprintKeys, guild, nameStyle = 'plain', customization = {
         ...planned,
       });
     }
-    for (let index = 0; index < (blueprint.voiceChannels || []).length; index += 1) {
+    for (const { index } of slots.filter(slot => slot.blueprintKey === blueprint.key && slot.kind === 'voice')) {
       const planned = plannedChannel(blueprint, 'voice', index, guild, nameStyle, customization);
       rows.push({
         section: plannedCategoryName(blueprint, guild, nameStyle, customization),
@@ -69,25 +72,31 @@ function drawRoundedRect(ctx, x, y, width, height, radius, fill) {
   ctx.restore();
 }
 
-function renderCommunityPreviewCard({ blueprintKeys, guild, nameStyle = 'plain', customization = {} } = {}) {
+function renderCommunityPreviewCard({ blueprintKeys, guild, nameStyle = 'plain', layoutStyle = 'aurora', customization = {}, selection = {} } = {}) {
   if (!createCanvas) return null;
-  const rows = targetRows(blueprintKeys, guild, nameStyle, customization);
+  const rows = targetRows(blueprintKeys, guild, nameStyle, customization, selection);
   if (!rows.length) return null;
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
 
+  const themes = {
+    aurora: { stops: ['#100A2D', '#172A55', '#073C53'], glowA: 'rgba(72, 226, 255, 0.14)', glowB: 'rgba(193, 102, 255, 0.14)' },
+    midnight: { stops: ['#080B18', '#171B36', '#27204A'], glowA: 'rgba(120, 148, 255, 0.14)', glowB: 'rgba(154, 99, 217, 0.14)' },
+    minimal: { stops: ['#20242D', '#303744', '#495567'], glowA: 'rgba(168, 199, 250, 0.14)', glowB: 'rgba(214, 168, 255, 0.14)' },
+  };
+  const theme = themes[layoutStyle] || themes.aurora;
   const background = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  background.addColorStop(0, '#100A2D');
-  background.addColorStop(0.52, '#172A55');
-  background.addColorStop(1, '#073C53');
+  background.addColorStop(0, theme.stops[0]);
+  background.addColorStop(0.52, theme.stops[1]);
+  background.addColorStop(1, theme.stops[2]);
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  ctx.fillStyle = 'rgba(72, 226, 255, 0.14)';
+  ctx.fillStyle = theme.glowA;
   ctx.beginPath();
   ctx.arc(1020, 78, 190, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(193, 102, 255, 0.14)';
+  ctx.fillStyle = theme.glowB;
   ctx.beginPath();
   ctx.arc(130, 590, 240, 0, Math.PI * 2);
   ctx.fill();
@@ -97,7 +106,7 @@ function renderCommunityPreviewCard({ blueprintKeys, guild, nameStyle = 'plain',
   ctx.fillText('HENGS COMMUNITY PREVIEW', 58, 72);
   ctx.fillStyle = '#B9C8E5';
   ctx.font = '500 20px Arial';
-  ctx.fillText('Preview privat sebelum perubahan server', 60, 108);
+  ctx.fillText(`Preview privat · Tema ${communityLayoutLabel(layoutStyle)}`, 60, 108);
 
   const columns = 2;
   const columnWidth = 520;

@@ -31,10 +31,20 @@ test('targetRows stays fixed, bounded, and marks existing text and voice channel
   assert.ok(rows.every(row => row.section === 'LOBI MASUK'));
 });
 
+test('targetRows follows the selected text and voice bounds', () => {
+  const rows = targetRows(['lobby', 'gaming'], guild(), 'plain', {}, { textMode: 'essential', voiceCount: 2 });
+  assert.equal(rows.filter(row => row.kind === 'voice').length, 2);
+  assert.equal(rows.filter(row => row.kind === 'text').length, 5);
+  assert.equal(rows.some(row => row.name === 'galeri-roblox'), false);
+});
+
 test('renderCommunityPreviewCard returns a PNG without prompt or guild identifiers', () => {
-  const card = renderCommunityPreviewCard({ blueprintKeys: ['gaming'], guild: guild() });
+  const card = renderCommunityPreviewCard({ blueprintKeys: ['gaming'], guild: guild(), layoutStyle: 'midnight' });
   assert.ok(Buffer.isBuffer(card));
   assert.deepEqual([...card.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(card.includes(Buffer.from(GUILD)), false);
   assert.equal(renderCommunityPreviewCard({ blueprintKeys: [], guild: guild() }), null);
+  for (const layoutStyle of ['aurora', 'midnight', 'minimal']) {
+    assert.ok(Buffer.isBuffer(renderCommunityPreviewCard({ blueprintKeys: ['lobby'], guild: guild(), layoutStyle })));
+  }
 });

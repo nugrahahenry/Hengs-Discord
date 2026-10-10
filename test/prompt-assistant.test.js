@@ -13,6 +13,9 @@ const {
   classifyPrompt,
   parseFocusPrompt,
   parseHomeWelcomePrompt,
+  parseCommunitySelection,
+  communityChannelSlots,
+  resolveCommunityLayoutStyle,
   resolvePrompt,
 } = require('../src/prompt-assistant');
 
@@ -78,6 +81,24 @@ test('community planning supports an emoji layout without changing the safety fl
   assert.match(content, /🎉・LOBI MASUK/);
   assert.match(content, /📢・announcements \(sudah ada\)/);
   assert.match(content, /Gaya nama: \*\*ikon dan emoji\*\*/);
+});
+
+test('community planning offers bounded preview themes', () => {
+  assert.equal(resolveCommunityLayoutStyle('pakai tema midnight gelap'), 'midnight');
+  assert.equal(resolveCommunityLayoutStyle('tema minimal bersih'), 'minimal');
+  assert.equal(resolveCommunityLayoutStyle('pakai neon'), 'aurora');
+  const content = buildCommunityPlan('rancang server gaming tema midnight', guild());
+  assert.match(content, /Tema preview: \*\*Midnight gelap\*\*/);
+});
+
+test('community planning selection bounds text and voice slots', () => {
+  const parsed = parseCommunitySelection('text inti, 2 voice room');
+  assert.deepEqual(parsed, { selection: { textMode: 'essential', voiceCount: 2 }, changed: true, error: null });
+  const slots = communityChannelSlots(['lobby', 'gaming'], parsed.selection);
+  assert.equal(slots.filter(slot => slot.kind === 'voice').length, 2);
+  assert.deepEqual(slots.filter(slot => slot.kind === 'voice').map(slot => slot.blueprintKey), ['gaming', 'gaming']);
+  assert.equal(parseCommunitySelection('text lengkap, text inti').error !== null, true);
+  assert.match(buildCommunityPlan('rancang opsi 2 dan 3, text inti, 2 voice room', guild()), /Pilihan: 6 text, 2 voice/);
 });
 
 test('community planning supports an option number and bounded draft revisions', () => {
@@ -179,6 +200,7 @@ test('home welcome controls are bounded, private, and owner-only', () => {
   });
   assert.equal(member.kind, 'permission');
   assert.match(member.content, /owner|Administrator/i);
+  assert.equal(classifyPrompt('rancang server gaming, welcome jadi "Halo"').kind, 'community_plan');
 });
 
 test('prompt help stays provider-free and does not promise mutations', () => {
