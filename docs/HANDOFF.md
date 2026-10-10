@@ -2,6 +2,27 @@
 
 Updated: 2026-10-10
 
+## Hengs Discord v1.48.0 Persistent Welcome Copy
+
+- Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
+  Discord mutation was performed.
+- The owner-confirmed welcome draft is now stored atomically in the home welcome state file after
+  the one-time Apply message succeeds. Later home-guild member joins reuse that bounded copy in
+  the existing welcome card. Missing or invalid state falls back to the previous fixed copy.
+- State is scoped to the configured home guild, limited to 180 characters, rejects mentions, URLs,
+  controls, and bidi characters, and is never sent as an allowed mention. Existing channel, role,
+  permission, and card behavior remains unchanged outside the description copy.
+- Release metadata is synchronized to v1.48.0. Cloud remains held at the accepted production
+  version until a separate deploy approval.
+- Focused welcome, prompt, apply, review, community, onboarding, command, and release tests pass
+  81/81. The integrated suite reaches 537/539 with one known Windows sandbox symlink fixture
+  failure and one skipped host-limited case. Syntax, whitespace, long-dash, secret, and release
+  checks pass for the changed scope.
+- Checkpoint committed locally with subject
+  `feat(community-revision): Hengs Discord v1.48.0 - persist bounded welcome copy`. Push is
+  currently blocked by the local GitHub DNS transport error. Deployment remains a separate
+  explicit action.
+
 ## Hengs Discord v1.47.0 Applyable Welcome Copy
 
 - Local-only checkpoint. No cloud deployment, command registration, token, state, Canox, or cloud

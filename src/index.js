@@ -34,6 +34,7 @@ const { InstanceLockError, createInstanceLock, resolveInstanceLockFile } = requi
 const { createWaRecoveryAlertConsumer, isWaRecoveryEnabled } = require('./runtime/wa-recovery-alerts');
 const { createGuildConfigStore, parsePublicGuildLimit } = require('./guilds/config-store');
 const { createGuildAccess } = require('./guilds/access');
+const { createHomeWelcomeStore } = require('./guilds/home-welcome-store');
 const { createPublicTrafficGuard } = require('./guilds/public-traffic-guard');
 const {
   createPublicInsightsStore,
@@ -79,6 +80,7 @@ process.on('exit', () => {
 const guildConfigStore = createGuildConfigStore({
   rootDir: process.env.HENGS_GUILD_CONFIG_DIR || undefined,
 });
+const homeWelcomeStore = createHomeWelcomeStore();
 const publicGuildLimit = parsePublicGuildLimit(process.env.HENGS_PUBLIC_GUILD_LIMIT);
 const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
@@ -312,6 +314,12 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
   try {
     const cardBuffer = await generateCard(member, 'welcome');
+    let customWelcomeCopy = null;
+    try {
+      customWelcomeCopy = homeWelcomeStore.get(member.guild.id)?.welcomeCopy || null;
+    } catch {
+      console.warn('[welcome] HOME_WELCOME_STATE_INVALID');
+    }
     // Cari channel dari env ID, lalu fallback berdasarkan nama agar link selalu bisa diklik.
     const g = member.guild;
     const linkCh = (envId, ...names) => {
@@ -322,26 +330,33 @@ client.on(Events.GuildMemberAdd, async (member) => {
     const rulesCh = linkCh(process.env.RULES_CHANNEL_ID, 'rules');
     const rolesCh = linkCh(process.env.ROLES_CHANNEL_ID, 'get-roles', 'roles');
     const annCh   = linkCh(process.env.ANNOUNCE_CHANNEL_ID, 'announcement', 'announce');
+    const defaultDescription =
+      `👋 Halo <@${member.id}>! Selamat datang di **${g.name}**! 🎉\n\n` +
+      `📜 Baca dulu rules di ${rulesCh || '**#rules**'}\n` +
+      `🎭 Ambil role kamu di ${rolesCh || '**#get-roles**'}\n` +
+      `📢 Cek pengumuman di ${annCh || '**#announcements**'}\n\n` +
+      `Butuh bantuan atau mau ngobrol? Tinggal **mention aku** (@Hengs Bot), atau coba \`/fun\` dan \`/study\`! 🤖`;
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setDescription(
-        `👋 Halo <@${member.id}>! Selamat datang di **${g.name}**! 🎉\n\n` +
-        `📜 Baca dulu rules di ${rulesCh || '**#rules**'}\n` +
-        `🎭 Ambil role kamu di ${rolesCh || '**#get-roles**'}\n` +
-        `📢 Cek pengumuman di ${annCh || '**#announcements**'}\n\n` +
-        `Butuh bantuan atau mau ngobrol? Tinggal **mention aku** (@Hengs Bot), atau coba \`/fun\` dan \`/study\`! 🤖`
-      )
+      .setDescription(customWelcomeCopy || defaultDescription)
       .setTimestamp();
 
     if (cardBuffer) {
       const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome.png' });
       embed.setImage('attachment://welcome.png');
-      await channel.send({ embeds: [embed], files: [attachment] });
+      await channel.send({
+        embeds: [embed],
+        files: [attachment],
+        ...(customWelcomeCopy ? { allowedMentions: { parse: [] } } : {}),
+      });
     } else {
       embed.setTitle(`👋 Selamat datang, ${member.displayName}!`);
       embed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
       embed.setFooter({ text: `Member ke-${member.guild.memberCount}` });
-      await channel.send({ embeds: [embed] });
+      await channel.send({
+        embeds: [embed],
+        ...(customWelcomeCopy ? { allowedMentions: { parse: [] } } : {}),
+      });
     }
   } catch (err) {
     console.error('❌ Welcome card error:', err.message);
@@ -624,7 +639,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await handlePromptReviewComponent(interaction, {
         guildAccess,
         botUserId: client.user?.id,
-        applyPlan: applyCommunityPlan,
+        applyPlan: options => applyCommunityPlan({ ...options, welcomeCopyStore: homeWelcomeStore }),
       });
     } catch (error) {
       console.error('[prompt-review] PROMPT_REVIEW_COMPONENT_FAILED', { code: error.code || 'COMPONENT_FAILED' });

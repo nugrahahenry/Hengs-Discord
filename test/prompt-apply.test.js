@@ -114,10 +114,12 @@ test('custom revisions create requested names without renaming existing channels
 
 test('applyCommunityPlan posts a custom welcome once after creating the lobby', async () => {
   const target = guild([], { sendWelcome: true });
+  const saved = [];
   const result = await applyCommunityPlan({
     guild: target,
     blueprintKeys: ['lobby'],
     customization: { welcomeCopy: 'Halo gaes, selamat datang!' },
+    welcomeCopyStore: { set: value => saved.push(value) },
     expectedFingerprint: channelInventoryFingerprint(target),
   });
   assert.equal(result.ok, true);
@@ -127,6 +129,7 @@ test('applyCommunityPlan posts a custom welcome once after creating the lobby', 
     content: 'Halo gaes, selamat datang!',
     allowedMentions: { parse: [] },
   }]);
+  assert.deepEqual(saved, [{ guildId: GUILD, welcomeCopy: 'Halo gaes, selamat datang!' }]);
 });
 
 test('custom welcome fails closed when the target cannot receive messages', async () => {

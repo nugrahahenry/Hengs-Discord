@@ -284,11 +284,15 @@ async function handleComponent(interaction, {
     ticket.terminal = true;
     tickets.delete(ticket.id);
     if (!result?.ok) {
-      const welcomeFailure = ['PROMPT_APPLY_WELCOME_PERMISSION', 'PROMPT_APPLY_WELCOME_FAILED']
+      const welcomeFailure = [
+        'PROMPT_APPLY_WELCOME_PERMISSION',
+        'PROMPT_APPLY_WELCOME_FAILED',
+        'PROMPT_APPLY_WELCOME_STATE_FAILED',
+      ]
         .includes(result?.code);
       await interaction.update({
         content: welcomeFailure
-          ? 'Sebagian penerapan mungkin sudah berjalan, tetapi pesan welcome belum terkirim. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Perbaiki izin channel lalu buat preview baru.'
+          ? 'Sebagian penerapan mungkin sudah berjalan, tetapi welcome custom belum siap dipakai otomatis. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Perbaiki izin atau state lalu buat preview baru.'
           : 'Penerapan belum selesai. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Buat preview baru setelah kondisi server siap.',
         components: [],
         allowedMentions: { parse: [] },

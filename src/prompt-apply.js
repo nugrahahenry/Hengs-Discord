@@ -144,7 +144,7 @@ function canSendWelcome(channel, guild) {
   }
 }
 
-async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, expectedFingerprint } = {}) {
+async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, expectedFingerprint, welcomeCopyStore } = {}) {
   const guildId = String(guild?.id || '');
   if (!SNOWFLAKE.test(guildId)) return { ok: false, code: 'PROMPT_APPLY_INVALID' };
   if (guildLocks.has(guildId)) return { ok: false, code: 'PROMPT_APPLY_BUSY' };
@@ -192,6 +192,13 @@ async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', c
       });
     } catch {
       return { ok: false, code: 'PROMPT_APPLY_WELCOME_FAILED', createdCount };
+    }
+    if (welcomeCopyStore?.set) {
+      try {
+        welcomeCopyStore.set({ guildId, welcomeCopy: revision.welcomeCopy });
+      } catch {
+        return { ok: false, code: 'PROMPT_APPLY_WELCOME_STATE_FAILED', createdCount, welcomeSent: true };
+      }
     }
     return { ok: true, createdCount, welcomeSent: true };
   } catch {

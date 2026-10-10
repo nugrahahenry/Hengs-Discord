@@ -5,6 +5,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.48.0] - 2026-10-10
+
+### Added
+
+- A confirmed home-guild welcome copy is stored in a bounded, atomic state file and reused by the
+  member-join welcome card on later joins.
+- The state is guild-scoped, rejects mentions, links, controls, and oversized text, and falls back
+  to the existing fixed welcome copy when the state is missing or invalid.
+
+### Scope
+
+- Local-only checkpoint. Cloud remains on the accepted production release until a separate deploy
+  approval. No provider call, token change, QR, or cloud mutation was performed.
+
 ## [1.47.0] - 2026-10-10
 
 ### Added
