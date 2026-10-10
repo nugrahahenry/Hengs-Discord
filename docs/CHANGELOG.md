@@ -5,6 +5,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.53.0] - 2026-10-11
+
+### Added
+
+- Welcome dan Leave Card mendapat bevel statis pada avatar, badge onboarding, dan panel statistik:
+  bayangan offset, highlight tepi, serta shading avatar membuat material 3D terasa lebih nyata.
+
+### Scope
+
+- Local-only checkpoint. Tidak ada perubahan copy, onboarding flow, schema, provider call, token,
+  atau mutasi cloud. Motion tetap ditunda sampai kebutuhan animasi sudah jelas.
+
 ## [1.52.0] - 2026-10-11
 
 ### Added

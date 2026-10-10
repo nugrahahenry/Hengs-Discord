@@ -2,6 +2,19 @@
 
 Updated: 2026-10-11
 
+## Hengs Discord v1.53.0 3D Card Bevel Polish
+
+- Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
+  Discord mutation was performed.
+- Avatar, onboarding badge, dan panel statistik mendapat bevel statis dengan bayangan offset,
+  highlight tepi, serta shading bawah avatar. Efek tetap deterministik dan dikirim sebagai PNG.
+- Tidak ada perubahan copy, onboarding flow, state, schema, provider call, atau permission.
+  Motion tetap ditunda agar jalur pengiriman tetap ringan.
+- Release metadata is synchronized to v1.53.0. Cloud remains held at the accepted production
+  version until the requested batch deployment.
+- Focused card, onboarding, public welcome, runtime copy, release, and visual detector checks are
+  required before commit. Push remains subject to the existing local GitHub DNS transport blocker.
+
 ## Hengs Discord v1.52.0 3D Welcome and Leave Cards
 
 - Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud

@@ -776,6 +776,18 @@ async function drawAvatar(ctx, loadImage, data, theme) {
   ctx.restore();
 
   ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, radius - 1, 0, Math.PI * 2);
+  ctx.clip();
+  const avatarShade = ctx.createLinearGradient(x, y - radius, x, y + radius);
+  avatarShade.addColorStop(0, 'rgba(255,255,255,0.08)');
+  avatarShade.addColorStop(0.58, 'rgba(255,255,255,0)');
+  avatarShade.addColorStop(1, 'rgba(4,8,35,0.28)');
+  ctx.fillStyle = avatarShade;
+  ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  ctx.restore();
+
+  ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,0.78)';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -941,8 +953,23 @@ function drawStats(ctx, data, theme) {
   const panelGradient = ctx.createLinearGradient(x, y, x + width, y + height);
   panelGradient.addColorStop(0, theme.panel);
   panelGradient.addColorStop(1, 'rgba(11,15,46,0.32)');
+  ctx.save();
+  ctx.shadowColor = hexToRgba(theme.primary, 0.28);
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 5;
   fillRoundedRect(ctx, x, y, width, height, 12, panelGradient);
+  ctx.restore();
   strokeRoundedRect(ctx, x, y, width, height, 12, hexToRgba(theme.secondary, 0.46), 1);
+
+  ctx.save();
+  roundedRectPath(ctx, x + 1, y + 1, width - 2, 16, 11);
+  ctx.clip();
+  const panelHighlight = ctx.createLinearGradient(x, y, x, y + 18);
+  panelHighlight.addColorStop(0, 'rgba(255,255,255,0.13)');
+  panelHighlight.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = panelHighlight;
+  ctx.fillRect(x, y, width, 18);
+  ctx.restore();
 
   ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -1049,8 +1076,22 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.font = fontSpec(800, 9);
   const badgeWidth = Math.min(170, Math.max(112, ctx.measureText(badge).width + 28));
   const badgeY = 181;
+  ctx.save();
+  ctx.shadowColor = hexToRgba(theme.primary, 0.38);
+  ctx.shadowBlur = 9;
+  ctx.shadowOffsetY = 4;
   fillRoundedRect(ctx, x, badgeY, badgeWidth, 20, 10, hexToRgba(theme.primary, 0.28));
+  ctx.restore();
   strokeRoundedRect(ctx, x, badgeY, badgeWidth, 20, 10, hexToRgba(theme.secondary, 0.55), 1);
+  ctx.save();
+  roundedRectPath(ctx, x + 1, badgeY + 1, badgeWidth - 2, 9, 8);
+  ctx.clip();
+  const badgeHighlight = ctx.createLinearGradient(x, badgeY, x, badgeY + 10);
+  badgeHighlight.addColorStop(0, 'rgba(255,255,255,0.20)');
+  badgeHighlight.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = badgeHighlight;
+  ctx.fillRect(x, badgeY, badgeWidth, 10);
+  ctx.restore();
   ctx.fillStyle = theme.secondary;
   ctx.font = fontSpec(800, 9);
   ctx.fillText(badge, x + 14, badgeY + 13.5);
