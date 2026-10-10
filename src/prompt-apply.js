@@ -9,6 +9,7 @@ const {
   customizedCategoryAliases,
   customizedChannelName,
   customizedChannelAliases,
+  normalizeCommunityCustomization,
 } = require('./prompt-assistant');
 
 const MAX_CREATE_OPERATIONS = 32;
@@ -95,7 +96,7 @@ function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', c
       const existingChannel = aliases.map(name => existing.get(`text\u0000${name.toLowerCase()}`)).find(Boolean);
       const name = customizedChannelName(blueprint, 'text', index, nameStyle, customization);
       if (!existingChannel) {
-        operations.push({ blueprintKey: blueprint.key, kind: 'text', name, type: ChannelType.GuildText, categoryKey, categoryId: existingCategory?.id || null });
+        operations.push({ blueprintKey: blueprint.key, slotKey: `${blueprint.key}:text:${index}`, kind: 'text', name, type: ChannelType.GuildText, categoryKey, categoryId: existingCategory?.id || null });
         existing.set(`text\u0000${name.toLowerCase()}`, { id: null, kind: 'text', name: name.toLowerCase() });
       }
     }
@@ -104,7 +105,7 @@ function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', c
       const existingChannel = aliases.map(name => existing.get(`voice\u0000${name.toLowerCase()}`)).find(Boolean);
       const name = customizedChannelName(blueprint, 'voice', index, nameStyle, customization);
       if (!existingChannel) {
-        operations.push({ blueprintKey: blueprint.key, kind: 'voice', name, type: ChannelType.GuildVoice, categoryKey, categoryId: existingCategory?.id || null });
+        operations.push({ blueprintKey: blueprint.key, slotKey: `${blueprint.key}:voice:${index}`, kind: 'voice', name, type: ChannelType.GuildVoice, categoryKey, categoryId: existingCategory?.id || null });
         existing.set(`voice\u0000${name.toLowerCase()}`, { id: null, kind: 'voice', name: name.toLowerCase() });
       }
     }
@@ -116,6 +117,31 @@ function buildCommunityOperations({ guild, blueprintKeys, nameStyle = 'plain', c
 function hasManageChannels(guild) {
   const permissions = guild?.members?.me?.permissions;
   return permissions?.has?.(PermissionFlagsBits.ManageChannels) === true;
+}
+
+function findWelcomeChannel(guild, customization, createdBySlot) {
+  const revision = normalizeCommunityCustomization(customization);
+  const blueprint = BLUEPRINTS.find(item => item.key === 'lobby');
+  const aliases = customizedChannelAliases(blueprint, 'text', 1, revision);
+  const channels = guild?.channels?.cache?.values?.() || [];
+  const existing = [...channels].find(channel => (
+    fixedChannelType(channel) === 'text'
+      && aliases.some(alias => String(channel?.name || '').trim().toLowerCase() === alias.toLowerCase())
+  ));
+  return existing || createdBySlot.get('lobby:text:1') || null;
+}
+
+function canSendWelcome(channel, guild) {
+  if (!channel || typeof channel.send !== 'function') return false;
+  try {
+    const botMember = guild?.members?.me;
+    const permissions = botMember && channel.permissionsFor?.(botMember);
+    return Boolean(permissions)
+      && permissions.has(PermissionFlagsBits.ViewChannel)
+      && permissions.has(PermissionFlagsBits.SendMessages);
+  } catch {
+    return false;
+  }
 }
 
 async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', customization = {}, expectedFingerprint } = {}) {
@@ -133,11 +159,13 @@ async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', c
   } catch (error) {
     return { ok: false, code: error.code || error.message || 'PROMPT_APPLY_INVALID' };
   }
-  if (operations.length === 0) return { ok: true, createdCount: 0 };
+  const revision = normalizeCommunityCustomization(customization);
+  if (operations.length === 0 && !revision.welcomeCopy) return { ok: true, createdCount: 0 };
 
   guildLocks.add(guildId);
   let createdCount = 0;
   const createdCategories = new Map();
+  const createdBySlot = new Map();
   try {
     for (const operation of operations) {
       const parentId = operation.kind === 'category'
@@ -149,9 +177,23 @@ async function applyCommunityPlan({ guild, blueprintKeys, nameStyle = 'plain', c
         ...(parentId ? { parent: parentId } : {}),
       });
       if (operation.kind === 'category') createdCategories.set(operation.categoryKey, String(created?.id || ''));
+      if (operation.slotKey) createdBySlot.set(operation.slotKey, created);
       createdCount += 1;
     }
-    return { ok: true, createdCount };
+    if (!revision.welcomeCopy) return { ok: true, createdCount };
+    const welcomeChannel = findWelcomeChannel(guild, revision, createdBySlot);
+    if (!canSendWelcome(welcomeChannel, guild)) {
+      return { ok: false, code: 'PROMPT_APPLY_WELCOME_PERMISSION', createdCount };
+    }
+    try {
+      await welcomeChannel.send({
+        content: revision.welcomeCopy,
+        allowedMentions: { parse: [] },
+      });
+    } catch {
+      return { ok: false, code: 'PROMPT_APPLY_WELCOME_FAILED', createdCount };
+    }
+    return { ok: true, createdCount, welcomeSent: true };
   } catch {
     return { ok: false, code: 'PROMPT_APPLY_FAILED', createdCount };
   } finally {

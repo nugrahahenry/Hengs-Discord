@@ -2,6 +2,29 @@
 
 Updated: 2026-10-10
 
+## Hengs Discord v1.47.0 Applyable Welcome Copy
+
+- Local-only checkpoint. No cloud deployment, command registration, token, state, Canox, or cloud
+  Discord mutation was performed.
+- A bounded `welcomeCopy` now travels through the private text and visual preview, review ticket,
+  and owner Apply call. On Apply, Hengs posts it once to the lobby welcome channel with mentions
+  disabled. It never edits or deletes an existing message.
+- The target must be an existing or newly created lobby welcome text channel and must expose View
+  Channel plus Send Messages. If delivery fails, the fixed result closes the ticket without an
+  automatic retry and explains that the welcome message was not sent.
+- Channel creation remains create-only. Existing categories and channels are not renamed, moved,
+  deleted, or permission-mutated. No persistent schema or provider integration was added.
+- Release metadata is synchronized to v1.47.0. The cloud release remains held at the previously
+  accepted production version until a separate deploy approval.
+- Focused prompt, apply, preview, and review tests pass 30/30. The integrated suite reaches
+  534/536 with one known Windows sandbox limitation: `cloud-state-transfer.test.js` cannot create
+  its symlink fixture. One test is skipped for the same host limitation. Syntax, whitespace,
+  long-dash, secret, and release checks pass for the changed scope.
+- Checkpoint committed locally with subject
+  `feat(community-revision): Hengs Discord v1.47.0 - apply bounded welcome copy`. Push is
+  currently blocked by the local GitHub DNS transport error. Deployment remains a separate
+  explicit action.
+
 ## Hengs Discord v1.46.0 Custom Community Revision
 
 - Local-only checkpoint. No cloud deployment, command registration, token, state, Canox, or

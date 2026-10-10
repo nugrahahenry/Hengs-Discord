@@ -5,6 +5,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-10-10
+
+### Added
+
+- Owner-confirmed community Apply can post a bounded custom welcome copy once to the lobby's
+  welcome channel after the private review flow.
+- Welcome copy uses disabled mentions and fails closed when the target channel cannot receive
+  messages. Existing channels remain create-only and are never renamed, moved, or deleted.
+
+### Scope
+
+- Local-only checkpoint. Cloud remains on the accepted production release until a separate deploy
+  approval. No provider call, token change, state migration, Canox change, or cloud mutation was
+  performed.
+
 ## [1.46.0] - 2026-10-09
 
 ### Added
@@ -13,8 +28,8 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   revisions for known category or channel names before the private preview.
 - Revisions flow consistently through text preview, visual preview, review confirmation, and the
   create-only apply plan. Existing channels are never renamed, moved, deleted, or permission-mutated.
-- Optional welcome copy is shown as a draft only. It is not persisted or activated by this local
-  checkpoint.
+- Optional welcome copy is shown as a draft only in this earlier checkpoint. Activation is added
+  in v1.47.0 after the same private review and owner Apply gate.
 
 ### Scope
 

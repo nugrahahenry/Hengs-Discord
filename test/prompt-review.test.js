@@ -93,10 +93,11 @@ test('review is private, rechecks drift, and apply needs two owner confirmations
     applyPlan: async input => {
       assert.equal(input.blueprintKeys.join(','), 'creator');
       assert.equal(input.expectedFingerprint, result.ticket.fingerprint);
-      return { ok: true, createdCount: 2 };
+      return { ok: true, createdCount: 2, welcomeSent: true };
     },
   });
   assert.match(applied.updatePayload.content, /2 channel dibuat/);
+  assert.match(applied.updatePayload.content, /Pesan welcome custom sudah dipasang/);
   assert.equal(applied.updatePayload.components.length, 0);
   assert.equal(getTicket(result.ticket.id, 1003), null);
 

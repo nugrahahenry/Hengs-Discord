@@ -284,8 +284,12 @@ async function handleComponent(interaction, {
     ticket.terminal = true;
     tickets.delete(ticket.id);
     if (!result?.ok) {
+      const welcomeFailure = ['PROMPT_APPLY_WELCOME_PERMISSION', 'PROMPT_APPLY_WELCOME_FAILED']
+        .includes(result?.code);
       await interaction.update({
-        content: 'Penerapan belum selesai. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Buat preview baru setelah kondisi server siap.',
+        content: welcomeFailure
+          ? 'Sebagian penerapan mungkin sudah berjalan, tetapi pesan welcome belum terkirim. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Perbaiki izin channel lalu buat preview baru.'
+          : 'Penerapan belum selesai. Preview ini ditutup dan tidak akan dicoba ulang otomatis. Buat preview baru setelah kondisi server siap.',
         components: [],
         allowedMentions: { parse: [] },
       }).catch(() => {});
@@ -294,10 +298,13 @@ async function handleComponent(interaction, {
     const createdCount = Number.isSafeInteger(result.createdCount) && result.createdCount >= 0
       ? result.createdCount
       : 0;
+    const welcomeLine = result.welcomeSent === true
+      ? ' Pesan welcome custom sudah dipasang satu kali.'
+      : '';
     await interaction.update({
       content: createdCount > 0
-        ? `Selesai. ${createdCount} channel dibuat sesuai blueprint. Tidak ada role, permission, rename, delete, atau pesan yang diubah.`
-        : 'Selesai. Semua channel pada blueprint sudah tersedia. Tidak ada perubahan lain yang dilakukan.',
+        ? `Selesai. ${createdCount} channel dibuat sesuai blueprint.${welcomeLine} Tidak ada role, permission, rename, atau delete yang dilakukan.`
+        : `Selesai. Semua channel pada blueprint sudah tersedia.${welcomeLine} Tidak ada perubahan lain yang dilakukan.`,
       components: [],
       allowedMentions: { parse: [] },
     }).catch(() => {});

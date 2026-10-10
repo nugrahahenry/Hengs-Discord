@@ -445,7 +445,7 @@ function buildCommunityPlanFromKeys(blueprintKeys, guild, nameStyle = 'plain', c
   for (const [key, name] of Object.entries(revision.channelNames)) {
     revisionLines.push(`Slot ${key} memakai nama "${name}" hanya jika channel lama belum ada.`);
   }
-  if (revision.welcomeCopy) revisionLines.push(`Draft sapaan: "${revision.welcomeCopy}" (belum disimpan ke pesan otomatis).`);
+  if (revision.welcomeCopy) revisionLines.push(`Draft sapaan: "${revision.welcomeCopy}" akan dipasang satu kali setelah Apply.`);
   for (const warning of revision.warnings) revisionLines.push(`Catatan: ${warning}`);
 
   return [

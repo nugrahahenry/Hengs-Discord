@@ -12,14 +12,23 @@ const {
 const GUILD = '223456789012345678';
 const OWNER = '323456789012345678';
 
-function guild(entries = [], { manage = true, create } = {}) {
+function guild(entries = [], { manage = true, create, sendWelcome = false } = {}) {
+  const sent = [];
+  const decorate = channel => (sendWelcome ? {
+    ...channel,
+    permissionsFor: () => ({
+      has: permission => permission === PermissionFlagsBits.ViewChannel
+        || permission === PermissionFlagsBits.SendMessages,
+    }),
+    async send(payload) { sent.push(payload); },
+  } : channel);
   const channels = new Map(entries.map((entry, index) => [
-    String(index), {
+    String(index), decorate({
       id: entry.id || `${823456789012345678 + index}`,
       name: entry.name,
       type: entry.type || ChannelType.GuildText,
       viewable: true,
-    },
+    }),
   ]));
   const created = [];
   return {
@@ -29,12 +38,12 @@ function guild(entries = [], { manage = true, create } = {}) {
       cache: channels,
       async create(options) {
         if (create) return create(options, created);
-        const channel = {
+        const channel = decorate({
           id: `${923456789012345678 + created.length}`,
           name: options.name,
           type: options.type,
           viewable: true,
-        };
+        });
         created.push(options);
         channels.set(String(channels.size), channel);
         return channel;
@@ -42,6 +51,7 @@ function guild(entries = [], { manage = true, create } = {}) {
     },
     members: { me: { permissions: { has: permission => manage && permission === PermissionFlagsBits.ManageChannels } } },
     created,
+    sent,
   };
 }
 
@@ -100,6 +110,38 @@ test('custom revisions create requested names without renaming existing channels
   assert.equal(operations.some(operation => operation.name === 'TEMPAT MABAR'), false);
   assert.equal(operations.some(operation => operation.name === 'nongkrong'), true);
   assert.equal(operations.some(operation => operation.name === 'ngobrol-santai'), false);
+});
+
+test('applyCommunityPlan posts a custom welcome once after creating the lobby', async () => {
+  const target = guild([], { sendWelcome: true });
+  const result = await applyCommunityPlan({
+    guild: target,
+    blueprintKeys: ['lobby'],
+    customization: { welcomeCopy: 'Halo gaes, selamat datang!' },
+    expectedFingerprint: channelInventoryFingerprint(target),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.createdCount, 8);
+  assert.equal(result.welcomeSent, true);
+  assert.deepEqual(target.sent, [{
+    content: 'Halo gaes, selamat datang!',
+    allowedMentions: { parse: [] },
+  }]);
+});
+
+test('custom welcome fails closed when the target cannot receive messages', async () => {
+  const target = guild([]);
+  const result = await applyCommunityPlan({
+    guild: target,
+    blueprintKeys: ['lobby'],
+    customization: { welcomeCopy: 'Halo gaes' },
+    expectedFingerprint: channelInventoryFingerprint(target),
+  });
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'PROMPT_APPLY_WELCOME_PERMISSION',
+    createdCount: 8,
+  });
 });
 
 test('applyCommunityPlan fails closed for drift, missing permission, and provider failure', async () => {
