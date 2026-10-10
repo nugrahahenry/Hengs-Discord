@@ -101,7 +101,25 @@ function createHomeWelcomeStore({
     }
   }
 
-  return { get, set };
+  function clear({ guildId }) {
+    const normalizedGuildId = assertGuildId(guildId);
+    if (!fsImpl.existsSync(target)) return { removed: false };
+    const stat = fsImpl.lstatSync(target);
+    if (stat.isSymbolicLink() || !stat.isFile() || stat.size > 16 * 1024) {
+      throw new Error('HOME_WELCOME_STATE_INVALID');
+    }
+    let value;
+    try {
+      value = JSON.parse(fsImpl.readFileSync(target, 'utf8'));
+    } catch {
+      throw new Error('HOME_WELCOME_STATE_INVALID');
+    }
+    validate(value, normalizedGuildId);
+    fsImpl.unlinkSync(target);
+    return { removed: true };
+  }
+
+  return { clear, get, set };
 }
 
 module.exports = {

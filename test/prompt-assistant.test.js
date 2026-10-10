@@ -12,6 +12,7 @@ const {
   buildPromptHelp,
   classifyPrompt,
   parseFocusPrompt,
+  parseHomeWelcomePrompt,
   resolvePrompt,
 } = require('../src/prompt-assistant');
 
@@ -139,6 +140,45 @@ test('generic community request stays private and does not issue a review ticket
   assert.equal(result.kind, 'community_questions');
   assert.match(result.content, /tiga hal/i);
   assert.equal(Object.hasOwn(result, 'blueprintKeys'), false);
+});
+
+test('home welcome controls are bounded, private, and owner-only', () => {
+  assert.deepEqual(parseHomeWelcomePrompt('ubah welcome jadi "Halo, selamat datang!"'), {
+    action: 'set', welcomeCopy: 'Halo, selamat datang!',
+  });
+  assert.deepEqual(parseHomeWelcomePrompt('lihat welcome sekarang'), { action: 'show' });
+  assert.deepEqual(parseHomeWelcomePrompt('reset welcome custom'), { action: 'clear' });
+  assert.deepEqual(parseHomeWelcomePrompt('ubah welcome jadi "@everyone https://bad"'), { action: 'invalid' });
+
+  const owner = resolvePrompt({
+    prompt: 'ubah welcome jadi "Halo, selamat datang!"',
+    scopeKind: 'home',
+    actor: actor(OWNER),
+    guild: guild(),
+    privateReply: true,
+  });
+  assert.equal(owner.kind, 'home_welcome_action');
+  assert.equal(owner.action, 'set');
+
+  const mention = resolvePrompt({
+    prompt: 'reset welcome custom',
+    scopeKind: 'home',
+    actor: actor(OWNER),
+    guild: guild(),
+    privateReply: false,
+  });
+  assert.equal(mention.kind, 'permission');
+  assert.match(mention.content, /privat/i);
+
+  const member = resolvePrompt({
+    prompt: 'lihat welcome',
+    scopeKind: 'home',
+    actor: actor(MEMBER),
+    guild: guild(),
+    privateReply: true,
+  });
+  assert.equal(member.kind, 'permission');
+  assert.match(member.content, /owner|Administrator/i);
 });
 
 test('prompt help stays provider-free and does not promise mutations', () => {

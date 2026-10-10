@@ -269,6 +269,34 @@ test('/hengs ask handles an owner community prompt without provider traffic', as
   assert.equal(deps.calls.some(call => call.acquire), false);
 });
 
+test('/hengs ask manages the persistent home welcome copy privately', async () => {
+  const { createHomeWelcomeStore } = require('../src/guilds/home-welcome-store');
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-command-welcome-'));
+  const store = createHomeWelcomeStore({
+    filePath: path.join(root, 'home-welcome.json'),
+    now: () => '2026-10-10T12:00:00.000Z',
+  });
+  const deps = dependencies('home');
+  deps.homeWelcomeStore = store;
+
+  for (const [prompt, expected] of [
+    ['ubah welcome jadi "Halo komunitas!"', /disimpan/],
+    ['lihat welcome', /Halo komunitas!/],
+    ['reset welcome', /dimatikan/],
+  ]) {
+    const value = interaction({ subcommand: 'ask', prompt });
+    value.guild = { ownerId: USER };
+    await hengs.execute(value, deps);
+    assertPrivate(value.replyPayload);
+    assert.match(value.replyPayload.content, expected);
+  }
+  assert.equal(store.get(GUILD), null);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});
+
 test('/hengs ask enforces selected channel before consuming traffic', async () => {
   const deps = dependencies('public', config({ channelMode: 'current', channelId: CHANNEL }));
   const value = interaction({ subcommand: 'ask', channelId: '523456789012345678' });

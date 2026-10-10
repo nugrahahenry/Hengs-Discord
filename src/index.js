@@ -844,6 +844,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       publicGuildLimit,
       publicInsightsStore,
       publicTrafficGuard,
+      homeWelcomeStore,
     });
   } catch (err) {
     if (PUBLIC_COMMANDS.has(interaction.commandName)) {

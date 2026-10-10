@@ -49,3 +49,15 @@ test('home welcome state rejects unknown keys and wrong guilds', () => {
   assert.throws(() => validateHomeWelcomeState({ ...valid, extra: true }, GUILD), /HOME_WELCOME_STATE_INVALID/);
   assert.throws(() => validateHomeWelcomeState(valid, '323456789012345678'), /HOME_WELCOME_STATE_INVALID/);
 });
+
+test('home welcome clear removes only a valid regular state file', () => {
+  const { file } = fixture();
+  const store = createHomeWelcomeStore({
+    filePath: file,
+    now: () => '2026-10-10T12:00:00.000Z',
+  });
+  store.set({ guildId: GUILD, welcomeCopy: 'Halo' });
+  assert.deepEqual(store.clear({ guildId: GUILD }), { removed: true });
+  assert.equal(fs.existsSync(file), false);
+  assert.deepEqual(store.clear({ guildId: GUILD }), { removed: false });
+});

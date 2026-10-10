@@ -8,6 +8,7 @@ const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-a
 const { formatOperationStatus } = require('../prompt-operations');
 const { issueReview } = require('../prompt-review');
 const { thinkingReplyPayload } = require('../assistant-ux');
+const { applyHomeWelcomeAction } = require('../guilds/home-welcome-actions');
 const { createMemoryClient, createMemoryAssistant, createMemorySession, parseMemoryIntent, STALE: MEMORY_STALE } = require('../selective-memory');
 
 const memoryContexts = new WeakMap();
@@ -80,6 +81,7 @@ async function execute(interaction, {
   opsHub,
   eventHub,
   personalAssistant,
+  homeWelcomeStore,
   logger = console,
 }) {
   if (!interaction.inGuild?.() || !interaction.guildId) {
@@ -142,6 +144,7 @@ async function execute(interaction, {
       'Tulis prompt langsung saat mention Hengs atau lewat `/hengs ask`, tanpa format rumit.',
       'Contoh: "rancang struktur server gaming dengan area mabar dan creator".',
       'Di server utama, owner atau Administrator juga bisa bilang "fokus belajar", "mulai scrim", atau "selesai fokus".',
+      'Di server utama, owner atau Administrator dapat mengubah, melihat, atau mereset welcome custom lewat `/hengs ask`, misalnya `ubah welcome jadi "Halo, selamat datang!"`.',
       '`/hengs reset` untuk menghapus ingatan percakapanmu sendiri.',
       'Pemilik server atau Administrator dapat mengatur Hengs lewat `/setup`.',
       '`/hengs privacy` menjelaskan penggunaan data.',
@@ -220,6 +223,19 @@ async function execute(interaction, {
     personalPending,
   });
   if (promptRoute.handled) {
+    if (promptRoute.kind === 'home_welcome_action') {
+      try {
+        await replyPrivate(interaction, applyHomeWelcomeAction({
+          route: promptRoute,
+          guildId: interaction.guildId,
+          store: homeWelcomeStore,
+        }));
+      } catch (error) {
+        logger.error('[home-welcome] HOME_WELCOME_ACTION_FAILED', { code: error.code || 'ACTION_FAILED' });
+        await replyPrivate(interaction, 'Welcome custom belum bisa diubah sekarang. Welcome bawaan tetap aman, coba lagi nanti ya.');
+      }
+      return;
+    }
     if (promptRoute.kind === 'personal_action') {
       if (!personalAssistant) {
         await replyPrivate(interaction, 'Catatan pribadi belum tersedia di runtime ini.');

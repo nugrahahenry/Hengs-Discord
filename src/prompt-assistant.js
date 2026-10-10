@@ -133,6 +133,27 @@ function isCommunityRevisionPrompt(value) {
     || /^(?:welcome|sambutan|sapaan)(?:\s+(?:message|pesan))?\s*(?:jadi|menjadi|:|=>)/i.test(prompt);
 }
 
+function parseHomeWelcomePrompt(value) {
+  const prompt = normalizePrompt(value);
+  if (!/\b(?:welcome|sambutan|sapaan)\b/i.test(prompt)) return null;
+
+  if (/(?:\b(?:reset|hapus|matikan|nonaktifkan|disable)\b.*\b(?:welcome|sambutan|sapaan)\b|\b(?:welcome|sambutan|sapaan)\b.*\b(?:reset|hapus|matikan|nonaktifkan|disable)\b)/i.test(prompt)) {
+    return { action: 'clear' };
+  }
+
+  if (/(?:\b(?:lihat|cek|tampilkan|status)\b.*\b(?:welcome|sambutan|sapaan)\b|\b(?:welcome|sambutan|sapaan)\b.*\b(?:sekarang|saat ini|aktif|apa isinya)\b)/i.test(prompt)) {
+    return { action: 'show' };
+  }
+
+  const match = prompt.match(/(?:ubah|ganti|set|jadikan|buat)?\s*(?:custom\s+)?(?:welcome|sambutan|sapaan)(?:\s+(?:message|pesan|custom))?\s*(?:jadi|menjadi|ke|:|=>)\s*["“]([^"”]+)["”]/iu);
+  if (!match) {
+    if (/\b(?:ubah|ganti|set|jadikan|buat)\b/i.test(prompt)) return { action: 'invalid' };
+    return null;
+  }
+  const welcomeCopy = normalizeCustomLabel(match[1], 'copy');
+  return welcomeCopy ? { action: 'set', welcomeCopy } : { action: 'invalid' };
+}
+
 function buildFocusClarify() {
   return 'Belum ada mode yang diubah. Pilih satu: **fokus belajar** atau **mulai scrim**. Untuk mematikan, bilang **selesai fokus**. Jadwal dan durasi belum dijalankan dari prompt natural.';
 }
@@ -167,6 +188,8 @@ function classifyPrompt(value) {
   if (!prompt) return { kind: 'empty', prompt };
   if (prompt.length > MAX_PROMPT_LENGTH) return { kind: 'too_long', prompt };
   if (HELP_PROMPT.test(prompt)) return { kind: 'help', prompt };
+  const homeWelcome = parseHomeWelcomePrompt(prompt);
+  if (homeWelcome) return { kind: 'home_welcome_action', prompt, ...homeWelcome };
   const isCommunityPlan = COMMUNITY_ACTION.test(prompt) && COMMUNITY_OBJECT.test(prompt);
   const isCommunityRevision = isCommunityRevisionPrompt(prompt);
   if (isCommunityPlan || isCommunityRevision) {
@@ -539,6 +562,23 @@ function applyFocusAction({ route, state } = {}) {
 function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, personalPending = false, communityDraft = null } = {}) {
   const result = classifyPrompt(prompt);
   if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp() };
+  if (result.kind === 'home_welcome_action') {
+    if (scopeKind !== 'home' || !privateReply) {
+      return {
+        handled: true,
+        kind: 'permission',
+        content: 'Kontrol welcome custom hanya tersedia privat lewat `/hengs ask` di server utama.',
+      };
+    }
+    if (!isGuildManager({ actor, guild })) {
+      return {
+        handled: true,
+        kind: 'permission',
+        content: 'Welcome custom hanya bisa diubah owner atau Administrator server utama.',
+      };
+    }
+    return { handled: true, ...result };
+  }
   const personal = parsePersonalPrompt(prompt);
   if ((personal && personal.kind !== 'follow_up') || personalPending) {
     if (!privateReply || scopeKind !== 'home' || !isGuildManager({ actor, guild })) {
@@ -638,6 +678,7 @@ module.exports = {
   COMMUNITY_REVISION_MAX,
   normalizeCommunityCustomization,
   parseCommunityCustomization,
+  parseHomeWelcomePrompt,
   customizationKey,
   customizedCategoryName,
   customizedChannelName,

@@ -5,6 +5,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.49.0] - 2026-10-10
+
+### Added
+
+- Owner atau Administrator home guild dapat mengubah, melihat, atau mematikan welcome custom
+  melalui `/hengs ask` secara privat.
+- Reset welcome menghapus hanya state welcome yang tervalidasi dan kembali ke copy bawaan Hengs.
+
+### Scope
+
+- Local-only checkpoint. Cloud tetap di release produksi yang diterima sampai ada approval deploy
+  terpisah. Tidak ada provider call, token change, QR, atau mutasi cloud.
+
 ## [1.48.0] - 2026-10-10
 
 ### Added

@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.48.0 Persistent Welcome Copy, local only, not deployed
+**Current local checkpoint:** v1.49.0 Welcome Copy Controls, local only, not deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -43,6 +43,8 @@ Discord token consumer; local Discord remains stopped as rollback only.
   "nama baru". Copy sapaan dapat ditulis sebagai draft. Setelah owner meninjau dan menekan Apply,
   Hengs dapat memasang pesan itu satu kali di channel sambutan lobi dengan mention dinonaktifkan,
   lalu menyimpan copy yang sudah disetujui untuk welcome otomatis berikutnya.
+  Owner atau Administrator dapat mengubah, melihat, atau mematikan copy tersimpan lewat `/hengs ask`
+  secara privat tanpa mengubah channel yang sudah ada.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.

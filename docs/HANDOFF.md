@@ -2,6 +2,20 @@
 
 Updated: 2026-10-10
 
+## Hengs Discord v1.49.0 Welcome Copy Controls
+
+- Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
+  Discord mutation was performed.
+- Owner or Administrator can privately use `/hengs ask` to set, inspect, or clear the home welcome
+  copy. Set reuses the bounded normalizer and atomic writer. Clear validates the regular state file
+  before unlinking it, rejects symlinks or malformed state, and restores the fixed welcome copy.
+- Direct mentions and non-home guilds cannot expose or mutate the custom copy. No AI provider call
+  occurs for these actions.
+- Release metadata is synchronized to v1.49.0. Cloud remains held at the accepted production
+  version until a separate deploy approval.
+- Focused welcome, prompt, command, home state, and release checks are required before commit.
+- Push remains subject to the existing local GitHub DNS transport blocker. Deployment is separate.
+
 ## Hengs Discord v1.48.0 Persistent Welcome Copy
 
 - Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
