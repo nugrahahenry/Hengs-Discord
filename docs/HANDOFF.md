@@ -2,6 +2,21 @@
 
 Updated: 2026-10-11
 
+## Hengs Discord v1.52.0 3D Welcome and Leave Cards
+
+- Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
+  Discord mutation was performed.
+- Welcome dan Leave Card kini memakai tiga layer depth deterministik di canvas: lantai perspektif,
+  pantulan kaca pada panel identitas, dan highlight orb. Output tetap satu PNG statis sehingga
+  ukuran, latency, dan jalur pengiriman tidak berubah menjadi pipeline animasi.
+- Badge onboarding aman untuk display name yang berbeda dari username. Copy card dipadatkan menjadi
+  satu baris saat handle display tampil agar tidak menabrak badge atau panel statistik.
+- Motion sengaja ditunda. Tidak ada state baru, schema, provider call, atau aset eksternal.
+- Release metadata is synchronized to v1.52.0. Cloud remains held at the accepted production
+  version until the requested batch deployment.
+- Focused card, onboarding, public welcome, runtime copy, release, and visual detector checks are
+  required before commit. Push remains subject to the existing local GitHub DNS transport blocker.
+
 ## Hengs Discord v1.51.0 Welcome Card and Onboarding Refresh
 
 - Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud

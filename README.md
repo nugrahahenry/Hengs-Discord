@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.51.0 Welcome Card and Onboarding Refresh, local only, not deployed
+**Current local checkpoint:** v1.52.0 3D Welcome and Leave Cards, local only, not deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and

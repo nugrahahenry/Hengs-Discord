@@ -5,6 +5,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.52.0] - 2026-10-11
+
+### Added
+
+- Welcome dan Leave Card mendapat depth layer statis: lantai perspektif, pantulan kaca, dan
+  highlight orb untuk rasa 3D yang lebih kuat tanpa menambah aset eksternal.
+- Badge onboarding tetap aman untuk nama display panjang, dan copy multiline dipadatkan saat
+  handle display ikut tampil agar layout tidak bertabrakan.
+
+### Scope
+
+- Local-only checkpoint. Motion atau animasi frame belum diaktifkan agar pengiriman PNG tetap
+  ringan dan stabil. Tidak ada schema baru, token change, provider call, atau mutasi cloud.
+
 ## [1.51.0] - 2026-10-11
 
 ### Added

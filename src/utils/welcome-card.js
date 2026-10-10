@@ -490,6 +490,59 @@ function drawBackdropLayer(ctx, image, width, height, theme, isLeave) {
   ctx.restore();
 }
 
+function drawPerspectiveFloor(ctx, width, height, theme, isLeave) {
+  const horizonY = 194;
+  const vanishX = isLeave ? 620 : 430;
+  const floorTop = ctx.createLinearGradient(0, horizonY, 0, height);
+  floorTop.addColorStop(0, hexToRgba(theme.primary, 0.18));
+  floorTop.addColorStop(1, hexToRgba(theme.baseRight, 0.04));
+  ctx.fillStyle = floorTop;
+  ctx.fillRect(0, horizonY, width, height - horizonY);
+
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = hexToRgba(theme.secondary, 0.28);
+  for (let index = 0; index <= 8; index += 1) {
+    const bottomX = (width / 8) * index;
+    ctx.strokeStyle = hexToRgba(index % 2 ? theme.secondary : theme.primary, 0.15);
+    ctx.beginPath();
+    ctx.moveTo(vanishX, horizonY);
+    ctx.lineTo(bottomX, height + 8);
+    ctx.stroke();
+  }
+  for (let index = 1; index <= 5; index += 1) {
+    const progress = index / 5;
+    const y = horizonY + Math.pow(progress, 1.65) * (height - horizonY);
+    ctx.strokeStyle = hexToRgba(theme.tertiary, 0.16 + progress * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGlassReflection(ctx, theme) {
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  ctx.globalCompositeOperation = 'screen';
+  const reflection = ctx.createLinearGradient(260, 28, 570, 190);
+  reflection.addColorStop(0, 'rgba(255,255,255,0)');
+  reflection.addColorStop(0.45, hexToRgba(theme.secondary, 0.28));
+  reflection.addColorStop(0.54, 'rgba(255,255,255,0.12)');
+  reflection.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = reflection;
+  ctx.beginPath();
+  ctx.moveTo(280, 24);
+  ctx.lineTo(345, 24);
+  ctx.lineTo(620, 194);
+  ctx.lineTo(555, 194);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawIdentityGlass(ctx, theme) {
   const x = 228;
   const y = 20;
@@ -773,6 +826,18 @@ function drawPlanet(ctx, data, theme) {
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, radius - 2, 0, Math.PI * 2);
+  ctx.clip();
+  const gloss = ctx.createRadialGradient(x - 27, y - 32, 0, x - 27, y - 32, 42);
+  gloss.addColorStop(0, 'rgba(255,255,255,0.40)');
+  gloss.addColorStop(0.28, 'rgba(255,255,255,0.12)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gloss;
+  ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  ctx.restore();
+
   ctx.shadowBlur = 0;
   ctx.save();
   ctx.beginPath();
@@ -972,7 +1037,7 @@ function drawIdentity(ctx, data, theme, options = {}) {
 
   ctx.font = fontSpec(400, 13.5);
   ctx.fillStyle = theme.muted;
-  const lines = wrapText(ctx, message, maxTextWidth, 2);
+  const lines = wrapText(ctx, message, maxTextWidth, hasDistinctDisplayName ? 1 : 2);
   lines.forEach((line, index) => {
     ctx.fillText(line, x, messageY + index * 18);
   });
@@ -981,6 +1046,7 @@ function drawIdentity(ctx, data, theme, options = {}) {
     options.onboardingLabel,
     data.isLeave ? 'SEE YOU SOON' : 'START HERE',
   ).slice(0, 20).toUpperCase();
+  ctx.font = fontSpec(800, 9);
   const badgeWidth = Math.min(170, Math.max(112, ctx.measureText(badge).width + 28));
   const badgeY = 181;
   fillRoundedRect(ctx, x, badgeY, badgeWidth, 20, 10, hexToRgba(theme.primary, 0.28));
@@ -1025,6 +1091,7 @@ async function generateCard(member, type = 'welcome', options = {}) {
 
   drawBaseBackground(ctx, CARD.width, CARD.height, theme);
   drawBackdropLayer(ctx, backdropImage, CARD.width, CARD.height, theme, data.isLeave);
+  drawPerspectiveFloor(ctx, CARD.width, CARD.height, theme, data.isLeave);
   drawAuroraStreaks(ctx, theme);
 
   const random = createSeededRandom(`${data.id}:${normalizedType}:${data.memberNumber}`);
@@ -1037,6 +1104,7 @@ async function generateCard(member, type = 'welcome', options = {}) {
   drawSparkle(ctx, 856, 210, 4.8, theme.secondary);
   drawCornerDetails(ctx, theme);
   drawIdentityGlass(ctx, theme);
+  drawGlassReflection(ctx, theme);
 
   await drawAvatar(ctx, loadImage, data, theme);
   drawIdentity(ctx, data, theme, options);
