@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { findMemberRole, assignMemberRole } = require('../src/utils/member-onboarding');
+const { buildOnboardingFields, findMemberRole, assignMemberRole } = require('../src/utils/member-onboarding');
 const { formatDuration, generateCard, CARD } = require('../src/utils/welcome-card');
 
 function cache(items) {
@@ -45,6 +45,20 @@ test('auto-role works independently and rejects invalid hierarchy', async () => 
   assert.deepEqual(added, ['member-role']);
 });
 
+test('onboarding fields give new members a short ordered path', () => {
+  const fields = buildOnboardingFields({
+    rulesChannel: '<#823456789012345678>',
+    rolesChannel: '<#823456789012345679>',
+    announceChannel: '<#823456789012345680>',
+    introChannel: '<#823456789012345681>',
+  });
+  assert.equal(fields.length, 2);
+  assert.match(fields[0].value, /1\. Baca aturan/);
+  assert.match(fields[0].value, /4\. Pantau update/);
+  assert.match(fields[1].value, /Mention Hengs/);
+  assert.doesNotMatch(JSON.stringify(buildOnboardingFields()), /[\u2013\u2014]/);
+});
+
 test('welcome and leave cards render valid PNG buffers offline', async () => {
   const now = new Date('2026-07-31T08:00:00Z');
   const member = {
@@ -67,6 +81,15 @@ test('welcome and leave cards render valid PNG buffers offline', async () => {
     assert.equal(output.readUInt32BE(16), CARD.width);
     assert.equal(output.readUInt32BE(20), CARD.height);
   }
+
+  const defaultCard = await generateCard(member, 'welcome', { now, serverName: 'Hengs' });
+  const customCard = await generateCard(member, 'welcome', {
+    now,
+    serverName: 'Hengs',
+    welcomeMessage: 'Halo komunitas, langsung mulai dari rules dan kenalan ya!',
+    onboardingLabel: 'MULAI DI SINI',
+  });
+  assert.notDeepEqual(customCard, defaultCard);
 });
 
 test('production welcome background is an optimized card-sized PNG', async () => {

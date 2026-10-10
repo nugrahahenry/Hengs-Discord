@@ -976,6 +976,18 @@ function drawIdentity(ctx, data, theme, options = {}) {
   lines.forEach((line, index) => {
     ctx.fillText(line, x, messageY + index * 18);
   });
+
+  const badge = safeString(
+    options.onboardingLabel,
+    data.isLeave ? 'SEE YOU SOON' : 'START HERE',
+  ).slice(0, 20).toUpperCase();
+  const badgeWidth = Math.min(170, Math.max(112, ctx.measureText(badge).width + 28));
+  const badgeY = 181;
+  fillRoundedRect(ctx, x, badgeY, badgeWidth, 20, 10, hexToRgba(theme.primary, 0.28));
+  strokeRoundedRect(ctx, x, badgeY, badgeWidth, 20, 10, hexToRgba(theme.secondary, 0.55), 1);
+  ctx.fillStyle = theme.secondary;
+  ctx.font = fontSpec(800, 9);
+  ctx.fillText(badge, x + 14, badgeY + 13.5);
 }
 
 function drawCardBorder(ctx, width, height, theme) {

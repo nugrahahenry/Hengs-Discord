@@ -13,6 +13,7 @@ function buildPublicWelcome() {
       'Halo, aku **Hengs**, bot AI yang baru masuk ke server ini. 👋',
       '',
       'Aku belum akan membalas chat sampai pemilik server atau Administrator menjalankan `/setup start`.',
+      '🚀 Mulai cepat: `/setup start` → pilih channel → aktifkan Hengs.',
       'Setelah aktif, member dapat mention aku atau memakai `/hengs ask` untuk bertanya.',
       'Gunakan `/hengs help` untuk panduan singkat.',
       'Baca `/hengs privacy` untuk memahami cara chat dan data ditangani.',

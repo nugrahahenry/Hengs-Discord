@@ -36,4 +36,38 @@ async function assignMemberRole(member, configuredRoleId, logger = console) {
   }
 }
 
-module.exports = { normalizedRoleName, findMemberRole, assignMemberRole };
+function safeChannelReference(value, fallback) {
+  const reference = String(value || '').trim();
+  return /^<#[0-9]{17,20}>$/.test(reference) ? reference : fallback;
+}
+
+function buildOnboardingFields({ rulesChannel, rolesChannel, announceChannel, introChannel } = {}) {
+  const rules = safeChannelReference(rulesChannel, '**#rules**');
+  const roles = safeChannelReference(rolesChannel, '**#get-roles**');
+  const announce = safeChannelReference(announceChannel, '**#announcements**');
+  const intro = safeChannelReference(introChannel, '**#intro-dulu-ngab**');
+  return [
+    {
+      name: '🚀 Mulai di sini',
+      value: [
+        `**1. Baca aturan** di ${rules}`,
+        `**2. Ambil role** di ${roles}`,
+        `**3. Kenalan** di ${intro}`,
+        `**4. Pantau update** di ${announce}`,
+      ].join('\n'),
+      inline: false,
+    },
+    {
+      name: '🤖 Butuh bantuan?',
+      value: 'Mention Hengs kalau mau tanya, minta bantuan, atau cari fitur yang cocok.',
+      inline: false,
+    },
+  ];
+}
+
+module.exports = {
+  assignMemberRole,
+  buildOnboardingFields,
+  findMemberRole,
+  normalizedRoleName,
+};

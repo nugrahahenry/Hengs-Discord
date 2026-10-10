@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.50.0 Community Builder Themes, local only, not deployed
+**Current local checkpoint:** v1.51.0 Welcome Card and Onboarding Refresh, local only, not deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -48,6 +48,9 @@ Discord token consumer; local Discord remains stopped as rollback only.
   Preview privat kini menawarkan tema Aurora neon, Midnight gelap, atau Minimal bersih tanpa
   mengubah struktur channel atau menambah state persisten baru. Kamu juga bisa memilih text
   lengkap, text inti, atau tanpa text, lalu membatasi jumlah voice room dari area yang dipilih.
+- Welcome Card v2 menampilkan custom welcome copy langsung di kartu, badge `START HERE`, dan embed
+  onboarding berurutan untuk rules, role, intro, serta pengumuman. Public onboarding juga memberi
+  alur tiga langkah yang ringkas tanpa state baru.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.

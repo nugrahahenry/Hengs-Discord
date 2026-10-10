@@ -1,6 +1,20 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-10
+Updated: 2026-10-11
+
+## Hengs Discord v1.51.0 Welcome Card and Onboarding Refresh
+
+- Local-only checkpoint. No cloud deployment, command registration, token, QR, Canox, or cloud
+  Discord mutation was performed.
+- Welcome Card v2 now carries approved custom copy inside the image, a fixed `START HERE` badge,
+  clearer embed title and footer, and structured onboarding fields for rules, roles, intro, and
+  announcements. Public guild onboarding gets a short setup sequence as well.
+- Onboarding is generated from current channel references at send time. No onboarding completion
+  state, public configuration field, or new schema is introduced. Mentions remain disabled.
+- Release metadata is synchronized to v1.51.0. Cloud remains held at the accepted production
+  version until the requested batch deployment.
+- Focused card, onboarding, public welcome, runtime copy, and release checks are required before
+  commit. Push remains subject to the existing local GitHub DNS transport blocker.
 
 ## Hengs Discord v1.50.0 Community Builder Themes
 

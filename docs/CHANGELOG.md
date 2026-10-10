@@ -5,6 +5,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.51.0] - 2026-10-11
+
+### Added
+
+- Welcome Card v2 menampilkan custom welcome copy di kartu, badge onboarding, judul yang lebih jelas,
+  footer konteks, dan field onboarding terstruktur.
+- Home onboarding memberi urutan rules, role, intro, pengumuman, serta jalur mention Hengs.
+- Public onboarding menampilkan langkah awal setup dalam urutan singkat.
+
+### Scope
+
+- Local-only checkpoint. Cloud tetap di release produksi yang diterima sampai approval deploy batch.
+  Tidak ada schema baru, token change, QR, provider call, atau mutasi cloud.
+
 ## [1.50.0] - 2026-10-10
 
 ### Added

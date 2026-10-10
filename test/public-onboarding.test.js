@@ -40,6 +40,7 @@ test('public welcome copy is fixed, mention-safe, and explains self-service setu
   const payload = buildPublicWelcome();
   assert.match(payload.content, /Hengs/i);
   assert.match(payload.content, /\/setup start/);
+  assert.match(payload.content, /Mulai cepat/);
   assert.match(payload.content, /\/hengs ask/);
   assert.match(payload.content, /\/hengs help/);
   assert.match(payload.content, /\/hengs privacy/);
