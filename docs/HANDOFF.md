@@ -2,7 +2,31 @@
 
 Updated: 2026-10-13
 
-## Hengs Discord v1.54.0 - Hengs News (local, not deployed)
+## Hengs Discord v1.54.0 controlled deployment accepted
+
+- Henry explicitly approved deployment on 2026-10-13. Exact deployed source:
+  1dbbb3c5a6ea130160803161d845834c77241d4d / v1.54.0. Documentation HEAD may advance.
+- Immutable candidate passed Linux Node22 QA before stopping Discord: 571 tests, 568 pass,
+  zero fail, exactly three skips requiring Git metadata or the adjacent local WA checkout.
+  All three skipped cases passed in the laptop focused suite, 17/17 with zero skips.
+- Accepted active/enabled on two moving CONNECTED/OK/fresh heartbeats at least 30 seconds
+  apart, one process matching MainPID, zero automatic restarts. No rollback was needed.
+  v1.53.0 remains the immutable rollback release. State fingerprints matched across the
+  stopped pointer switch; secrets/config fingerprints matched before and after deployment.
+- WA v0.46.0 and Canox memory-only v0.178.0 stayed healthy with unchanged PIDs, release pointers
+  and environment files. Memory remains enabled with separate private capabilities; no Canox
+  restart, notebook transfer, backup run, QR, token/auth reset, VM reboot or Oracle action.
+- News is installed but UNCONFIGURED: news-state.json absent before and after acceptance.
+  No real news message, channel creation, command registration or daily schedule activation.
+  Local bots zero/autostart off; remote staging absent; existing memory backup timer unchanged.
+- Next: manager private preview through /hengs ask, then explicitly approved one-shot delivery
+  and daily activation. Live news delivery/user dogfood is pending, not part of this acceptance.
+- Scoped private operators: .cloud/automation/news-v1540. Do not redispatch the one-shot job.
+  Code archive SHA-256 was verified locally and remotely. No CI-green claim: prior GitHub
+  snapshot had no check runs/statuses and the repository has no tracked Actions workflow.
+- Documentation subject: docs(cloud): Hengs Discord v1.54.0 - record verified news deployment.
+
+## Hengs Discord v1.54.0 - Hengs News implementation
 
 - Henry approved the coherent news batch: topic/time/style configuration, revisable private preview,
   and one daily digest. Implemented through existing /hengs ask; no command registration required.
@@ -24,12 +48,12 @@ Updated: 2026-10-13
 - Verification: full final local regression571/571, focused integration58/58, zero failures/skips.
   Syntax11changedJS files, whitespace, release/secret boundary and zero added long dashes passed.
   Local runtime Node24.15;
-  production Node22 archive/VM acceptance and a real Discord send remain deployment gates.
+  production Node22 archive/VM acceptance subsequently passed above; real Discord news send pending.
   Four public feed probes passed; synthetic tests cover claims/restarts/permissions/reset/races,
   corruption, atomic failure, source boundaries, bounded parsing, snapshot inclusion and privacy.
-- Production remains accepted v1.53.0 Discord and v0.46.0 WA with memory-only Canox v0.178.0.
-  News is not available in cloud until a separately approved deployment. Then do one private
-  preview/supervised delivery before explicitly enabling a guild's daily schedule.
+- Production now runs accepted v1.54.0 Discord and v0.46.0 WA with memory-only Canox v0.178.0.
+  News is available but unconfigured. Do one private preview/supervised delivery before explicitly
+  enabling a guild's daily schedule.
 - Canonical internal feature architecture: docs/NEWS-DIRECTION.md. Public setup: README.md.
   Existing specs/plans reviewed; no news duplicates or archival copies created.
 - Commit subject: feat(news): Hengs Discord v1.54.0 - add configurable daily news digests.

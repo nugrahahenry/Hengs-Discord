@@ -23,7 +23,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   mengirim mention massal, mengakses chat/memori privat, atau menerima URL feed bebas.
 - Feed dibatasi ukuran/waktu, redirect dan alamat privat ditolak, isi sumber tidak mengeksekusi
   instruksi, dan hasil pengiriman tidak pasti tidak dicoba ulang otomatis.
-- Local-only. Belum deploy, belum ada kiriman Discord, dan belum ada jadwal produksi aktif.
+- Deployed melalui restart terkontrol pada 2026-10-13. Tes Node22: 568 pass, nol gagal,
+  tiga kasus khusus checkout lulus di laptop. Dua heartbeat sehat; WA dan Canox tidak direstart.
+  Belum ada kiriman berita Discord atau jadwal produksi aktif. Rollback v1.53.0 tersedia.
 
 ## [1.53.0] - 2026-10-11
 

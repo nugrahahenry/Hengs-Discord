@@ -1,15 +1,22 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
-v1.40.0. Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+v1.54.0 (accepted 2026-10-13). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
 pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
-permission, atau kebijakan Anti-Raid. State produksi mempertahankan konfigurasi `active` yang
-v1.40.0 kini aktif/enabled sebagai satu-satunya consumer Discord setelah restart terkontrol;
-v1.39.1 tetap tersedia sebagai rollback. Registrasi v1.28.0 mempertahankan `/hengs`,
+permission, atau kebijakan Anti-Raid. v1.54.0 aktif/enabled sebagai satu-satunya consumer
+Discord setelah restart terkontrol; v1.53.0 tetap tersedia sebagai rollback. News terpasang
+tetapi belum dikonfigurasi. WA v0.46.0 dan Canox memory-only v0.178.0 tidak direstart;
+integrasi memori privat tetap aktif. Registrasi historis v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.
+
+Bagian bootstrap, transfer, initial cutover dan reboot di bawah adalah runbook setup awal,
+bukan langkah yang harus diulang setiap update. Untuk upgrade existing, kandidat diuji sebelum
+Discord dihentikan, pointer diganti atomik dengan auth/state/config tetap, lalu dua heartbeat
+bergerak minimal 30 detik diverifikasi. Jangan me-reboot, me-restore, mendaftarkan command,
+atau mengaktifkan jadwal berita hanya karena deployment disetujui. Bukti rilis ada di HANDOFF.md.
 
 ## Canonical Paths
 
@@ -24,8 +31,8 @@ menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command
 
 ## Prerequisites
 
-- Checkout Git yang bersih dan checkpoint `1.28.0` sudah di-commit.
-- Node.js 22 untuk membuat release lokal.
+- Checkout Git bersih dan checkpoint rilis yang disetujui sudah di-commit.
+- Node.js 22 untuk acceptance kandidat produksi; arsip wajib berasal dari exact committed HEAD.
 - Akun Oracle Cloud dengan home region dan entitlement Always Free yang telah dicek
   ulang di Console. Hentikan proses bila label biaya atau entitlement tidak jelas.
 - OCI CLI yang sudah terautentikasi, SSH public key, dan konfigurasi acquisition lokal.

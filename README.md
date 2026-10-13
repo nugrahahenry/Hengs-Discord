@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** Hengs Discord v1.54.0 - configurable daily Hengs News, not deployed
+**Current checkpoint:** Hengs Discord v1.54.0 - configurable daily Hengs News, deployed but unconfigured
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -12,7 +12,7 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.53.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.54.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
@@ -187,8 +187,10 @@ acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInsta
 provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.28.0 menyediakan
 dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.28.0 terpasang sebagai
-production `current` dan lulus dependency, test, command-schema, serta server acceptance di Ubuntu. Secret serta state persisten
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.54.0 kini menjadi
+production `current`, lulus tes Node22 dan dua heartbeat sehat setelah restart terkontrol.
+v1.53.0 tetap tersedia untuk rollback. News belum dikonfigurasi atau dijadwalkan.
+Secret serta state persisten awalnya
 dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
 Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal
 berhenti sebagai jalur rollback. Initial start, restart service, dan reboot VM masing-masing lulus
