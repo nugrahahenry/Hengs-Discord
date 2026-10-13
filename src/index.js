@@ -53,6 +53,8 @@ const { createPersonalAssistant } = require('./personal-assistant');
 const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
+const { createNewsService } = require('./news/service');
+let newsService;
 const { startTypingIndicator } = require('./assistant-ux');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -74,6 +76,7 @@ runtimeHealth.start();
 process.on('exit', () => {
   runtimeHealth.stop();
   personalAssistant.stop();
+  newsService?.stop();
   instanceLock.release();
 });
 
@@ -86,6 +89,7 @@ const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
   store: guildConfigStore,
 });
+newsService = createNewsService({ guildAccess });
 const publicTrafficGuard = createPublicTrafficGuard();
 const publicDailyRequestLimit = parsePublicDailyRequestLimit(
   process.env.HENGS_PUBLIC_DAILY_REQUEST_LIMIT,
@@ -231,6 +235,7 @@ client.once(Events.ClientReady, async (c) => {
   opsHub.startCanoxInbox(c);
   eventHub.start(c);
   personalAssistant.start(c);
+  newsService.start(c);
   try {
     await reportHub.start(c);
     console.log('  → Report Hub privat siap menerima laporan member.');
@@ -844,6 +849,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       opsHub,
       eventHub,
       personalAssistant,
+      newsService,
       reportHub,
       reportQueue,
       moderationHub,

@@ -82,6 +82,7 @@ async function execute(interaction, {
   eventHub,
   personalAssistant,
   homeWelcomeStore,
+  newsService,
   logger = console,
 }) {
   if (!interaction.inGuild?.() || !interaction.guildId) {
@@ -119,6 +120,7 @@ async function execute(interaction, {
       'Gunakan `/hengs reset` kapan saja untuk menghapus kedua konteks percakapanmu.',
       'Fitur ingatan Canox opsional hanya untuk owner privat, disimpan setelah konfirmasi. Reset percakapan tidak menghapus catatan/ingatan tersimpan atau backup.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
+      'Hengs News menyimpan pengaturan serta receipt/hash URL berita, tanpa chat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari. `/setup disable` menghentikan jadwal news; pengaturan tetap tersimpan. Backup dapat menyimpan versi sebelumnya.',
     ].join('\n'));
     return;
   }
@@ -141,6 +143,7 @@ async function execute(interaction, {
     }
     await replyPrivate(interaction, [
       '**Mulai pakai Hengs**',
+      'Pengelola bisa mengatur bacaan harian dengan `/hengs ask`: `atur berita teknologi AI ke #hengs-news`. Preview dulu, lalu uji satu kiriman sebelum jadwal diaktifkan.',
       'Tulis prompt langsung saat mention Hengs atau lewat `/hengs ask`, tanpa format rumit.',
       'Contoh: "rancang struktur server gaming dengan area mabar dan creator".',
       'Di server utama, owner atau Administrator juga bisa bilang "fokus belajar", "mulai scrim", atau "selesai fokus".',
@@ -164,6 +167,7 @@ async function execute(interaction, {
   if (!agent) throw new Error('HENGS_DEPENDENCY_MISSING');
 
   if (subcommand === 'reset') {
+    newsService?.clear(interaction);
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);
     agent.clearHistory(conversationKey);
     const memory = memoryContexts.get(agent);
@@ -186,6 +190,13 @@ async function execute(interaction, {
   const prompt = String(interaction.options.getString('prompt', true) || '').trim();
   if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
     await replyPrivate(interaction, 'Pertanyaan harus berisi 1 sampai 1800 karakter.');
+    return;
+  }
+
+  if (newsService?.canHandle(interaction, prompt)) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await newsService.handle(interaction, prompt);
+    await interaction.editReply({ ...(result || { content: 'Draft berita sudah kedaluwarsa atau direset. Mulai lagi dengan preview berita.' }), allowedMentions: { parse: [] } });
     return;
   }
 

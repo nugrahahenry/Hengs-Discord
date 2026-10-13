@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.54.0] - 2026-10-13
+
+### Added
+
+- Hengs News: draft, revisi topik/jam/gaya, preview privat, simpan dalam keadaan jeda,
+  kiriman uji, aktivasi harian, status dan pause lewat `/hengs ask` yang sudah ada.
+- Preset teknologi, AI, gaming dan hiburan/komik dari feed HTTPS terpilih. Maksimal tiga item,
+  cuplikan singkat dengan sumber/tanggal, tanpa AI, media scraping, atau biaya model tambahan.
+- Jadwal WIB, deduplikasi URL, receipt sebelum pengiriman, nonce Discord, konfirmasi yang
+  kedaluwarsa dan terikat pemanggil/server/channel, serta penyimpanan atomik per guild.
+- State news masuk validasi snapshot/restore Discord. Tidak ada perubahan schema state lama.
+
+### Safety and scope
+
+- Owner/Administrator only; channel dan izin diperiksa saat mengirim. Tidak membuat channel,
+  mengirim mention massal, mengakses chat/memori privat, atau menerima URL feed bebas.
+- Feed dibatasi ukuran/waktu, redirect dan alamat privat ditolak, isi sumber tidak mengeksekusi
+  instruksi, dan hasil pengiriman tidak pasti tidak dicoba ulang otomatis.
+- Local-only. Belum deploy, belum ada kiriman Discord, dan belum ada jadwal produksi aktif.
+
 ## [1.53.0] - 2026-10-11
 
 ### Added

@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** v1.53.0 3D Card Bevel Polish, local only, not deployed
+**Current local checkpoint:** Hengs Discord v1.54.0 - configurable daily Hengs News, not deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -12,10 +12,48 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.42.0 active/enabled after controlled restart
+**Current cloud production:** v1.53.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
+
+## Hengs News
+
+Pemilik server atau Administrator bisa menyiapkan bacaan harian lewat `/hengs ask`.
+Fitur tidak aktif otomatis saat update. Pilih channel teks yang sudah ada di server yang sama.
+
+1. `atur berita teknologi AI jam 08:00 ke #hengs-news` membuat draft privat.
+2. `preview berita` memperlihatkan isi tanpa mengirim ke channel.
+3. Revisi: `kurangi AI, tambahin gaming`, `lebih santai`, atau `ubah jam 09:00, 2 berita`.
+   Revisi membatalkan persetujuan preview lama. Waktu memakai format 24 jam WIB.
+4. `simpan berita` menyimpan pengaturan dalam keadaan jeda. Ini opsional sebelum kiriman uji.
+5. Setelah preview terbaru, `kirim berita sekali` menyimpan pengaturan dan menguji satu kiriman.
+6. Setelah uji berhasil, `preview berita` lalu `aktifkan berita` menyalakan jadwal harian.
+7. `jeda berita` untuk pause; `status berita` untuk pengaturan dan hasil pengiriman terakhir.
+
+Maksimal 3 item dan satu digest per hari, termasuk kiriman uji. Sumber saat ini:
+[Mozilla Hacks](https://hacks.mozilla.org/feed/) untuk teknologi,
+[NVIDIA Blog](https://blogs.nvidia.com/feed/) untuk AI,
+[Steam News](https://store.steampowered.com/feeds/news.xml) untuk gaming, dan
+[xkcd](https://xkcd.com/atom.xml) untuk hiburan/komik, bukan berita faktual atau katalog meme umum.
+Sumber boleh tidak punya berita baru setiap hari. Artikel berumur lebih dari 72 jam, tanpa tanggal,
+dari masa depan, atau yang sudah dikirim tidak dipilih. Judul/cuplikannya mengikuti bahasa sumber,
+bukan terjemahan atau ringkasan AI. Tidak ada penggunaan model, pengunduhan media, atau tag massal.
+Topik dan URL sumber bebas belum didukung. Publisher feed bukan jaminan klaimnya selalu benar.
+
+Preview berlaku 10 menit untuk pemanggil, server dan channel yang sama. Konfirmasi tidak dapat
+dipakai ulang. Konfigurasi ulang selalu menjeda jadwal dan perlu kiriman uji baru sebelum aktif.
+Bot memeriksa jadwal tiap menit, dengan toleransi satu jam pada hari WIB yang sama, bukan
+mengejar semua hari yang terlewat. Jika hasil kiriman tidak pasti, bot tidak mencoba lagi hari itu;
+receipt persisten dan nonce Discord mengurangi risiko duplikat. Pause tidak menarik kiriman
+yang sudah berangkat. Jadwal juga berhenti saat Hengs dinonaktifkan di server publik.
+
+`data/news-state.json` menyimpan pengaturan per server, receipt serta hash URL,
+bukan chat privat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari;
+saat jadwal dijeda, metadata lama bisa bertahan sampai perubahan berikutnya. File ikut snapshot Discord terenkripsi yang sudah ada dan
+divalidasi saat backup/restore. Restore dari backup lama dapat kehilangan receipt terbaru, jadi
+pause dan review jadwal sebelum mengaktifkan ulang sesudah restore. Rollback ke versi sebelum
+fitur ini menghentikan jadwal tanpa menghapus state. Tidak perlu mendaftarkan slash command baru.
 
 **Public invite:** [Add Hengs to a Discord server](https://discord.com/oauth2/authorize?client_id=1512417103138000948&permissions=101376&scope=bot+applications.commands)
 

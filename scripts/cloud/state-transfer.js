@@ -54,7 +54,8 @@ function isExcluded(name) {
 
 function parseJsonFile(fsImpl, file) {
   try {
-    JSON.parse(fsImpl.readFileSync(file, 'utf8'));
+    const value = JSON.parse(fsImpl.readFileSync(file, 'utf8'));
+    if (path.basename(file) === 'news-state.json') require('../../src/news/store').validateState(value);
   } catch {
     throw new StateTransferError('STATE_JSON_INVALID');
   }
