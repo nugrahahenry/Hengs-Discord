@@ -1,6 +1,31 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-11
+Updated: 2026-10-13
+
+## Hengs Discord v1.53.0 controlled deployment accepted
+
+- Henry explicitly approved deploying this batch before enabling private shared memory.
+  Exact deployed code f3161f6de8997ea71484f35b9f8fad558f6933df / v1.53.0; previous accepted
+  v1.42.0 retained for rollback. Current checkout may advance by this documentation commit.
+- Linux Node 22 candidate suite: 549 total, 546 pass, zero failures, exactly three skips needing
+  Git metadata or the adjacent laptop WA checkout. Local focused suite 17/17, zero skips,
+  covers these absent-checkout cases. No functional tests were suppressed or product code changed.
+- Candidate dependencies rebuilt from committed lock when the live pruned lock was nonidentical.
+  Installed with lifecycle scripts disabled; full candidate suite passed before stopping the bot.
+  Initial preparation/QA gate failures did not change the active bot or lose persistent state.
+- New release accepted on two moving CONNECTED/OK/fresh heartbeats, active/enabled, one process,
+  zero automatic restarts. WA was unchanged during code deployment and remains v0.46.0.
+- Subsequently enabled approved Canox v0.178.0 memory-only integration via separate private
+  capability and controlled bot restart; token, state and unrelated settings preserved.
+  Actual client revision/list/recall passed as service user. Memory only admitted for exact owner,
+  home guild and private replies. No public memory access or automatic harvesting/training.
+- New canonical memory started empty, no desktop notebook copied. Encrypted initial backup and
+  private resource-bounded service accepted. Detailed operations/backup limits/rollback remain
+  in the ignored Canox handoff. Human create/recall dogfood and long-uptime acceptance pending.
+- No slash-command registration, automatic channel/role creation, QR, bot local launch, VM reboot,
+  Oracle watcher/resource action or real provider-generation test. Staging/transfer cleaned.
+- Next candidate: configurable hengs-news; design only, no publishing/channel/schedule activation.
+- Documentation checkpoint subject: docs(cloud): Hengs Discord v1.53.0 - record deployment and memory activation.
 
 ## Hengs Discord v1.53.0 3D Card Bevel Polish
 
