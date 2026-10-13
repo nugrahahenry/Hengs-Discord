@@ -739,6 +739,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-admin-setup:')) {
+    try {
+      await client.commands.get('admin').handleSetupComponent(interaction, { guildAccess });
+    } catch {
+      console.error('[admin-setup] SETUP_COMPONENT_FAILED');
+      const payload = { content: 'Panel setup belum bisa diperbarui. Cek hasil sebelumnya sebelum mencoba lagi.',
+        flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } };
+      if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => {});
+      else await interaction.reply(payload).catch(() => {});
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand() && interactionScope.kind !== 'home') return;
 
   if (interaction.isButton() && interaction.customId.startsWith('mod:')) {

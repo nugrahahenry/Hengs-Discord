@@ -3,6 +3,12 @@ const {
   SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType,
 } = require('discord.js');
 const roleStore = require('../utils/role-store');
+const { createAdminSetupFlow, ensureNewsChannel, newsNextSteps } = require('../guilds/admin-setup');
+const setupFlow = createAdminSetupFlow({
+  applyLegacy: (interaction, choices) => executeAdmin(interaction, {
+    ...choices, subcommand: 'setup', alreadyDeferred: true,
+  }),
+});
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -69,9 +75,18 @@ module.exports = {
       .setDescription('Restart bot biar load update terbaru (online lagi ~5 detik)')
     ),
 
-  async execute(interaction, { state }) {
-    const sub = interaction.options.getSubcommand();
-    await interaction.deferReply({ ephemeral: true });
+  async execute(interaction, dependencies) {
+    if (interaction.options.getSubcommand() === 'setup') return setupFlow.open(interaction, dependencies);
+    return executeAdmin(interaction, dependencies);
+  },
+  handleSetupComponent: (interaction, dependencies) => setupFlow.handle(interaction, dependencies),
+};
+
+async function executeAdmin(interaction, {
+  state, subcommand = null, alreadyDeferred = false, includeNews = false, newsChannelId = null,
+} = {}) {
+    const sub = subcommand || interaction.options.getSubcommand();
+    if (!alreadyDeferred) await interaction.deferReply({ ephemeral: true });
 
     // ── /admin setup ───────────────────────────────────────────────────────
     if (sub === 'setup') {
@@ -79,6 +94,7 @@ module.exports = {
       const everyone = guild.roles.everyone;
       const created = [];
       const skipped = [];
+      let newsChannel = null;
 
       async function ensureCat(name) {
         // 1. Exact match
@@ -220,6 +236,11 @@ module.exports = {
         // 📢 ANNOUNCEMENTS: read-only
         // ══════════════════════════════════════════════════════════════════
         const catAnn = await ensureCat('📢 ANNOUNCEMENTS');
+        if (includeNews) {
+          const result = await ensureNewsChannel(guild, { expectedId: newsChannelId, parent: catAnn.id });
+          newsChannel = result.channel;
+          (result.created ? created : skipped).push('#hengs-news');
+        }
         const chAnn  = await ensureCh('📢・announcements',    ChannelType.GuildText, catAnn.id, readOnly,
           { topic: 'Pengumuman resmi server' });
         await ensureCh('🎉・events',          ChannelType.GuildText, catAnn.id, readOnly,
@@ -318,7 +339,7 @@ module.exports = {
               gsaWebhookUrl = wh.url;
             }
           }
-        } catch (err) { console.error('[setup] GSA webhook error:', err.message); }
+        } catch { console.error('[setup] GSA_WEBHOOK_FAILED'); }
 
         // ── Build .env hints ───────────────────────────────────────────────
         const envLines = [
@@ -344,6 +365,9 @@ module.exports = {
           });
         }
 
+        if (newsChannel) embed.addFields({ name: '📰 Hengs News', value: newsNextSteps(newsChannel) });
+        else embed.addFields({ name: '📰 Hengs News', value: 'Penambahan news dilewati. Channel dan pengaturan news yang sudah ada tidak diubah.' });
+
         embed.addFields({
           name: '⚠️ Next steps',
           value:
@@ -354,10 +378,14 @@ module.exports = {
             '5. Invite OwO, Carl-bot, Lumina ke channel masing-masing',
         });
 
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply({ content: '', components: [], embeds: [embed], allowedMentions: { parse: [] } });
 
-      } catch (err) {
-        await interaction.editReply(`❌ Error: ${err.message}\n\nPastikan bot punya permission **Administrator**.`);
+      } catch {
+        console.error('[setup] SETUP_APPLY_FAILED');
+        await interaction.editReply({
+          content: 'Setup belum selesai; sebagian perubahan mungkin sudah terjadi. Cek channel dan izin bot sebelum membuka setup lagi. Tidak dicoba ulang otomatis. Jadwal berita tidak diaktifkan.',
+          components: [], embeds: [], allowedMentions: { parse: [] },
+        });
       }
     }
 
@@ -708,5 +736,4 @@ module.exports = {
       console.log(`♻️ Restart via /admin restart oleh ${interaction.user.tag}`);
       setTimeout(() => process.exit(0), 800);
     }
-  },
-};
+}

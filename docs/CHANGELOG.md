@@ -5,6 +5,23 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.55.0] - 2026-10-13
+
+### Added
+
+- `/admin setup` menanyakan apakah ingin menambahkan Hengs News, dilanjutkan preview privat
+  dan konfirmasi. Pilihan belum sekarang/batal tidak menambah channel news.
+- Tombol Tambah news saja membuat satu channel baca-saja tanpa menjalankan setup server lama.
+  Channel news yang sudah ada digunakan tanpa rename, pemindahan, atau perubahan permission.
+- Tiket terbatas 10 menit, terikat admin/server/channel, pemeriksaan ulang inventory/izin,
+  satu proses setup per server, serta penolakan klik ulang dan hasil create yang tidak pasti.
+
+### Scope
+
+- Khusus alur admin server utama yang sudah ada; `/setup` publik dan schema slash command tetap.
+  Tidak mengaktifkan atau menimpa pengaturan news, mengambil feed, mengirim berita, atau deploy.
+  Setup lengkap tetap terpisah dan menjelaskan perubahan template lama sebelum konfirmasi.
+
 ## [1.54.0] - 2026-10-13
 
 ### Added

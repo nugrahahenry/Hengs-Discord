@@ -2,6 +2,35 @@
 
 Updated: 2026-10-13
 
+## Hengs Discord v1.55.0 optional admin news setup (local, not deployed)
+
+- Henry requested an optional news question in /admin setup. The home-guild admin command now
+  asks yes/not-now/cancel, presents a private preview, then requires an explicit action.
+- News-only creates a single ordinary read-only text channel without running unrelated legacy
+  setup. Full setup remains a separate button, disclosing its existing rename/move/stat replacement
+  and webhook behavior. No re-registration needed: slash command schema remains unchanged.
+- A uniquely named existing hengs-news is reused with name/parent/permissions preserved. Duplicate,
+  wrong-type, foreign-guild or insufficient-permission target stops. Declining does not delete a
+  channel or disable any existing news configuration. New standalone channel is at guild root;
+  full setup places a new one under ANNOUNCEMENTS. Public /setup behavior is unchanged.
+- RAM tickets max100/TTL10min, random IDs, actor/guild/channel/revision binding, fresh inventory fingerprint,
+  manager/bot permission rechecks, one apply per guild and consumption before external write.
+  Reopening setup invalidates even an old confirmation awaiting acknowledgement. No application
+  retry/destructive rollback after uncertain creation; re-inventory before any manual new attempt.
+- Does not change news enabled/tested/settings, fetch feeds, send an edition, create persistent
+  state, call providers, access memory, start local bots, or modify WA/Canox/cloud.
+- Full final local regression596/596 passed on Node24.15 after the sandbox's temp-file rename EPERM was
+  reproduced and the unchanged offline suite ran outside that filesystem restriction. Final
+  session-identity and old-button revision fixes also passed all25 focused admin-setup tests. No product persistence
+  or permission guard was weakened to make tests pass. Syntax/diff/release boundary checked.
+- Production remains accepted Discord1.54.0 code1dbbb3c, WA0.46.0, Canox memory-only0.178.0.
+  Next gate: separately authorized deploy, Node22 acceptance, then private /admin setup dogfood.
+  A real channel or first news send must still follow the owner's chosen preview/confirmation.
+- Main files: src/guilds/admin-setup.js, src/commands/admin.js, src/index.js,
+  test/admin-setup-news.test.js. Canonical contract: docs/NEWS-DIRECTION.md; public guide README.md.
+  No new standalone spec/plan or archive created; unrelated legacy contract documents retained.
+- Commit subject: feat(setup): Hengs Discord v1.55.0 - add optional news channel onboarding.
+
 ## Hengs Discord v1.54.0 controlled deployment accepted
 
 - Henry explicitly approved deployment on 2026-10-13. Exact deployed source:
