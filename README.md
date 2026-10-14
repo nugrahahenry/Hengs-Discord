@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current local checkpoint:** Hengs Discord v1.55.0 - optional Hengs News in admin setup, not deployed
+**Current checkpoint:** Hengs Discord v1.55.0 - optional Hengs News in admin setup, deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -12,14 +12,14 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.54.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.55.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
 
-Pada v1.55.0 (belum deploy), `/admin setup` di server utama menanyakan **Mau tambahkan Hengs News sekarang?**
+Pada v1.55.0, `/admin setup` di server utama menanyakan **Mau tambahkan Hengs News sekarang?**
 Pilih **Ya** untuk melihat preview, **Belum sekarang** untuk melewati penambahan, atau **Batal**.
 Untuk server yang sudah tertata, tombol **Tambah news saja** membuat satu channel baca-saja tanpa
 menjalankan template setup lama. Jika channel `hengs-news` sudah ada, namanya, kategori dan izinnya

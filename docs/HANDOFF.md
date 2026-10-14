@@ -1,8 +1,34 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-13
+Updated: 2026-10-14
 
-## Hengs Discord v1.55.0 optional admin news setup (local, not deployed)
+## Hengs Discord v1.55.0 controlled deployment accepted
+
+- Henry approved the proposed Discord-only deployment on 2026-10-14. Exact deployed source:
+  057f8d82f25b85c3ed391d830806a3575604b921 / v1.55.0. Documentation HEAD may advance.
+- Immutable source archive checksum matched locally and remotely. Candidate passed Linux Node22
+  QA before the old bot was stopped: 596 tests, 593 pass, zero fail, exactly three checkout-only
+  skips. All three skipped cases passed in the local focused suite, 17/17 with zero skips.
+- Controlled restart accepted on two moving CONNECTED/OK/fresh heartbeats at least 30 seconds
+  apart, active/enabled, exactly one process matching MainPID, zero automatic restarts.
+  No rollback needed; immutable v1.54.0 remains available. Persistent-state fingerprints matched
+  across the stopped pointer switch; environment/config fingerprints were unchanged.
+- WA v0.46.0 and Canox memory-only v0.178.0 stayed healthy with unchanged PIDs, release pointers
+  and environment. Separate private memory capabilities and loopback-only listener verified.
+  Existing memory backup timer unchanged; no backup run, store transfer, QR, auth change,
+  VM reboot, local bot start, Canox restart, Oracle watcher or resource action.
+- Independent final read-only audit passed after acceptance: local consumers zero/autostart off,
+  staging absent, rollback available, news-state.json absent. No command registration, actual
+  news channel creation, edition delivery or daily schedule activation occurred.
+- Next: owner dogfood /admin setup -> Yes -> Tambah news saja, preserving unrelated channels.
+  Then private /hengs ask news preview, explicitly confirmed one-shot send, and daily activation
+  only after the owner accepts the result. Real Discord interaction dogfood remains pending.
+- Private operators: .cloud/automation/news-v1550. Do not redispatch the completed one-shot job;
+  audit.sh is the current read-only check. No tracked Actions workflow; no CI-green claim.
+  No new spec/plan or archive added; existing unrelated active contracts retained.
+- Documentation subject: docs(cloud): Hengs Discord v1.55.0 - record verified optional news deployment.
+
+## Hengs Discord v1.55.0 optional admin news setup (implementation)
 
 - Henry requested an optional news question in /admin setup. The home-guild admin command now
   asks yes/not-now/cancel, presents a private preview, then requires an explicit action.
@@ -23,8 +49,8 @@ Updated: 2026-10-13
   reproduced and the unchanged offline suite ran outside that filesystem restriction. Final
   session-identity and old-button revision fixes also passed all25 focused admin-setup tests. No product persistence
   or permission guard was weakened to make tests pass. Syntax/diff/release boundary checked.
-- Production remains accepted Discord1.54.0 code1dbbb3c, WA0.46.0, Canox memory-only0.178.0.
-  Next gate: separately authorized deploy, Node22 acceptance, then private /admin setup dogfood.
+- At implementation completion production was Discord1.54.0, WA0.46.0, Canox memory-only0.178.0.
+  Separately authorized v1.55.0 Node22 deployment subsequently passed above; private /admin setup dogfood remains.
   A real channel or first news send must still follow the owner's chosen preview/confirmation.
 - Main files: src/guilds/admin-setup.js, src/commands/admin.js, src/index.js,
   test/admin-setup-news.test.js. Canonical contract: docs/NEWS-DIRECTION.md; public guide README.md.
