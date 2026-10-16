@@ -1,6 +1,48 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-16
+Updated: 2026-10-17
+
+## Hengs Discord v1.58.2 welcome correction (not deployed)
+
+- Henry reported the Oct15 welcome screenshot with duplicated greeting, rules/roles/announcements
+  and help. Confirmed in GuildMemberAdd: the legacy default description was composed with the newer
+  onboarding fields. This was duplicate content in one message, not proof of duplicate consumers.
+- One testable home welcome builder now owns title, short introduction, four compact channel
+  steps and one help field. Card and no-card branches share it. Custom copy is preserved; existing
+  already-sent welcomes are not edited. The card's default caption is shorter, with no new assets.
+- Configured channel IDs remain first choice, text-only fallback now includes Indonesian aliases.
+  Invalid channel references fall back to safe labels. Names escape Markdown/masked links and
+  runtime sends still disable mentions. No change to auto-role, public guild welcome or state.
+- Four new regression tests cover exact-once default content/links, custom copy, name/reference
+  safety, Indonesian aliases and configured priority. Full offline suite 635/635 passed on Node24;
+  the sandbox's known temp atomic-rename EPERM was resolved by an approved ordinary-temp run,
+  not filesystem-policy edits. No provider call, bot start, production mutation or public test.
+- Final documentation/access/content QA 13/13, syntax for all five changed JS files, complete
+  tracked release-content scan, version/lock parity, whitespace and no-new-long-dash checks passed.
+- Self-review covered the actual GuildMemberAdd wiring and image/fallback paths. Prior News
+  v1.58.1 remains included unchanged. Last verified production is v1.58.0, not this checkpoint.
+  Next deployment should use the combined v1.58.2 commit, controlled Discord-only restart and
+  private bot-commands acceptance after approval; do not redeploy the superseded v1.58.1 separately.
+- Graph vocabulary selected welcome/onboarding/embed/event. Existing graph is historical and
+  CLI is unavailable, so bounded traversal only oriented the search; current source/tests decide.
+  No graph rebuild, dependency installation, new temporary spec/plan or unrelated cleanup.
+- Subject: fix(welcome): Hengs Discord v1.58.2 - remove duplicate onboarding content.
+
+### Next proposal: member appreciation / Hall of Fame
+
+- Henry wants to celebrate friends who have already won a tournament, plus other contributions.
+  Recommend a small appreciation announcement/card first, not XP, leaderboards or automatic rewards.
+- Existing Ops Hub already supports private draft, revision and owner-only publication. Event Hub
+  is for upcoming events/RSVP, not past tournament results. Natural operation routing currently
+  prioritizes event keywords; do not claim a tournament-appreciation prompt already routes correctly.
+- Proposed fields: recipient/team, achievement or contribution, tournament/context, date and
+  optional public evidence. Use facts Henry supplies; never invent rank, score or participants.
+  Names can initially be plain text; member mentions/roles and a new public channel need explicit
+  choices before writes. Reuse the existing announcements destination initially if Henry agrees.
+- Next: Henry provides winners/team, tournament name, placement and date. Confirm one bounded
+  implementation proposal before adding a specialized template/router. No award has been created,
+  published or assigned. Persistent member achievement history is deferred; if later requested,
+  update architecture/data retention/permission/backup contract before implementation.
 
 ## Hengs Discord v1.58.1 editor reliability checkpoint (not deployed)
 

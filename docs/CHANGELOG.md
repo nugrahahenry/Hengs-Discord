@@ -5,6 +5,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.58.2] - 2026-10-17
+
+### Fixed
+
+- Welcome home tidak lagi menumpuk sapaan, daftar channel dan bantuan template lama di atas
+  onboarding baru. Satu pembangun embed dipakai oleh jalur kartu dan fallback tanpa kartu.
+- Panduan empat langkah lebih ringkas, link channel mendukung nama Indonesia dan Inggris,
+  ID konfigurasi tetap didahulukan, dan channel non-text tidak dipilih sebagai tujuan.
+- Kalimat bawaan pada kartu dipendekkan agar tidak memuat ulang seluruh panduan. Copy custom,
+  auto-role, mention-off, state, aset, dan onboarding server publik tidak diubah.
+- Checkpoint lokal, termasuk patch News v1.58.1 yang belum dideploy. Tidak mengedit welcome lama
+  atau menerbitkan apresiasi/achievement; produksi terakhir terverifikasi tetap v1.58.0.
+
 ## [1.58.1] - 2026-10-16
 
 ### Fixed

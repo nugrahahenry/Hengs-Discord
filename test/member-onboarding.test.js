@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildOnboardingFields, findMemberRole, assignMemberRole } = require('../src/utils/member-onboarding');
+const {
+  buildOnboardingFields, buildWelcomeEmbed, findOnboardingChannel, findMemberRole, assignMemberRole,
+} = require('../src/utils/member-onboarding');
 const { formatDuration, generateCard, CARD } = require('../src/utils/welcome-card');
 
 function cache(items) {
@@ -53,10 +55,77 @@ test('onboarding fields give new members a short ordered path', () => {
     introChannel: '<#823456789012345681>',
   });
   assert.equal(fields.length, 2);
-  assert.match(fields[0].value, /1\. Baca aturan/);
-  assert.match(fields[0].value, /4\. Pantau update/);
+  assert.match(fields[0].value, /1\. .*Baca aturan/);
+  assert.match(fields[0].value, /4\. .*Pantau update/);
   assert.match(fields[1].value, /Mention Hengs/);
   assert.doesNotMatch(JSON.stringify(buildOnboardingFields()), /[\u2013\u2014]/);
+});
+
+test('home welcome has one greeting, one guide and one help block', () => {
+  const channels = {
+    rulesChannel: '<#823456789012345678>',
+    rolesChannel: '<#823456789012345679>',
+    announceChannel: '<#823456789012345680>',
+    introChannel: '<#823456789012345681>',
+  };
+  const member = { displayName: 'Vemz', guild: { name: 'Hengs', memberCount: 55 } };
+  const embed = buildWelcomeEmbed(member, { channels, now: new Date('2026-10-17T03:00:00Z') }).toJSON();
+  assert.equal(embed.title, '👋 Selamat datang, Vemz!');
+  const text = [embed.title, embed.description, ...embed.fields.flatMap(f => [f.name, f.value])].join('\n');
+  assert.equal((text.match(/Selamat datang/gi) || []).length, 1);
+  assert.equal((text.match(/Baca aturan/g) || []).length, 1);
+  assert.equal((text.match(/Ambil role/g) || []).length, 1);
+  assert.equal((text.match(/Butuh bantuan/g) || []).length, 1);
+  for (const reference of Object.values(channels)) assert.equal(text.split(reference).length - 1, 1);
+  assert.equal(embed.fields[0].value.split('\n').length, 4);
+  assert.ok(text.length < 750);
+  assert.equal(embed.timestamp, '2026-10-17T03:00:00.000Z');
+  assert.doesNotMatch(text, /[\u2013\u2014]/);
+});
+
+test('custom welcome copy is preserved with the same single onboarding guide', () => {
+  const member = { displayName: 'New member', guild: { name: 'Hengs', memberCount: 1 } };
+  const copy = 'Halo geng, cari teman mabar dan kenalan dulu yuk!';
+  const embed = buildWelcomeEmbed(member, { customWelcomeCopy: copy }).toJSON();
+  assert.equal(embed.description, copy);
+  assert.equal(embed.fields.length, 2);
+  assert.match(embed.fields[0].value, /#rules/);
+  assert.match(embed.fields[0].value, /#get-roles/);
+  assert.match(embed.fields[0].value, /#intro-dulu-ngab/);
+  assert.match(embed.fields[0].value, /#announcements/);
+  assert.doesNotMatch(JSON.stringify(embed), /undefined|null/);
+});
+
+test('welcome presentation escapes names and rejects invalid channel references', () => {
+  const member = { displayName: '*Guest*', guild: { name: '[Community](https://example.com)', memberCount: 1 } };
+  const embed = buildWelcomeEmbed(member, { channels: {
+    rulesChannel: '@everyone', rolesChannel: '<@&823456789012345679>',
+  } }).toJSON();
+  assert.match(embed.title, /\\\*Guest\\\*/);
+  assert.ok(embed.description.includes('\\[Community]'));
+  assert.doesNotMatch(embed.fields[0].value, /@everyone|<@&/);
+  assert.match(embed.fields[0].value, /#rules/);
+});
+
+test('onboarding channel resolution supports Indonesian names and explicit configuration', () => {
+  const text = (id, name) => ({ id, name, isTextBased: () => true });
+  const rules = text('823456789012345678', '📜・aturan-server');
+  const override = text('823456789012345679', 'read-me');
+  const guild = { channels: { cache: cache([
+    { id: '823456789012345677', name: 'rules', isTextBased: () => false },
+    rules, override,
+    text('823456789012345680', '🎭・ambil-role'),
+    text('823456789012345681', '👋・kenalan'),
+    text('823456789012345682', '📢・pengumuman'),
+  ]) } };
+  assert.equal(findOnboardingChannel(guild, null, 'rules'), `<#${rules.id}>`);
+  assert.equal(findOnboardingChannel(guild, override.id, 'rules'), `<#${override.id}>`);
+  assert.equal(findOnboardingChannel(guild, '823456789012345677', 'rules'), `<#${rules.id}>`);
+  assert.equal(findOnboardingChannel(guild, 'missing', 'roles'), '<#823456789012345680>');
+  assert.equal(findOnboardingChannel(guild, null, 'intro'), '<#823456789012345681>');
+  assert.equal(findOnboardingChannel(guild, null, 'announce'), '<#823456789012345682>');
+  assert.equal(findOnboardingChannel({ channels: { cache: cache([]) } }, null, 'rules'), null);
+  assert.equal(findOnboardingChannel(guild, null, 'unknown'), null);
 });
 
 test('welcome and leave cards render valid PNG buffers offline', async () => {

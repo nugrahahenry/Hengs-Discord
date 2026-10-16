@@ -1,3 +1,23 @@
+const { EmbedBuilder, escapeMarkdown } = require('discord.js');
+
+const CHANNEL_NAMES = Object.freeze({
+  rules: ['rules', 'aturan'],
+  roles: ['get-roles', 'ambil-role', 'roles'],
+  announce: ['announcement', 'announce', 'pengumuman'],
+  intro: ['intro', 'perkenalan', 'kenalan'],
+});
+
+function findOnboardingChannel(guild, configuredId, kind) {
+  if (!Object.hasOwn(CHANNEL_NAMES, kind)) return null;
+  const channels = guild.channels.cache;
+  let channel = configuredId && channels.get(configuredId);
+  if (!channel?.isTextBased?.()) {
+    channel = channels.find(candidate => candidate.isTextBased?.()
+      && CHANNEL_NAMES[kind].some(name => candidate.name.toLowerCase().includes(name)));
+  }
+  return channel ? safeChannelReference(`<#${channel.id}>`, null) : null;
+}
+
 function normalizedRoleName(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -50,24 +70,39 @@ function buildOnboardingFields({ rulesChannel, rolesChannel, announceChannel, in
     {
       name: '🚀 Mulai di sini',
       value: [
-        `**1. Baca aturan** di ${rules}`,
-        `**2. Ambil role** di ${roles}`,
-        `**3. Kenalan** di ${intro}`,
-        `**4. Pantau update** di ${announce}`,
+        `1. ${rules} · Baca aturan`,
+        `2. ${roles} · Ambil role`,
+        `3. ${intro} · Kenalan`,
+        `4. ${announce} · Pantau update`,
       ].join('\n'),
       inline: false,
     },
     {
       name: '🤖 Butuh bantuan?',
-      value: 'Mention Hengs kalau mau tanya, minta bantuan, atau cari fitur yang cocok.',
+      value: 'Mention Hengs untuk tanya atau cari fitur. Mau langsung coba? Pakai `/fun` atau `/study`.',
       inline: false,
     },
   ];
 }
 
+function buildWelcomeEmbed(member, { customWelcomeCopy, channels, now = new Date() } = {}) {
+  const displayName = escapeMarkdown(String(member.displayName || 'teman baru'), { maskedLink: true });
+  const serverName = escapeMarkdown(String(member.guild.name || 'server ini'), { maskedLink: true });
+  return new EmbedBuilder()
+    .setColor(0x5865F2)
+    .setTitle(`👋 Selamat datang, ${displayName}!`.slice(0, 256))
+    .setDescription(customWelcomeCopy
+      || `Senang kamu mampir di **${serverName}**. Yuk, kenalan dan cari teman ngobrol atau mabar!`)
+    .addFields(buildOnboardingFields(channels))
+    .setFooter({ text: `Member ke-${member.guild.memberCount} · Hengs onboarding` })
+    .setTimestamp(now);
+}
+
 module.exports = {
   assignMemberRole,
   buildOnboardingFields,
+  buildWelcomeEmbed,
   findMemberRole,
+  findOnboardingChannel,
   normalizedRoleName,
 };

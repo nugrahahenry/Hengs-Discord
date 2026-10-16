@@ -1056,7 +1056,7 @@ function drawIdentity(ctx, data, theme, options = {}) {
 
   const defaultMessage = data.isLeave
     ? `Makasih sudah jadi bagian ${data.brandName}. Semoga ketemu lagi ya.`
-    : `Senang kamu gabung di ${data.brandName}. Baca aturan, ambil role, lalu kenalan. Kalau butuh bantuan, mention Hengs.`;
+    : 'Teman ngobrol dan mabar baru? Gas kenalan!';
   const message = safeString(
     data.isLeave ? options.leaveMessage : options.welcomeMessage,
     defaultMessage,

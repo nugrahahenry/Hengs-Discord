@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.58.1 - structured news editor and safe failure diagnostics
+**Current checkpoint:** Hengs Discord v1.58.2 - concise welcome and onboarding
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -156,6 +156,10 @@ fitur ini menghentikan jadwal tanpa menghapus state. Tidak perlu mendaftarkan sl
 - Welcome Card v2 menampilkan custom welcome copy langsung di kartu, badge `START HERE`, dan embed
   onboarding berurutan untuk rules, role, intro, serta pengumuman. Public onboarding juga memberi
   alur tiga langkah yang ringkas tanpa state baru.
+  Welcome home memakai satu sapaan, satu panduan empat langkah, dan satu bantuan tanpa pengulangan
+  template lama. Link mendukung nama channel Indonesia, misalnya `aturan-server`, `ambil-role`,
+  `kenalan`, dan `pengumuman`; ID konfigurasi tetap didahulukan. Copy custom tidak ditimpa.
+  Perbaikan v1.58.2 masih lokal, tidak mengedit pesan welcome yang sudah terkirim.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.

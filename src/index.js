@@ -20,7 +20,7 @@ const { generateCard } = require('./utils/welcome-card');
 const { AttachmentBuilder } = require('discord.js');
 const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
-const { assignMemberRole, buildOnboardingFields } = require('./utils/member-onboarding');
+const { assignMemberRole, buildWelcomeEmbed, findOnboardingChannel } = require('./utils/member-onboarding');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
@@ -325,40 +325,19 @@ client.on(Events.GuildMemberAdd, async (member) => {
     } catch {
       console.warn('[welcome] HOME_WELCOME_STATE_INVALID');
     }
-    // Cari channel dari env ID, lalu fallback berdasarkan nama agar link selalu bisa diklik.
+    // Resolve once; the embed owns the only onboarding guide.
     const g = member.guild;
-    const linkCh = (envId, ...names) => {
-      let c = envId && g.channels.cache.get(envId);
-      if (!c) c = g.channels.cache.find(x => x.isTextBased?.() && names.some(n => x.name.toLowerCase().includes(n)));
-      return c ? `<#${c.id}>` : null;
+    const channels = {
+      rulesChannel: findOnboardingChannel(g, process.env.RULES_CHANNEL_ID, 'rules'),
+      rolesChannel: findOnboardingChannel(g, process.env.ROLES_CHANNEL_ID, 'roles'),
+      announceChannel: findOnboardingChannel(g, process.env.ANNOUNCE_CHANNEL_ID, 'announce'),
+      introChannel: findOnboardingChannel(g, process.env.INTRO_CHANNEL_ID, 'intro'),
     };
-    const rulesCh = linkCh(process.env.RULES_CHANNEL_ID, 'rules');
-    const rolesCh = linkCh(process.env.ROLES_CHANNEL_ID, 'get-roles', 'roles');
-    const annCh   = linkCh(process.env.ANNOUNCE_CHANNEL_ID, 'announcement', 'announce');
-    const introCh = linkCh(process.env.INTRO_CHANNEL_ID, 'intro', 'perkenalan');
-    const onboardingFields = buildOnboardingFields({
-      rulesChannel: rulesCh,
-      rolesChannel: rolesCh,
-      announceChannel: annCh,
-      introChannel: introCh,
-    });
     const cardBuffer = await generateCard(member, 'welcome', {
       welcomeMessage: customWelcomeCopy || undefined,
       onboardingLabel: 'START HERE',
     });
-    const defaultDescription =
-      `👋 Halo <@${member.id}>! Selamat datang di **${g.name}**! 🎉\n\n` +
-      `📜 Baca dulu rules di ${rulesCh || '**#rules**'}\n` +
-      `🎭 Ambil role kamu di ${rolesCh || '**#get-roles**'}\n` +
-      `📢 Cek pengumuman di ${annCh || '**#announcements**'}\n\n` +
-      `Butuh bantuan atau mau ngobrol? Tinggal **mention aku** (@Hengs Bot), atau coba \`/fun\` dan \`/study\`! 🤖`;
-    const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle(`👋 Selamat datang, ${member.displayName}!`)
-      .setDescription(customWelcomeCopy || defaultDescription)
-      .addFields(onboardingFields)
-      .setFooter({ text: `Member ke-${member.guild.memberCount} • Hengs onboarding` })
-      .setTimestamp();
+    const embed = buildWelcomeEmbed(member, { customWelcomeCopy, channels });
 
     if (cardBuffer) {
       const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome.png' });
@@ -369,9 +348,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
         allowedMentions: { parse: [] },
       });
     } else {
-      embed.setTitle(`👋 Selamat datang, ${member.displayName}!`);
       embed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
-      embed.setFooter({ text: `Member ke-${member.guild.memberCount}` });
       await channel.send({
         embeds: [embed],
         allowedMentions: { parse: [] },
