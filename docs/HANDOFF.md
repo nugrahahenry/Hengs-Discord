@@ -2,6 +2,33 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.56.0 controlled deployment and native visual preview accepted
+
+- Henry approved continuing deployment and private preview. Exact deployed source is
+  d823153d7c5ac6fe3d4da728581e0389c3b2d9e8 (includes the packaging correction below).
+- Read-only capacity/current-release/single-consumer/news-paused preflight passed. Source-only
+  archive checksum verified at both ends. Candidate QA ran isolated on Linux Node22 before
+  stopping the old bot:604total/601pass/0fail/3expected checkout-only skips, covered locally
+  by17/17. No dependency changes; immutable existing dependency tree reused after lock comparison.
+- Controlled switch accepted after two moving CONNECTED/OK/fresh heartbeats >=30seconds apart,
+  one process matching systemd MainPID, active/enabled and zero automatic restarts. Persistent
+  data fingerprints matched across the stopped switch. News file fingerprint remained unchanged.
+  Environment/config fingerprints unchanged; no QR/auth/restore/backup/reboot or slash registration.
+- WA0.46.0 and Canox memory-only0.178.0 stayed healthy with unchanged PIDs/releases/environment.
+  Memory capability separation, loopback listener and backup timer independently verified.
+  Staging cleaned; v1.55.0 remains immutable rollback. Local bot processes0/autostartoff.
+- Actual owner /hengs ask preview berita returned private Components V2 with3image cards and
+  source links. Browser screenshot verified a publisher image above its title/excerpt/source/date
+  and the Only you can see this label. Proof image stays ignored in news-v1560, no auth data.
+- Existing public edition left unchanged; independent official REST audit verifies one message,
+  three original item links, no mentions and read-only member channel. News remains schema1,
+  tested=true/enabled=false, one sent receipt on2026-10-16. No send-once or enable action repeated.
+- Next: Henry reviews visual/source-language content; daily activation requires separate approval.
+  Source diversity and Indonesian summaries remain follow-up options, not implemented.
+- Private operators: .cloud/automation/news-v1560. Deployment status ACCEPTED; do not redispatch.
+  audit-news.sh is current; news-v1550 pins old production and is historical after this upgrade.
+- Documentation subject: docs(cloud): Hengs Discord v1.56.0 - record deployment and visual acceptance.
+
 ## Hengs Discord v1.56.0 packaging correction before approved deployment
 
 - Henry approved continuing deployment/private visual preview. Read-only preflight passed;

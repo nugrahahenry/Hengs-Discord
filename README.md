@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.56.0 - image-first news cards, local implementation
+**Current checkpoint:** Hengs Discord v1.56.0 - image-first news cards, deployed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -12,7 +12,7 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.55.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.56.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
@@ -27,7 +27,8 @@ Gambar memakai URL HTTPS pada domain/path penerbit yang sudah ditentukan, bukan 
 scraping halaman artikel, unggahan ulang, atau URL dari pengguna. Discord memuat preview gambar;
 Hengs tidak mengunduh atau menyimpan byte gambar. Tampilan gambar bergantung pada penerbit,
 Discord dan pengaturan tampilan media pengguna. Cuplikan tetap mengikuti bahasa sumber.
-Perubahan visual ini belum dideploy; cloud v1.55.0 tetap memakai digest teks dan jadwal dijeda.
+Perubahan visual sudah dideploy dan preview privat nyata lulus pada 2026-10-16. Edisi teks yang
+sudah terkirim tidak diubah/dikirim ulang; jadwal harian tetap dijeda menunggu review Henry.
 
 Pada v1.55.0, `/admin setup` di server utama menanyakan **Mau tambahkan Hengs News sekarang?**
 Pilih **Ya** untuk melihat preview, **Belum sekarang** untuk melewati penambahan, atau **Batal**.
