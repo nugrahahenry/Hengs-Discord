@@ -28,8 +28,9 @@ Pilihan dibatasi maksimal satu artikel per penerbit, terbaru lebih dulu. Jumlah 
 batas atas, bukan target wajib: topik teknologi + AI saat ini memiliki dua penerbit, sehingga
 paling banyak dua item, atau satu jika hanya satu sumber punya berita baru. Tidak menambah topik otomatis.
 Sudah dideploy pada 2026-10-16. Preview privat nyata di bot-commands menampilkan gambar,
-judul/ringkasan Indonesia dan sumber untuk satu artikel baru. Tidak ada kiriman publik tambahan;
-jadwal tetap dijeda. Pengujian berikutnya juga dilakukan di bot-commands, bukan channel berita.
+judul/ringkasan Indonesia dan sumber untuk satu artikel baru. Jadwal home guild kemudian diaktifkan
+dengan persetujuan Henry: teknologi + AI, pukul 08:00 WIB, gaya santai, maksimal tiga item dan satu
+artikel per penerbit. Aktivasi tidak mengirim ulang edisi hari itu. Pengujian tetap di bot-commands.
 
 v1.56.0 menampilkan satu kartu per artikel: gambar dari feed penerbit di atas, lalu judul,
 cuplikan singkat, tautan sumber dan tanggal WIB. Maksimal tiga kartu tetap berada dalam satu
@@ -40,7 +41,8 @@ scraping halaman artikel, unggahan ulang, atau URL dari pengguna. Discord memuat
 Hengs tidak mengunduh atau menyimpan byte gambar. Tampilan gambar bergantung pada penerbit,
 Discord dan pengaturan tampilan media pengguna. Cuplikan fallback tetap mengikuti bahasa sumber.
 Perubahan visual sudah dideploy dan preview privat nyata lulus pada 2026-10-16. Edisi teks yang
-sudah terkirim tidak diubah/dikirim ulang; jadwal harian tetap dijeda menunggu review Henry.
+sudah terkirim tidak diubah/dikirim ulang. Jadwal home guild aktif sejak 2026-10-16; server lain
+tetap harus mengatur, menguji dan mengaktifkan jadwal sendiri. Pakai `jeda berita` untuk menjeda.
 
 Pada v1.55.0, `/admin setup` di server utama menanyakan **Mau tambahkan Hengs News sekarang?**
 Pilih **Ya** untuk melihat preview, **Belum sekarang** untuk melewati penambahan, atau **Batal**.
@@ -229,7 +231,8 @@ dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord produ
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
 UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.57.0 kini menjadi
 production `current`, lulus tes Node22 dan dua heartbeat sehat setelah restart terkontrol.
-v1.56.0 tetap tersedia untuk rollback. News sudah dikonfigurasi dan diuji; jadwal masih dijeda.
+v1.56.0 tetap tersedia untuk rollback. News home guild aktif setiap 08:00 WIB setelah persetujuan;
+aktivasi dan state sudah diverifikasi, tetapi kiriman harian pertama belum teramati.
 Secret serta state persisten awalnya
 dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
 Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal

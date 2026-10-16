@@ -2,6 +2,29 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.57.0 daily news activated
+
+- Henry approved continuing from the accepted preview to daily activation. Fresh read-only audit
+  passed on the unchanged v1.57.0 code3b9458f179b0: both bots healthy/single consumer, Canox memory
+  private and healthy, zero automatic restarts, local bots zero/autostart off.
+- In bot-commands, one fresh ephemeral `preview berita` completed, then `aktifkan berita` returned
+  success at17:10WIB on2026-10-16. Settings preserved: tech/ai,08:00WIB,count3,casual,existing news
+  channel. No send-once, save/reset, receipt reset, source expansion, restart, deploy or backup.
+- Independent read-only audit confirms tested=true/enabled=true, same one sent receipt/three seen
+  hashes and one public message. Member read-only permissions and no mentions remain unchanged.
+  Scheduler is native in the Discord service; no Codex automation or local laptop dependency added.
+- Next eligible scheduled window is2026-10-17 at08:00WIB. This is not proof of a successful future
+  delivery: first automatic edition remains unobserved and no eligible fresh item means no post.
+  Check the edition when Henry returns; do not create another scheduled Codex check by default.
+- Pause using `/hengs ask` with `jeda berita`; inspect with `status berita`. Preserve receipts.
+  Existing static channel topic still has the original setup wording; no channel edit was made.
+- Private proof: .cloud/automation/news-v1570/news-daily-enabled-2026-10-16.png.
+  audit-news-enabled.sh is the activation-day audit; it pins the original receipt count/date and
+  is not a perpetual daily health check. audit-news.sh expects paused state and is now historical.
+- Documentation QA9/9, tracked release-content/secret scan, version, whitespace and no-new-long-dash
+  checks passed. No source/dependency change; production remains the same accepted code commit.
+- Documentation subject: docs(news): Hengs Discord v1.57.0 - record daily news activation.
+
 ## Hengs Discord v1.57.0 controlled deployment and Indonesian preview accepted
 
 - Henry approved deployment and private preview. Exact deployed source:

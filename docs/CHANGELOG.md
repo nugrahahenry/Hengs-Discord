@@ -30,6 +30,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   akurasi seluruh output mendatang. Edisi publik lama tetap satu; jadwal harian tetap dijeda.
 - Auth, state dan konfigurasi dipertahankan. WA dan Canox tidak direstart atau diubah;
   tanpa QR, backup, reboot, registrasi command atau resource cloud baru.
+- Setelah review dan persetujuan lanjutan Henry, jadwal home guild diaktifkan pada 2026-10-16
+  pukul 17:10 WIB melalui preview privat terbaru dan `aktifkan berita` di bot-commands.
+  Teknologi + AI, 08:00 WIB, santai; audit state tested/active dan health lulus. Tidak ada kiriman
+  publik tambahan, restart atau automation Codex baru. Pengiriman harian pertama belum teramati.
 
 ### Scope
 

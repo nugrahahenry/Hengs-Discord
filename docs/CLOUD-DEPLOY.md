@@ -8,9 +8,12 @@ Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
 permission, atau kebijakan Anti-Raid. v1.57.0 aktif/enabled sebagai satu-satunya consumer
 Discord setelah restart terkontrol; v1.56.0 tetap tersedia sebagai rollback. News terpasang
-dan satu kiriman uji berhasil pada 2026-10-16; jadwal hariannya masih dijeda menunggu review Henry.
+dan satu kiriman uji berhasil pada 2026-10-16. Jadwal home guild diaktifkan atas persetujuan Henry
+pada hari yang sama: teknologi + AI, 08:00 WIB, santai, maksimal tiga item/satu artikel per penerbit.
 Preview privat v1.57.0 di bot-commands lulus pada hari yang sama: gambar, judul dan ringkasan
-Indonesia serta sumber tampil. Satu artikel baru terpilih; tidak ada kiriman kedua atau aktivasi.
+Indonesia serta sumber tampil. Aktivasi berikutnya lewat preview terbaru dan `aktifkan berita`
+tidak menambah kiriman publik hari itu. State tested/active terverifikasi; pengiriman harian pertama
+belum teramati. Scheduler berjalan di proses Discord cloud, bukan automation Codex baru.
 WA v0.46.0 dan Canox memory-only v0.178.0 tidak direstart;
 integrasi memori privat tetap aktif. Registrasi historis v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.
