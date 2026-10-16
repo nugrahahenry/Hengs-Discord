@@ -7,6 +7,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [1.56.0] - 2026-10-16
 
+### Build
+
+- Versi pembuat arsip mengikuti metadata checkpoint dan diverifikasi terhadap committed HEAD.
+  Fixture packaging memakai versi produk aktif agar pengikat versi lama tidak lolos QA.
+
 ### Added
 
 - Kartu Hengs News dengan gambar feed di atas judul, cuplikan, sumber dan tanggal WIB.

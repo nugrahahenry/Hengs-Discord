@@ -2,6 +2,18 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.56.0 packaging correction before approved deployment
+
+- Henry approved continuing deployment/private visual preview. Read-only preflight passed;
+  production remains v1.55.0 with news paused, no cloud write yet.
+- The actual archive builder rejected v1.56.0 because its independent RELEASE_VERSION was
+  still1.55.0. Builder now reads package.json and still compares committed HEAD metadata after
+  its clean-checkout gate. Fixture expectations use the real checkpoint version so a future
+  stale builder pin fails QA. Build-only change, no product version bump or runtime behavior.
+- Subject: build(release): Hengs Discord v1.56.0 - bind archive version to checkpoint metadata.
+- Focused packaging/news checks39/39 passed, whitespace/content policy passed. Actual committed
+  archive creation remains required before transfer; never bypass VERSION_INVALID.
+
 ## Hengs Discord v1.56.0 image-first news cards, local checkpoint
 
 - Henry requested a visual image above the explanation and source after reviewing the actual

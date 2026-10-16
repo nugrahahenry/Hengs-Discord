@@ -12,6 +12,7 @@ const {
 } = require('../scripts/cloud/build-release');
 
 const repositoryRoot = path.join(__dirname, '..');
+const checkpointVersion = require('../package.json').version;
 const repositoryMetadataAvailable = fs.existsSync(path.join(repositoryRoot, '.git'));
 
 test('tracked-file validation rejects private paths and credential content', () => {
@@ -89,7 +90,7 @@ function createGitFixture(options = {}) {
   const commit = '0123456789abcdef0123456789abcdef01234567';
   const tracked = options.tracked || ['package.json', 'src/index.js'];
   const contents = {
-    'package.json': JSON.stringify({ version: options.version || '1.55.0' }),
+    'package.json': JSON.stringify({ version: options.version || checkpointVersion }),
     'src/index.js': "'use strict';\n",
     ...(options.contents || {}),
   };
@@ -119,11 +120,11 @@ function createGitFixture(options = {}) {
 test('release builder archives committed HEAD and writes a SHA-256 sidecar', () => {
   const fixture = createGitFixture();
   const result = buildRelease(fixture);
-  const expectedArchive = `hengs-discord-1.55.0-${fixture.commit.slice(0, 12)}.tar.gz`;
+  const expectedArchive = `hengs-discord-${checkpointVersion}-${fixture.commit.slice(0, 12)}.tar.gz`;
 
   assert.equal(path.basename(result.archive), expectedArchive);
   assert.equal(result.commit, fixture.commit);
-  assert.equal(result.version, '1.55.0');
+  assert.equal(result.version, checkpointVersion);
   assert.equal(fs.existsSync(result.archive), true);
   assert.equal(fs.existsSync(result.checksumFile), true);
   const expectedHash = crypto.createHash('sha256')
