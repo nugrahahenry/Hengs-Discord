@@ -24,6 +24,17 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Bantuan menjelaskan ringkasan AI, fallback bahasa sumber, komik xkcd dan alur revisi baru.
   Schema1, batas satu kiriman per hari, permission, state privat dan anggaran model tetap.
 
+### Deployment
+
+- Deploy satu kali dari commit 69c196ca5ca9d0aabe82f5de553005ddd7108e9e diterima pada 2026-10-16.
+  Lokal 627/627; kandidat Linux 624 pass/0 fail/3 skip khusus checkout. Dua heartbeat sehat,
+  satu consumer, nol restart otomatis; auth/state dipertahankan dan rollback v1.57.0 tersedia.
+- Preview privat nyata memilih dua berita dari Cloudflare/NVIDIA dan satu komik xkcd.
+  Berita memakai fallback cuplikan asli yang dilabeli; bukan bukti keberhasilan editor Indonesia.
+- `terapkan berita` mengaktifkan komposisi itu pada jadwal 08:00 WIB yang sudah aktif tanpa kiriman
+  tambahan atau reset receipt. Audit health/state lulus; WA dan Canox tidak berubah.
+  Pengiriman harian pertama masih belum teramati, tanpa automation Codex tambahan.
+
 ## [1.57.0] - 2026-10-16
 
 ### Added

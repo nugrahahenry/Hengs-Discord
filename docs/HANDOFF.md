@@ -2,7 +2,35 @@
 
 Updated: 2026-10-16
 
-## Hengs Discord v1.58.0 local News refinement accepted
+## Hengs Discord v1.58.0 deployed and mixed daily edition activated
+
+- Deployed exact source 69c196ca5ca9d0aabe82f5de553005ddd7108e9e on 2026-10-16 in one attempt.
+  Candidate Node22 QA 627 total/624 pass/0 fail/3 expected checkout-only skips; local 627/627 covered
+  those checks. Immutable dependencies reused. Two moving CONNECTED/OK/fresh heartbeats passed,
+  one consumer, zero automatic restarts. Config/state preserved; staging absent, rollback 1.57.0
+  retained. WA 0.46.0 and Canox memory-only 0.178.0 unchanged; private memory/backup timer intact.
+- In bot-commands at 22:08 WIB, one fresh private preview selected Cloudflare + NVIDIA + xkcd,
+  exactly 2 news/1 comic with source image links and distinct comic label. Both news briefs used
+  explicit source-language fallback; Indonesian rewriting is NOT accepted by this sample.
+  No retry, public send, generated image or false translation claim. Future focused work should
+  diagnose the editor fallback without exposing provider responses or increasing retry/budget.
+- Same private preview followed by `terapkan berita` succeeded. Persisted settings now tech/ai/
+  memes, 08:00 WIB, count 3, casual, same tested channel, enabled=true. Independent audit confirmed
+  the original one sent daily receipt and three seen hashes unchanged. No extra edition today.
+- Next eligible scheduled window 2026-10-17 08:00 WIB. First automatic delivery remains unobserved;
+  source availability may produce fewer items. Entertainment is xkcd comics, not a viral meme feed.
+  No Codex scheduled check added. Preserve receipts and inspect when Henry returns.
+- Private proof: .cloud/automation/news-v1580/news-mixed-enabled-2026-10-16.png.
+  audit-news-mixed-enabled.sh is the current activation-day audit, not a perpetual daily check;
+  audit-news-enabled.sh pins the superseded tech/ai setup. Deployment status ACCEPTED; do not
+  redispatch. Local bots zero/autostart off. No QR, auth, backup, reboot or Oracle operations.
+- Code checkpoint pushed to origin/main. GitHub reported zero check runs/statuses, so no CI-green
+  claim; acceptance is based on offline local QA, isolated Linux QA and observed production health.
+- Documentation QA 9/9 passed, including tracked secret/content scan; metadata, whitespace and
+  no-new-long-dash checks passed. No new temporary spec/plan or unrelated cleanup was needed.
+- Documentation subject: docs(news): Hengs Discord v1.58.0 - record deployment and mixed daily activation.
+
+## Hengs Discord v1.58.0 implementation acceptance
 
 - Henry approved one coherent News refinement batch followed by one deployment. Scope is Discord
   News only; WA/Canox, auth, private state, backup, Oracle and full agent runtime stay unchanged.
@@ -23,10 +51,9 @@ Updated: 2026-10-16
   Existing 47 focused tests passed before the final concurrency/permission/atomic-write additions.
 - Code/data-flow review: no private model inputs, arbitrary feed URLs, new credentials or schema;
   daily receipts cannot be reset by revise. Existing same-channel live state needs no migration.
-- Production still v1.57.0 until controlled deployment acceptance. Preserve active tech/ai schedule
-  while deploying, then use private bot-commands preview + apply for the approved mixed edition.
-  Do not send another public edition today. Rollback target is v1.57.0-3b9458f179b0.
-- Intended subject: feat(news): Hengs Discord v1.58.0 - refine revisions and balanced daily editions.
+- Controlled deployment and mixed activation completed above. No extra public edition sent.
+  Rollback target is v1.57.0-3b9458f179b0.
+- Code subject: feat(news): Hengs Discord v1.58.0 - refine revisions and balanced daily editions.
   Internal architecture/source evidence is in ignored NEWS-DIRECTION.md; no extra spec/plan.
 
 ## Hengs Discord v1.57.0 daily news activated

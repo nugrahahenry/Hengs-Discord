@@ -245,10 +245,12 @@ acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInsta
 provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.28.0 menyediakan
 dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.57.0 kini menjadi
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.58.0 kini menjadi
 production `current`, lulus tes Node22 dan dua heartbeat sehat setelah restart terkontrol.
-v1.56.0 tetap tersedia untuk rollback. News home guild aktif setiap 08:00 WIB setelah persetujuan;
-aktivasi dan state sudah diverifikasi, tetapi kiriman harian pertama belum teramati.
+v1.57.0 tetap tersedia untuk rollback. News home guild aktif setiap 08:00 WIB setelah persetujuan,
+maksimal dua berita teknologi/AI + satu komik. Revisi tanpa kiriman tambahan dan state sudah
+diverifikasi, tetapi kiriman harian pertama belum teramati. Preview campuran terakhir memakai
+fallback cuplikan sumber; kualitas ringkasan Indonesia masih perlu ditinjau.
 Secret serta state persisten awalnya
 dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
 Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal

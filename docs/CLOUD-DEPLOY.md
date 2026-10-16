@@ -1,19 +1,20 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
-v1.57.0 (accepted 2026-10-16). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+v1.58.0 (accepted 2026-10-16). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
 pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
-permission, atau kebijakan Anti-Raid. v1.57.0 aktif/enabled sebagai satu-satunya consumer
-Discord setelah restart terkontrol; v1.56.0 tetap tersedia sebagai rollback. News terpasang
+permission, atau kebijakan Anti-Raid. v1.58.0 aktif/enabled sebagai satu-satunya consumer
+Discord setelah restart terkontrol; v1.57.0 tetap tersedia sebagai rollback. News terpasang
 dan satu kiriman uji berhasil pada 2026-10-16. Jadwal home guild diaktifkan atas persetujuan Henry
-pada hari yang sama: teknologi + AI, 08:00 WIB, santai, maksimal tiga item/satu artikel per penerbit.
-Preview privat v1.57.0 di bot-commands lulus pada hari yang sama: gambar, judul dan ringkasan
-Indonesia serta sumber tampil. Aktivasi berikutnya lewat preview terbaru dan `aktifkan berita`
-tidak menambah kiriman publik hari itu. State tested/active terverifikasi; pengiriman harian pertama
-belum teramati. Scheduler berjalan di proses Discord cloud, bukan automation Codex baru.
+pada hari yang sama, kemudian direvisi lewat preview privat dan `terapkan berita`: teknologi, AI
+dan komik, 08:00 WIB, santai, maksimal dua berita + satu hiburan/satu artikel per penerbit.
+Preview v1.58.0 benar-benar memilih dua berita dan satu komik dengan sumber/gambar; dua berita
+memakai fallback bahasa sumber, bukan bukti keberhasilan ringkasan Indonesia. Apply mempertahankan
+tested/active dan receipt hari itu tanpa publikasi tambahan. Pengiriman harian pertama belum
+teramati. Scheduler berjalan di proses Discord cloud, bukan automation Codex baru.
 WA v0.46.0 dan Canox memory-only v0.178.0 tidak direstart;
 integrasi memori privat tetap aktif. Registrasi historis v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.
