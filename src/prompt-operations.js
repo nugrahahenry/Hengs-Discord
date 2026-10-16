@@ -1,5 +1,7 @@
 'use strict';
 
+const { parseAppreciationPrompt } = require('./ops/appreciation');
+
 // Adapter prompt-first untuk Ops Hub dan Event Hub.
 // Modul ini hanya mem-parsing input bounded. Penyimpanan, scheduler, dan
 // approval tetap dimiliki hub yang sudah ada.
@@ -79,6 +81,17 @@ function extractCapacity(value) {
 }
 
 function buildOperationQuestions(kind = 'operation') {
+  if (kind === 'appreciation') {
+    return [
+      '🏆 Bisa, kita bikin kartu apresiasi dulu buat direview!',
+      'Klik tombol di bawah untuk isi nama tim/penerima, pencapaian, tanggal, dan pemain. Nickname dalam kurung boleh dikosongkan.',
+      'Atau langsung sebutkan detailnya. Contoh:',
+      '`Bikin apresiasi buat Tim Orion karena juara 1 turnamen kampus`',
+      'Kalau ada, tambahkan `; momen Campus Cup; tanggal 16 Oktober 2026`.',
+      'Pakai nama biasa, tanpa mention/link. Aku tidak menebak tanggal atau hasil lomba.',
+      'Draft masuk ke `bot-settings`. Belum diumumkan, tidak memberi role atau poin otomatis.',
+    ].join('\n');
+  }
   if (kind === 'project') {
     return [
       '🧭 **Aku bisa siapkan rencana tugas proyek privat.**',
@@ -156,6 +169,11 @@ function parseEvent(prompt) {
 function parseOperationPrompt(value) {
   const prompt = normalizePrompt(value);
   if (!prompt || prompt.length > MAX_PROMPT_LENGTH) return null;
+  // An appreciation for a past tournament must not become a future event/reminder.
+  if (/\b(?:apresiasi|achievement|hall\s+of\s+fame)\b/i.test(prompt)) {
+    const appreciation = parseAppreciationPrompt(prompt);
+    if (appreciation) return appreciation;
+  }
   if (OPERATION_STATUS_SIGNAL.test(prompt)) {
     return { kind: 'operation_status', operation: 'status' };
   }

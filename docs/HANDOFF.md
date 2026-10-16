@@ -2,6 +2,44 @@
 
 Updated: 2026-10-17
 
+## Hengs Discord v1.59.0 appreciation cards (not deployed)
+
+- Approved local continuation adds appreciation/Hall of Fame through ordinary Ops announcement
+  drafts. This is a reviewed card, not a new award database, XP, leaderboard, role or channel.
+- Owner/editor can ask `bikin kartu apresiasi`, open an actor-bound five-field modal, and enter
+  recipient, achievement, optional occasion/date and up to eight players. Nicknames optional.
+  Complete explicit prompts use a deterministic template, never a model or invented facts.
+  Home guild, requester and current editor access are rechecked for both form callbacks. Mere
+  Administrator is not enough for this feature. Owner remains sole publisher/scheduler.
+- Canonical labels in existing title/body opt into decoration; no extra persisted keys/schema.
+  Bounded strings, mentions off, literal Markdown, private bot-settings review and same graphic
+  on manual/scheduled publication. Manual noncanonical edits clear stale images; AI rewrite is
+  disabled for template drafts. Render failure preserves the reviewed text with a fixed code.
+  Claim-before-send and footer recovery ID remain intact across awaited bitmap decoding.
+- Supplied Hengs Family crest remains byte-for-byte unchanged, with provenance under assets/brand.
+  Exact recipient Hengs Familia/Family selects it; other recipients use a Canvas trophy. No URL
+  fetch or per-user asset path. Henry's actual roster/date preview stays ignored in .cloud/previews,
+  not source/test fixtures. No appreciation has been posted, no production state was changed.
+- Welcome/leave stay Aurora 900x280 but make member display name the hero and actual username
+  the handle; caption gets two lines. Existing duplicate-onboarding fix and News patch included.
+- QA: full offline suite 651/651 on available Node24; package/runtime remains pinned Node22.
+  Ordinary-temp execution required for known sandbox atomic-rename EPERM; no ACL/policy edits.
+  Added 16 regression tests covering literal data, parser fallback, permission, callback replay,
+  persistence compatibility, publication claims, render fallback and actual decoded logo pixels.
+- Scoped independent review found permission mismatch and parser/Markdown issues; all corrected.
+  Targeted re-review found no new regression, including awaited rendering and claim ordering.
+  Visual review used actual offline PNG at 550/320px plus long-name, welcome and leave cases.
+  Full text remains in Discord because secondary card details become small on mobile.
+  No new visual world/image generation: incumbent Aurora and supplied crest are retained.
+- Public contracts: docs/COMMUNITY-OPERATIONS.md, docs/WELCOME_CARD_BRIEF.md, assets/brand/README.md.
+  Internal architecture review stays in docs/APPRECIATION-DIRECTION.md as the active contract;
+  no disposable Superpowers spec/plan was created. No graph rebuild; historic graph was navigation
+  only and current code/tests supplied evidence. No bot start, Discord write, QR or cloud call.
+- Release subject: feat(appreciation): Hengs Discord v1.59.0 - add reviewed achievement cards and roster forms.
+- Next gate: deploy the combined checkpoint only with explicit approval, controlled Discord-only
+  restart and bot-commands/private review acceptance. Last verified cloud remains v1.58.0.
+  WA/Canox and the disabled Oracle watcher remain untouched. Never publish the real award as a test.
+
 ## Hengs Discord v1.58.2 welcome correction (not deployed)
 
 - Henry reported the Oct15 welcome screenshot with duplicated greeting, rules/roles/announcements
@@ -28,21 +66,8 @@ Updated: 2026-10-17
   No graph rebuild, dependency installation, new temporary spec/plan or unrelated cleanup.
 - Subject: fix(welcome): Hengs Discord v1.58.2 - remove duplicate onboarding content.
 
-### Next proposal: member appreciation / Hall of Fame
-
-- Henry wants to celebrate friends who have already won a tournament, plus other contributions.
-  Recommend a small appreciation announcement/card first, not XP, leaderboards or automatic rewards.
-- Existing Ops Hub already supports private draft, revision and owner-only publication. Event Hub
-  is for upcoming events/RSVP, not past tournament results. Natural operation routing currently
-  prioritizes event keywords; do not claim a tournament-appreciation prompt already routes correctly.
-- Proposed fields: recipient/team, achievement or contribution, tournament/context, date and
-  optional public evidence. Use facts Henry supplies; never invent rank, score or participants.
-  Names can initially be plain text; member mentions/roles and a new public channel need explicit
-  choices before writes. Reuse the existing announcements destination initially if Henry agrees.
-- Next: Henry provides winners/team, tournament name, placement and date. Confirm one bounded
-  implementation proposal before adding a specialized template/router. No award has been created,
-  published or assigned. Persistent member achievement history is deferred; if later requested,
-  update architecture/data retention/permission/backup contract before implementation.
+The appreciation proposal above this checkpoint was implemented locally in v1.59.0. Persistent
+member achievement history remains deferred and requires its own data/retention review.
 
 ## Hengs Discord v1.58.1 editor reliability checkpoint (not deployed)
 

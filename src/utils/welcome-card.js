@@ -1014,14 +1014,14 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  // Label kecil di atas (WELCOME TO / GOODBYE FROM)
+  // Small server label above the member identity.
   ctx.fillStyle = hexToRgba(theme.secondary, 0.95);
   ctx.font = fontSpec(700, 11);
-  const heading = data.isLeave ? 'GOODBYE FROM' : 'WELCOME TO';
-  ctx.fillText(heading, x, 40);
+  const heading = `${data.brandName.toUpperCase()} / ${data.isLeave ? 'SAMPAI JUMPA LAGI' : 'SELAMAT DATANG'}`;
+  ctx.fillText(truncateToWidth(ctx, heading, maxTextWidth), x, 40);
 
-  // HERO: nama brand BESAR (kayak PNG)
-  const brand = safeString(data.brandName, 'Hengs').toUpperCase();
+  // The member, not the brand, is the hero. The actual username stays below.
+  const brand = safeString(data.displayName, data.username);
   fitFont(ctx, brand, { maxWidth: maxTextWidth, maxSize: 46, minSize: 30, weight: 800 });
   const brandWidth = Math.min(360, ctx.measureText(brand).width || 200);
   const brandGradient = ctx.createLinearGradient(x, 52, x + brandWidth, 92);
@@ -1031,28 +1031,19 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.fillStyle = brandGradient;
   ctx.shadowColor = hexToRgba(theme.primary, 0.5);
   ctx.shadowBlur = 14;
-  ctx.fillText(brand, x, 86);
+  ctx.fillText(truncateToWidth(ctx, brand, maxTextWidth), x, 86);
   ctx.shadowBlur = 0;
 
-  // Username (medium, ungu) di bawah HENGS
+  // A stable @username distinguishes members with the same display name.
   const username = safeString(data.username, 'New Member');
-  fitFont(ctx, username, { maxWidth: maxTextWidth, maxSize: 32, minSize: 21, weight: 700 });
+  fitFont(ctx, `@${username}`, { maxWidth: maxTextWidth, maxSize: 19, minSize: 15, weight: 600 });
   ctx.fillStyle = hexToRgba(theme.tertiary, 0.98);
   ctx.shadowColor = hexToRgba(theme.primary, 0.35);
   ctx.shadowBlur = 6;
-  ctx.fillText(truncateToWidth(ctx, username, maxTextWidth), x, 116);
+  ctx.fillText(truncateToWidth(ctx, `@${username}`, maxTextWidth), x, 116);
   ctx.shadowBlur = 0;
 
-  // Handle @displayName (kalau beda dari username)
-  const hasDistinctDisplayName = data.displayName.toLocaleLowerCase() !== data.username.toLocaleLowerCase();
-  let messageY = 150;
-  if (hasDistinctDisplayName) {
-    ctx.font = fontSpec(600, 15);
-    ctx.fillStyle = hexToRgba(theme.secondary, 0.95);
-    const displayHandle = truncateToWidth(ctx, `@${data.displayName}`, maxTextWidth);
-    ctx.fillText(displayHandle, x, 138);
-    messageY = 164;
-  }
+  const messageY = 146;
 
   const defaultMessage = data.isLeave
     ? `Makasih sudah jadi bagian ${data.brandName}. Semoga ketemu lagi ya.`
@@ -1062,16 +1053,16 @@ function drawIdentity(ctx, data, theme, options = {}) {
     defaultMessage,
   );
 
-  ctx.font = fontSpec(400, 13.5);
+  ctx.font = fontSpec(500, 15);
   ctx.fillStyle = theme.muted;
-  const lines = wrapText(ctx, message, maxTextWidth, hasDistinctDisplayName ? 1 : 2);
+  const lines = wrapText(ctx, message, maxTextWidth, 2);
   lines.forEach((line, index) => {
     ctx.fillText(line, x, messageY + index * 18);
   });
 
   const badge = safeString(
     options.onboardingLabel,
-    data.isLeave ? 'SEE YOU SOON' : 'START HERE',
+    data.brandName,
   ).slice(0, 20).toUpperCase();
   ctx.font = fontSpec(800, 9);
   const badgeWidth = Math.min(170, Math.max(112, ctx.measureText(badge).width + 28));
@@ -1161,4 +1152,5 @@ module.exports = {
   formatDuration,
   generateCard,
   CARD,
+  cardFont: fontSpec,
 };

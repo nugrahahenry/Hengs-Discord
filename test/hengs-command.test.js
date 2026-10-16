@@ -87,6 +87,29 @@ function assertPrivate(payload) {
   assert.deepEqual(payload.allowedMentions, { parse: [] });
 }
 
+test('/hengs appreciation asks via form and creates a prepared draft without invoking any model', async t => {
+  const previous = process.env.OWNER_ID;
+  process.env.OWNER_ID = USER;
+  t.after(() => { if (previous === undefined) delete process.env.OWNER_ID; else process.env.OWNER_ID = previous; });
+  const deps = dependencies('home');
+  deps.opsHub = { findSettingsChannel: () => '#bot-settings', createDraftPanel: async (guild, input) => {
+    deps.calls.push({ draft: input }); return { created: true, draft: input };
+  } };
+  deps.agent.draftAnnouncement = () => assert.fail('prepared appreciation must not call model');
+  const question = interaction({ subcommand: 'ask', prompt: 'Bikin kartu apresiasi' });
+  question.guild = { ownerId: USER };
+  await hengs.execute(question, deps);
+  assertPrivate(question.replyPayload);
+  assert.equal(question.replyPayload.components[0].toJSON().components[0].custom_id, `ops:appreciationnew:${USER}`);
+  const value = interaction({ subcommand: 'ask', prompt: 'Bikin apresiasi Tim Orion karena juara 1 turnamen kampus' });
+  value.guild = { ownerId: USER };
+  await hengs.execute(value, deps);
+  assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
+  assert.equal(deps.calls.filter(call => call.draft).length, 1);
+  assert.match(deps.calls.find(call => call.draft).draft.body, /Penerima: Tim Orion/);
+  assert.equal(deps.calls.some(call => call.chat), false);
+});
+
 test('Canox memory admits only configured home owner and stays ephemeral through save/recall', async (t) => {
   const names = ['OWNER_ID', 'DISCORD_GUILD_ID', 'HENGS_MEMORY_ENABLED', 'CANOX_MEMORY_URL', 'CANOX_MEMORY_TOKEN'];
   const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));

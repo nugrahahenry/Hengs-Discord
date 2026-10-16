@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.58.2 - concise welcome and onboarding
+**Current checkpoint:** Hengs Discord v1.59.0 - appreciation cards and guided roster
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -159,7 +159,18 @@ fitur ini menghentikan jadwal tanpa menghapus state. Tidak perlu mendaftarkan sl
   Welcome home memakai satu sapaan, satu panduan empat langkah, dan satu bantuan tanpa pengulangan
   template lama. Link mendukung nama channel Indonesia, misalnya `aturan-server`, `ambil-role`,
   `kenalan`, dan `pengumuman`; ID konfigurasi tetap didahulukan. Copy custom tidak ditimpa.
-  Perbaikan v1.58.2 masih lokal, tidak mengedit pesan welcome yang sudah terkirim.
+  Perbaikan v1.58.2 dan v1.59.0 masih lokal, tidak mengedit pesan welcome yang sudah terkirim.
+  Nama tampilan member menjadi judul utama kartu; `@username` menjadi identitas pendamping.
+- **Kartu apresiasi:** owner/editor server utama bisa menulis `bikin kartu apresiasi` kepada Hengs,
+  lalu mengisi tombol formulir: pemain/tim, pencapaian, nama acara, tanggal, dan maksimal delapan
+  pemain. Nickname opsional, misalnya `Raka (Sky)`, satu pemain per baris. Detail yang belum
+  diketahui tidak dikarang. Draft PNG dan teks lengkap masuk ke `bot-settings`, bukan langsung
+  dipublikasikan. Owner tetap memutuskan publish/jadwal, tanpa role, poin, atau leaderboard baru.
+  Contoh cepat: `bikin apresiasi Tim Orion karena juara 1 turnamen kampus; tanggal 17 Oktober 2026`.
+  Edit manual tetap tersedia; AI rewrite dimatikan agar fakta penghargaan tidak berubah.
+  Jika format teks diubah bebas, gambar lama dihapus dan draft menjadi teks biasa.
+  Logo Hengs Family dipakai untuk tim Hengs Familia/Family, penerima lain memakai ilustrasi trofi.
+  Preview offline sintetis: `node scripts/preview-community-cards.js`; hasil di `.cloud/previews/`.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.

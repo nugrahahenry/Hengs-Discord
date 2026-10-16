@@ -688,7 +688,11 @@ function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, 
   const operation = parseOperationPrompt(prompt);
   if (operation) {
     if (scopeKind !== 'home') return { handled: false, kind: operation.kind };
-    if (!isOperationsManager({ actor, guild })) {
+    const appreciation = operation.operation === 'appreciation' || Boolean(operation.preparedDraft);
+    const allowed = appreciation
+      ? isEditor({ user: actor?.user || actor?.author, member: actor?.member })
+      : isOperationsManager({ actor, guild });
+    if (!allowed) {
       return {
         handled: true,
         kind: 'permission',

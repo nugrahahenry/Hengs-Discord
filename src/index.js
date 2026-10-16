@@ -487,7 +487,7 @@ client.on(Events.MessageCreate, async (msg) => {
         if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft') {
           const generated = promptRoute.kind === 'project_draft'
             ? await agent.draftProjectTask(promptRoute.brief, promptRoute.titleOverride)
-            : await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
+            : promptRoute.preparedDraft || await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
           const result = await opsHub.createDraftPanel(msg.guild, {
             ...generated,
             brief: promptRoute.brief,
@@ -548,6 +548,8 @@ client.on(Events.MessageCreate, async (msg) => {
         : promptRoute.content;
     await msg.reply({
       content,
+      components: promptRoute.kind === 'operation_questions' && promptRoute.operation === 'appreciation'
+        ? require('./ops/appreciation-form').appreciationFormRow(msg.author.id) : [],
       allowedMentions: { parse: [] },
     });
     return;

@@ -5,6 +5,28 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.59.0] - 2026-10-17
+
+### Added
+
+- Hengs Discord v1.59.0: kartu apresiasi dari fakta owner/editor melalui prompt atau formulir
+  lima isian. Pemain maksimal delapan dengan nickname opsional; tanggal/hasil tidak ditebak.
+- Kartu Hall of Fame memakai logo Hengs Family yang diberikan owner untuk penerima Hengs
+  Familia/Family, atau trofi Canvas untuk penerima lain. Teks lengkap tetap ada di embed.
+- Integrasi memakai draft announcement Ops yang sudah ada: review privat, edit, jadwal,
+  owner-only publish, claim sebelum pengiriman dan recovery ID tetap dipertahankan. Tidak
+  menambah database penghargaan, role, poin, channel, provider, atau auto-publication.
+- Form memeriksa peminta, home guild dan akses editor saat callback. Input dibatasi, mention
+  dimatikan, Markdown ditampilkan literal, dan kegagalan gambar menyisakan teks lengkap.
+
+### Changed
+
+- Welcome/leave menonjolkan nama tampilan member, memakai username asli sebagai handle,
+  dan memberi ruang dua baris untuk caption. Preview offline desktop/mobile tersedia.
+- Template apresiasi tidak ditulis ulang AI. Edit bebas yang keluar dari template menghapus
+  lampiran lama agar gambar tidak membawa fakta usang. Format state tetap kompatibel rollback.
+- Belum deploy atau mengirim apresiasi ke Discord; patch v1.58.1 dan v1.58.2 ikut checkpoint ini.
+
 ## [1.58.2] - 2026-10-17
 
 ### Fixed

@@ -6,6 +6,7 @@ const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store')
 const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-assistant');
 const { formatOperationStatus } = require('../prompt-operations');
+const { appreciationFormRow } = require('../ops/appreciation-form');
 const { issueReview, getDraftForRequester } = require('../prompt-review');
 const { thinkingReplyPayload } = require('../assistant-ux');
 const { applyHomeWelcomeAction } = require('../guilds/home-welcome-actions');
@@ -301,7 +302,7 @@ async function execute(interaction, {
         if (promptRoute.kind === 'ops_draft' || promptRoute.kind === 'project_draft') {
           const generated = promptRoute.kind === 'project_draft'
             ? await agent.draftProjectTask(promptRoute.brief, promptRoute.titleOverride)
-            : await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
+            : promptRoute.preparedDraft || await agent.draftAnnouncement(promptRoute.brief, promptRoute.titleOverride);
           const result = await opsHub.createDraftPanel(interaction.guild, {
             ...generated,
             brief: promptRoute.brief,
@@ -358,7 +359,9 @@ async function execute(interaction, {
       return;
     }
     if (promptRoute.kind !== 'community_plan') {
-      await replyPrivate(interaction, promptRoute.content);
+      await replyPrivate(interaction, promptRoute.content,
+        promptRoute.kind === 'operation_questions' && promptRoute.operation === 'appreciation'
+          ? appreciationFormRow(interaction.user.id) : []);
       return;
     }
     const review = issueReview({

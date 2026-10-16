@@ -1,5 +1,34 @@
 # Hengs Community Operations Dashboard
 
+## Kartu apresiasi v1.59.0
+
+Tulis `bikin kartu apresiasi` lewat mention Hengs atau `/hengs ask` di server utama. Form
+khusus peminta tersedia untuk owner/editor Ops, bukan Administrator tanpa role editor.
+Isi penerima (80 karakter), pencapaian (220), acara opsional (100), tanggal opsional (48),
+serta pemain opsional (480 total, maksimal 8, masing-masing 60 termasuk nickname).
+Pemain satu per baris, contoh `Raka (Sky)` atau `Dara`. Semua fakta berasal dari pengguna.
+Form memeriksa kembali home guild, peminta dan akses editor saat dibuka maupun dikirim.
+
+Alternatif langsung: `bikin apresiasi Tim Orion karena juara 1 turnamen kampus; tanggal
+17 Oktober 2026; pemain Raka (Sky), Dara`. Hengs tidak mengubah hasil yang sudah terjadi
+menjadi jadwal event. Tidak perlu provider/model untuk membangun template atau gambar.
+
+Draft menggunakan announcement Ops biasa, format state tidak berubah. Review ada di
+`bot-settings`; owner memutuskan Publish Now, jadwal atau Discard melalui kontrol existing.
+Tidak membuat channel, role, poin, leaderboard, riwayat penghargaan baru, atau pengumuman
+otomatis. Tidak melakukan lookup member maupun mengambil gambar dari URL pengguna.
+
+Gambar dan teks berasal dari template yang sama. Teks lengkap tetap tersedia dan Markdown
+ditampilkan literal, mention dinonaktifkan. Revisi AI dimatikan untuk melindungi fakta.
+Edit manual boleh mempertahankan label template; bila format diubah bebas, gambar lama
+dihapus dan draft menjadi teks biasa. Bila render gagal, teks tetap bisa direview/dikirim.
+Gambar hanya di RAM dan Discord, bukan file state baru. Logo tetap lokal/bundled.
+
+Kompatibilitas: binary lama membaca draft ini sebagai announcement biasa. Retensi Ops tidak
+berubah: 250 draft finalized, 20 revisi per draft dan 500 audit; active drafts tetap tersimpan.
+Idempotensi memakai external ID, claim-before-send dan footer recovery ID existing.
+Tidak menambah queue, cache, scheduler, worker atau dependency baru.
+
 ## Tujuan
 
 `/ops overview` memberi owner dan editor Ops Hub satu tampilan privat untuk memeriksa
