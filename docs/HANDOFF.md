@@ -2,6 +2,26 @@
 
 Updated: 2026-10-17
 
+## Hengs Discord v1.59.0 visual follow-up (preview only)
+
+- Henry selected A / Victory Arena, one adaptive with/without-logo composition, and corrected
+  the current team name to Hengs Family. Asset provenance docs now reflect that name; the crest
+  stays unchanged and Familia remains a compatibility alias in existing production code.
+- Later offline v2 previews strengthen result/team hierarchy and use an equal five-player lineup.
+  Private event/roster data, scripts and PNGs remain ignored under .cloud/previews. They are not
+  the renderer currently shipped in v1.59.0. Canonical design notes: docs/APPRECIATION-DIRECTION.md.
+- Optional certificate presentation is a proposal, not implemented. Henry has no actual file
+  yet and approved a labeled placeholder. Preserve an eventual organizer certificate unchanged;
+  missing player names belong on a separate owner-reviewed Hengs roster, not the source document.
+- Verification for this docs-only checkpoint: offline preview rendering, syntax, visual review
+  at 320px and full size, exact unchanged logo hash, scoped diff and whitespace checks. No new
+  runtime test coverage or live Discord acceptance claimed. Earlier 651/651 refers to the code
+  checkpoint below, not a new run. No bot, cloud, upload, provider, QR or deployment changes.
+- Product version stays 1.59.0 because this changes documentation/ignored previews only.
+  Subject: docs(appreciation): Hengs Discord v1.59.0 - correct team name and record visual direction.
+- Next: implement the selected adaptive visual renderer locally, with production-safe fonts;
+  review attachment security/data boundaries separately before adding certificate ingestion.
+
 ## Hengs Discord v1.59.0 appreciation cards (not deployed)
 
 - Approved local continuation adds appreciation/Hall of Fame through ordinary Ops announcement
