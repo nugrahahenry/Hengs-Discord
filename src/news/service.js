@@ -14,6 +14,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
   guildAccess, logger = console, editArticles = async items => items } = {}) {
   const drafts = new Map();
   const busy = new Map();
+  const delivering = new Set();
   let client; let timer; let ticking = false; let stopped = false;
   const keyFor = interaction => `${interaction.guildId}:${interaction.user.id}:${interaction.channelId}`;
   function active(guildId) { return ['home', 'public'].includes(guildAccess?.classify(guildId)?.kind); }
@@ -55,15 +56,20 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     assertRevision(guild.id, row.revision);
     if (stopped || expectedDay !== wibClock(now()).day) throw new Error('NEWS_STOPPED');
     const claimed = store.claim(guild.id, row.revision, day, items.map(item => item.hash));
+    delivering.add(guild.id);
     // Claim is durable before the external write. No automatic resend after an ambiguous outcome.
     try {
-      const nonce = BigInt(`0x${crypto.createHash('sha256').update(`hengs-news:${guild.id}:${day}`).digest('hex').slice(0, 16)}`).toString();
-      await channel.send({ ...digestPayload(row.settings, items, now()), nonce, enforceNonce: true });
-    } catch {
-      store.finish(guild.id, claimed.revision, day, 'failed');
-      throw new Error('NEWS_SEND_UNCERTAIN');
+      try {
+        const nonce = BigInt(`0x${crypto.createHash('sha256').update(`hengs-news:${guild.id}:${day}`).digest('hex').slice(0, 16)}`).toString();
+        await channel.send({ ...digestPayload(row.settings, items, now()), nonce, enforceNonce: true });
+      } catch {
+        store.finish(guild.id, claimed.revision, day, 'failed');
+        throw new Error('NEWS_SEND_UNCERTAIN');
+      }
+      return store.finish(guild.id, claimed.revision, day, 'sent');
+    } finally {
+      delivering.delete(guild.id);
     }
-    return store.finish(guild.id, claimed.revision, day, 'sent');
   }
   async function handle(interaction, prompt) {
     const existing = draftFor(interaction);
@@ -96,7 +102,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         try { settings = editSettings(request.text, draft.settings, [...interaction.guild.channels.cache.values()]); }
         catch (error) { if (error instanceof NewsPromptError) return { content: error.message }; throw error; }
         put(interaction, { settings, revision: row?.revision || 0 });
-        return { content: `${describe(settings)}\nBelum disimpan atau dikirim. Ketik preview berita untuk cek isinya.${row?.enabled ? '\nJadwal lama masih aktif sampai kamu jeda atau simpan revisi ini.' : ''}` };
+        return { content: `${describe(settings)}\nBelum disimpan atau dikirim. Ketik preview berita untuk cek isinya.${row?.enabled ? '\nJadwal lama tetap aktif. Setelah preview, terapkan berita untuk edisi berikutnya; simpan berita justru menjeda.' : ''}` };
       }
       assertRevision(interaction.guildId, draft.revision);
       if (!validSettings(draft.settings)) return { content: 'Pilih channel tujuan dulu: `atur berita ke #hengs-news`. Channel harus sudah ada.' };
@@ -112,10 +118,25 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         if (stopped) throw new Error('NEWS_STOPPED');
         const items = selected(draft.settings, edited, row);
         put(interaction, { ...draft, items, previewAt: now(), approvedPreview: true });
-        const content = `${describe(draft.settings, 'preview privat')}\n${items.length ? 'Ini contoh kiriman yang akan dikirim. Ketik kirim berita sekali untuk uji (maksimal satu kiriman hari ini).' : 'Belum ada item baru yang cukup segar. Tidak akan mengarang atau mengirim digest kosong.'}\n${result.failures ? `${result.failures} sumber belum dapat dibaca. ` : ''}Simpan berita = jeda; aktifkan berita = jadwal, hanya setelah uji berhasil.${row?.enabled ? '\nJadwal tersimpan masih aktif.' : ''}`;
+        const revisionHelp = row?.tested && row.settings.channelId === draft.settings.channelId
+          ? 'Ketik terapkan berita untuk menyimpan revisi tanpa uji kirim ulang. Status aktif/jeda tetap. Aktifkan berita menyalakan pengaturan tersimpan; simpan berita justru menjeda.'
+          : 'Channel baru perlu kirim berita sekali untuk uji, lalu preview berita dan aktifkan berita. Simpan berita = jeda.';
+        const content = `${describe(draft.settings, 'preview privat')}\n${items.length ? 'Ini contoh isi berdasarkan sumber yang tersedia sekarang. Uji kirim memakai kirim berita sekali (maksimal satu kiriman hari ini).' : 'Belum ada item baru yang cukup segar. Tidak akan mengarang atau mengirim digest kosong.'}\n${result.failures ? `${result.failures} sumber belum dapat dibaca. ` : ''}${revisionHelp}${row?.enabled ? '\nJadwal tersimpan masih aktif.' : ''}`;
         return items.length ? digestPayload(draft.settings, items, now(), content) : { content };
       }
       if (!existing?.approvedPreview || now() - existing.previewAt >= TTL) return { content: 'Buka `preview berita` terbaru dulu. Revisi atau restart membatalkan persetujuan lama.' };
+      if (request.action === 'apply') {
+        if (!row?.tested || row.settings.channelId !== draft.settings.channelId) return { content: 'Channel tujuan ini belum teruji. Lakukan uji lewat kirim berita sekali sebelum menerapkan revisi tanpa uji ulang. Jadwal lama tidak berubah.' };
+        await target(interaction.guild, draft.settings.channelId);
+        await assertManager(interaction);
+        assertLease();
+        assertRevision(interaction.guildId, draft.revision);
+        if (stopped || now() - existing.previewAt >= TTL) throw new Error('NEWS_PREVIEW_STALE');
+        if (delivering.has(interaction.guildId)) return { content: 'Kiriman sedang diselesaikan. Setelah selesai, buka preview berita lagi sebelum menerapkan revisi.' };
+        const revised = store.revise(interaction.guildId, draft.revision, draft.settings);
+        drafts.delete(key);
+        return { content: `Revisi berita diterapkan. ${revised.enabled ? `Jadwal tetap aktif pukul ${revised.settings.time} WIB untuk edisi berikutnya.` : 'Jadwal tetap jeda. Untuk menyalakan: preview berita lalu aktifkan berita.'} Tidak ada kiriman sekarang; slot yang sudah dipakai hari ini tetap terpakai.` };
+      }
       if (request.action === 'save') {
         await assertManager(interaction);
         assertLease();

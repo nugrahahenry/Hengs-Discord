@@ -112,16 +112,48 @@ test('renderer revalidates editorial copy, labels AI/fallback and keeps source i
   assert(!fallback.includes('@everyone'));
 });
 
-test('empty excerpts and invalid individual summaries do not discard valid sibling copy', async () => {
+test('empty excerpts are excluded from model input and do not discard valid sibling copy', async () => {
   const logs = [];
-  const edit = createNewsEditor({ complete: async () => raw([copy, { title: null, summary: null }]),
+  let sent;
+  const edit = createNewsEditor({ complete: async messages => { sent = JSON.parse(messages[1].content); return raw(); },
     logger: { warn: code => logs.push(code) } });
   const result = await edit([article(), { ...article(1, 1), excerpt: '' }], settings);
   assert.deepEqual(result[0].editorial, copy);
   assert.equal(result[1].editorial, undefined);
-  assert.deepEqual(logs, ['[news] NEWS_EDITOR_PARTIAL_FALLBACK']);
+  assert.equal(sent.items.length, 1);
+  assert.deepEqual(logs, []);
   const reversed = JSON.stringify({ items: [{ id: '1', ...copy }, { id: '0', ...copy }] });
   assert.deepEqual(parseCopies(reversed, [article(), article(1, 1)]), [copy, copy]);
+});
+
+test('mixed selection reserves entertainment, orders news first and leaves missing slots empty', () => {
+  const mixed = { ...settings, topics: ['tech', 'ai', 'memes'] };
+  const items = [article(1, 3, 10), article(1, 1, 20), article(1, 4, 30), article(1, 0, 40)];
+  assert.deepEqual(selectArticles(mixed, items, null, NOW).map(item => item.source), [SOURCES[1].name, SOURCES[4].name, SOURCES[3].name]);
+  assert.deepEqual(selectArticles(mixed, items.slice(1), null, NOW).map(item => item.source), [SOURCES[1].name, SOURCES[4].name]);
+  assert.equal(selectArticles(mixed, [items[0]], null, NOW).length, 1);
+  assert.deepEqual(selectArticles({ ...mixed, count: 2 }, items, null, NOW).map(item => item.topic), ['ai', 'memes']);
+  assert.equal(selectArticles({ ...mixed, topics: ['memes'] }, items, null, NOW).length, 1);
+  const payload = JSON.stringify(digestPayload(mixed, [items[0]], NOW));
+  assert.match(payload, /Tersedia 0 berita \+ 1 hiburan/);
+  assert.match(payload, /Bahan segar belum cukup/);
+});
+
+test('editor maps dense IDs around no-excerpt comics and shares article cache across mixes', async () => {
+  let calls = 0;
+  const edit = createNewsEditor({ now: () => NOW, complete: async messages => {
+    calls++; const data = JSON.parse(messages[1].content);
+    assert.deepEqual(data.items.map(item => item.id), ['0']);
+    assert.equal(data.items[0].title, article().title);
+    return raw();
+  } });
+  const comic = { ...article(1, 3), title: 'Comic title', excerpt: '' };
+  const [first, second] = await edit([comic, article()], settings);
+  assert.equal(first.editorial, undefined); assert.deepEqual(second.editorial, copy);
+  const result = await edit([article(), comic], settings);
+  assert.deepEqual(result[0].editorial, copy); assert.equal(result[1].editorial, undefined);
+  assert.equal(calls, 1);
+  assert.match(JSON.stringify(digestPayload(settings, [comic], NOW)), /tidak ditafsirkan oleh AI/);
 });
 
 test('failed, unavailable and unsafe inputs fall back without raw errors or immediate retry', async () => {
@@ -135,6 +167,15 @@ test('failed, unavailable and unsafe inputs fall back without raw errors or imme
   assert.deepEqual(await unsafe([], settings), []);
   assert.equal((await unsafe([{ ...article(), url: 'https://private.invalid/' }], settings))[0].editorial, undefined);
   assert.equal((await unsafe([{ ...article(), excerpt: '' }], settings))[0].editorial, undefined);
+});
+
+test('invalid summary for one eligible article leaves its valid sibling intact', async () => {
+  const logs = [];
+  const edit = createNewsEditor({ complete: async () => raw([copy, { title: null, summary: null }]),
+    logger: { warn: code => logs.push(code) } });
+  const result = await edit([article(), article(1, 1)], settings);
+  assert.deepEqual(result[0].editorial, copy); assert.equal(result[1].editorial, undefined);
+  assert.deepEqual(logs, ['[news] NEWS_EDITOR_PARTIAL_FALLBACK']);
 });
 
 test('editor has abort deadline, no queue, global spacing and process-local hourly attempt cap', async () => {

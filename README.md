@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.57.0 - Indonesian news briefs and publisher diversity, deployed and privately previewed
+**Current checkpoint:** Hengs Discord v1.58.0 - safe news revisions and balanced daily editions
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -19,14 +19,26 @@ Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
 
+v1.58.0 memisahkan revisi isi dari pemasangan channel baru. Setelah channel berhasil diuji,
+ubah topik/jam/jumlah/gaya, `preview berita`, lalu `terapkan berita`: jadwal aktif tetap aktif,
+jadwal jeda tetap jeda, dan riwayat kiriman tidak direset. Tidak mengirim saat menerapkan revisi;
+pengaturan baru dipakai pada jadwal berikutnya yang masih punya slot. Pindah channel tetap perlu uji.
+Gunakan `atur berita 2 berita 1 meme` untuk maksimal dua berita dari topik pilihan + satu komik.
+Jika topik berita belum dipilih, teknologi + AI dipakai. Dalam campuran dengan dua item, bagiannya
+menjadi satu berita + satu hiburan. Berita tampil dulu, komik terakhir dengan warna/label berbeda.
+Slot yang kosong tidak diganti jenis lain; jumlah tersedia ditampilkan supaya kekurangan bahan jelas.
+Cloudflare Blog ditambahkan sebagai sumber teknologi. Komik tanpa cuplikan tidak dikirim ke AI
+untuk ditebak, dan tidak menggagalkan ringkasan berita lain. Update ini belum dinyatakan live
+sebelum acceptance deployment; status produksi tercantum di atas.
+
 v1.57.0 menambahkan judul dan ringkasan pendek bahasa Indonesia dari cuplikan feed,
 dengan gaya santai atau netral sesuai pengaturan. Hasil diberi label ringkasan AI, bukan
 verifikasi fakta atau hasil membaca artikel penuh. Tautan sumber, gambar dan tanggal tetap asli.
 Jika provider tidak tersedia, output ditolak atau anggaran terpakai, cuplikan bahasa sumber tetap
 ditampilkan dengan keterangan bahwa ringkasan Indonesia belum tersedia. Tidak ada klaim bebas halusinasi.
 Pilihan dibatasi maksimal satu artikel per penerbit, terbaru lebih dulu. Jumlah berita adalah
-batas atas, bukan target wajib: topik teknologi + AI saat ini memiliki dua penerbit, sehingga
-paling banyak dua item, atau satu jika hanya satu sumber punya berita baru. Tidak menambah topik otomatis.
+batas atas, bukan target wajib. Dalam v1.58.0, teknologi + AI memiliki tiga penerbit; pilihan
+tetap dapat lebih sedikit jika bahan baru tidak tersedia. Tidak menambah topik otomatis.
 Sudah dideploy pada 2026-10-16. Preview privat nyata di bot-commands menampilkan gambar,
 judul/ringkasan Indonesia dan sumber untuk satu artikel baru. Jadwal home guild kemudian diaktifkan
 dengan persetujuan Henry: teknologi + AI, pukul 08:00 WIB, gaya santai, maksimal tiga item dan satu
@@ -64,9 +76,11 @@ Fitur tidak aktif otomatis saat update. Pilih channel teks yang sudah ada di ser
 5. Setelah preview terbaru, `kirim berita sekali` menyimpan pengaturan dan menguji satu kiriman.
 6. Setelah uji berhasil, `preview berita` lalu `aktifkan berita` menyalakan jadwal harian.
 7. `jeda berita` untuk pause; `status berita` untuk pengaturan dan hasil pengiriman terakhir.
+8. Untuk revisi di channel teruji: ubah draft, `preview berita`, lalu `terapkan berita`.
+   Tidak perlu uji kirim lagi meskipun slot hari ini sudah terpakai. Preview tetap wajib.
 
 Maksimal 3 item dan satu digest per hari, termasuk kiriman uji. Sumber saat ini:
-[Mozilla Hacks](https://hacks.mozilla.org/feed/) untuk teknologi,
+[Mozilla Hacks](https://hacks.mozilla.org/feed/) dan [Cloudflare Blog](https://blog.cloudflare.com/rss/) untuk teknologi,
 [NVIDIA Blog](https://blogs.nvidia.com/feed/) untuk AI,
 [Steam News](https://store.steampowered.com/feeds/news.xml) untuk gaming, dan
 [xkcd](https://xkcd.com/atom.xml) untuk hiburan/komik, bukan berita faktual atau katalog meme umum.
@@ -84,7 +98,9 @@ bukan jaminan biaya nol. Cache hasil dan kegagalan hanya RAM selama 10 menit, ma
 Preview menyimpan salinan ringkasan yang sama sampai konfirmasi, tidak menghasilkan ulang saat kirim.
 
 Preview berlaku 10 menit untuk pemanggil, server dan channel yang sama. Konfirmasi tidak dapat
-dipakai ulang. Konfigurasi ulang selalu menjeda jadwal dan perlu kiriman uji baru sebelum aktif.
+dipakai ulang. `terapkan berita` mempertahankan status untuk channel yang sudah diuji; `simpan berita`
+tetap menjeda/reset uji. Channel baru selalu perlu uji sebelum aktif. Revisi saat kiriman masih
+berjalan ditolak sampai selesai; izin pengelola/tujuan dan revisi diperiksa kembali saat konfirmasi.
 Bot memeriksa jadwal tiap menit, dengan toleransi satu jam pada hari WIB yang sama, bukan
 mengejar semua hari yang terlewat. Jika hasil kiriman tidak pasti, bot tidak mencoba lagi hari itu;
 receipt persisten dan nonce Discord mengurangi risiko duplikat. Pause tidak menarik kiriman

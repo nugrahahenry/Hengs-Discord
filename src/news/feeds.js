@@ -11,6 +11,7 @@ const SOURCES = Object.freeze([
   Object.freeze({ id: 'nvidia', topic: 'ai', name: 'NVIDIA Blog', url: 'https://blogs.nvidia.com/feed/', hosts: ['blogs.nvidia.com'], imageHost: 'blogs.nvidia.com', imagePath: '/wp-content/uploads/' }),
   Object.freeze({ id: 'steam', topic: 'gaming', name: 'Steam News', url: 'https://store.steampowered.com/feeds/news.xml', hosts: ['store.steampowered.com', 'steamcommunity.com'], imageHost: 'cdn.fastly.steamstatic.com', imagePath: '/steam/apps/' }),
   Object.freeze({ id: 'xkcd', topic: 'memes', name: 'xkcd (komik)', url: 'https://xkcd.com/atom.xml', hosts: ['xkcd.com'], imageHost: 'imgs.xkcd.com', imagePath: '/comics/' }),
+  Object.freeze({ id: 'cloudflare', topic: 'tech', name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', hosts: ['blog.cloudflare.com'], imageHost: 'blog.cloudflare.com', imagePath: '/_emdash/api/media/file/' }),
 ]);
 const MAX_FEED_BYTES = 1024 * 1024;
 for (const source of SOURCES) Object.freeze(source.hosts);

@@ -199,7 +199,7 @@ test('feed cache shares concurrent fetches and caches failures without retry sto
   let calls = 0;
   const read = createFeedReader({ now: () => BASE, fetchFeed: async source => { calls++; if (source.id === 'nvidia') throw new Error('provider'); return rss(source); } });
   const [a, b] = await Promise.all([read(['tech', 'ai']), read(['tech', 'ai'])]);
-  assert.equal(calls, 2); assert.equal(a.failures, 1); assert.deepEqual(a, b);
+  assert.equal(calls, 3); assert.equal(a.failures, 1); assert.deepEqual(a, b);
 });
 
 test('news preview/revisions are private and side-effect free until explicit confirmation', async t => {
@@ -421,4 +421,117 @@ test('items that expire while the editor is running are removed before preview',
   const preview = await r.handle('preview berita');
   assert.match(preview.content, /Belum ada item baru/);
   assert.equal(r.sent.length, 0);
+});
+
+test('tested same-channel revision preserves the schedule, receipts and restart safety', async t => {
+  const r = rig(t); await testedRow(r);
+  const before = r.store.get(GUILD);
+  await r.handle('atur berita 2 berita 1 meme jam 09:00');
+  assert.match((await r.handle('terapkan berita')).content, /preview berita/);
+  await r.handle('preview berita');
+  assert.match((await r.handle('terapkan berita')).content, /Revisi berita diterapkan/);
+  const row = createNewsStore({ filePath: r.filePath, now: r.now }).get(GUILD);
+  assert.equal(row.enabled, true); assert.equal(row.tested, true);
+  assert.deepEqual(row.settings.topics, ['tech', 'ai', 'memes']);
+  assert.equal(row.settings.count, 3); assert.equal(row.settings.time, '09:00');
+  assert.deepEqual(row.receipts, before.receipts); assert.deepEqual(row.seen, before.seen);
+  assert.equal(r.sent.length, 1);
+  r.advance(60 * 60_000); r.service.start(r.client); await r.service.tick();
+  assert.equal(r.sent.length, 1);
+  assert.match((await r.handle('terapkan berita')).content, /preview berita/);
+});
+
+test('apply requires existing tested destination, fresh permission and unchanged revision', async t => {
+  const r = rig(t);
+  await r.handle('atur berita ke #hengs-news'); await r.handle('preview berita');
+  assert.match((await r.handle('terapkan berita')).content, /uji/);
+  assert.equal(r.store.get(GUILD), null);
+  await testedRow(r); await r.handle('jeda berita');
+  await r.handle('ubah berita jam 09:00'); await r.handle('preview berita');
+  await r.handle('terapkan berita');
+  assert.equal(r.store.get(GUILD).enabled, false); assert.equal(r.store.get(GUILD).tested, true);
+  await r.handle('preview berita'); r.deny();
+  assert.match((await r.handle('terapkan berita')).content, /izin/);
+  assert.equal(r.sent.length, 1);
+  const before = r.store.get(GUILD);
+  assert.throws(() => r.store.revise(GUILD, before.revision, { ...before.settings, channelId: OTHER }), /TEST_REQUIRED/);
+  assert.deepEqual(r.store.get(GUILD), before);
+  assert.throws(() => r.store.revise(GUILD, before.revision - 1, before.settings), /STALE/);
+});
+
+test('mixed composition prompts cannot silently change two news and one meme into two comics', () => {
+  const config = editSettings('atur berita 2 berita + 1 meme', settings());
+  assert.deepEqual(config.topics, ['tech', 'ai', 'memes']); assert.equal(config.count, 3);
+  assert.equal(parsePrompt('terapkan berita').action, 'apply');
+  for (const value of ['terapkan berita?', 'jangan terapkan berita', 'kalau terapkan berita']) {
+    assert.equal(parsePrompt(value).action, 'help');
+  }
+  for (const value of ['atur berita 3 berita 1 meme', 'atur berita 1 berita 2 meme', 'atur berita 2 meme']) {
+    assert.throws(() => editSettings(value, config), /2 berita/);
+  }
+  assert.deepEqual(editSettings('atur berita gaming 2 berita 1 komik', config).topics, ['gaming', 'memes']);
+});
+
+test('apply rechecks stale preview, expiry, reset and manager permission without touching state', async t => {
+  for (const action of ['stale', 'expiry', 'reset', 'permission']) {
+    const r = rig(t); await testedRow(r);
+    await r.handle('ubah berita jam 09:00'); await r.handle('preview berita');
+    if (action === 'stale') r.store.pause(GUILD);
+    if (action === 'expiry') r.advance(11 * 60_000);
+    if (action === 'reset') r.service.clear(r.interaction);
+    if (action === 'permission') {
+      r.guild.ownerId = OTHER; r.interaction.memberPermissions = { has: () => true };
+      r.guild.members.fetch = async () => ({ permissions: { has: () => false } });
+    }
+    const before = r.store.get(GUILD);
+    assert.doesNotMatch((await r.handle('terapkan berita')).content, /Revisi berita diterapkan/);
+    assert.deepEqual(r.store.get(GUILD), before); assert.equal(r.sent.length, 1);
+  }
+});
+
+test('revision while an older scheduler is editing cancels that edition without consuming its slot', async t => {
+  let holdNext = false; let resume;
+  const r = rig(t, { editArticles: async items => {
+    if (holdNext) { holdNext = false; await new Promise(resolve => { resume = resolve; }); }
+    return items;
+  } });
+  await testedRow(r); r.advance(DAY); r.service.start(r.client); holdNext = true;
+  const tick = r.service.tick();
+  while (!resume) await new Promise(resolve => setImmediate(resolve));
+  await r.handle('ubah berita jam 09:00'); await r.handle('preview berita');
+  assert.match((await r.handle('terapkan berita')).content, /Revisi berita diterapkan/);
+  resume(); await tick;
+  assert.equal(r.sent.length, 1); assert.equal(r.store.get(GUILD).receipts.length, 1);
+  r.advance(60 * 60_000); await r.service.tick();
+  assert.equal(r.sent.length, 2); assert.equal(r.store.get(GUILD).receipts.length, 2);
+});
+
+test('apply during a dispatched send cannot invalidate its receipt completion', async t => {
+  const r = rig(t); await testedRow(r); r.advance(DAY);
+  let resume;
+  r.channel.send = async payload => { r.sent.push(payload); await new Promise(resolve => { resume = resolve; }); };
+  r.service.start(r.client); const tick = r.service.tick();
+  while (!resume) await new Promise(resolve => setImmediate(resolve));
+  await r.handle('ubah berita jam 09:00'); await r.handle('preview berita');
+  const before = r.store.get(GUILD);
+  assert.match((await r.handle('terapkan berita')).content, /Kiriman sedang/);
+  assert.deepEqual(r.store.get(GUILD), before);
+  resume(); await tick;
+  assert.equal(r.store.get(GUILD).receipts.at(-1).status, 'sent');
+  assert.equal(r.store.get(GUILD).settings.time, '08:00');
+  assert.equal(r.logs.length, 0);
+});
+
+test('failed atomic revision leaves the old active configuration and receipt bytes unchanged', t => {
+  const r = fixture(t);
+  let row = r.store.save(GUILD, 0, settings());
+  row = r.store.claim(GUILD, row.revision, wibClock(BASE).day, ['a'.repeat(64)]);
+  row = r.store.finish(GUILD, row.revision, wibClock(BASE).day, 'sent');
+  row = r.store.enable(GUILD, row.revision);
+  const before = fs.readFileSync(r.filePath, 'utf8');
+  const broken = createNewsStore({ filePath: r.filePath, now: r.now,
+    fsImpl: { ...fs, renameSync() { throw new Error('SYNTHETIC_DISK_FAILURE'); } } });
+  assert.throws(() => broken.revise(GUILD, row.revision, { ...row.settings, time: '09:00' }), /DISK_FAILURE/);
+  assert.equal(fs.readFileSync(r.filePath, 'utf8'), before);
+  assert.deepEqual(fs.readdirSync(r.root), ['news-state.json']);
 });

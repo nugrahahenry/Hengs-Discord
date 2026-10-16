@@ -4,29 +4,40 @@ const { ContainerBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, TextDisp
 const { SOURCES, plain, articleUrl, imageUrl } = require('./feeds');
 const { wibClock } = require('./store');
 const { validatedCopy } = require('./editor');
+const { compositionLimits } = require('./selection');
 
 const text = content => new TextDisplayBuilder().setContent(content).toJSON();
 
 function digestPayload(settings, items, now, intro = '') {
   const components = [];
+  const visible = items.slice(0, 3);
+  const entertainment = visible.filter(item => item.topic === 'memes').length;
+  const news = visible.length - entertainment;
+  const mix = compositionLimits(settings);
+  const availability = `Tersedia ${news} berita + ${entertainment} hiburan.${mix && (news < mix.news || entertainment < mix.entertainment)
+    ? ' Bahan segar belum cukup untuk semua slot; tidak diisi dengan item lama atau jenis lain.' : ''}`;
   if (intro) components.push(text(intro));
   components.push(text(settings.tone === 'casual'
-    ? '## Hengs News\nBiar nggak ketinggalan.' : '## Hengs News\nBacaan harian.'));
-  for (const item of items.slice(0, 3)) {
+    ? `## Hengs News\nBiar nggak ketinggalan.\n${availability}` : `## Hengs News\nBacaan harian.\n${availability}`));
+  for (const item of visible) {
     const copy = validatedCopy(item.editorial, item);
     const title = copy?.title || plain(item.title, 150);
     const source = SOURCES.find(row => row.name === item.source && row.topic === item.topic);
     const url = source && articleUrl(item.url, source);
     if (!url) throw new Error('NEWS_ARTICLE_INVALID');
     const image = imageUrl(item.imageUrl, source);
-    const card = new ContainerBuilder().setAccentColor(0x7667ff);
+    const comic = item.topic === 'memes';
+    const card = new ContainerBuilder().setAccentColor(comic ? 0xf0b348 : 0x7667ff);
     if (image) card.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
       new MediaGalleryItemBuilder().setURL(image).setDescription(`Gambar dari ${source.name} untuk artikel: ${title}`),
     ));
     card.addTextDisplayComponents(text([
+      comic ? '-# 🎨 Jeda komik' : '-# 📰 Pilihan berita',
       `### ${title}`,
-      copy ? copy.summary : item.excerpt ? `Cuplikan sumber: ${plain(item.excerpt, 220)}` : 'Buka sumber untuk membaca selengkapnya.',
-      copy ? '-# Ringkasan AI dari judul/cuplikannya, bukan verifikasi fakta.' : '-# Bahasa sumber. Ringkasan Indonesia belum tersedia.',
+      copy ? copy.summary : item.excerpt ? `Cuplikan sumber: ${plain(item.excerpt, 220)}`
+        : comic ? 'Jeda sebentar dengan komik pilihan. Buka sumber untuk melihat versi aslinya.' : 'Cuplikan belum tersedia. Buka sumber untuk membaca selengkapnya.',
+      copy ? '-# Ringkasan AI dari judul/cuplikannya, bukan verifikasi fakta.'
+        : comic && !item.excerpt ? '-# Judul dan gambar asli penerbit; tidak ditafsirkan oleh AI.' : '-# Bahasa sumber. Ringkasan Indonesia belum tersedia.',
       `[Baca di ${source.name}](${url})`,
       `-# ${wibClock(item.publishedAt).day} WIB${item.topic === 'memes' ? ' · Hiburan, bukan berita faktual' : ''}${image ? ' · Gambar dari feed sumber' : ' · Gambar tidak tersedia'}`,
     ].join('\n\n')));

@@ -105,6 +105,14 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
         row.settings = structuredClone(settings); row.enabled = false; row.tested = false;
       });
     },
+    revise(guildId, revision, settings) {
+      if (!validSettings(settings)) throw new Error('NEWS_SETTINGS_INVALID');
+      return change(guildId, revision, row => {
+        // Delivery proof belongs to the destination, not its editorial preferences.
+        if (!row.tested || row.settings?.channelId !== settings.channelId) throw new Error('NEWS_TEST_REQUIRED');
+        row.settings = structuredClone(settings);
+      });
+    },
     pause(guildId) {
       const row = this.get(guildId);
       if (!row) return null;

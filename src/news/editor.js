@@ -65,12 +65,20 @@ function createNewsEditor({ complete, now = Date.now, logger = console, timeoutM
   return async (items, settings) => {
     const originals = items.slice(0, 3).map(item => { const { editorial, ...original } = item; return original; });
     if (!complete || !originals.length) return originals;
-    const input = originals.map(sourceInput);
-    if (input.some(item => !item) || input.every(item => !item.excerpt)) return originals;
+    const evidence = originals.map(sourceInput);
+    if (evidence.some(item => !item)) return originals;
+    // A comic without a text excerpt needs no invented explanation or placeholder model ID.
+    const positions = originals.map((_, i) => i).filter(i => evidence[i].excerpt);
+    if (!positions.length) return originals;
+    const eligible = positions.map(i => originals[i]);
+    const input = eligible.map(sourceInput);
     const data = { tone: settings.tone === 'casual' ? 'casual' : 'neutral', items: input };
     const key = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
     for (const [key, value] of cache) if (now() - value.at >= CACHE_TTL) cache.delete(key);
-    const apply = copies => originals.map((item, i) => copies[i] ? { ...item, editorial: { ...copies[i] } } : item);
+    const apply = copies => originals.map((item, i) => {
+      const copy = copies[positions.indexOf(i)];
+      return copy ? { ...item, editorial: { ...copy } } : item;
+    });
     const cached = cache.get(key);
     if (cached) return apply(cached.copies);
     attempts = attempts.filter(at => now() - at < HOUR);
@@ -78,7 +86,7 @@ function createNewsEditor({ complete, now = Date.now, logger = console, timeoutM
     lastAttempt = now(); attempts.push(lastAttempt); inFlight = true;
     const controller = new AbortController();
     let timer;
-    let copies = originals.map(() => null);
+    let copies = eligible.map(() => null);
     try {
       const raw = await Promise.race([
         Promise.resolve().then(() => complete([
@@ -88,7 +96,7 @@ function createNewsEditor({ complete, now = Date.now, logger = console, timeoutM
           controller.abort(); reject(new Error('NEWS_EDITOR_TIMEOUT'));
         }, Math.min(8000, Math.max(1, timeoutMs))); }),
       ]);
-      copies = parseCopies(raw, originals);
+      copies = parseCopies(raw, eligible);
       if (copies.some(copy => !copy)) logger.warn('[news] NEWS_EDITOR_PARTIAL_FALLBACK');
     } catch { logger.warn('[news] NEWS_EDITOR_FALLBACK'); }
     finally { clearTimeout(timer); inFlight = false; }

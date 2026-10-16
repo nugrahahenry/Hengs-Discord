@@ -2,6 +2,33 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.58.0 local News refinement accepted
+
+- Henry approved one coherent News refinement batch followed by one deployment. Scope is Discord
+  News only; WA/Canox, auth, private state, backup, Oracle and full agent runtime stay unchanged.
+- `terapkan berita` requires fresh private preview, current manager/destination permissions and
+  matching revision. Only a tested same-channel destination may preserve enabled/paused state;
+  fresh/changed channels retain first-send gate. Apply dispatches nothing, preserves day receipts
+  and seen hashes, rejects an active delivery and invalidates stale scheduler work. Schema1 unchanged.
+- `atur berita 2 berita 1 meme` correctly retains selected news topics (tech/ai fallback), adds
+  comics and count3. Mixed count>=2 reserves one entertainment slot; no stale/duplicate/type filler.
+  News first, comics last with distinct label/accent, actual counts and shortage explanation.
+- Fixed Cloudflare tech feed added. Read-only production-transport probe passed public DNS/size/
+  deadline/XML: 8 eligible articles,8 excerpts,7 allowlisted images; no model or Discord calls.
+- Editor excludes empty-excerpt comic slots from public-only input and remaps dense IDs. Cache
+  can reuse identical article briefs across mixes; no invented comic descriptions. Honest fallback
+  remains when provider/copy validation fails; live Indonesian quality is not guaranteed by tests.
+- Local full offline regression627/627,0fail on Node24. Initial sandbox EPERM on temp rename was
+  isolated with baseline tests; approved unsandboxed offline suite passed without ACL changes.
+  Existing 47 focused tests passed before the final concurrency/permission/atomic-write additions.
+- Code/data-flow review: no private model inputs, arbitrary feed URLs, new credentials or schema;
+  daily receipts cannot be reset by revise. Existing same-channel live state needs no migration.
+- Production still v1.57.0 until controlled deployment acceptance. Preserve active tech/ai schedule
+  while deploying, then use private bot-commands preview + apply for the approved mixed edition.
+  Do not send another public edition today. Rollback target is v1.57.0-3b9458f179b0.
+- Intended subject: feat(news): Hengs Discord v1.58.0 - refine revisions and balanced daily editions.
+  Internal architecture/source evidence is in ignored NEWS-DIRECTION.md; no extra spec/plan.
+
 ## Hengs Discord v1.57.0 daily news activated
 
 - Henry approved continuing from the accepted preview to daily activation. Fresh read-only audit

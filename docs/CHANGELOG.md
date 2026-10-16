@@ -5,6 +5,25 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.58.0] - 2026-10-16
+
+### Added
+
+- `terapkan berita` sesudah preview untuk merevisi topik/jam/jumlah/gaya di channel teruji,
+  mempertahankan status aktif/jeda, receipt harian dan deduplikasi tanpa uji kirim ulang.
+  Channel baru tetap perlu uji; revision/TTL/izin dan pengiriman in-flight dijaga.
+- Komposisi maksimal dua berita + satu hiburan, parser `atur berita 2 berita 1 meme`,
+  reservasi slot tanpa filler, berita lebih dulu dan jumlah nyata/kekurangan bahan di preview.
+- Cloudflare Blog sebagai tambahan feed teknologi dengan URL/gambar allowlisted,
+  pemeriksaan DNS publik, batas ukuran/waktu dan tanpa crawling atau unduh media.
+
+### Changed
+
+- Kartu hiburan memakai label/warna tersendiri. Komik tanpa cuplikan tidak dimasukkan ke AI;
+  pemetaan ID rapat dan cache menjaga ringkasan artikel lain saat susunan campuran berubah.
+- Bantuan menjelaskan ringkasan AI, fallback bahasa sumber, komik xkcd dan alur revisi baru.
+  Schema1, batas satu kiriman per hari, permission, state privat dan anggaran model tetap.
+
 ## [1.57.0] - 2026-10-16
 
 ### Added

@@ -1,6 +1,7 @@
 'use strict';
 
 const { validSettings } = require('./store');
+const { compositionLimits } = require('./selection');
 const LABELS = Object.freeze({ tech: 'teknologi', ai: 'AI', gaming: 'gaming', memes: 'hiburan/komik' });
 const TOPIC = /\b(teknologi|tech|ai|gaming|game|memes?|hiburan|komik)\b/gi;
 const topicId = word => /^(?:tech|teknologi)$/i.test(word) ? 'tech'
@@ -14,8 +15,10 @@ const HELP = [
   'Lalu `preview berita`. Revisi bisa `tambah gaming`, `lebih santai`, atau `ubah jam 09:00`.',
   '`simpan berita` menyimpan dalam keadaan jeda. `kirim berita sekali` memakai preview terbaru.',
   'Setelah kiriman uji berhasil, `preview berita` lalu `aktifkan berita` untuk jadwal harian.',
+  'Channel yang sudah diuji: ubah draft, `preview berita`, lalu `terapkan berita`. Status aktif/jeda tetap; tidak mengirim ulang.',
+  'Campuran: `atur berita 2 berita 1 meme`. Slot hiburan memakai komik xkcd, bukan katalog meme viral.',
   '`jeda berita` menghentikan jadwal. `status berita` melihat pengaturan dan hasil terakhir.',
-  'Isi memakai judul/cuplikannya sumber, belum terjemahan AI. Hiburan bukan berita faktual. Tidak ada biaya model tambahan.',
+  'Ringkasan Indonesia memakai AI dari judul/cuplikannya saja. Jika tidak tersedia, tampil bahasa sumber. Hiburan bukan berita faktual.',
 ].join('\n');
 
 const clean = value => String(value || '').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '')
@@ -36,6 +39,7 @@ function parsePrompt(value, hasDraft = false) {
   if (/^(?:status|lihat status|cek status)\s+(?:berita|news)$/.test(command)) return { action: 'status' };
   if (/^(?:preview|pratinjau|contoh|lihat contoh)\s+(?:berita|news)$/.test(command)) return { action: 'preview' };
   if (/^simpan\s+(?:berita|news)$/.test(command)) return { action: 'save' };
+  if (/^terapkan\s+(?:berita|news)$/.test(command)) return { action: 'apply' };
   if (/^kirim\s+(?:berita|news)\s+sekali$/.test(command)) return { action: 'send' };
   if (/^aktifkan\s+(?:berita|news)$/.test(command)) return { action: 'enable' };
   if (/^(?:atur|buat|bikin|ubah|ganti|tambah(?:kan|in)?|kurangi|hapus|pakai|pilih|pindah(?:kan)?|lebih)\b/i.test(command)) return { action: 'edit', text: command };
@@ -46,6 +50,20 @@ function editSettings(text, previous = DEFAULTS, channels = []) {
   const settings = structuredClone(previous);
   if (/\b(?:politik|ekonomi|saham|crypto|kripto|olahraga|custom|otomotif)\b|https?:\/\//i.test(text)) {
     throw new NewsPromptError('Pilih teknologi, AI, gaming, atau hiburan dulu. URL sumber bebas belum didukung.');
+  }
+  const entertainmentCounts = [...text.matchAll(/\b(\d+)\s+(?:memes?|hiburan|komik)\b/gi)];
+  const newsCounts = [...text.matchAll(/\b(\d+)\s+(?:berita|item|artikel)\b/gi)];
+  const mixedRequest = entertainmentCounts.length > 0;
+  if (mixedRequest) {
+    if (entertainmentCounts.length !== 1 || entertainmentCounts[0][1] !== '1'
+      || newsCounts.length !== 1 || newsCounts[0][1] !== '2'
+      || /\b(?:hapus|kurangi|tanpa)\b/i.test(text)) {
+      throw new NewsPromptError('Untuk campuran, pakai 2 berita + 1 meme (maksimal 3 item). Draft belum diubah.');
+    }
+    // Parse the news topics separately; the numeric meme clause must not replace them.
+    text = text.replace(/\b\d+\s+(?:memes?|hiburan|komik)\b/gi, '').replace(/\b2\s+(?:berita|item|artikel)\b/gi, '');
+    settings.topics = settings.topics.filter(topic => topic !== 'memes');
+    if (!settings.topics.length) settings.topics = [...DEFAULTS.topics];
   }
   let changed = false;
   const clauses = text.split(/[,;]|\bdan\b/i);
@@ -62,6 +80,7 @@ function editSettings(text, previous = DEFAULTS, channels = []) {
     else { settings.topics = [...new Set([...(replaced ? settings.topics : []), ...topics])]; replaced = true; }
     changed = true;
   }
+  if (mixedRequest) { settings.topics = [...new Set([...settings.topics, 'memes'])]; settings.count = 3; changed = true; }
   if (!settings.topics.length) throw new NewsPromptError('Sisakan minimal satu topik berita ya.');
   const times = [...text.matchAll(/\b(?:jam|pukul)\s+(\d{1,2})[:.](\d{2})\b/g)];
   if (/\b(?:jam|pukul)\b/.test(text)) {
@@ -86,8 +105,10 @@ function editSettings(text, previous = DEFAULTS, channels = []) {
 }
 
 function describe(settings, status = 'draft') {
+  const mix = compositionLimits(settings);
   return [`🗞️ Hengs News (${status})`, `Topik: ${settings.topics.map(x => LABELS[x]).join(', ')}`,
     `Setiap hari ${settings.time} WIB, maksimal ${settings.count} item. Gaya: ${settings.tone === 'casual' ? 'santai' : 'netral'}.`,
+    ...(mix ? [`Komposisi: maksimal ${mix.news} berita + ${mix.entertainment} hiburan. Slot kosong tidak diisi ulang dengan jenis lain.`] : []),
     settings.channelId ? `Tujuan: <#${settings.channelId}>.` : 'Tujuan: belum dipilih. Mention channel teks yang sudah ada.',
   ].join('\n');
 }
