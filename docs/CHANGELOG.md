@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.56.0] - 2026-10-16
+
+### Added
+
+- Kartu Hengs News dengan gambar feed di atas judul, cuplikan, sumber dan tanggal WIB.
+  Maksimal tiga artikel tetap dikirim sebagai satu pesan menggunakan komponen native Discord.
+- Parser gambar RSS/Atom mendukung media thumbnail/content, enclosure gambar dan img di dalam
+  feed. Hanya URL HTTPS raster pada domain/path penerbit yang diizinkan; tanpa crawling,
+  unduhan gambar, penyimpanan media, model AI, atau dependency baru.
+- Fallback teks beserta sumber saat gambar tidak tersedia/ditolak, alt text dan penanda komik.
+  Preview privat memakai kartu yang sama; batas satu kiriman/hari dan receipt tidak berubah.
+
+### Scope
+
+- Implementasi lokal; cloud tetap v1.55.0 dan jadwal news tetap dijeda. Pengujian nyata edisi teks
+  v1.55.0 telah berhasil satu kali. Tidak ada deployment, kiriman kedua atau aktivasi harian.
+- Schema state tetap 1. Artikel/URL gambar hanya di cache/draft RAM, tidak masuk backup state.
+
 ## [1.55.0] - 2026-10-13
 
 ### Added

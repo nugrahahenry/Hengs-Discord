@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { ChannelType, MessageFlags } = require('discord.js');
+const { ChannelType, ComponentType, MessageFlags } = require('discord.js');
 const { createNewsStore, validateState, wibClock, DAY } = require('../src/news/store');
 const { SOURCES, publicIPv4, articleUrl, parseFeed, createFeedReader, readFeed, plain, MAX_FEED_BYTES } = require('../src/news/feeds');
 const { parsePrompt, editSettings, DEFAULTS } = require('../src/news/prompts');
@@ -56,7 +56,8 @@ function rig(t, options = {}) {
 async function testedRow(r) {
   await r.handle('atur berita teknologi AI jam 08:00 ke #hengs-news');
   const preview = await r.handle('preview berita');
-  assert.equal(preview.embeds.length, 1);
+  assert.equal(preview.components.filter(row => row.type === ComponentType.Container).length, 3);
+  assert.equal(preview.flags, MessageFlags.IsComponentsV2);
   assert.match((await r.handle('kirim berita sekali')).content, /berhasil/);
   await r.handle('preview berita');
   assert.match((await r.handle('aktifkan berita')).content, /Jadwal berita aktif/);
@@ -228,8 +229,11 @@ test('news verified first send then daily activation survives restart without du
   assert.equal(r.sent.length, 1);
   r.advance(DAY); await r.service.tick();
   assert.equal(r.sent.length, 2);
-  const firstLinks = r.sent[0].embeds[0].description.match(/https[^)]+/g);
-  const secondLinks = r.sent[1].embeds[0].description.match(/https[^)]+/g);
+  const links = payload => payload.components.filter(row => row.type === ComponentType.Container)
+    .flatMap(row => row.components.filter(child => child.type === ComponentType.TextDisplay))
+    .flatMap(row => row.content.match(/https[^)]+/g) || []);
+  const firstLinks = links(r.sent[0]);
+  const secondLinks = links(r.sent[1]);
   assert.equal(secondLinks.some(link => firstLinks.includes(link)), false);
   await r.handle('jeda berita'); r.advance(DAY); await r.service.tick(); assert.equal(r.sent.length, 2);
 });
@@ -295,10 +299,29 @@ test('/hengs news bypasses LLM/memory, always defers privately and reset clears 
   await hengs.execute(interaction, { agent: {}, guildAccess: r.guildAccess, newsService: r.service });
   assert.equal(interaction.deferred.flags, MessageFlags.Ephemeral);
   assert.deepEqual(interaction.edited.allowedMentions, { parse: [] });
+  interaction.options.getString = () => 'preview berita';
+  await hengs.execute(interaction, { agent: {}, guildAccess: r.guildAccess, newsService: r.service });
+  assert.equal(interaction.deferred.flags, MessageFlags.Ephemeral);
+  assert.equal(interaction.edited.flags, MessageFlags.IsComponentsV2);
+  assert.equal(interaction.edited.content, undefined);
+  assert.equal(interaction.edited.embeds, undefined);
+  assert.match(interaction.edited.components[0].content, /preview privat/);
+  assert.equal(r.sent.length, 0);
   interaction.options.getSubcommand = () => 'reset'; interaction.reply = async () => {};
   await hengs.execute(interaction, { agent: { buildConversationKey: () => 'scope', clearHistory() {} },
     guildAccess: r.guildAccess, newsService: { clear() { cleared = true; } } });
   assert.equal(cleared, true);
+});
+
+test('visual previews and sends do not persist article text or image URLs', async t => {
+  const source = SOURCES[0];
+  const image = `https://${source.imageHost}${source.imagePath}2026/news.jpg`;
+  const xml = rss().replace('http://private.invalid/image', image);
+  const r = rig(t, { readFeeds: async () => ({ items: parseFeed(xml, source, BASE), failures: 0 }) });
+  await testedRow(r);
+  assert.equal(r.sent[0].components[1].components[0].items[0].media.url, image);
+  const state = fs.readFileSync(r.filePath, 'utf8');
+  assert(!state.includes(image)); assert(!state.includes('Cuplikan')); assert(!state.includes('imageUrl'));
 });
 
 test('reset or shutdown during feed read cannot resurrect a confirmable preview', async t => {

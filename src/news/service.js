@@ -3,23 +3,12 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const crypto = require('node:crypto');
 const { createNewsStore, wibClock, DAY } = require('./store');
-const { createFeedReader, plain } = require('./feeds');
+const { createFeedReader } = require('./feeds');
+const { digestPayload } = require('./presentation');
 const { DEFAULTS, HELP, NewsPromptError, parsePrompt, editSettings, describe, validSettings } = require('./prompts');
 const { isGuildManager } = require('../prompt-assistant');
 
 const TTL = 10 * 60_000;
-function digestPayload(settings, items, now) {
-  return { embeds: [{ title: settings.tone === 'casual' ? '🗞️ Hengs News | Biar nggak ketinggalan' : 'Hengs News | Bacaan harian',
-    description: items.map((item, i) => [
-      `${i + 1}. [${plain(item.title, 150)}](${item.url})`,
-      item.excerpt ? `Cuplikan sumber: ${plain(item.excerpt, 220)}` : 'Buka sumber untuk membaca selengkapnya.',
-      `${plain(item.source, 60)} · ${wibClock(item.publishedAt).day} WIB${item.topic === 'memes' ? ' · Hiburan, bukan berita faktual' : ''}`,
-    ].join('\n')).join('\n\n'),
-    color: 0x7667ff,
-    footer: { text: `${wibClock(now).day} WIB | Judul/cuplikannya sumber, bukan ringkasan AI. Tanpa unduhan media.` },
-  }], allowedMentions: { parse: [] } };
-}
-
 function createNewsService({ store = createNewsStore(), readFeeds = createFeedReader(), now = Date.now,
   guildAccess, logger = console } = {}) {
   const drafts = new Map();
@@ -125,8 +114,8 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         assertRevision(interaction.guildId, draft.revision);
         const items = selected(draft.settings, result.items, row);
         put(interaction, { ...draft, items, previewAt: now(), approvedPreview: true });
-        return { content: `${describe(draft.settings, 'preview privat')}\n${items.length ? 'Ini contoh kiriman yang akan dikirim. Ketik kirim berita sekali untuk uji (maksimal satu kiriman hari ini).' : 'Belum ada item baru yang cukup segar. Tidak akan mengarang atau mengirim digest kosong.'}\n${result.failures ? `${result.failures} sumber belum dapat dibaca. ` : ''}Simpan berita = jeda; aktifkan berita = jadwal, hanya setelah uji berhasil.${row?.enabled ? '\nJadwal tersimpan masih aktif.' : ''}`,
-          ...(items.length ? digestPayload(draft.settings, items, now()) : {}) };
+        const content = `${describe(draft.settings, 'preview privat')}\n${items.length ? 'Ini contoh kiriman yang akan dikirim. Ketik kirim berita sekali untuk uji (maksimal satu kiriman hari ini).' : 'Belum ada item baru yang cukup segar. Tidak akan mengarang atau mengirim digest kosong.'}\n${result.failures ? `${result.failures} sumber belum dapat dibaca. ` : ''}Simpan berita = jeda; aktifkan berita = jadwal, hanya setelah uji berhasil.${row?.enabled ? '\nJadwal tersimpan masih aktif.' : ''}`;
+        return items.length ? digestPayload(draft.settings, items, now(), content) : { content };
       }
       if (!existing?.approvedPreview || now() - existing.previewAt >= TTL) return { content: 'Buka `preview berita` terbaru dulu. Revisi atau restart membatalkan persetujuan lama.' };
       if (request.action === 'save') {

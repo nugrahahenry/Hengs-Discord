@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.55.0 - optional Hengs News in admin setup, deployed
+**Current checkpoint:** Hengs Discord v1.56.0 - image-first news cards, local implementation
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -18,6 +18,16 @@ migration. Memory is default off; reset clears RAM, not saved notes, revisions o
 Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
+
+v1.56.0 menampilkan satu kartu per artikel: gambar dari feed penerbit di atas, lalu judul,
+cuplikan singkat, tautan sumber dan tanggal WIB. Maksimal tiga kartu tetap berada dalam satu
+pesan, bukan tiga kiriman terpisah. Preview privat dan kiriman memakai susunan yang sama.
+Jika feed tidak punya gambar yang lolos pemeriksaan, kartu tetap berisi teks dan sumber.
+Gambar memakai URL HTTPS pada domain/path penerbit yang sudah ditentukan, bukan hasil AI,
+scraping halaman artikel, unggahan ulang, atau URL dari pengguna. Discord memuat preview gambar;
+Hengs tidak mengunduh atau menyimpan byte gambar. Tampilan gambar bergantung pada penerbit,
+Discord dan pengaturan tampilan media pengguna. Cuplikan tetap mengikuti bahasa sumber.
+Perubahan visual ini belum dideploy; cloud v1.55.0 tetap memakai digest teks dan jadwal dijeda.
 
 Pada v1.55.0, `/admin setup` di server utama menanyakan **Mau tambahkan Hengs News sekarang?**
 Pilih **Ya** untuk melihat preview, **Belum sekarang** untuk melewati penambahan, atau **Batal**.
@@ -47,7 +57,7 @@ Maksimal 3 item dan satu digest per hari, termasuk kiriman uji. Sumber saat ini:
 [xkcd](https://xkcd.com/atom.xml) untuk hiburan/komik, bukan berita faktual atau katalog meme umum.
 Sumber boleh tidak punya berita baru setiap hari. Artikel berumur lebih dari 72 jam, tanpa tanggal,
 dari masa depan, atau yang sudah dikirim tidak dipilih. Judul/cuplikannya mengikuti bahasa sumber,
-bukan terjemahan atau ringkasan AI. Tidak ada penggunaan model, pengunduhan media, atau tag massal.
+bukan terjemahan atau ringkasan AI. Tidak ada penggunaan model, pengunduhan media oleh Hengs, atau tag massal.
 Topik dan URL sumber bebas belum didukung. Publisher feed bukan jaminan klaimnya selalu benar.
 
 Preview berlaku 10 menit untuk pemanggil, server dan channel yang sama. Konfirmasi tidak dapat

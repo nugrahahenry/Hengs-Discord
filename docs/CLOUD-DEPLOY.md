@@ -8,7 +8,8 @@ Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
 permission, atau kebijakan Anti-Raid. v1.55.0 aktif/enabled sebagai satu-satunya consumer
 Discord setelah restart terkontrol; v1.54.0 tetap tersedia sebagai rollback. News terpasang
-tetapi belum dikonfigurasi. WA v0.46.0 dan Canox memory-only v0.178.0 tidak direstart;
+dan satu kiriman uji berhasil pada 2026-10-16; jadwal hariannya masih dijeda menunggu review Henry.
+WA v0.46.0 dan Canox memory-only v0.178.0 tidak direstart;
 integrasi memori privat tetap aktif. Registrasi historis v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.
 

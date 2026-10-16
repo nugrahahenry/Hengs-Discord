@@ -1,6 +1,57 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-14
+Updated: 2026-10-16
+
+## Hengs Discord v1.56.0 image-first news cards, local checkpoint
+
+- Henry requested a visual image above the explanation and source after reviewing the actual
+  text edition. Added native Discord Components V2 cards, max3 in one message. Preview uses the
+  same renderer with its instructions as TextDisplay; no content/embeds mixed with the V2 flag.
+- Fixed feed entries may provide one HTTPS raster image from per-publisher host/path allowlists.
+  Media RSS/enclosure/HTML/escaped Atom supported. URL is checked again at presentation; no
+  arbitrary URLs, SVG, query redirects/signed URLs, byte downloads or article-page crawling.
+  Discord loads publisher image previews. Missing/rejected images retain readable text/source.
+- No model, new dependency, state migration, credentials, private data or new service. Existing
+  schema1/daily claim/nonce/permissions/pause/rollback behavior retained. URLs/content RAM-only.
+- Source domains/paths verified from four existing public feeds read-only with TLS enabled on
+  2026-10-16. Discord component contract checked against official reference. No images fetched.
+- Cloud remains v1.55.0, one test edition already sent today, enabled=false/tested=true. Do not
+  resend or enable automatically. Actual native visual acceptance still needs an approved
+  deployment and private preview. No deploy/restart/production state change in this checkpoint.
+- Verification: full offline suite604/604, zero failures/skips on local Node24.15.0; focused
+  news/visual tests30/30 passed. Syntax, whitespace, native component builder/SDK serialization
+  and layout detector passed. Actual public NVIDIA feed:8recent items/8image URLs parsed,
+  renderer bounded to3cards; zero image downloads/Discord sends. Security review confirmed
+  exact media origin/path bounds, no new fetch sink or persistence, sanitized text/no mentions,
+  same private preview/send checks and unchanged durable delivery claims. Initial
+  sandbox-only EPERM on temp rename was resolved by the same offline suite outside sandbox,
+  not by changing atomic writes. New visual parser/renderer tests passed in sandbox as well.
+- Commit subject: feat(news): Hengs Discord v1.56.0 - add image-first news cards.
+
+## Hengs Discord v1.55.0 live news dogfood accepted, daily schedule paused
+
+- Henry approved continuing the news-only setup and one supervised test edition. After Henry
+  signed in privately, the actual owner Discord UI ran /admin setup, Yes, preview, then
+  Tambah news saja. One read-only hengs-news text channel was created; full legacy setup was
+  not invoked. No channel deletion, rename, template migration or webhook creation requested.
+- Actual ephemeral /hengs ask drafted technology + AI, 08:00 WIB, max3, casual. Private content
+  preview succeeded, then exactly one kirim berita sekali was sent. Bot acknowledged success
+  with schedule paused. The real channel visibly contained one bot embed with three articles.
+- Independent official REST read-only audit confirmed one matching text channel, default member
+  send/thread denies, one bot message with three item links, no user or everyone mentions.
+  Production schema1 validated: one guild, enabled=false, tested=true, one sent receipt dated
+  2026-10-16, three hashes/seen entries. No direct state edits or bypassed confirmation flow.
+- DC1.55.0, WA0.46.0 and Canox memory0.178.0 remained healthy/single-consumer, zero automatic
+  restarts; private memory/backup timer intact and local bots zero/autostart off. No deploy,
+  service restart, auth/QR change, secret transfer, backup run, Oracle or Canox runtime action.
+- Current post-dogfood read-only checks: .cloud/automation/news-v1550/audit-news.sh and
+  inspect-news-result.sh. Older audit.sh expects an absent news file and is historical.
+  Proof screenshot remains private/ignored; no runtime identifiers/content copied into Git.
+- Live content caveat: all three available selected items came from NVIDIA Blog and excerpts
+  remain source-language English. This is not an AI summary/translation. Owner review is still
+  needed before daily activation; source variety and Indonesian summaries are proposed follow-up,
+  not implemented or approved. Do not send another test edition on the same local day.
+- Dogfood evidence incorporated into the subsequent v1.56.0 news checkpoint.
 
 ## Hengs Discord v1.55.0 controlled deployment accepted
 
@@ -20,11 +71,11 @@ Updated: 2026-10-14
 - Independent final read-only audit passed after acceptance: local consumers zero/autostart off,
   staging absent, rollback available, news-state.json absent. No command registration, actual
   news channel creation, edition delivery or daily schedule activation occurred.
-- Next: owner dogfood /admin setup -> Yes -> Tambah news saja, preserving unrelated channels.
-  Then private /hengs ask news preview, explicitly confirmed one-shot send, and daily activation
-  only after the owner accepts the result. Real Discord interaction dogfood remains pending.
+- At deployment acceptance, owner setup/preview/send dogfood was pending. It subsequently
+  passed on 2026-10-16 above. Daily activation still awaits owner review of the first edition.
 - Private operators: .cloud/automation/news-v1550. Do not redispatch the completed one-shot job;
-  audit.sh is the current read-only check. No tracked Actions workflow; no CI-green claim.
+  audit.sh was the deployment read-only check, superseded after news dogfood above.
+  No tracked Actions workflow; no CI-green claim.
   No new spec/plan or archive added; existing unrelated active contracts retained.
 - Documentation subject: docs(cloud): Hengs Discord v1.55.0 - record verified optional news deployment.
 
