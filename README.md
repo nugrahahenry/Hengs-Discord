@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.57.0 - Indonesian news briefs and publisher diversity, verified locally (not deployed)
+**Current checkpoint:** Hengs Discord v1.57.0 - Indonesian news briefs and publisher diversity, deployed and privately previewed
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -12,14 +12,14 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.56.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.57.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
 
-Kandidat v1.57.0 menambahkan judul dan ringkasan pendek bahasa Indonesia dari cuplikan feed,
+v1.57.0 menambahkan judul dan ringkasan pendek bahasa Indonesia dari cuplikan feed,
 dengan gaya santai atau netral sesuai pengaturan. Hasil diberi label ringkasan AI, bukan
 verifikasi fakta atau hasil membaca artikel penuh. Tautan sumber, gambar dan tanggal tetap asli.
 Jika provider tidak tersedia, output ditolak atau anggaran terpakai, cuplikan bahasa sumber tetap
@@ -27,8 +27,9 @@ ditampilkan dengan keterangan bahwa ringkasan Indonesia belum tersedia. Tidak ad
 Pilihan dibatasi maksimal satu artikel per penerbit, terbaru lebih dulu. Jumlah berita adalah
 batas atas, bukan target wajib: topik teknologi + AI saat ini memiliki dua penerbit, sehingga
 paling banyak dua item, atau satu jika hanya satu sumber punya berita baru. Tidak menambah topik otomatis.
-Implementasi ini belum dideploy; cloud tetap v1.56.0. Pengujian Discord berikutnya dilakukan di
-channel bot-commands; preview privat tidak memublikasikan berita atau mengaktifkan jadwal.
+Sudah dideploy pada 2026-10-16. Preview privat nyata di bot-commands menampilkan gambar,
+judul/ringkasan Indonesia dan sumber untuk satu artikel baru. Tidak ada kiriman publik tambahan;
+jadwal tetap dijeda. Pengujian berikutnya juga dilakukan di bot-commands, bukan channel berita.
 
 v1.56.0 menampilkan satu kartu per artikel: gambar dari feed penerbit di atas, lalu judul,
 cuplikan singkat, tautan sumber dan tanggal WIB. Maksimal tiga kartu tetap berada dalam satu
@@ -37,7 +38,7 @@ Jika feed tidak punya gambar yang lolos pemeriksaan, kartu tetap berisi teks dan
 Gambar memakai URL HTTPS pada domain/path penerbit yang sudah ditentukan, bukan hasil AI,
 scraping halaman artikel, unggahan ulang, atau URL dari pengguna. Discord memuat preview gambar;
 Hengs tidak mengunduh atau menyimpan byte gambar. Tampilan gambar bergantung pada penerbit,
-Discord dan pengaturan tampilan media pengguna. Cuplikan tetap mengikuti bahasa sumber.
+Discord dan pengaturan tampilan media pengguna. Cuplikan fallback tetap mengikuti bahasa sumber.
 Perubahan visual sudah dideploy dan preview privat nyata lulus pada 2026-10-16. Edisi teks yang
 sudah terkirim tidak diubah/dikirim ulang; jadwal harian tetap dijeda menunggu review Henry.
 
@@ -69,7 +70,7 @@ Maksimal 3 item dan satu digest per hari, termasuk kiriman uji. Sumber saat ini:
 [xkcd](https://xkcd.com/atom.xml) untuk hiburan/komik, bukan berita faktual atau katalog meme umum.
 Sumber boleh tidak punya berita baru setiap hari. Artikel berumur lebih dari 72 jam, tanpa tanggal,
 dari masa depan, atau yang sudah dikirim tidak dipilih. v1.56.0 mengikuti bahasa sumber;
-kandidat v1.57.0 dapat meringkasnya dengan AI. Tidak ada pengunduhan media oleh Hengs atau tag massal.
+v1.57.0 dapat meringkasnya dengan AI. Tidak ada pengunduhan media oleh Hengs atau tag massal.
 Topik dan URL sumber bebas belum didukung. Publisher feed bukan jaminan klaimnya selalu benar.
 
 Editor v1.57.0 hanya mengirim judul dan cuplikan publik yang sudah dibatasi, bukan riwayat chat,
@@ -226,9 +227,9 @@ acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInsta
 provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.28.0 menyediakan
 dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.54.0 kini menjadi
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.57.0 kini menjadi
 production `current`, lulus tes Node22 dan dua heartbeat sehat setelah restart terkontrol.
-v1.53.0 tetap tersedia untuk rollback. News belum dikonfigurasi atau dijadwalkan.
+v1.56.0 tetap tersedia untuk rollback. News sudah dikonfigurasi dan diuji; jadwal masih dijeda.
 Secret serta state persisten awalnya
 dipindahkan lewat jalur privat Tailscale dengan verifikasi checksum, manifest, ownership, dan mode.
 Service systemd sekarang active/enabled sebagai satu-satunya token consumer; bot Discord lokal

@@ -20,10 +20,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Preview dan kiriman memakai salinan yang sama. Reset/revisi/pause/shutdown selama proses
   editor tetap membatalkan aksi lama. Ringkasan tidak masuk state atau backup persisten.
 
+### Deployment
+
+- Deploy terkontrol 2026-10-16 dari commit 3b9458f179b056fe1e571c659a9f914a426c0ecf diterima.
+  Kandidat Node22 lulus 614 tes dengan 3 skip khusus checkout, setelah lokal 617/617 lulus.
+  Dua heartbeat sehat bergerak, satu consumer dan nol restart otomatis; rollback v1.56.0 tersedia.
+- Preview privat nyata di bot-commands menampilkan satu artikel baru dengan gambar, judul dan
+  ringkasan Indonesia, label AI serta tautan sumber. Ini satu sampel berhasil, bukan jaminan
+  akurasi seluruh output mendatang. Edisi publik lama tetap satu; jadwal harian tetap dijeda.
+- Auth, state dan konfigurasi dipertahankan. WA dan Canox tidak direstart atau diubah;
+  tanpa QR, backup, reboot, registrasi command atau resource cloud baru.
+
 ### Scope
 
-- Implementasi dan QA lokal saja. Cloud tetap v1.56.0, news tetap dijeda; tanpa live provider,
-  pengiriman Discord, deploy, restart, schema/dependency baru atau perubahan WA/Canox.
+- Tidak ada schema/dependency baru. Preview mengambil feed publik dan memakai provider yang
+  sudah dikonfigurasi, tanpa mengirim chat atau memori privat ke editor berita.
 - Judul/cuplikannya publik akan memakai kuota provider ketika kandidat dijalankan dengan
   konfigurasi yang tersedia. Batas per proses bukan batas biaya persisten.
 

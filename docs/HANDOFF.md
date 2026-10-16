@@ -2,6 +2,38 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.57.0 controlled deployment and Indonesian preview accepted
+
+- Henry approved deployment and private preview. Exact deployed source:
+  3b9458f179b056fe1e571c659a9f914a426c0ecf. Source-only archive SHA256 verified at both ends.
+- Fresh preflight passed: Node22, previous1.56.0, capacity, no concurrent deploy, healthy single
+  consumers and news tested/paused. Isolated candidate QA ran before stopping old Discord:
+  617total/614pass/0fail/3expected checkout-only skips, already covered by local617/617.
+  Lock unchanged except release version; immutable existing dependencies reused.
+- Controlled atomic switch passed two moving CONNECTED/OK/fresh heartbeats >=30seconds apart,
+  active/enabled, one node matching MainPID and zero automatic restarts. Data fingerprints matched
+  across the stopped switch, news file and config fingerprints unchanged. No auth/QR/restore,
+  backup/reboot, slash registration or Oracle action. Staging absent; v1.56.0 retained for rollback.
+- WA0.46.0 and Canox memory-only0.178.0 kept their PIDs/releases/environment, healthy without
+  restart. Private memory capability separation/loopback-only listener and backup timer verified.
+  Local bot processes zero, local autostart off. Full Canox runtime/watcher remain out of scope.
+- One actual /hengs ask preview berita in bot-commands returned an ephemeral image-first card,
+  Indonesian title/summary, AI-from-snippets disclaimer, original source link/date and Only you
+  can see this. One fresh unseen NVIDIA article selected; no stale/duplicate-publisher filler.
+  This proves one live editor/visual sample, not general factual correctness or multiple-source
+  availability. No second preview/provider retry, public send or daily enable action requested.
+- Existing public edition remains one message with its three original links, no mentions;
+  channel remains member read-only under BOT CENTER. News schema1, tested=true/enabled=false,
+  one sent receipt on2026-10-16 and three seen hashes retained.
+- Private proof: .cloud/automation/news-v1570/news-indonesian-preview-2026-10-16.png.
+  Operators in the same ignored folder. Deployment status ACCEPTED, do not redispatch.
+  v1570 audit is current; v1560 version-pinned audit is historical after this upgrade.
+- Post-preview independent health/state/public-message audit passed. Documentation checkpoint
+  QA9/9, full tracked release-content scan, metadata/whitespace/no-new-long-dash checks passed.
+- Next: Henry reviews the private preview. Daily activation needs explicit approval; do not
+  publish another edition or reset receipts merely to test. Future tests stay in bot-commands.
+- Documentation subject: docs(cloud): Hengs Discord v1.57.0 - record deployment and editorial acceptance.
+
 ## Hengs Discord v1.57.0 Indonesian news briefs and publisher diversity, local checkpoint
 
 - Henry approved the local batch: concise Indonesian title/summary and more balanced publishers.
