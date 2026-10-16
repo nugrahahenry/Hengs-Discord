@@ -72,7 +72,7 @@ function readFeed(source, { request = https.request, lookup = publicLookup, time
 }
 
 function plain(value, max = 200) {
-  // Feed markup is data, never rendered as HTML or passed to a model.
+  // Feed markup is data, never rendered as HTML. Only bounded plain snippets reach the editor.
   return String(value || '').slice(0, 4096).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
     .replace(/<[^>]*>/g, ' ').replace(/&#(x[0-9a-f]+|\d+);/gi, (_, n) => {
       const code = n[0].toLowerCase() === 'x' ? parseInt(n.slice(1), 16) : Number(n);

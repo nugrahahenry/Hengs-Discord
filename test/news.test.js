@@ -11,6 +11,7 @@ const { createNewsStore, validateState, wibClock, DAY } = require('../src/news/s
 const { SOURCES, publicIPv4, articleUrl, parseFeed, createFeedReader, readFeed, plain, MAX_FEED_BYTES } = require('../src/news/feeds');
 const { parsePrompt, editSettings, DEFAULTS } = require('../src/news/prompts');
 const { createNewsService } = require('../src/news/service');
+const { createNewsEditor } = require('../src/news/editor');
 const { selectStateEntries } = require('../scripts/cloud/state-transfer');
 const hengs = require('../src/commands/hengs');
 
@@ -45,6 +46,7 @@ function rig(t, options = {}) {
   const guildAccess = { classify: () => ({ kind: enabledScope ? 'home' : 'pending' }) };
   const readFeeds = options.readFeeds || (async () => ({ items: parseFeed(rss(SOURCES[0], 5, f.now()), SOURCES[0], f.now()), failures: 0 }));
   const service = createNewsService({ store: f.store, now: f.now, readFeeds, guildAccess,
+    editArticles: options.editArticles,
     logger: { error: code => logs.push(code) } });
   t.after(() => service.stop());
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
@@ -56,7 +58,7 @@ function rig(t, options = {}) {
 async function testedRow(r) {
   await r.handle('atur berita teknologi AI jam 08:00 ke #hengs-news');
   const preview = await r.handle('preview berita');
-  assert.equal(preview.components.filter(row => row.type === ComponentType.Container).length, 3);
+  assert.equal(preview.components.filter(row => row.type === ComponentType.Container).length, 1);
   assert.equal(preview.flags, MessageFlags.IsComponentsV2);
   assert.match((await r.handle('kirim berita sekali')).content, /berhasil/);
   await r.handle('preview berita');
@@ -291,7 +293,7 @@ test('news scheduled empty/failure consumes a slot and misses older windows quie
   assert.equal(r.store.get(GUILD).receipts.at(-1).status, 'failed'); assert.equal(r.sent.length, 1);
 });
 
-test('/hengs news bypasses LLM/memory, always defers privately and reset clears pending preview', async t => {
+test('/hengs news bypasses conversational LLM/memory, always defers privately and reset clears pending preview', async t => {
   const r = rig(t); let cleared = false;
   const interaction = { ...r.interaction, inGuild: () => true,
     options: { getSubcommand: () => 'ask', getString: () => 'atur berita ke #hengs-news' },
@@ -364,4 +366,59 @@ test('revoked manager permission cannot confirm a previously allowed preview', a
   await r.handle('atur berita ke #hengs-news'); await r.handle('preview berita');
   assert.match((await r.handle('kirim berita sekali')).content, /izin pengelola/);
   assert.equal(r.sent.length, 0); assert.equal(r.store.get(GUILD), null);
+});
+
+test('Indonesian preview uses the exact same copy on send without another model call or persistence', async t => {
+  let calls = 0;
+  const editArticles = createNewsEditor({ complete: async () => {
+    calls++;
+    return JSON.stringify({ items: [{ id: '0', title: 'Pembaruan dari penerbit', summary: 'Sumber membagikan pembaruan baru.' }] });
+  } });
+  const r = rig(t, { editArticles });
+  await r.handle('atur berita ke #hengs-news');
+  const preview = await r.handle('preview berita');
+  assert.match(JSON.stringify(preview), /Ringkasan AI/);
+  await r.handle('kirim berita sekali');
+  assert.equal(calls, 1);
+  assert.deepEqual(preview.components.slice(1), r.sent[0].components);
+  const stored = fs.readFileSync(r.filePath, 'utf8');
+  assert(!/Ringkasan|Pembaruan|editorial|summary/.test(stored));
+});
+
+test('reset, pause, revision change and stop during editing invalidate the pending operation', async t => {
+  for (const operation of ['reset', 'revision', 'stop']) {
+    let resume;
+    const r = rig(t, { editArticles: items => new Promise(resolve => { resume = () => resolve(items); }) });
+    await r.handle('atur berita ke #hengs-news');
+    const pending = r.handle('preview berita');
+    while (!resume) await new Promise(resolve => setImmediate(resolve));
+    if (operation === 'reset') r.service.clear(r.interaction);
+    if (operation === 'revision') r.store.save(GUILD, 0, settings());
+    if (operation === 'stop') r.service.stop();
+    resume();
+    assert.equal((await pending).components, undefined);
+    assert.equal(r.sent.length, 0);
+  }
+  let resume; let pending = false;
+  const r = rig(t, { editArticles: async items => {
+    if (pending) await new Promise(resolve => { resume = resolve; });
+    return items;
+  } });
+  await testedRow(r); r.advance(DAY); pending = true; r.service.start(r.client);
+  const tick = r.service.tick();
+  while (!resume) await new Promise(resolve => setImmediate(resolve));
+  r.store.pause(GUILD); resume(); await tick;
+  assert.equal(r.sent.length, 1);
+  assert.equal(r.store.get(GUILD).enabled, false);
+  assert.equal(r.store.get(GUILD).receipts.length, 1);
+});
+
+test('items that expire while the editor is running are removed before preview', async t => {
+  let r;
+  r = rig(t, { readFeeds: async () => ({ items: parseFeed(rss(SOURCES[0], 1, BASE - 3 * DAY + 1001), SOURCES[0], BASE), failures: 0 }),
+    editArticles: async items => { assert.equal(items.length, 1); r.advance(2); return items; } });
+  await r.handle('atur berita ke #hengs-news');
+  const preview = await r.handle('preview berita');
+  assert.match(preview.content, /Belum ada item baru/);
+  assert.equal(r.sent.length, 0);
 });

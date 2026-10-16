@@ -2,15 +2,16 @@
 
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const crypto = require('node:crypto');
-const { createNewsStore, wibClock, DAY } = require('./store');
+const { createNewsStore, wibClock } = require('./store');
 const { createFeedReader } = require('./feeds');
 const { digestPayload } = require('./presentation');
+const { selectArticles } = require('./selection');
 const { DEFAULTS, HELP, NewsPromptError, parsePrompt, editSettings, describe, validSettings } = require('./prompts');
 const { isGuildManager } = require('../prompt-assistant');
 
 const TTL = 10 * 60_000;
 function createNewsService({ store = createNewsStore(), readFeeds = createFeedReader(), now = Date.now,
-  guildAccess, logger = console } = {}) {
+  guildAccess, logger = console, editArticles = async items => items } = {}) {
   const drafts = new Map();
   const busy = new Map();
   let client; let timer; let ticking = false; let stopped = false;
@@ -35,14 +36,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     return channel;
   }
   function selected(settings, items, row) {
-    const seen = new Set(row?.seen.filter(x => now() - x.at < 30 * DAY).map(x => x.hash) || []);
-    const picks = [];
-    for (const item of [...items].sort((a, b) => b.publishedAt - a.publishedAt)) {
-      if (seen.has(item.hash) || item.publishedAt > now() || now() - item.publishedAt > 3 * DAY) continue;
-      seen.add(item.hash); picks.push(item);
-      if (picks.length >= settings.count) break;
-    }
-    return picks;
+    return selectArticles(settings, items, row, now());
   }
   function assertRevision(guildId, revision) {
     if (!active(guildId) || (store.get(guildId)?.revision || 0) !== revision) throw new Error('NEWS_PREVIEW_STALE');
@@ -112,7 +106,11 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         const result = await readFeeds(draft.settings.topics);
         assertLease();
         assertRevision(interaction.guildId, draft.revision);
-        const items = selected(draft.settings, result.items, row);
+        const edited = await editArticles(selected(draft.settings, result.items, row), draft.settings);
+        assertLease();
+        assertRevision(interaction.guildId, draft.revision);
+        if (stopped) throw new Error('NEWS_STOPPED');
+        const items = selected(draft.settings, edited, row);
         put(interaction, { ...draft, items, previewAt: now(), approvedPreview: true });
         const content = `${describe(draft.settings, 'preview privat')}\n${items.length ? 'Ini contoh kiriman yang akan dikirim. Ketik kirim berita sekali untuk uji (maksimal satu kiriman hari ini).' : 'Belum ada item baru yang cukup segar. Tidak akan mengarang atau mengirim digest kosong.'}\n${result.failures ? `${result.failures} sumber belum dapat dibaca. ` : ''}Simpan berita = jeda; aktifkan berita = jadwal, hanya setelah uji berhasil.${row?.enabled ? '\nJadwal tersimpan masih aktif.' : ''}`;
         return items.length ? digestPayload(draft.settings, items, now(), content) : { content };
@@ -183,8 +181,12 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
           if (stopped) break;
           const items = selected(row.settings, result.items, row);
           if (!items.length) { store.claim(row.guildId, row.revision, clock.day, [], result.failures ? 'failed' : 'empty'); continue; }
+          const edited = selected(row.settings, await editArticles(items, row.settings), row);
+          assertRevision(row.guildId, row.revision);
+          if (stopped) break;
           if (clock.day !== wibClock(now()).day) continue;
-          await deliver(guild, row, items, clock.day);
+          if (!edited.length) { store.claim(row.guildId, row.revision, clock.day, [], 'empty'); continue; }
+          await deliver(guild, row, edited, clock.day);
         } catch {
           logger.error('[news] NEWS_TICK_FAILED');
           // Pre-send failures also consume the day's slot; no repeated permission/network storm.

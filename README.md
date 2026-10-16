@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.56.0 - image-first news cards, deployed
+**Current checkpoint:** Hengs Discord v1.57.0 - Indonesian news briefs and publisher diversity, verified locally (not deployed)
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -18,6 +18,17 @@ migration. Memory is default off; reset clears RAM, not saved notes, revisions o
 Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
+
+Kandidat v1.57.0 menambahkan judul dan ringkasan pendek bahasa Indonesia dari cuplikan feed,
+dengan gaya santai atau netral sesuai pengaturan. Hasil diberi label ringkasan AI, bukan
+verifikasi fakta atau hasil membaca artikel penuh. Tautan sumber, gambar dan tanggal tetap asli.
+Jika provider tidak tersedia, output ditolak atau anggaran terpakai, cuplikan bahasa sumber tetap
+ditampilkan dengan keterangan bahwa ringkasan Indonesia belum tersedia. Tidak ada klaim bebas halusinasi.
+Pilihan dibatasi maksimal satu artikel per penerbit, terbaru lebih dulu. Jumlah berita adalah
+batas atas, bukan target wajib: topik teknologi + AI saat ini memiliki dua penerbit, sehingga
+paling banyak dua item, atau satu jika hanya satu sumber punya berita baru. Tidak menambah topik otomatis.
+Implementasi ini belum dideploy; cloud tetap v1.56.0. Pengujian Discord berikutnya dilakukan di
+channel bot-commands; preview privat tidak memublikasikan berita atau mengaktifkan jadwal.
 
 v1.56.0 menampilkan satu kartu per artikel: gambar dari feed penerbit di atas, lalu judul,
 cuplikan singkat, tautan sumber dan tanggal WIB. Maksimal tiga kartu tetap berada dalam satu
@@ -57,9 +68,17 @@ Maksimal 3 item dan satu digest per hari, termasuk kiriman uji. Sumber saat ini:
 [Steam News](https://store.steampowered.com/feeds/news.xml) untuk gaming, dan
 [xkcd](https://xkcd.com/atom.xml) untuk hiburan/komik, bukan berita faktual atau katalog meme umum.
 Sumber boleh tidak punya berita baru setiap hari. Artikel berumur lebih dari 72 jam, tanpa tanggal,
-dari masa depan, atau yang sudah dikirim tidak dipilih. Judul/cuplikannya mengikuti bahasa sumber,
-bukan terjemahan atau ringkasan AI. Tidak ada penggunaan model, pengunduhan media oleh Hengs, atau tag massal.
+dari masa depan, atau yang sudah dikirim tidak dipilih. v1.56.0 mengikuti bahasa sumber;
+kandidat v1.57.0 dapat meringkasnya dengan AI. Tidak ada pengunduhan media oleh Hengs atau tag massal.
 Topik dan URL sumber bebas belum didukung. Publisher feed bukan jaminan klaimnya selalu benar.
+
+Editor v1.57.0 hanya mengirim judul dan cuplikan publik yang sudah dibatasi, bukan riwayat chat,
+memori Canox, ID pengguna/server, gambar atau token. Memakai Groq yang sudah dikonfigurasi;
+jika Groq tidak dikonfigurasi, memakai model OpenRouter free pertama yang sudah tersedia.
+Satu request per batch, timeout 8 detik, tanpa retry/rotasi model. Batas global per proses:
+satu request berjalan, jeda minimal 30 detik dan 12 percobaan per jam. Batas reset saat restart,
+bukan jaminan biaya nol. Cache hasil dan kegagalan hanya RAM selama 10 menit, maksimal 60 batch.
+Preview menyimpan salinan ringkasan yang sama sampai konfirmasi, tidak menghasilkan ulang saat kirim.
 
 Preview berlaku 10 menit untuk pemanggil, server dan channel yang sama. Konfirmasi tidak dapat
 dipakai ulang. Konfigurasi ulang selalu menjeda jadwal dan perlu kiriman uji baru sebelum aktif.

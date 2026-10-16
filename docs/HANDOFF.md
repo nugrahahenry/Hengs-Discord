@@ -2,6 +2,42 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.57.0 Indonesian news briefs and publisher diversity, local checkpoint
+
+- Henry approved the local batch: concise Indonesian title/summary and more balanced publishers.
+  At most one fresh unseen item per configured publisher, newest first within selected topics.
+  Default technology/AI now yields at most2items, possibly1/0; no stale or duplicate-source filler.
+- Bounded editor uses existing configured Groq primary, or first existing OpenRouter free model
+  only when Groq is absent. One request per batch, max700tokens,8second abort deadline, no SDK
+  retries/tools/model rotation. Only public title/excerpt/positionalID/tone sent, no chat, memory,
+  guild/user identity, URL, image or private data. Global per-process1inflight/30second spacing/
+  12attempts per rolling hour, resets on restart and is not a persistent billing cap.
+- Exact JSON shape/IDs and text/length/language/new-number checks reject invalid output. Valid
+  siblings survive an empty excerpt/invalid sibling. These checks do not guarantee semantic
+  correctness; cards label AI from snippets, retain source/image/date and fall back honestly.
+- Preview/send reuse exact copy without regeneration. Reset/pause/revision/shutdown and
+  freshness are rechecked after editing. Cache successes/failures in bounded RAM10min/60batches;
+  schema1/state/backup unchanged, no new dependency, source, database or service.
+- Verification: full offline617/617,0fail/skip on Node24.15.0. Focused news40/40 before two final
+  regression additions. Mock provider verifies exact SDK options and isolation from private chat;
+  preview/send parity, fallback, budgets, source diversity, persistence exclusion and races pass.
+  Initial sandbox EPERM on atomic temp rename resolved by identical offline checks outside sandbox,
+  without weakening file permissions or storage implementation. Review fix wave added freshness
+  recheck after await and per-item fallback for empty excerpts; final full regression passed.
+  Final focused59/59,12JS syntax checks,17file release-content/secret scan, whitespace and no new
+  long dashes passed. Synthetic fixture field renamed to avoid a credential-pattern false positive;
+  scanner unchanged. No tracked GitHub Actions workflow; no CI-green claim.
+- Local only: no provider/feed request, bot start, cloud write/deploy/restart, Discord publication,
+  daily activation, WA/Canox/Oracle or backup action. Cloud remains v1.56.0 d823153d7c5a, news paused.
+  Next gate: separately approved deployment with Node22 QA and bounded real editorial preview in
+  bot-commands; do not repeat the old public edition or activate the daily schedule implicitly.
+- Prior UI change: existing hengs-news grouped under BOT CENTER with Keep Current Permissions.
+  Future supervised tests belong in bot-commands, with private previews where available.
+- Canonical local design: docs/NEWS-DIRECTION.md. No new temporary spec/plan; unrelated historic
+  operational contracts retained. Graphify CLI/NetworkX unavailable and graph predates news;
+  inspection used current source and tests, no dependency installation or graph rebuild.
+- Commit subject: feat(news): Hengs Discord v1.57.0 - add Indonesian briefs and publisher diversity.
+
 ## Hengs Discord v1.56.0 controlled deployment and native visual preview accepted
 
 - Henry approved continuing deployment and private preview. Exact deployed source is

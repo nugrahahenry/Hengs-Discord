@@ -17,6 +17,7 @@
 require('dotenv').config();
 const OpenAI = require('openai');
 const { HISTORY_TTL_MS, cleanText, appendExchange, selectHistory, featureReceipt } = require('./conversation-context');
+const { createNewsCompletion } = require('./news/completion');
 
 // ── Lapis 1 & 2: Groq (primary) ─────────────────────────────────────────────
 const groq = process.env.GROQ_API_KEY
@@ -442,6 +443,8 @@ async function reviseAnnouncement(draft, kind) {
 }
 
 module.exports = {
+  completeNews: createNewsCompletion({ client: groq || openrouter,
+    model: groq ? GROQ_MODELS[0] : FREE_MODELS[0] }),
   buildConversationKey,
   buildSystemPrompt,
   createConversationLease,

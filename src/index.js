@@ -54,6 +54,7 @@ const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
+const { createNewsEditor } = require('./news/editor');
 let newsService;
 const { startTypingIndicator } = require('./assistant-ux');
 
@@ -89,7 +90,7 @@ const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
   store: guildConfigStore,
 });
-newsService = createNewsService({ guildAccess });
+newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }) });
 const publicTrafficGuard = createPublicTrafficGuard();
 const publicDailyRequestLimit = parsePublicDailyRequestLimit(
   process.env.HENGS_PUBLIC_DAILY_REQUEST_LIMIT,

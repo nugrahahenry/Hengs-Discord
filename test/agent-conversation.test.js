@@ -29,6 +29,7 @@ function fixture() {
       if (name === 'dotenv') return { config() {} };
       if (name === 'openai') return FakeOpenAI;
       if (name === './conversation-context') return require('../src/conversation-context');
+      if (name === './news/completion') return require('../src/news/completion');
       throw new Error('UNEXPECTED_TEST_DEPENDENCY');
     },
     process: { env: { GROQ_API_KEY: 'fixture-only' } },
@@ -50,6 +51,17 @@ function fixture() {
 function turns(call) {
   return call.messages.filter(message => message.role !== 'system').map(message => message.content);
 }
+
+test('news completion reuses the provider without private or shared conversation history', async () => {
+  const value = fixture();
+  await value.agent.chat('PRIVATE_CHAT_SENTINEL', KEY, { visibility: 'private' });
+  value.respondWith(async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{"items":[]}' } }] }));
+  const messages = [{ role: 'system', content: 'Public news editor' }, { role: 'user', content: 'PUBLIC_FEED_FIXTURE' }];
+  await value.agent.completeNews(messages, { signal: new AbortController().signal });
+  assert.deepEqual(value.calls.at(-1).messages, messages);
+  assert.equal(JSON.stringify(value.calls.at(-1)).includes('PRIVATE_CHAT_SENTINEL'), false);
+  assert.equal(value.calls.at(-1).model, 'openai/gpt-oss-120b');
+});
 
 test('private AI turns never reach shared chat for the same guild and user', async () => {
   const value = fixture();

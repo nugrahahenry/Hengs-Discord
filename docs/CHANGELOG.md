@@ -5,6 +5,28 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.57.0] - 2026-10-16
+
+### Added
+
+- Judul dan ringkasan Indonesia dari judul/cuplikannya saja, dengan tone santai atau netral,
+  label AI, sumber asli dan fallback cuplikan saat provider/output tidak dapat dipakai.
+- Editor JSON terpisah dari percakapan/memori pribadi. Pemeriksaan ID/format/panjang, teks,
+  sinyal bahasa dan angka baru; ini bukan jaminan kebenaran semantik atau bebas halusinasi.
+- Request ke provider yang sudah dikonfigurasi dibatasi satu batch, timeout 8 detik, tanpa
+  retry, satu in-flight, jeda 30 detik dan maksimal 12 percobaan/jam/proses. Cache RAM 10 menit.
+- Maksimal satu artikel per penerbit, mengikuti topik, freshness dan deduplikasi yang sudah ada.
+  Tidak memenuhi kuota dengan sumber duplikat atau berita basi jika pilihan lebih sedikit.
+- Preview dan kiriman memakai salinan yang sama. Reset/revisi/pause/shutdown selama proses
+  editor tetap membatalkan aksi lama. Ringkasan tidak masuk state atau backup persisten.
+
+### Scope
+
+- Implementasi dan QA lokal saja. Cloud tetap v1.56.0, news tetap dijeda; tanpa live provider,
+  pengiriman Discord, deploy, restart, schema/dependency baru atau perubahan WA/Canox.
+- Judul/cuplikannya publik akan memakai kuota provider ketika kandidat dijalankan dengan
+  konfigurasi yang tersedia. Batas per proses bukan batas biaya persisten.
+
 ## [1.56.0] - 2026-10-16
 
 ### Build
