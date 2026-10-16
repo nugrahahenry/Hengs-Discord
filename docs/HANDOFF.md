@@ -2,6 +2,38 @@
 
 Updated: 2026-10-16
 
+## Hengs Discord v1.58.1 editor reliability checkpoint (not deployed)
+
+- Henry approved the next priority: investigate intermittent Indonesian News fallback, not a new
+  feature expansion. Current production stays v1.58.0 with the approved mixed 08:00 WIB schedule.
+- Read-only cloud audit found one full NEWS_EDITOR_FALLBACK and zero partial fallbacks in the
+  bounded recent journal window; configured primary is Groq GPT-OSS 120B. That old code does not
+  retain a category, so the exact cause of the earlier fallback cannot be reconstructed.
+- One baseline public-only probe completed STOP/valid JSON/2 accepted/budget not exhausted.
+  The first operator invocation had a syntax error before any API call; fixed and syntax-checked.
+  Do not claim token exhaustion, validator failure or outage was proven for the original incident.
+- For exact Groq GPT-OSS 120B/20B only, strict nullable JSON schema, reasoning_effort=low,
+  include_reasoning=false and max_completion_tokens=700. Other providers/models retain json_object
+  and max_tokens=700. Same 8s deadline, zero retries, no rotation, spacing/cache/hourly cap unchanged.
+  Local field/ID/language/length/number/content validation remains authoritative after schema output.
+- Completion exceptions become typed fixed codes; editor permits only an explicit set in logs.
+  Raw provider errors, body, reasoning, article text and private chat are never logged. Empty,
+  incomplete, invalid JSON/schema, request/access/rate/timeout/provider failures now distinguishable.
+- One candidate in-memory probe on the VM used the same two public excerpts and existing provider:
+  STOP/valid JSON/2 accepted/budget not exhausted. No code installed, state write, service restart,
+  public/private Discord message or retry. This proves one compatible sample, not future reliability.
+- Read-only diagnosis/probes are ignored under .cloud/automation/news-editor-*-1581.sh. Private
+  environment stayed in VM memory; no secret copied. No changes to WA/Canox/backup/Oracle/ACL.
+- Full offline regression 631/631 passed on Node24. Focused editor/adapter tests passed; sandbox
+  temp atomic-rename EPERM was resolved by the approved ordinary-temp offline run, not ACL edits.
+  Review verified provider-specific parameter isolation, public-only input, fixed-code exception
+  boundary, unchanged content validation and no persistent state/scheduler changes.
+  Final documentation/content QA 9/9, six changed JS syntax checks, version/lock metadata,
+  whitespace and no-new-long-dash checks passed. No obsolete temporary spec/plan created.
+- Next gate: explicit deployment approval, controlled Discord-only restart preserving auth/state,
+  then one private bot-commands preview. Do not reset receipts or force a public edition for testing.
+- Subject: fix(news): Hengs Discord v1.58.1 - stabilize structured editorial responses and diagnostics.
+
 ## Hengs Discord v1.58.0 deployed and mixed daily edition activated
 
 - Deployed exact source 69c196ca5ca9d0aabe82f5de553005ddd7108e9e on 2026-10-16 in one attempt.

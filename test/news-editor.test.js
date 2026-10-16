@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const { SOURCES } = require('../src/news/feeds');
 const { DAY } = require('../src/news/store');
 const { selectArticles } = require('../src/news/selection');
-const { createNewsCompletion } = require('../src/news/completion');
+const { createNewsCompletion, NewsCompletionError } = require('../src/news/completion');
 const { createNewsEditor, parseCopies, validatedCopy } = require('../src/news/editor');
 const { digestPayload } = require('../src/news/presentation');
 
@@ -75,6 +75,94 @@ test('editor sends only bounded public title/excerpt/tone/IDs and caches copy wi
   assert.deepEqual((await edit([original], settings))[0].editorial, copy);
   assert.equal(calls, 1);
   now += 10 * 60_000; await edit([original], settings); assert.equal(calls, 2);
+});
+
+test('Groq OSS uses strict nullable JSON and low reasoning with unchanged resource limits', async () => {
+  for (const model of ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']) {
+    let captured;
+    const client = { chat: { completions: { create: async (params, options) => {
+      captured = { params, options };
+      return { choices: [{ finish_reason: 'stop', message: { content: raw(), reasoning: 'PRIVATE_REASONING' } }] };
+    } } } };
+    const complete = createNewsCompletion({ client, model, provider: 'groq' });
+    assert.equal(await complete([], {}), raw());
+    assert.equal(captured.params.max_tokens, undefined);
+    assert.equal(captured.params.max_completion_tokens, 700);
+    assert.equal(captured.params.reasoning_effort, 'low');
+    assert.equal(captured.params.include_reasoning, false);
+    assert.equal(captured.params.reasoning_format, undefined);
+    assert.equal(captured.params.tools, undefined);
+    assert.equal(captured.options.timeout, 8000);
+    assert.equal(captured.options.maxRetries, 0);
+    const format = captured.params.response_format;
+    assert.equal(format.type, 'json_schema'); assert.equal(format.json_schema.strict, true);
+    const schema = format.json_schema.schema;
+    assert.equal(schema.additionalProperties, false); assert.deepEqual(schema.required, ['items']);
+    const item = schema.properties.items.items;
+    assert.equal(item.additionalProperties, false); assert.deepEqual(item.required, ['id', 'title', 'summary']);
+    assert.deepEqual(item.properties.id.enum, ['0', '1', '2']);
+    assert.deepEqual(item.properties.title.type, ['string', 'null']);
+    assert.deepEqual(item.properties.summary.type, ['string', 'null']);
+  }
+});
+
+test('other providers and model overrides never receive Groq-specific parameters', async () => {
+  for (const config of [{ provider: 'openrouter', model: 'openai/gpt-oss-120b' },
+    { provider: 'groq', model: 'custom-model' }, { model: 'openai/gpt-oss-120b' }]) {
+    let params;
+    const client = { chat: { completions: { create: async value => {
+      params = value; return { choices: [{ finish_reason: 'stop', message: { content: raw() } }] };
+    } } } };
+    await createNewsCompletion({ client, ...config })([], {});
+    assert.deepEqual(params.response_format, { type: 'json_object' });
+    assert.equal(params.max_tokens, 700); assert.equal(params.reasoning_effort, undefined);
+    assert.equal(params.include_reasoning, undefined); assert.equal(params.max_completion_tokens, undefined);
+  }
+});
+
+test('provider errors become allowlisted fixed codes without raw response or retries', async () => {
+  const cases = [
+    [{ status: 401 }, 'ACCESS_DENIED'], [{ status: 403 }, 'ACCESS_DENIED'],
+    [{ status: 429 }, 'RATE_LIMITED'], [{ status: 408 }, 'TIMEOUT'],
+    [{ name: 'APIConnectionTimeoutError' }, 'TIMEOUT'], [{ name: 'AbortError' }, 'TIMEOUT'],
+    [{ status: 400 }, 'REQUEST_REJECTED'], [{ status: 422 }, 'REQUEST_REJECTED'],
+    [{ status: 503 }, 'PROVIDER_UNAVAILABLE'], [{}, 'PROVIDER_UNAVAILABLE'],
+  ];
+  for (const [data, suffix] of cases) {
+    let calls = 0; const logs = [];
+    const client = { chat: { completions: { create: async () => {
+      calls++; throw Object.assign(new Error('PRIVATE_BODY_SENTINEL'), data, { body: 'PRIVATE_PROVIDER_BODY' });
+    } } } };
+    const complete = createNewsCompletion({ client, model: 'synthetic' });
+    const edit = createNewsEditor({ complete, logger: { warn: line => logs.push(line) } });
+    assert.equal((await edit([article()], settings))[0].editorial, undefined);
+    await edit([article()], settings);
+    assert.equal(calls, 1);
+    assert.deepEqual(logs, [`[news] NEWS_EDITOR_${suffix}`]);
+  }
+});
+
+test('incomplete, empty, malformed and schema-invalid output have distinct safe diagnostics', async () => {
+  const cases = [
+    [{ choices: [{ finish_reason: 'length', message: { content: raw() } }] }, 'INCOMPLETE'],
+    [null, 'INCOMPLETE'],
+    [{ choices: [{ finish_reason: 'stop', message: { content: null, reasoning: 'PRIVATE_REASONING' } }] }, 'EMPTY_RESPONSE'],
+    [{ choices: [{ finish_reason: 'stop', message: { content: 'PRIVATE_NOT_JSON' } }] }, 'INVALID_JSON'],
+    [{ choices: [{ finish_reason: 'stop', message: { content: '{"items":[]}' } }] }, 'INVALID_SCHEMA'],
+  ];
+  for (const [response, suffix] of cases) {
+    const logs = [];
+    const client = { chat: { completions: { create: async () => response } } };
+    const edit = createNewsEditor({ complete: createNewsCompletion({ client, model: 'synthetic' }),
+      logger: { warn: line => logs.push(line) } });
+    assert.equal((await edit([article()], settings))[0].editorial, undefined);
+    assert.deepEqual(logs, [`[news] NEWS_EDITOR_${suffix}`]);
+  }
+  const logs = [];
+  const edit = createNewsEditor({ complete: async () => { throw new NewsCompletionError('PRIVATE_UNKNOWN_CODE'); },
+    logger: { warn: line => logs.push(line) } });
+  await edit([article()], settings);
+  assert.deepEqual(logs, ['[news] NEWS_EDITOR_FALLBACK']);
 });
 
 test('strict output validation rejects instructions, unknown numbers, English-only and oversized text', () => {

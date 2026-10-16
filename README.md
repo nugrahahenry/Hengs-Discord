@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.58.0 - safe news revisions and balanced daily editions
+**Current checkpoint:** Hengs Discord v1.58.1 - structured news editor and safe failure diagnostics
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -12,12 +12,21 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.57.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.58.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
+
+v1.58.1 memperketat format editor pada Groq GPT-OSS 120B/20B dengan schema JSON,
+penalaran rendah dan output penalaran disembunyikan. Provider/model lain tetap memakai kontrak
+JSON sebelumnya. Batas tetap 700 token, 8 detik, tanpa retry atau rotasi model. Pemeriksaan
+bahasa, panjang, angka dan konten tetap dilakukan setelah jawaban diterima.
+Kegagalan kini dibedakan melalui kode tetap untuk akses, rate limit, timeout, request, provider,
+jawaban terpotong/kosong, JSON dan schema, tanpa mencatat respons mentah atau secret.
+Probe kandidat dengan dua cuplikan publik lolos validasi; ini bukan jaminan semua output akan
+berhasil. Patch belum dideploy dan tidak mengubah jadwal, receipt atau state produksi.
 
 v1.58.0 memisahkan revisi isi dari pemasangan channel baru. Setelah channel berhasil diuji,
 ubah topik/jam/jumlah/gaya, `preview berita`, lalu `terapkan berita`: jadwal aktif tetap aktif,
@@ -28,8 +37,8 @@ Jika topik berita belum dipilih, teknologi + AI dipakai. Dalam campuran dengan d
 menjadi satu berita + satu hiburan. Berita tampil dulu, komik terakhir dengan warna/label berbeda.
 Slot yang kosong tidak diganti jenis lain; jumlah tersedia ditampilkan supaya kekurangan bahan jelas.
 Cloudflare Blog ditambahkan sebagai sumber teknologi. Komik tanpa cuplikan tidak dikirim ke AI
-untuk ditebak, dan tidak menggagalkan ringkasan berita lain. Update ini belum dinyatakan live
-sebelum acceptance deployment; status produksi tercantum di atas.
+untuk ditebak, dan tidak menggagalkan ringkasan berita lain. Versi ini sudah live; komposisi
+dua berita + satu komik aktif pukul 08:00 WIB, tanpa kiriman tambahan saat revisi diterapkan.
 
 v1.57.0 menambahkan judul dan ringkasan pendek bahasa Indonesia dari cuplikan feed,
 dengan gaya santai atau netral sesuai pengaturan. Hasil diberi label ringkasan AI, bukan
@@ -39,7 +48,7 @@ ditampilkan dengan keterangan bahwa ringkasan Indonesia belum tersedia. Tidak ad
 Pilihan dibatasi maksimal satu artikel per penerbit, terbaru lebih dulu. Jumlah berita adalah
 batas atas, bukan target wajib. Dalam v1.58.0, teknologi + AI memiliki tiga penerbit; pilihan
 tetap dapat lebih sedikit jika bahan baru tidak tersedia. Tidak menambah topik otomatis.
-Sudah dideploy pada 2026-10-16. Preview privat nyata di bot-commands menampilkan gambar,
+Pada deployment v1.57.0 tanggal 2026-10-16, preview privat di bot-commands menampilkan gambar,
 judul/ringkasan Indonesia dan sumber untuk satu artikel baru. Jadwal home guild kemudian diaktifkan
 dengan persetujuan Henry: teknologi + AI, pukul 08:00 WIB, gaya santai, maksimal tiga item dan satu
 artikel per penerbit. Aktivasi tidak mengirim ulang edisi hari itu. Pengujian tetap di bot-commands.

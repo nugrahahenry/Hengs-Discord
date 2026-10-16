@@ -61,6 +61,9 @@ test('news completion reuses the provider without private or shared conversation
   assert.deepEqual(value.calls.at(-1).messages, messages);
   assert.equal(JSON.stringify(value.calls.at(-1)).includes('PRIVATE_CHAT_SENTINEL'), false);
   assert.equal(value.calls.at(-1).model, 'openai/gpt-oss-120b');
+  assert.equal(value.calls.at(-1).reasoning_effort, 'low');
+  assert.equal(value.calls.at(-1).include_reasoning, false);
+  assert.equal(value.calls.at(-1).response_format.type, 'json_schema');
 });
 
 test('private AI turns never reach shared chat for the same guild and user', async () => {

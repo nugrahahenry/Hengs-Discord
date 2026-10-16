@@ -444,7 +444,7 @@ async function reviseAnnouncement(draft, kind) {
 
 module.exports = {
   completeNews: createNewsCompletion({ client: groq || openrouter,
-    model: groq ? GROQ_MODELS[0] : FREE_MODELS[0] }),
+    model: groq ? GROQ_MODELS[0] : FREE_MODELS[0], provider: groq ? 'groq' : 'openrouter' }),
   buildConversationKey,
   buildSystemPrompt,
   createConversationLease,

@@ -5,6 +5,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.58.1] - 2026-10-16
+
+### Fixed
+
+- Editor Groq GPT-OSS 120B/20B memakai schema JSON ketat, reasoning rendah dan tanpa output
+  reasoning. Provider/model lain tidak menerima parameter khusus Groq. Batas token/waktu,
+  validasi hasil, cache, retry nol dan isolasi percakapan privat tidak berubah.
+- Kegagalan provider dan parser tidak lagi semuanya menjadi fallback generik: kode aman
+  membedakan akses, rate limit, timeout, request ditolak, provider, jawaban terpotong/kosong,
+  JSON dan schema. Tidak mencatat raw error, reasoning, isi jawaban atau credential.
+- Status produksi README diselaraskan ke v1.58.0. Patch v1.58.1 belum dideploy; probe kandidat
+  dua cuplikan publik lolos validasi tanpa restart service atau kiriman Discord.
+
 ## [1.58.0] - 2026-10-16
 
 ### Added
