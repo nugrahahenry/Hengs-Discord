@@ -27,9 +27,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 ### Operations
 
 - Existing Hall post roster reformatted without changing poster/certificate, mentions or permissions.
-  One guidance post pinned and channel topic points to bot-commands. No production deploy/restart.
-- Deploy gate: news state v2 needs conservative day-coalescing downgrade before rollback to old
-  code; never restore a stale receipt snapshot. Local code checkpoint only, cloud remains v1.60.0.
+  One guidance post pinned and channel topic points to bot-commands.
+- Approved cloud deployment accepted after one controlled Discord restart and two fresh advancing
+  health heartbeats. Node22 QA: 661 passed, zero failed, three checkout-only skips (664 total).
+  WA and Canox unchanged; staging removed. News schema2 migrated atomically with legacy day guards.
+  Rollback to v1.60.0 requires conservative day-coalescing downgrade before starting old code;
+  never restore a stale receipt snapshot. No live news or member ping was sent for acceptance.
+- Verified public installation link added to the application description, preserving all other
+  application and installation settings. No administrator permission added.
 
 ## [1.60.0] - 2026-10-17
 

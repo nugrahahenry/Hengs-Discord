@@ -4,7 +4,7 @@
 
 **Current checkpoint:** Hengs Discord v1.61.0 - spaced news and community-friendly appreciation
 
-Local-ready, not deployed: News sends one item at a time, at least one hour apart (for example
+Cloud-live since 2026-10-17: News sends one item at a time, at least one hour apart (for example
 08:00, 09:00, 10:00 WIB). `/hengs help` separates member features from privileged controls.
 Appreciation rosters use bullets; editors may select up to eight Discord members to notify on
 owner-approved publication, or keep no tags. Preview never notifies; edits clear selections.
@@ -13,7 +13,7 @@ Existing Hall of Fame roster and pinned request instructions have already been u
 Appreciation drafts now use the reviewed Crown Stage artwork, with an adaptive logo/trophy,
 literal tournament and result text, and up to eight players with optional nicknames. Edit
 opens a prefilled form and refuses stale revisions. Review remains private before owner
-publication. v1.60.0 is deployed and the poster plus an unchanged organizer certificate were
+publication. The poster plus an unchanged organizer certificate were
 verified in the bot test channel. Reusable certificate ingestion remains deferred; this upload
 used a supervised one-off operator, not a new bot command.
 The home server now has a Hall of Fame under Community, with the first owner-approved
@@ -29,7 +29,10 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.60.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.61.0 accepted after controlled restart, private Canox memory connected.
+Node22 candidate QA: 661 passed, zero failed, three checkout-only skips (664 total). Two fresh
+advancing heartbeats passed; WhatsApp and Canox were not restarted. v1.60.0 remains available
+for schema-aware rollback. The public bot invite is also included in Hengs' application description.
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
@@ -43,7 +46,7 @@ bahasa, panjang, angka dan konten tetap dilakukan setelah jawaban diterima.
 Kegagalan kini dibedakan melalui kode tetap untuk akses, rate limit, timeout, request, provider,
 jawaban terpotong/kosong, JSON dan schema, tanpa mencatat respons mentah atau secret.
 Probe kandidat dengan dua cuplikan publik lolos validasi; ini bukan jaminan semua output akan
-berhasil. Patch belum dideploy dan tidak mengubah jadwal, receipt atau state produksi.
+berhasil. Perbaikan editor ini sudah termasuk dalam deployment v1.61.0.
 
 v1.58.0 memisahkan revisi isi dari pemasangan channel baru. Setelah channel berhasil diuji,
 ubah topik/jam/jumlah/gaya, `preview berita`, lalu `terapkan berita`: jadwal aktif tetap aktif,
@@ -55,7 +58,8 @@ menjadi satu berita + satu hiburan. Berita tampil dulu, komik terakhir dengan wa
 Slot yang kosong tidak diganti jenis lain; jumlah tersedia ditampilkan supaya kekurangan bahan jelas.
 Cloudflare Blog ditambahkan sebagai sumber teknologi. Komik tanpa cuplikan tidak dikirim ke AI
 untuk ditebak, dan tidak menggagalkan ringkasan berita lain. Versi ini sudah live; komposisi
-dua berita + satu komik aktif pukul 08:00 WIB, tanpa kiriman tambahan saat revisi diterapkan.
+dua berita + satu komik dimulai pukul 08:00 WIB. Sejak v1.61.0 setiap item mendapat slot
+terpisah pukul 08:00, 09:00 dan 10:00 WIB, tanpa kiriman tambahan saat revisi diterapkan.
 
 v1.57.0 menambahkan judul dan ringkasan pendek bahasa Indonesia dari cuplikan feed,
 dengan gaya santai atau netral sesuai pengaturan. Hasil diberi label ringkasan AI, bukan

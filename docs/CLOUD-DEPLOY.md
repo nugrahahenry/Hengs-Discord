@@ -1,15 +1,21 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
-v1.60.0 (accepted 2026-10-17). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+v1.61.0 (accepted 2026-10-17). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
 pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
-permission, atau kebijakan Anti-Raid. v1.60.0 aktif/enabled sebagai satu-satunya consumer
-Discord setelah restart terkontrol; v1.58.0 tetap tersedia sebagai rollback. Kandidat Node22
-lulus 651 tes, nol gagal, dengan tiga tes checkout-only dilewati dari arsip produksi (654 total).
-Dua heartbeat bergerak lulus. Poster Crown Stage dan sertifikat asli terverifikasi di channel
+permission, atau kebijakan Anti-Raid. v1.61.0 aktif/enabled sebagai satu-satunya consumer
+Discord setelah restart terkontrol; v1.60.0 tetap tersedia sebagai rollback. Kandidat Node22
+lulus 661 tes, nol gagal, dengan tiga tes checkout-only dilewati dari arsip produksi (664 total).
+Dua heartbeat bergerak lulus. News schema1 dimigrasikan atomik ke schema2 ketika service
+berhenti, dengan owner/mode file, pengaturan dan riwayat tetap. Rollback wajib menjalankan
+`downgradeState` tervalidasi sebelum binary lama dimulai; receipt dikoaleskan per hari agar
+kiriman tidak terulang. Jangan memulihkan snapshot receipt lama. Staging sudah dibersihkan.
+Deskripsi aplikasi sudah memuat link invite publik terverifikasi, tanpa mengubah izin instalasi.
+
+Pada acceptance v1.60.0, poster Crown Stage dan sertifikat asli terverifikasi di channel
 bot, termasuk checksum sertifikat dan inspeksi visual Discord. Setelah persetujuan lanjutan Henry,
 satu channel Hall of Fame dibuat di Community dan satu posting final diterbitkan oleh Hengs.
 Anggota dapat membaca, memberi reaksi dan berdiskusi di thread; posting utama hanya bot/admin.
@@ -22,7 +28,9 @@ dan komik, 08:00 WIB, santai, maksimal dua berita + satu hiburan/satu artikel pe
 Preview v1.58.0 benar-benar memilih dua berita dan satu komik dengan sumber/gambar; dua berita
 memakai fallback bahasa sumber, bukan bukti keberhasilan ringkasan Indonesia. Apply mempertahankan
 tested/active dan receipt hari itu tanpa publikasi tambahan. Pengiriman harian pertama belum
-teramati. Scheduler berjalan di proses Discord cloud, bukan automation Codex baru.
+teramati. Sejak v1.61.0, tiga item dijadwalkan terpisah pukul 08:00, 09:00 dan 10:00 WIB,
+dengan jarak minimal satu jam dan tanpa catch-up slot yang terlewat. Tidak ada kiriman nyata
+untuk menguji deployment ini. Scheduler berjalan di proses Discord cloud, bukan automation Codex baru.
 WA v0.46.0 dan Canox memory-only v0.178.0 tidak direstart;
 integrasi memori privat tetap aktif. Registrasi historis v1.28.0 mempertahankan `/hengs`,
 menambahkan `/setup dashboard` ke schema global, serta mempertahankan 12 command lama di home guild.

@@ -2,7 +2,35 @@
 
 Updated: 2026-10-17
 
-## Hengs Discord v1.61.0 spaced news and community-friendly appreciation
+## Hengs Discord v1.61.0 cloud acceptance and public invite
+
+- Henry approved deployment and adding the installation link to the application description.
+  Exact code commit 82c94b168118447f3d3b8d9d44000d1a133e0cdf is live at immutable release
+  1.61.0-82c94b168118. Previous 1.60.0-9e43212d1715 remains available for schema-aware rollback.
+- Candidate Node22 QA completed before stopping Discord: 664 total, 661 passed, zero failed,
+  three expected checkout-only skips (tracked-content, tracked LF assets, sibling checkout).
+  One controlled Discord restart passed two fresh advancing CONNECTED/OK heartbeats;
+  active/enabled, exactly one service-owned consumer, zero supervised restarts, memory still on.
+- News schema1 migrated atomically to schema2 while Discord was stopped, preserving ownership,
+  mode, settings, revisions, history and timestamps. Legacy receipts consume their entire day.
+  No news was sent to test the migration. Rollback must run conservative downgradeState before
+  starting the old binary; never restore a stale receipt snapshot. Rollback was not needed.
+- WA v0.46.0 and Canox memory-only v0.178.0 stayed unchanged, with no restart. Environment
+  fingerprints unchanged; local bot processes zero and autostart off. Final cloud audit passed:
+  both bots fresh/single-consumer, zero supervised restarts, staging absent, rollback available.
+- Discord application REST readback confirms public installation, no code grant, and the
+  verified minimal-permission OAuth invite in its description. Only description changed;
+  application identity, icon, flags and installation settings/permissions were preserved.
+  Friends can open the README invite, select their server, then run /setup start and /hengs help.
+  No installation in a friend's guild, real news delivery or member notification was performed.
+- Native appreciation picker/form behavior has offline coverage, not claimed live dogfooding.
+  Ops destinations still use announcements; reusable Hall/certificate routing remains deferred.
+  No QR, auth reset, reboot, restore, backup, command registration or new resource occurred.
+- Documentation-only checkpoint, product version unchanged. Subject:
+  docs(deploy): Hengs Discord v1.61.0 - record spaced news acceptance and public invite
+  Next: member UI dogfooding in bot-commands; do not send news or ping players merely to test.
+
+## Hengs Discord v1.61.0 implementation checkpoint (before deployment above)
 
 - Henry requested spaced news, easier help, gallery guidance, bullet rosters and optional tags.
   Implemented as one local batch on main. Cloud code still v1.60.0; no restart/deploy, bot launch,

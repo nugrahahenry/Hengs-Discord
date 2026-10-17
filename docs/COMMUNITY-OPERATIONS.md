@@ -1,6 +1,9 @@
 # Hengs Community Operations Dashboard
 
-## Kartu apresiasi v1.61.0 (lokal, belum deploy)
+## Kartu apresiasi v1.61.0 (cloud-live, 2026-10-17)
+
+Deployment dan dua heartbeat sehat sudah lulus. Form/picker memiliki tes offline;
+dogfooding interaksi anggota dilakukan di `bot-commands`, bukan dengan ping percobaan.
 
 Tulis `bikin kartu apresiasi` lewat mention Hengs atau `/hengs ask` di server utama. Form
 khusus peminta tersedia untuk owner/editor Ops, bukan Administrator tanpa role editor.
