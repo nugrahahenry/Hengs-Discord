@@ -7,7 +7,9 @@
 Appreciation drafts now use the reviewed Crown Stage artwork, with an adaptive logo/trophy,
 literal tournament and result text, and up to eight players with optional nicknames. Edit
 opens a prefilled form and refuses stale revisions. Review remains private before owner
-publication. This local checkpoint is not deployed; certificate ingestion remains deferred.
+publication. v1.60.0 is deployed and the poster plus an unchanged organizer certificate were
+verified in the bot test channel. Reusable certificate ingestion remains deferred; this upload
+used a supervised one-off operator, not a new bot command.
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
@@ -17,7 +19,7 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.58.0 accepted after controlled restart, private Canox memory connected
+**Current cloud production:** v1.60.0 accepted after controlled restart, private Canox memory connected
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
@@ -274,9 +276,9 @@ acquisition tidak bercampur. OCI CLI tidak melakukan retry internal `LaunchInsta
 provider dipetakan ke kode tetap tanpa menyimpan output mentah. Public Self-Service v1.28.0 menyediakan
 dua command global `/setup` dan `/hengs` yang sudah didaftarkan ke Discord production. Satu E2 Micro Always Free berhasil
 dibuat pada 14 Agustus 2026 dan berstatus `RUNNING`. Bootstrap Ubuntu sudah lulus dengan Node 22,
-UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.58.0 kini menjadi
+UFW, Tailscale, user layanan, dan unit systemd. Release immutable v1.60.0 kini menjadi
 production `current`, lulus tes Node22 dan dua heartbeat sehat setelah restart terkontrol.
-v1.57.0 tetap tersedia untuk rollback. News home guild aktif setiap 08:00 WIB setelah persetujuan,
+v1.58.0 tetap tersedia untuk rollback. News home guild aktif setiap 08:00 WIB setelah persetujuan,
 maksimal dua berita teknologi/AI + satu komik. Revisi tanpa kiriman tambahan dan state sudah
 diverifikasi, tetapi kiriman harian pertama belum teramati. Preview campuran terakhir memakai
 fallback cuplikan sumber; kualitas ringkasan Indonesia masih perlu ditinjau.

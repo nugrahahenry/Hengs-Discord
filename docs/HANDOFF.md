@@ -2,7 +2,39 @@
 
 Updated: 2026-10-17
 
-## Hengs Discord v1.60.0 Crown Stage (not deployed)
+## Hengs Discord v1.60.0 cloud acceptance and certificate dogfooding
+
+- Henry approved controlled deployment and a supervised certificate upload in the bot test
+  channel. Exact code HEAD 9e43212d1715111382a80c99b5f3694a2a535f4b is live at immutable release
+  1.60.0-9e43212d1715. Previous 1.58.0-69c196ca5ca9 remains available for rollback.
+- Node22 candidate QA: 654 total, 651 passed, zero failed, three expected checkout-only skips
+  (tracked-content, tracked LF assets and sibling shared-runtime checkout). Local Node24 full
+  suite previously passed 654/654. Tests completed before stopping production Discord.
+- Atomic activation preserved auth/state/config. Two fresh moving CONNECTED/OK heartbeats,
+  active/enabled, one service-owned Node process matching MainPID, zero supervised restarts.
+  Private Canox memory remains on; news tested/active configuration and receipt unchanged.
+  WA v0.46.0 and Canox memory-only v0.178.0 were not restarted or changed. Local bots stay stopped.
+- One explicitly labeled test message was sent by Hengs with the production Crown Stage poster
+  and the original organizer certificate. Owner resolved the event-name discrepancy in favor of
+  the certificate. Roster/date remain owner-supplied, not claimed to be printed on the certificate.
+  No mentions, announcements publication, new channel or general certificate ingestion feature.
+- Readback verified two embed images, the expected poster and 1600x1131 certificate. Certificate
+  download checksum exactly matched the original. Discord represented these inline images in
+  embeds with an empty attachments list: initial verification stopped, then the read-only checker
+  was corrected; no second send occurred. Both images were opened and visually verified in
+  Henry's authenticated Discord browser. Private screenshots/receipt stay outside Git.
+- Deployment/upload staging was removed; fixed-code final audit passed with both bot health
+  probes fresh, single consumers, rollback available, and Canox unchanged. No QR, reboot,
+  auth reset, restore, backup, new cloud resources, or news schedule changes.
+- Coverage limit: the actual bot-send/renderer/certificate display was dogfooded. Native modal
+  creation and structured Edit have offline regression coverage, not a claimed live acceptance.
+- Recommended next: ask Henry to approve a dedicated hall-of-fame channel and final publication
+  destination before creating it or publishing. Certificate integration into reusable Ops draft
+  intake still needs its own scoped implementation; current upload was a one-off operator.
+- Documentation-only checkpoint, no version bump. Subject: docs(deploy): Hengs Discord v1.60.0
+  - record Crown Stage acceptance and certificate dogfooding.
+
+## Hengs Discord v1.60.0 Crown Stage local implementation (subsequently deployed above)
 
 - Approved local implementation replaces the appreciation graphic with the selected art-led
   Crown Stage composition. Bundled stage, trophy, transparent crest derivative, Barlow fonts

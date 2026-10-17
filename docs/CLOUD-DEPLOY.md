@@ -1,13 +1,19 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
-v1.58.0 (accepted 2026-10-16). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+v1.60.0 (accepted 2026-10-17). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
 pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
-permission, atau kebijakan Anti-Raid. v1.58.0 aktif/enabled sebagai satu-satunya consumer
-Discord setelah restart terkontrol; v1.57.0 tetap tersedia sebagai rollback. News terpasang
+permission, atau kebijakan Anti-Raid. v1.60.0 aktif/enabled sebagai satu-satunya consumer
+Discord setelah restart terkontrol; v1.58.0 tetap tersedia sebagai rollback. Kandidat Node22
+lulus 651 tes, nol gagal, dengan tiga tes checkout-only dilewati dari arsip produksi (654 total).
+Dua heartbeat bergerak lulus. Poster Crown Stage dan sertifikat asli terverifikasi di channel
+bot, termasuk checksum sertifikat dan inspeksi visual Discord. Belum ada publikasi apresiasi
+ke announcements atau pembuatan channel Hall of Fame. Upload sertifikat ini memakai operator
+satu-kali; bukan bukti alur unggah sertifikat umum atau form Edit sudah diuji live.
+News terpasang
 dan satu kiriman uji berhasil pada 2026-10-16. Jadwal home guild diaktifkan atas persetujuan Henry
 pada hari yang sama, kemudian direvisi lewat preview privat dan `terapkan berita`: teknologi, AI
 dan komik, 08:00 WIB, santai, maksimal dua berita + satu hiburan/satu artikel per penerbit.
