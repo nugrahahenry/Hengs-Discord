@@ -2,6 +2,48 @@
 
 Updated: 2026-10-17
 
+## Hengs Discord v1.61.0 spaced news and community-friendly appreciation
+
+- Henry requested spaced news, easier help, gallery guidance, bullet rosters and optional tags.
+  Implemented as one local batch on main. Cloud code still v1.60.0; no restart/deploy, bot launch,
+  provider call, news send, new resource, auth change, backup/restore or Canox/WA mutation.
+- News: one item per hourly slot, fixed minimum60min gap, max3/day; mixed edition reserves the
+  final slot for comic. 08:00/09:00/10:00 WIB is the existing schedule's intended behavior after
+  deploy. Expired and after-midnight slots are skipped, not caught up. Durable slot nonce/claims,
+  publisher diversity, fresh revision checks, empty/failure consumption and no ambiguous retries.
+- News schema2 upgrades validated schema1 in RAM and on next atomic write; legacy/manual
+  claims consume a whole day. Existing enabled/tested/settings/history survive. Rollback BEFORE
+  old binary start requires exported downgradeState under stopped service and validated atomic
+  write, conservatively coalescing used days. Never restore stale receipts. Canonical contract:
+  ignored docs/NEWS-DIRECTION.md. Deploy remains a separate explicit gate.
+- Help is shared between /hengs help and natural help, member-first with privilege-specific
+  controls. Hall prompts redirect privately via slash and public mentions are ignored in the
+  exact gallery channel (not discussion threads). Native roster modal still one person per line;
+  stored canonical text remains compatible and display renders escaped bullets.
+- Optional tag picker: home/editor/actor/revision bound, fresh same-guild non-bot validation,
+  <=8 explicit selections, default none. Additive version1 metadata comes only from the picker,
+  not AI/Canox/free-text ingestion. Edits clear selections. Preview never pings; owner publication
+  alone emits explicit allowed user mentions after revalidation. Tagged ambiguous sends remain
+  held for operator review, with no automatic retry/release on restart when outcome is unproven.
+  Manual/scheduled paths share validator. Canonical ignored docs/APPRECIATION-DIRECTION.md.
+- Live scope completed separately: existing Hall post roster changed to five bullets, same
+  poster and original certificate URLs/content verified. One request guide sent and pinned;
+  topic points to bot-commands. Readback verified no user mentions, no everyone, unchanged
+  permissions. Private receipt/operator under ignored .cloud/automation/appreciation-v1600.
+  Do not rerun refine-hall.sh: one-shot marker exists. No retroactive player notifications.
+- Ops destination remains announcements; reusable Hall destination/certificate intake is NOT
+  implemented in this batch. The current Hall post and instruction are supervised operations.
+- Verification: integrated offline suite 664/664, zero skips/failures on Node24.15.0; Node22
+  remains package/cloud runtime and requires candidate acceptance at deploy. Nineteen modified
+  JS files pass syntax; whitespace/content/secret boundaries reviewed. Sandbox temp rename and
+  symlink permission failures were resolved by workspace temp plus an approved offline test
+  run outside sandbox, without ACL changes. Focused final schema regression also run.
+- Checkpoint subject: feat(community): Hengs Discord v1.61.0 - space news and simplify appreciation
+  Commit/push main per standing policy after verification. No tracked GitHub workflow exists;
+  do not infer hosted CI success from local tests. Next: approved controlled Discord deploy,
+  schema-aware rollback preparation, two moving health heartbeats, then real UI dogfooding in
+  bot-commands. Do not run a real news send or member ping merely to test.
+
 ## Hengs Discord v1.60.0 Hall of Fame publication
 
 - Henry approved the proposed dedicated channel and final publication. Created exactly one

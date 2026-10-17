@@ -5,6 +5,32 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.61.0] - 2026-10-17
+
+### Added
+
+- Hengs Discord v1.61.0: member-first help, Hall of Fame guidance toward bot-commands,
+  and optional native member selection for appreciation notifications. Preview never pings;
+  only owner-approved publication may notify up to eight explicitly selected server members.
+- Selection is actor/editor/guild/revision bound, persists separately from free-text drafts,
+  and is cleared by factual edits. Uncertain tagged sends stay held for review, not resent.
+
+### Fixed
+
+- Daily News sends one item per slot with a minimum one-hour gap instead of a three-item burst.
+  Two news plus one entertainment remain available. Durable claims survive restarts and changes;
+  missed windows are skipped. Legacy receipts consume the whole day after schema v2 migration.
+- Appreciation rosters render as individual bullets, preserving canonical legacy draft text.
+- Gallery prompts are redirected privately or ignored for public mentions. Ordinary help does
+  not advertise owner-only controls as member capabilities.
+
+### Operations
+
+- Existing Hall post roster reformatted without changing poster/certificate, mentions or permissions.
+  One guidance post pinned and channel topic points to bot-commands. No production deploy/restart.
+- Deploy gate: news state v2 needs conservative day-coalescing downgrade before rollback to old
+  code; never restore a stale receipt snapshot. Local code checkpoint only, cloud remains v1.60.0.
+
 ## [1.60.0] - 2026-10-17
 
 ### Added

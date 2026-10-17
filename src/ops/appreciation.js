@@ -7,6 +7,13 @@ const LIMITS = Object.freeze({ recipient: 80, achievement: 220, occasion: 100, d
 const LABELS = Object.freeze({ recipient: 'Penerima', achievement: 'Pencapaian', occasion: 'Momen', date: 'Tanggal', players: 'Pemain' });
 const UNSAFE = /[@<>`\r\n\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]|https?:\/\/|discord\.gg/iu;
 
+function formatAppreciation(data) {
+  const { escapeMarkdown } = require('discord.js');
+  return Object.keys(LABELS).filter(key => data[key]).map(key => key === 'players'
+    ? `Pemain:\n${data.players.split('; ').map(name => `• ${escapeMarkdown(name)}`).join('\n')}`
+    : `${LABELS[key]}: ${escapeMarkdown(data[key])}`).join('\n') + `\n\n${CLOSING}`;
+}
+
 function validateAppreciation(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)
     || Object.keys(input).some(key => !Object.hasOwn(LIMITS, key))) {
@@ -89,4 +96,4 @@ function parseAppreciationPrompt(prompt) {
   }
 }
 
-module.exports = { buildAppreciationDraft, isAppreciationDraft, parseAppreciationPrompt, readAppreciationDraft, validateAppreciation };
+module.exports = { formatAppreciation, buildAppreciationDraft, isAppreciationDraft, parseAppreciationPrompt, readAppreciationDraft, validateAppreciation };

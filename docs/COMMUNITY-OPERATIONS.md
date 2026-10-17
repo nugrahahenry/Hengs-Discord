@@ -1,6 +1,6 @@
 # Hengs Community Operations Dashboard
 
-## Kartu apresiasi v1.60.0
+## Kartu apresiasi v1.61.0 (lokal, belum deploy)
 
 Tulis `bikin kartu apresiasi` lewat mention Hengs atau `/hengs ask` di server utama. Form
 khusus peminta tersedia untuk owner/editor Ops, bukan Administrator tanpa role editor.
@@ -16,13 +16,23 @@ menjadi jadwal event. Tidak perlu provider/model untuk membangun template atau g
 Draft menggunakan announcement Ops biasa, format state tidak berubah. Review ada di
 `bot-settings`; owner memutuskan Publish Now, jadwal atau Discard melalui kontrol existing.
 Tidak membuat channel, role, poin, leaderboard, riwayat penghargaan baru, atau pengumuman
-otomatis. Tidak melakukan lookup member maupun mengambil gambar dari URL pengguna.
+otomatis. Lookup member hanya untuk pilihan tag eksplisit; tidak mengambil gambar dari URL pengguna.
 
 Gambar dan teks berasal dari template yang sama. Teks lengkap tetap tersedia dan Markdown
-ditampilkan literal, mention dinonaktifkan. Revisi AI dimatikan untuk melindungi fakta.
+ditampilkan literal, roster berupa poin per orang. Preview selalu tanpa notifikasi. Revisi AI dimatikan untuk melindungi fakta.
 Edit membuka form lima isian yang terisi dari draft. Submit lama, beda peminta/server,
 izin editor yang dicabut, dan draft yang sudah diproses ditolak. Poster baru harus direview
 lagi sebelum Publish. Draft legacy yang sudah menjadi teks bebas tetap memakai editor teks.
+Tombol **Tag anggota (opsional)** membuka pilihan akun Discord, maksimal delapan anggota non-bot
+di server yang sama. **Tanpa tag** menghapus pilihan; nama dan nickname di poster tidak berubah.
+Tidak perlu mengetik mention di form pemain. Edit fakta menghapus pilihan tag, jadi pilih ulang.
+Owner tetap satu-satunya yang boleh Publish/Jadwalkan. Akun diperiksa lagi saat publikasi;
+preview tidak menandai siapa pun. Bila pengiriman bertag tidak pasti, klaim ditahan untuk review
+operator tanpa pengiriman ulang otomatis, termasuk setelah restart.
+
+Hall of Fame khusus galeri. Ajukan kartu lewat `bot-commands`; owner/editor mereview di
+`bot-settings`. Routing Ops ke announcements belum berubah; publikasi Hall/sertifikat saat ini
+tetap disupervisi pengelola, bukan klaim fitur intake sertifikat atau tujuan otomatis baru.
 Bila render gagal, teks tetap bisa direview/dikirim. Gambar hanya di RAM dan Discord,
 bukan file state baru. Logo, panggung, trofi, font dan ikon tetap lokal/bundled.
 

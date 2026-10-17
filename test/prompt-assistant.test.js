@@ -207,8 +207,9 @@ test('prompt help stays provider-free and does not promise mutations', () => {
   const result = resolvePrompt({ prompt: 'contoh prompt apa yang bisa dipakai', scopeKind: 'public' });
   assert.equal(result.handled, true);
   assert.equal(result.kind, 'help');
-  assert.match(result.content, /rancang struktur server/i);
-  assert.match(buildPromptHelp(), /menunggu review dan konfirmasi owner/i);
+  assert.match(result.content, /Mention Hengs/i);
+  assert.doesNotMatch(buildPromptHelp(), /fokus belajar|rancang struktur server/i);
+  assert.match(buildPromptHelp({ home: true, manager: true }), /preview opsi lalu konfirmasi/i);
   assert.doesNotMatch(result.content, /[\u2013\u2014]/);
 });
 

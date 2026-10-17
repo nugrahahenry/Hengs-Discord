@@ -1,7 +1,7 @@
 'use strict';
 
 const { SOURCES, articleUrl } = require('./feeds');
-const { DAY } = require('./store');
+const { DAY, wibClock } = require('./store');
 
 function compositionLimits(settings) {
   const mixed = settings.count >= 2 && settings.topics?.includes('memes')
@@ -11,7 +11,7 @@ function compositionLimits(settings) {
 
 function selectArticles(settings, items, row, now) {
   const seen = new Set((row?.seen || []).filter(item => now - item.at < 30 * DAY).map(item => item.hash));
-  const publishers = new Set();
+  const publishers = new Set((row?.receipts || []).filter(x => x.day === wibClock(now).day).map(x => x.publisher).filter(Boolean));
   const picks = [];
   const limits = compositionLimits(settings);
   const counts = { news: 0, entertainment: 0 };

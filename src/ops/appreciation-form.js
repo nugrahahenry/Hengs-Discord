@@ -4,7 +4,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBui
 const { createHash } = require('node:crypto');
 
 function appreciationRevision(draft) {
-  return createHash('sha256').update(JSON.stringify([draft.title, draft.body, draft.lastRevisedAt || ''])).digest('hex').slice(0, 16);
+  return createHash('sha256').update(JSON.stringify([draft.title, draft.body, draft.lastRevisedAt || '', draft.appreciationTags || null])).digest('hex').slice(0, 16);
 }
 
 function appreciationFormRow(requesterId) {

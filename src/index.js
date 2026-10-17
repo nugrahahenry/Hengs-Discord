@@ -438,6 +438,8 @@ client.on(Events.MessageCreate, async (msg) => {
     }
   }
   if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
+  // Keep the gallery quiet, including administrator mentions. Its pinned guide points to bot-commands.
+  if (messageScope.kind === 'home' && require('./community-help').isHallGallery(msg.channel)) return;
   if (!msg.mentions.has(client.user)) return;
   if (messageScope.kind === 'public' && !isPublicChannelAllowed(messageScope.config, msg.channelId)) {
     await msg.reply({
@@ -769,10 +771,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (
-    (interaction.isButton() || interaction.isModalSubmit())
+    (interaction.isButton() || interaction.isModalSubmit() || interaction.isUserSelectMenu())
     && interaction.customId.startsWith('ops:')
   ) {
     try {
+      if (await opsHub.handleTagSelection(interaction)) return;
       if (interaction.isButton()) await opsHub.handleButton(interaction, { agent });
       else await opsHub.handleModal(interaction);
     } catch (err) {

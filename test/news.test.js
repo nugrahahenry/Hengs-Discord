@@ -20,6 +20,8 @@ const OTHER = '923456789012345678';
 const USER = '323456789012345678';
 const CHANNEL = '423456789012345678';
 const BASE = Date.parse('2026-10-13T01:00:00Z');
+const { GAP, dueSlot, slotSettings, scheduleTimes } = require('../src/news/cadence');
+const { upgradeState, downgradeState } = require('../src/news/store');
 const settings = () => ({ ...structuredClone(DEFAULTS), channelId: CHANNEL });
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-news-'));
@@ -65,6 +67,76 @@ async function testedRow(r) {
   assert.match((await r.handle('aktifkan berita')).content, /Jadwal berita aktif/);
 }
 
+test('spaced scheduler sends two news and one comic as three durable single-item slots', async t => {
+  const r = rig(t, { readFeeds: async () => ({ items: [SOURCES[0], SOURCES[1], SOURCES[3]]
+    .flatMap(source => parseFeed(rss(source, 3, BASE), source, BASE)), failures: 0 }) });
+  let row = r.store.save(GUILD, 0, { ...settings(), topics: ['tech', 'ai', 'memes'] });
+  // Existing destination proof from yesterday, not an extra live test today.
+  row = r.store.claim(GUILD, row.revision, '2026-10-12', [], 'claimed');
+  row = r.store.finish(GUILD, row.revision, '2026-10-12', 'sent');
+  r.advance(GAP); // First slot missed: test late start and no catch-up separately below.
+  r.advance(DAY - GAP);
+  r.store.enable(GUILD, row.revision);
+  r.service.start(r.client);
+  await Promise.all([r.service.tick(), r.service.tick()]);
+  assert.equal(r.sent.length, 1);
+  r.advance(GAP - 1); await r.service.tick(); assert.equal(r.sent.length, 1);
+  r.advance(1); await r.service.tick(); assert.equal(r.sent.length, 2);
+  r.service.stop();
+  const restarted = createNewsService({ store: createNewsStore({ filePath: r.filePath, now: r.now }), now: r.now,
+    readFeeds: async () => ({ items: parseFeed(rss(SOURCES[3], 1, BASE), SOURCES[3], BASE), failures: 0 }), guildAccess: r.guildAccess });
+  t.after(() => restarted.stop()); restarted.start(r.client);
+  await restarted.tick(); assert.equal(r.sent.length, 2);
+  r.advance(GAP); await restarted.tick(); assert.equal(r.sent.length, 3);
+  assert.equal(new Set(r.sent.map(x => x.nonce)).size, 3);
+  for (const payload of r.sent) {
+    assert.equal(payload.components.filter(x => x.type === ComponentType.Container).length, 1);
+    assert.deepEqual(payload.allowedMentions, { parse: [] });
+  }
+  assert.match(JSON.stringify(r.sent[2]), /Jeda komik/);
+  assert.equal(new Set(r.store.get(GUILD).receipts.filter(x => x.slot >= 0).map(x => x.publisher)).size, 3);
+  r.advance(GAP); await restarted.tick(); assert.equal(r.sent.length, 3);
+});
+
+test('cadence skips expired slots, honors actual finish spacing and never crosses midnight quota', t => {
+  const f = fixture(t);
+  let row = f.store.save(GUILD, 0, settings());
+  assert.deepEqual(dueSlot(row, BASE + GAP * 2), { day: wibClock(BASE).day, slot: 2 });
+  row = f.store.claim(GUILD, row.revision, wibClock(BASE).day, ['a'.repeat(64)], 'claimed', 0, 'mozilla');
+  f.advance(30_000); row = f.store.finish(GUILD, row.revision, wibClock(BASE).day, 'sent', 0);
+  assert.equal(dueSlot(row, BASE + GAP), null);
+  assert.equal(dueSlot(row, BASE + GAP + 30_000).slot, 1);
+  assert.throws(() => f.store.claim(GUILD, row.revision, wibClock(BASE).day, [], 'empty', 1), /GAP_REQUIRED/);
+  assert.deepEqual(scheduleTimes({ ...settings(), time: '23:30' }), ['23:30']);
+  assert.equal(dueSlot({ ...row, settings: { ...settings(), time: '23:30' } }, Date.parse('2026-10-14T17:30:00Z')), null);
+  assert.deepEqual(slotSettings({ ...settings(), topics: ['ai', 'memes'] }, 2).topics, ['memes']);
+  assert.deepEqual(slotSettings({ ...settings(), topics: ['ai', 'memes'] }, 0).topics, ['ai']);
+});
+
+test('legacy news migration preserves evidence and rollback conservatively consumes all used days', t => {
+  const f = fixture(t);
+  let row = f.store.save(GUILD, 0, settings());
+  row = f.store.claim(GUILD, row.revision, wibClock(BASE).day, ['b'.repeat(64)], 'failed', 0, 'mozilla');
+  f.advance(GAP); row = f.store.claim(GUILD, row.revision, wibClock(BASE).day, ['c'.repeat(64)], 'sent', 1, 'nvidia');
+  const state = JSON.parse(fs.readFileSync(f.filePath, 'utf8'));
+  const malformed = structuredClone(state);
+  malformed.guilds[0].receipts[0].publisher = false;
+  assert.throws(() => validateState(malformed), /STATE_INVALID/);
+  const old = downgradeState(state);
+  assert.equal(old.schemaVersion, 1); assert.equal(old.guilds[0].receipts.length, 1);
+  assert.deepEqual(old.guilds[0].seen, state.guilds[0].seen);
+  const migrated = upgradeState(old);
+  assert.equal(migrated.guilds[0].receipts[0].slot, -1);
+  assert.equal(dueSlot(migrated.guilds[0], BASE + GAP * 2), null);
+  fs.writeFileSync(f.filePath, JSON.stringify(old));
+  const bytes = fs.readFileSync(f.filePath);
+  assert.equal(f.store.get(GUILD).receipts[0].slot, -1);
+  assert.deepEqual(fs.readFileSync(f.filePath), bytes, 'read-only upgrade must not write');
+  f.store.pause(GUILD);
+  assert.equal(JSON.parse(fs.readFileSync(f.filePath)).schemaVersion, 2);
+  assert.deepEqual(f.store.get(GUILD).seen, old.guilds[0].seen);
+});
+
 test('news fresh install, schema checks, atomic writes, stale revision and tenant boundaries', t => {
   const f = fixture(t);
   assert.deepEqual(f.store.list(), []); assert.equal(fs.existsSync(f.filePath), false);
@@ -77,7 +149,7 @@ test('news fresh install, schema checks, atomic writes, stale revision and tenan
   assert.equal(fs.readdirSync(f.root).length, 1);
   const reopened = createNewsStore({ filePath: f.filePath, now: f.now });
   assert.deepEqual(reopened.get(GUILD), row);
-  assert.throws(() => validateState({ schemaVersion: 2, guilds: [] }), /STATE_INVALID/);
+  assert.throws(() => validateState({ schemaVersion: 3, guilds: [] }), /STATE_INVALID/);
   fs.writeFileSync(f.filePath, '{corrupt');
   assert.throws(() => f.store.list(), /STATE_INVALID/);
   assert.throws(() => f.store.save(OTHER, 0, settings()), /STATE_INVALID/);
@@ -284,9 +356,9 @@ test('news tick honors pause during source read and coalesces concurrent ticks',
 
 test('news scheduled empty/failure consumes a slot and misses older windows quietly', async t => {
   const r = rig(t); await testedRow(r);
-  r.advance(DAY + 2 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
+  r.advance(DAY + 3 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
   assert.equal(r.sent.length, 1);
-  r.advance(DAY - 2 * 60 * 60_000);
+  r.advance(DAY - 3 * 60 * 60_000);
   const empty = createNewsService({ store: r.store, now: r.now, guildAccess: r.guildAccess,
     readFeeds: async () => ({ items: [], failures: 1 }) });
   t.after(() => empty.stop()); empty.start(r.client); await empty.tick(); await empty.tick();

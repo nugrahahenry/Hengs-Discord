@@ -2,6 +2,7 @@
 
 const { validSettings } = require('./store');
 const { compositionLimits } = require('./selection');
+const { scheduleTimes } = require('./cadence');
 const LABELS = Object.freeze({ tech: 'teknologi', ai: 'AI', gaming: 'gaming', memes: 'hiburan/komik' });
 const TOPIC = /\b(teknologi|tech|ai|gaming|game|memes?|hiburan|komik)\b/gi;
 const topicId = word => /^(?:tech|teknologi)$/i.test(word) ? 'tech'
@@ -10,7 +11,7 @@ const DEFAULTS = Object.freeze({ channelId: null, topics: ['tech', 'ai'], time: 
 class NewsPromptError extends Error {}
 const HELP = [
   '🗞️ Hengs News: bacaan pilihan harian, lengkap dengan sumber dan tanggal.',
-  'Pilihan awal: teknologi + AI, jam 08:00 WIB, maksimal 3 item. Gaming dan hiburan/komik juga tersedia.',
+  'Pilihan awal: teknologi + AI, pukul 08:00, 09:00, 10:00 WIB. Satu item tiap kiriman, jeda minimal satu jam.',
   'Mulai: `atur berita teknologi AI jam 08:00 ke #hengs-news` (channel harus sudah ada).',
   'Lalu `preview berita`. Revisi bisa `tambah gaming`, `lebih santai`, atau `ubah jam 09:00`.',
   '`simpan berita` menyimpan dalam keadaan jeda. `kirim berita sekali` memakai preview terbaru.',
@@ -107,7 +108,8 @@ function editSettings(text, previous = DEFAULTS, channels = []) {
 function describe(settings, status = 'draft') {
   const mix = compositionLimits(settings);
   return [`🗞️ Hengs News (${status})`, `Topik: ${settings.topics.map(x => LABELS[x]).join(', ')}`,
-    `Setiap hari ${settings.time} WIB, maksimal ${settings.count} item. Gaya: ${settings.tone === 'casual' ? 'santai' : 'netral'}.`,
+    `Setiap hari ${scheduleTimes(settings).join(', ')} WIB, maksimal ${settings.count} item. Satu item per kiriman, jeda minimal satu jam. Gaya: ${settings.tone === 'casual' ? 'santai' : 'netral'}.`,
+    'Slot yang terlewat atau melewati tengah malam tidak dirapel.',
     ...(mix ? [`Komposisi: maksimal ${mix.news} berita + ${mix.entertainment} hiburan. Slot kosong tidak diisi ulang dengan jenis lain.`] : []),
     settings.channelId ? `Tujuan: <#${settings.channelId}>.` : 'Tujuan: belum dipilih. Mention channel teks yang sudah ada.',
   ].join('\n');

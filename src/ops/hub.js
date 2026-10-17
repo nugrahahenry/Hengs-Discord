@@ -8,12 +8,14 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  UserSelectMenuBuilder,
   escapeMarkdown,
 } = require('discord.js');
 const store = require('./store');
 const { formatWib, parseScheduleInput } = require('./time');
 const { isOwner, isEditor } = require('./permissions');
-const { buildAppreciationDraft, isAppreciationDraft, readAppreciationDraft } = require('./appreciation');
+const { buildAppreciationDraft, isAppreciationDraft, readAppreciationDraft, formatAppreciation } = require('./appreciation');
+const { selectedTags, validateMembers } = require('./appreciation-tags');
 const { appreciationModal, appreciationRevision } = require('./appreciation-form');
 const { renderAppreciationCard } = require('../utils/appreciation-card');
 
@@ -145,7 +147,11 @@ async function draftPayload(draft, { publicView = false, edit = false, renderCar
   };
   const appreciation = readAppreciationDraft(draft);
   if (appreciation) {
-    embed.setDescription(escapeMarkdown(draft.body));
+    embed.setDescription(formatAppreciation(appreciation));
+    const tags = selectedTags(draft);
+    if (!publicView) embed.addFields({ name: 'Tag anggota (opsional)', value: tags.length
+      ? `${tags.map(id => `<@${id}>`).join(' ')}\nDiberi tahu saat owner Publish. Preview ini tidak mengirim notifikasi.`
+      : 'Tanpa tag. Nama pemain tetap tampil. Pilih Tag anggota kalau ingin memberi notifikasi saat Publish.' });
     embed.setTitle(`${publicView ? '🏆' : '📋 Draft:'} ${escapeMarkdown(draft.title.replace(/^🏆\s*/, ''))}`.slice(0, 256));
     try {
       const image = await renderCard(appreciation);
@@ -156,6 +162,20 @@ async function draftPayload(draft, { publicView = false, edit = false, renderCar
       // A failed graphic must never discard a reviewed announcement or leak local/provider details.
       logger.warn('[ops] APPRECIATION_CARD_UNAVAILABLE');
     }
+  }
+  return payload;
+}
+
+async function publicationPayload(guild, draft) {
+  const payload = await draftPayload(draft, { publicView: true });
+  const ids = readAppreciationDraft(draft) ? selectedTags(draft) : [];
+  if (ids.length) {
+    if (!process.env.DISCORD_GUILD_ID || guild.id !== process.env.DISCORD_GUILD_ID) throw new Error('APPRECIATION_GUILD_INVALID');
+    await validateMembers(guild, ids);
+    payload.content = `Apresiasi buat ${ids.map(id => `<@${id}>`).join(' ')}! 🏆`;
+    payload.allowedMentions = { parse: [], users: ids, repliedUser: false };
+    payload.nonce = BigInt(`0x${require('node:crypto').createHash('sha256').update(`appreciation:${draft.id}`).digest('hex').slice(0, 16)}`).toString();
+    payload.enforceNonce = true;
   }
   return payload;
 }
@@ -193,6 +213,9 @@ function approvalRow(draft) {
           .setLabel('Discard')
           .setStyle(ButtonStyle.Danger),
       ),
+      ...(readAppreciationDraft(draft) ? [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`ops:tags:${draft.id}`).setLabel('Tag anggota (opsional)').setStyle(ButtonStyle.Secondary),
+      )] : []),
     ];
   }
   if (draft.status === 'scheduled') {
@@ -285,8 +308,11 @@ async function handlePublish(interaction, draftId) {
 
   let publicMessage = null;
   let finalized = null;
+  let mentionSendStarted = false;
   try {
-    publicMessage = await channel.send(await draftPayload(claimed, { publicView: true }));
+    const payload = await publicationPayload(interaction.guild, claimed);
+    mentionSendStarted = Boolean(payload.allowedMentions.users?.length);
+    publicMessage = await channel.send(payload);
     finalized = store.finalizeDraft(claimed.id, 'published', interaction.user.id, {
       channelId: channel.id,
       messageId: publicMessage.id,
@@ -296,7 +322,10 @@ async function handlePublish(interaction, draftId) {
     await interaction.followUp({ content: `✅ **${finalized.title}** sudah dikirim ke ${channel}.`, ephemeral: true });
   } catch (error) {
     console.error('❌ Ops publish error:', error.message);
-    if (!publicMessage) {
+    if (!publicMessage && mentionSendStarted) {
+      console.warn('[ops] APPRECIATION_SEND_UNCERTAIN');
+      await interaction.followUp({ content: 'Hasil kiriman bertag belum pasti. Jangan Publish ulang; pengelola perlu memeriksa pesan tujuan agar anggota tidak terkena notifikasi ganda.', ephemeral: true });
+    } else if (!publicMessage) {
       const released = store.releasePublish(claimed.id);
       if (released) {
         await interaction.message.edit(await draftPayload(released, { edit: true })).catch(() => {});
@@ -456,6 +485,7 @@ async function handleAiRevision(interaction, draftId, kind, agent) {
 
 async function handleButton(interaction, { agent } = {}) {
   if (!interaction.isButton?.() || !interaction.customId.startsWith('ops:')) return false;
+  if (interaction.customId.startsWith('ops:tags:')) return handleTagPicker(interaction);
 
   if (interaction.customId.startsWith('ops:appreciationnew:')) {
     if (!canUseAppreciationForm(interaction, 'appreciationnew')) {
@@ -509,6 +539,63 @@ async function handleButton(interaction, { agent } = {}) {
   else if (action === 'cancelschedule') await handleCancelSchedule(interaction, draftId);
   else if (action === 'publish' || action === 'publishnow') await handlePublish(interaction, draftId);
   else await handleDiscard(interaction, draftId);
+  return true;
+}
+
+async function tagEditor(interaction) {
+  if (!process.env.DISCORD_GUILD_ID || interaction.guildId !== process.env.DISCORD_GUILD_ID
+    || interaction.guild?.id !== interaction.guildId) return false;
+  if (isOwner(interaction.user?.id)) return true;
+  try {
+    const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true });
+    return member?.guild?.id === interaction.guildId && isEditor({ user: interaction.user, member });
+  } catch { return false; }
+}
+
+async function handleTagPicker(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  const match = interaction.customId.match(/^ops:tags:([a-f0-9]{12}|[a-f0-9]{16})$/);
+  const allowed = await tagEditor(interaction);
+  const draft = match && store.getDraft(match[1]);
+  if (!allowed || !draft || draft.status !== 'pending' || !readAppreciationDraft(draft)) {
+    await interaction.editReply({ content: 'Pilihan tag hanya untuk editor di draft pending server utama.', allowedMentions: { parse: [] } });
+    return true;
+  }
+  const revision = appreciationRevision(draft);
+  const suffix = `${interaction.user.id}:${draft.id}:${revision}`;
+  await interaction.editReply({
+    content: 'Mau anggota diberi tahu saat kartu dipublikasikan? Pilih akun Discord mereka di bawah, maksimal 8. Nama dan nickname di poster tidak berubah. Kalau tidak perlu, pilih Tanpa tag. Setelah mengedit isi kartu, pilih ulang tag.',
+    allowedMentions: { parse: [] },
+    components: [new ActionRowBuilder().addComponents(new UserSelectMenuBuilder()
+      .setCustomId(`ops:tagselect:${suffix}`).setPlaceholder('Cari dan pilih anggota tim').setMinValues(1).setMaxValues(8)),
+    new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`ops:tagclear:${suffix}`)
+      .setLabel('Tanpa tag').setStyle(ButtonStyle.Secondary))],
+  });
+  return true;
+}
+
+async function handleTagSelection(interaction) {
+  const match = interaction.customId?.match(/^ops:(tagselect|tagclear):(\d{17,20}):([a-f0-9]{12}|[a-f0-9]{16}):([a-f0-9]{16})$/);
+  if (!match || (match[1] === 'tagselect' ? !interaction.isUserSelectMenu?.() : !interaction.isButton?.())) return false;
+  if (match[2] !== interaction.user?.id) {
+    await interaction.reply({ content: 'Pilihan tag ini milik editor yang membukanya.', ephemeral: true, allowedMentions: { parse: [] } });
+    return true;
+  }
+  await interaction.deferReply({ ephemeral: true });
+  try {
+    if (!await tagEditor(interaction)) throw new Error('APPRECIATION_EDITOR_REQUIRED');
+    const ids = match[1] === 'tagclear' ? [] : interaction.values;
+    await validateMembers(interaction.guild, ids);
+    if (!await tagEditor(interaction)) throw new Error('APPRECIATION_EDITOR_REQUIRED');
+    const updated = store.setAppreciationTags(match[3], ids, interaction.user.id, match[4]);
+    if (!updated) throw new Error('APPRECIATION_SELECTION_STALE');
+    let refreshed = false;
+    try { refreshed = await editStoredPanel(interaction.guild, updated); }
+    catch { console.warn('[ops] APPRECIATION_PANEL_UPDATE_FAILED'); }
+    await interaction.editReply({ content: `${ids.length ? `${ids.length} anggota dipilih; notifikasi baru dikirim saat owner Publish.` : 'Tanpa tag disimpan; tidak ada notifikasi anggota.'} ${refreshed ? 'Preview diperbarui.' : 'Pilihan tersimpan, cek /ops status bila panel belum diperbarui.'}`, allowedMentions: { parse: [] } });
+  } catch {
+    await interaction.editReply({ content: 'Tag belum disimpan. Draft/izin bisa sudah berubah atau akun bukan anggota server. Buka Tag anggota dari draft terbaru; tidak ada notifikasi yang dikirim.', allowedMentions: { parse: [] } });
+  }
   return true;
 }
 
@@ -632,7 +719,7 @@ async function handleAppreciationEdit(interaction) {
   try { panelUpdated = await editStoredPanel(interaction.guild, updated); }
   catch { console.warn('[ops] APPRECIATION_PANEL_UPDATE_FAILED'); }
   await interaction.editReply({ content: panelUpdated
-    ? 'Data dan poster apresiasi sudah diperbarui. Cek preview dulu sebelum Publish; belum diumumkan.'
+    ? 'Data dan poster apresiasi sudah diperbarui. Cek preview dan pilih ulang tag anggota bila perlu sebelum Publish; belum diumumkan.'
     : 'Revisi tersimpan, tetapi preview belum diperbarui. Cek `/ops status` sebelum Publish.', allowedMentions: { parse: [] } });
   return true;
 }
@@ -776,6 +863,10 @@ async function recoverPublishingDrafts(client) {
       message.author?.id === client.user?.id
         && message.embeds?.some(embed => embed.footer?.text?.includes(marker)),
     );
+    if (!publishedMessage && selectedTags(draft).length) {
+      console.warn('[ops] APPRECIATION_RECOVERY_REVIEW_REQUIRED');
+      continue;
+    }
     const recovered = publishedMessage
       ? store.finalizeDraft(draft.id, 'published', draft.actionBy || process.env.OWNER_ID, {
           channelId: channel.id,
@@ -835,8 +926,11 @@ async function processDueSchedules(client) {
 
       let publicMessage = null;
       let finalized = null;
+      let mentionSendStarted = false;
       try {
-        publicMessage = await channel.send(await draftPayload(claimed, { publicView: true }));
+        const payload = await publicationPayload(guild, claimed);
+        mentionSendStarted = Boolean(payload.allowedMentions.users?.length);
+        publicMessage = await channel.send(payload);
         finalized = store.finalizeDraft(claimed.id, 'published', 'scheduler', {
           channelId: channel.id,
           messageId: publicMessage.id,
@@ -846,7 +940,9 @@ async function processDueSchedules(client) {
         console.log(`  ⏰ Scheduled Ops draft ${claimed.id} berhasil dipublikasikan.`);
       } catch (error) {
         console.error(`⚠ Ops scheduled publish ${claimed.id}:`, error.message);
-        if (!publicMessage) {
+        if (!publicMessage && mentionSendStarted) {
+          console.warn('[ops] APPRECIATION_SEND_UNCERTAIN');
+        } else if (!publicMessage) {
           const failed = store.failScheduledPublish(claimed.id, error.code || 'SEND_FAILED');
           if (failed) await editStoredPanel(guild, failed).catch(() => {});
         } else if (!finalized) {
@@ -909,6 +1005,8 @@ function startCanoxInbox(client) {
 
 module.exports = {
   draftPayload,
+  publicationPayload,
+  handleTagSelection,
   createDraftPanel,
   findSettingsChannel,
   findAnnouncementsChannel,

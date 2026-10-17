@@ -331,6 +331,7 @@ function updatePendingDraft(id, input, userId, kind = 'edit') {
   pushRevision(draft, kind, userId);
   draft.title = normalized.title;
   draft.body = normalized.body;
+  delete draft.appreciationTags;
   draft.lastRevisedAt = new Date().toISOString();
   draft.lastRevisedBy = String(userId).slice(0, 100);
   draft.lastRevisionKind = String(kind).slice(0, 30);
@@ -365,6 +366,7 @@ function applyRevision(id, input, userId) {
   pushRevision(draft, kind, userId);
   draft.title = normalized.title;
   draft.body = normalized.body;
+  delete draft.appreciationTags;
   draft.status = 'pending';
   draft.lastRevisedAt = new Date().toISOString();
   draft.lastRevisedBy = String(userId).slice(0, 100);
@@ -449,6 +451,21 @@ function finalizeDraft(id, status, userId, publication = null) {
   return draft;
 }
 
+function setAppreciationTags(id, memberIds, userId, expectedRevision) {
+  const { validIds, contentHash } = require('./appreciation-tags');
+  const { appreciationRevision } = require('./appreciation-form');
+  const { readAppreciationDraft } = require('./appreciation');
+  if (!validIds(memberIds) || !/^\d{17,20}$/.test(userId || '')) throw new Error('APPRECIATION_TAGS_INVALID');
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  if (!draft || draft.status !== 'pending' || !readAppreciationDraft(draft)
+    || appreciationRevision(draft) !== expectedRevision) return null;
+  draft.appreciationTags = { version: 1, memberIds: [...memberIds], selectedBy: userId, contentHash: contentHash(draft) };
+  appendAudit(state, id, 'appreciation_tags_selected', userId, { count: memberIds.length });
+  writeState(state);
+  return draft;
+}
+
 function getStatus() {
   const state = readState();
   return {
@@ -481,6 +498,7 @@ module.exports = {
   claimScheduledPublish,
   failScheduledPublish,
   updatePendingDraft,
+  setAppreciationTags,
   claimRevision,
   applyRevision,
   releaseRevision,

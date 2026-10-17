@@ -600,23 +600,8 @@ function buildCommunityQuestions() {
   ].join('\n');
 }
 
-function buildPromptHelp() {
-  return [
-    '💬 **Prompt yang bisa kamu pakai ke Hengs**',
-    '',
-    '• "Rancang struktur server gaming dengan area mabar dan creator."',
-    '• Tambahkan "tema aurora", "tema midnight", atau "tema minimal" untuk memilih gaya kartu preview.',
-    '• "Rapikan lobi masuk dan tunjukkan channel yang masih kurang."',
-    '• "Buatkan rancangan area creator untuk live stream dan showcase."',
-    '• "Buat pengumuman maintenance server malam ini" untuk membuat draft privat di Ops Hub.',
-    '• "Buat event mabar jam 20:00" untuk membuat draft reminder di Event Hub.',
-    '• "Buat tugas proyek landing page: rapikan hero dan cek mobile" untuk membuat rencana tugas privat di Ops Hub.',
-    '• "Catat daftar tugas" atau "ingatkan aku besok jam 7 pagi cek tugas" untuk memori pribadi owner.',
-    '• "Fokus belajar topik AI" atau "selesai fokus" untuk kontrol mode pemilik.',
-    '• Pertanyaan biasa tetap bisa langsung ditulis tanpa format khusus.',
-    '',
-    'Untuk sekarang Hengs hanya membuat rancangan. Perubahan server tetap menunggu review dan konfirmasi owner.',
-  ].join('\n');
+function buildPromptHelp(options) {
+  return require('./community-help').buildCommunityHelp(options);
 }
 
 function modeLabel(mode) {
@@ -656,7 +641,8 @@ function applyFocusAction({ route, state } = {}) {
 function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, personalPending = false, communityDraft = null } = {}) {
   if (isNewsIntent(prompt)) return { handled: true, kind: 'news_private', content: 'Hengs News punya preview dan jadwal harian. Pengelola server dapat mengaturnya lewat `/hengs ask`, misalnya `atur berita teknologi AI ke #hengs-news`. Belum ada berita yang dikirim dari pesan ini.' };
   const result = classifyPrompt(prompt);
-  if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp() };
+  if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp({ home: scopeKind === 'home',
+    manager: isGuildManager({ actor, guild }), editor: isEditor({ user: actor?.user || actor?.author, member: actor?.member }), guild }) };
   if (result.kind === 'home_welcome_action') {
     if (scopeKind !== 'home' || !privateReply) {
       return {
@@ -696,7 +682,9 @@ function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, 
       return {
         handled: true,
         kind: 'permission',
-        content: 'Draft pengumuman dan event hanya bisa dibuat owner atau editor Ops Hub. Pertanyaan biasa tetap bisa kamu ajukan ke Hengs.',
+        content: appreciation
+          ? `Boleh ajukan apresiasi di ${require('./community-help').botCommands(guild)}. Tulis tim/pemain, pencapaian, acara, tanggal, dan roster satu orang per baris. Minta owner atau editor menyiapkan kartu dan pilihan tag; Hall of Fame khusus galeri.`
+          : 'Draft pengumuman dan event hanya bisa dibuat owner atau editor Ops Hub. Pertanyaan biasa tetap bisa kamu ajukan ke Hengs.',
       };
     }
     if (operation.kind === 'operation_questions') {

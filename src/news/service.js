@@ -3,7 +3,8 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const crypto = require('node:crypto');
 const { createNewsStore, wibClock } = require('./store');
-const { createFeedReader } = require('./feeds');
+const { createFeedReader, SOURCES } = require('./feeds');
+const { dueSlot, slotSettings } = require('./cadence');
 const { digestPayload } = require('./presentation');
 const { selectArticles } = require('./selection');
 const { DEFAULTS, HELP, NewsPromptError, parsePrompt, editSettings, describe, validSettings } = require('./prompts');
@@ -49,24 +50,26 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       throw new Error('NEWS_MANAGER_REQUIRED');
     }
   }
-  async function deliver(guild, row, items, expectedDay = wibClock(now()).day, assertLease = () => {}) {
+  async function deliver(guild, row, items, expectedDay = wibClock(now()).day, assertLease = () => {}, slot = -1) {
     const { day } = wibClock(now());
     const channel = await target(guild, row.settings.channelId);
     assertLease();
     assertRevision(guild.id, row.revision);
     if (stopped || expectedDay !== wibClock(now()).day) throw new Error('NEWS_STOPPED');
-    const claimed = store.claim(guild.id, row.revision, day, items.map(item => item.hash));
+    if (slot >= 0 && dueSlot(row, now())?.slot !== slot) throw new Error('NEWS_SLOT_EXPIRED');
+    const publisher = SOURCES.find(x => x.name === items[0]?.source && x.topic === items[0]?.topic)?.id || null;
+    const claimed = store.claim(guild.id, row.revision, day, items.map(item => item.hash), 'claimed', slot, publisher);
     delivering.add(guild.id);
     // Claim is durable before the external write. No automatic resend after an ambiguous outcome.
     try {
       try {
-        const nonce = BigInt(`0x${crypto.createHash('sha256').update(`hengs-news:${guild.id}:${day}`).digest('hex').slice(0, 16)}`).toString();
-        await channel.send({ ...digestPayload(row.settings, items, now()), nonce, enforceNonce: true });
+        const nonce = BigInt(`0x${crypto.createHash('sha256').update(`hengs-news:${guild.id}:${day}:${slot}`).digest('hex').slice(0, 16)}`).toString();
+        await channel.send({ ...digestPayload({ ...row.settings, count: 1 }, items.slice(0, 1), now()), nonce, enforceNonce: true });
       } catch {
-        store.finish(guild.id, claimed.revision, day, 'failed');
+        store.finish(guild.id, claimed.revision, day, 'failed', slot);
         throw new Error('NEWS_SEND_UNCERTAIN');
       }
-      return store.finish(guild.id, claimed.revision, day, 'sent');
+      return store.finish(guild.id, claimed.revision, day, 'sent', slot);
     } finally {
       delivering.delete(guild.id);
     }
@@ -89,7 +92,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       const row = store.get(interaction.guildId);
       const draft = existing || { settings: structuredClone(row?.settings || DEFAULTS), revision: row?.revision || 0 };
       if (request.action === 'status') return { content: row
-        ? `${describe(row.settings, row.enabled ? 'aktif' : 'jeda')}\nHasil terakhir: ${{ claimed: 'belum terkonfirmasi', sent: 'terkirim', empty: 'tidak ada berita baru', failed: 'gagal atau belum pasti', cancelled: 'dibatalkan' }[row.receipts.at(-1)?.status] || 'belum ada kiriman'}.\nSatu kiriman per hari, termasuk uji. Jika hasil tidak pasti, tidak dicoba ulang otomatis.`
+        ? `${describe(row.settings, row.enabled ? 'aktif' : 'jeda')}\nHasil terakhir: ${{ claimed: 'belum terkonfirmasi', sent: 'terkirim', empty: 'tidak ada berita baru', failed: 'gagal atau belum pasti', cancelled: 'dibatalkan' }[row.receipts.at(-1)?.status] || 'belum ada kiriman'}.\nKiriman uji hanya satu item dan menutup sisa slot hari itu. Hasil tidak pasti tidak dicoba ulang otomatis.`
         : 'Hengs News belum diatur. Mulai dengan `atur berita teknologi AI ke #hengs-news`.' };
       if (request.action === 'pause') {
         await assertManager(interaction);
@@ -153,7 +156,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         assertRevision(interaction.guildId, draft.revision);
         if (now() - existing.previewAt >= TTL) throw new Error('NEWS_PREVIEW_STALE');
         store.enable(interaction.guildId, draft.revision); drafts.delete(key);
-        return { content: `Jadwal berita aktif setiap hari ${row.settings.time} WIB. Hari yang sudah ada kiriman uji tidak dikirim lagi. Pakai jeda berita kapan saja.` };
+        return { content: `Jadwal berita aktif. ${describe(row.settings, 'aktif')}\nHari yang sudah ada kiriman uji tidak dikirim lagi. Pakai jeda berita kapan saja.` };
       }
       if (request.action === 'send') {
         const items = selected(draft.settings, existing.items || [], row);
@@ -166,7 +169,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         if (now() - existing.previewAt >= TTL) throw new Error('NEWS_PREVIEW_STALE');
         drafts.delete(key);
         const saved = store.save(interaction.guildId, draft.revision, draft.settings);
-        await deliver(interaction.guild, saved, items, wibClock(now()).day, assertLease);
+        await deliver(interaction.guild, saved, items.slice(0, 1), wibClock(now()).day, assertLease);
         return { content: 'Kiriman uji berhasil. Jadwal masih jeda. Untuk mulai harian: preview berita, lalu aktifkan berita.' };
       }
       return { content: HELP };
@@ -190,29 +193,32 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     try {
       for (const row of store.list()) {
         if (stopped || !row.enabled || !active(row.guildId)) continue;
-        const clock = wibClock(now());
-        const minutes = time => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
-        const delta = minutes(clock.time) - minutes(row.settings.time);
-        if (delta < 0 || delta >= 60 || row.receipts.some(x => x.day === clock.day)) continue;
+        const due = dueSlot(row, now());
+        if (!due) continue;
+        const { day, slot } = due;
+        const settings = slotSettings(row.settings, slot);
         try {
           const guild = client.guilds.cache.get(row.guildId);
           if (!guild) continue;
-          const result = await readFeeds(row.settings.topics);
+          const result = await readFeeds(settings.topics);
           assertRevision(row.guildId, row.revision);
           if (stopped) break;
-          const items = selected(row.settings, result.items, row);
-          if (!items.length) { store.claim(row.guildId, row.revision, clock.day, [], result.failures ? 'failed' : 'empty'); continue; }
-          const edited = selected(row.settings, await editArticles(items, row.settings), row);
+          const items = selected(settings, result.items, row);
+          if (dueSlot(row, now())?.slot !== slot || day !== wibClock(now()).day) continue;
+          if (!items.length) { store.claim(row.guildId, row.revision, day, [], result.failures ? 'failed' : 'empty', slot); continue; }
+          const edited = selected(settings, await editArticles(items, settings), row);
           assertRevision(row.guildId, row.revision);
           if (stopped) break;
-          if (clock.day !== wibClock(now()).day) continue;
-          if (!edited.length) { store.claim(row.guildId, row.revision, clock.day, [], 'empty'); continue; }
-          await deliver(guild, row, edited, clock.day);
+          if (day !== wibClock(now()).day || dueSlot(row, now())?.slot !== slot) continue;
+          if (!edited.length) { store.claim(row.guildId, row.revision, day, [], 'empty', slot); continue; }
+          await deliver(guild, row, edited, day, () => {}, slot);
         } catch {
           logger.error('[news] NEWS_TICK_FAILED');
           // Pre-send failures also consume the day's slot; no repeated permission/network storm.
           const current = store.get(row.guildId);
-          if (current?.revision === row.revision) store.claim(row.guildId, row.revision, clock.day, [], 'failed');
+          if (current?.revision === row.revision && dueSlot(current, now())?.slot === slot && day === wibClock(now()).day) {
+            store.claim(row.guildId, row.revision, day, [], 'failed', slot);
+          }
         }
       }
     } catch { logger.error('[news] NEWS_STATE_UNAVAILABLE'); }

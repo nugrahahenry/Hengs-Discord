@@ -23,7 +23,7 @@ function validSettings(value) {
 }
 
 function validateState(value) {
-  if (!exact(value, 'schemaVersion guilds') || value.schemaVersion !== 1
+  if (!exact(value, 'schemaVersion guilds') || ![1, 2].includes(value.schemaVersion)
     || !Array.isArray(value.guilds) || value.guilds.length > 100) throw new Error('NEWS_STATE_INVALID');
   const ids = new Set();
   for (const row of value.guilds) {
@@ -31,18 +31,24 @@ function validateState(value) {
       || !snowflake(row.guildId) || ids.has(row.guildId) || !validSettings(row.settings)
       || !Number.isSafeInteger(row.revision) || row.revision < 1 || !epoch(row.updatedAt)
       || typeof row.enabled !== 'boolean' || typeof row.tested !== 'boolean'
-      || (row.enabled && !row.tested) || !Array.isArray(row.receipts) || row.receipts.length > 31
+      || (row.enabled && !row.tested) || !Array.isArray(row.receipts) || row.receipts.length > (value.schemaVersion === 1 ? 31 : 93)
       || !Array.isArray(row.seen) || row.seen.length > 90) throw new Error('NEWS_STATE_INVALID');
     ids.add(row.guildId);
     const dates = new Set();
     for (const receipt of row.receipts) {
-      if (!exact(receipt, 'day status at hashes') || typeof receipt.day !== 'string'
-        || !/^\d{4}-\d{2}-\d{2}$/.test(receipt.day) || dates.has(receipt.day)
+      const key = value.schemaVersion === 1 ? receipt.day : `${receipt.day}:${receipt.slot}`;
+      if (!exact(receipt, value.schemaVersion === 1 ? 'day status at hashes' : 'day status at hashes slot publisher') || typeof receipt.day !== 'string'
+        || !/^\d{4}-\d{2}-\d{2}$/.test(receipt.day) || dates.has(key)
         || !['claimed', 'sent', 'empty', 'failed', 'cancelled'].includes(receipt.status)
         || !epoch(receipt.at) || !Array.isArray(receipt.hashes) || receipt.hashes.length > 3
         || !receipt.hashes.every(hash)) throw new Error('NEWS_STATE_INVALID');
-      dates.add(receipt.day);
+      if (value.schemaVersion === 2 && (!Number.isInteger(receipt.slot) || receipt.slot < -1 || receipt.slot > 2
+        || !(receipt.publisher === null || (typeof receipt.publisher === 'string' && /^[a-z0-9-]{1,64}$/.test(receipt.publisher)))
+        || (receipt.slot >= 0 && receipt.hashes.length > 1))) throw new Error('NEWS_STATE_INVALID');
+      dates.add(key);
     }
+    if (value.schemaVersion === 2 && row.receipts.some(x => x.slot === -1
+      && row.receipts.some(y => y.day === x.day && y.slot !== -1))) throw new Error('NEWS_STATE_INVALID');
     if (row.seen.some(item => !exact(item, 'hash at') || !hash(item.hash) || !epoch(item.at))) {
       throw new Error('NEWS_STATE_INVALID');
     }
@@ -50,16 +56,41 @@ function validateState(value) {
   return value;
 }
 
+function upgradeState(value) {
+  const copy = structuredClone(validateState(value));
+  if (copy.schemaVersion === 1) {
+    copy.schemaVersion = 2;
+    for (const row of copy.guilds) for (const receipt of row.receipts) Object.assign(receipt, { slot: -1, publisher: null });
+  }
+  return validateState(copy);
+}
+
+// Explicit rollback adapter: conservatively consume each affected day, never erase delivery proof.
+function downgradeState(value) {
+  const copy = upgradeState(value);
+  for (const row of copy.guilds) {
+    const days = new Map();
+    for (const receipt of row.receipts) {
+      const old = days.get(receipt.day);
+      days.set(receipt.day, { day: receipt.day, status: 'cancelled', at: Math.max(old?.at || 0, receipt.at),
+        hashes: [...new Set([...(old?.hashes || []), ...receipt.hashes])].slice(0, 3) });
+    }
+    row.receipts = [...days.values()].slice(-31);
+  }
+  copy.schemaVersion = 1;
+  return validateState(copy);
+}
+
 function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', 'news-state.json'),
   fsImpl = fs, now = Date.now } = {}) {
   function read() {
     let stat;
     try { stat = fsImpl.lstatSync(filePath); } catch (error) {
-      if (error.code === 'ENOENT') return { schemaVersion: 1, guilds: [] };
+      if (error.code === 'ENOENT') return { schemaVersion: 2, guilds: [] };
       throw new Error('NEWS_STATE_READ_FAILED');
     }
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_BYTES) throw new Error('NEWS_STATE_INVALID');
-    try { return validateState(JSON.parse(fsImpl.readFileSync(filePath, 'utf8'))); }
+    try { return upgradeState(JSON.parse(fsImpl.readFileSync(filePath, 'utf8'))); }
     catch { throw new Error('NEWS_STATE_INVALID'); }
   }
   function write(value) {
@@ -91,7 +122,7 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
     }
     fn(row);
     row.revision += 1; row.updatedAt = now();
-    row.receipts = row.receipts.filter(x => now() - x.at < 30 * DAY).slice(-31);
+    row.receipts = row.receipts.filter(x => now() - x.at < 30 * DAY).slice(-93);
     row.seen = row.seen.filter(x => now() - x.at < 30 * DAY).slice(-90);
     write(state);
     return structuredClone(row);
@@ -124,18 +155,20 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
         row.enabled = true;
       });
     },
-    claim(guildId, revision, day, hashes, status = 'claimed') {
+    claim(guildId, revision, day, hashes, status = 'claimed', slot = -1, publisher = null) {
       return change(guildId, revision, row => {
-        if (row.receipts.some(x => x.day === day)) throw new Error('NEWS_DAY_USED');
-        row.receipts.push({ day, status, at: now(), hashes });
+        if (row.receipts.some(x => x.day === day && (slot === -1 || x.slot === -1 || x.slot === slot))) throw new Error('NEWS_DAY_USED');
+        if (row.receipts.some(x => now() - x.at < 3_600_000)) throw new Error('NEWS_GAP_REQUIRED');
+        row.receipts.push({ day, status, at: now(), hashes, slot, publisher });
         row.seen.push(...hashes.map(value => ({ hash: value, at: now() })));
       });
     },
-    finish(guildId, revision, day, status) {
+    finish(guildId, revision, day, status, slot = -1) {
       return change(guildId, revision, row => {
-        const receipt = row.receipts.find(x => x.day === day && x.status === 'claimed');
+        const receipt = row.receipts.find(x => x.day === day && x.slot === slot && x.status === 'claimed');
         if (!receipt) throw new Error('NEWS_RECEIPT_INVALID');
         receipt.status = status;
+        receipt.at = now();
         if (status === 'sent') row.tested = true;
       });
     },
@@ -147,4 +180,4 @@ function wibClock(nowMs) {
   return { day: iso.slice(0, 10), time: iso.slice(11, 16) };
 }
 
-module.exports = { TOPICS, DAY, MAX_BYTES, snowflake, validSettings, validateState, createNewsStore, wibClock };
+module.exports = { TOPICS, DAY, MAX_BYTES, snowflake, validSettings, validateState, upgradeState, downgradeState, createNewsStore, wibClock };

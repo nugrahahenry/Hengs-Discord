@@ -9,7 +9,7 @@ const { Collection } = require('discord.js');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-appreciation-'));
 process.env.OPS_DATA_DIR = dir;
 const store = require('../src/ops/store');
-const { buildAppreciationDraft, readAppreciationDraft, validateAppreciation } = require('../src/ops/appreciation');
+const { buildAppreciationDraft, readAppreciationDraft, validateAppreciation, formatAppreciation } = require('../src/ops/appreciation');
 const { appreciationFormRow, appreciationModal, appreciationRevision } = require('../src/ops/appreciation-form');
 const { renderAppreciationCard, cardContent, layoutCard } = require('../src/utils/appreciation-card');
 const { draftPayload, approvalRow, handleButton, handleModal, processDueSchedules } = require('../src/ops/hub');
@@ -20,6 +20,8 @@ const HOME = '223456789012345678';
 const OTHER = '323456789012345678';
 const data = { recipient: 'Tim Orion', achievement: 'Juara 1 turnamen MLBB', date: '17 Oktober 2026', players: 'Raka (Sky)\nDara' };
 const template = buildAppreciationDraft(data);
+const { selectedTags } = require('../src/ops/appreciation-tags');
+const { handleTagSelection, publicationPayload } = require('../src/ops/hub');
 test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 function withEnv(t, values) {
@@ -48,6 +50,93 @@ function fixture() {
     followUp: async () => {}, message: panel };
   return { sent, edits, interaction };
 }
+
+test('explicit tag selection is private, actor-bound, member-validated and revision-safe', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME });
+  const { draft } = store.createDraft({ ...template, appreciationTags: { memberIds: [OTHER] } });
+  assert.deepEqual(selectedTags(draft), [], 'external draft input cannot opt into mentions');
+  const { interaction, sent } = fixture();
+  interaction.guild.id = HOME;
+  interaction.guild.members = { fetch: async ({ user }) => ({ id: user, guild: { id: HOME }, user: { bot: false } }) };
+  interaction.customId = `ops:tags:${draft.id}`;
+  await handleButton(interaction);
+  const picker = interaction.editPayload.components[0].toJSON().components[0];
+  assert.equal(picker.type, 5); assert.equal(picker.max_values, 8);
+  assert.deepEqual(interaction.editPayload.allowedMentions, { parse: [] });
+  interaction.customId = picker.custom_id;
+  interaction.isUserSelectMenu = () => true;
+  interaction.values = [OTHER];
+  await handleTagSelection(interaction);
+  const updated = store.getDraft(draft.id);
+  assert.deepEqual(selectedTags(updated), [OTHER]);
+  assert.equal(sent.length, 0);
+  assert.deepEqual((await draftPayload(updated)).allowedMentions, { parse: [] });
+  const publicPayload = await publicationPayload(interaction.guild, updated);
+  assert.deepEqual(publicPayload.allowedMentions, { parse: [], users: [OTHER], repliedUser: false });
+  assert.equal(publicPayload.content, `Apresiasi buat <@${OTHER}>! 🏆`);
+  assert.match(publicPayload.embeds[0].data.description, /Pemain:\n• Raka \(Sky\)\n• Dara/);
+  assert.doesNotMatch(publicPayload.embeds[0].data.description, /;/);
+  interaction.values = [OWNER];
+  await handleTagSelection(interaction); // Original selector is now stale.
+  assert.deepEqual(selectedTags(store.getDraft(draft.id)), [OTHER]);
+  interaction.customId = `ops:tagclear:${OWNER}:${draft.id}:${appreciationRevision(updated)}`;
+  await handleTagSelection(interaction);
+  assert.deepEqual(selectedTags(store.getDraft(draft.id)), []);
+});
+
+test('tag choices reject duplicate, role, bot, outsider, wrong actor and revoked editor selections', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, OPS_EDITOR_ROLE_IDS: OTHER });
+  for (const variant of ['duplicate', 'role', 'bot', 'outsider', 'actor', 'guild', 'revoked', 'racing-edit']) {
+    const { draft } = store.createDraft({ ...template });
+    const { interaction } = fixture();
+    interaction.guild.id = HOME;
+    interaction.customId = `ops:tagselect:${OWNER}:${draft.id}:${appreciationRevision(draft)}`;
+    interaction.isUserSelectMenu = () => true;
+    interaction.values = variant === 'duplicate' ? [OTHER, OTHER] : [OTHER];
+    if (variant === 'actor' || variant === 'revoked') interaction.user.id = OTHER;
+    if (variant === 'revoked') interaction.customId = `ops:tagselect:${OTHER}:${draft.id}:${appreciationRevision(draft)}`;
+    if (variant === 'guild') interaction.guildId = OTHER;
+    interaction.guild.members = { fetch: async ({ user }) => {
+      if (variant === 'role') throw new Error('private provider error');
+      if (variant === 'racing-edit') store.updatePendingDraft(draft.id, buildAppreciationDraft({ ...data, recipient: 'Changed' }), OWNER);
+      return { id: user, guild: { id: variant === 'outsider' ? OTHER : HOME }, user: { bot: variant === 'bot' }, roles: [] };
+    } };
+    await handleTagSelection(interaction);
+    assert.deepEqual(selectedTags(store.getDraft(draft.id)), [], variant);
+  }
+});
+
+test('publication revalidates members, edits clear choices, old records stay mention-free', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME });
+  const { draft } = store.createDraft({ ...template });
+  const tagged = store.setAppreciationTags(draft.id, [OTHER], OWNER, appreciationRevision(draft));
+  assert.deepEqual(selectedTags(store.getDraft(draft.id)), [OTHER]);
+  await assert.rejects(publicationPayload({ id: HOME, members: { fetch: async () => null } }, tagged), /MEMBER_UNAVAILABLE/);
+  await assert.rejects(publicationPayload({ id: OTHER }, tagged), /GUILD_INVALID/);
+  const edited = store.updatePendingDraft(draft.id, template, OWNER);
+  assert.deepEqual(selectedTags(edited), []);
+  const payload = await publicationPayload({ id: HOME }, edited);
+  assert.deepEqual(payload.allowedMentions, { parse: [] }); assert.equal(payload.content, undefined);
+});
+
+test('scheduled tagged delivery validates users and holds uncertain outcomes without retry', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, ANNOUNCE_CHANNEL_ID: 'announcements' });
+  const { draft } = store.createDraft({ ...template });
+  store.setAppreciationTags(draft.id, [OTHER], OWNER, appreciationRevision(draft));
+  const now = Date.now();
+  store.scheduleDraft(draft.id, OWNER, new Date(now - 60000).toISOString(), now - 180000);
+  const { interaction } = fixture();
+  interaction.guild.id = HOME;
+  interaction.guild.members = { fetch: async ({ user }) => ({ id: user, guild: { id: HOME }, user: { bot: false } }) };
+  let sends = 0;
+  interaction.guild.channels.cache.get('announcements').send = async payload => {
+    sends++; assert.deepEqual(payload.allowedMentions.users, [OTHER]); assert.equal(payload.enforceNonce, true);
+    throw new Error('SIMULATED_UNCERTAIN');
+  };
+  const client = { guilds: { fetch: async () => interaction.guild } };
+  await processDueSchedules(client); await processDueSchedules(client);
+  assert.equal(sends, 1); assert.equal(store.getDraft(draft.id).status, 'publishing');
+});
 
 test('appreciation uses reversible ordinary text with optional nicknames and no new state keys', () => {
   assert.deepEqual(Object.keys(template), ['title', 'body']);
@@ -224,7 +313,7 @@ test('private and public payloads share exact graphic, full text and recovery ID
   const privatePayload = await draftPayload(draft);
   const publicPayload = await draftPayload(draft, { publicView: true });
   assert.deepEqual(privatePayload.files[0].attachment, publicPayload.files[0].attachment);
-  assert.equal(publicPayload.embeds[0].data.description, template.body);
+  assert.equal(publicPayload.embeds[0].data.description, formatAppreciation(readAppreciationDraft(template)));
   assert.match(publicPayload.embeds[0].data.footer.text, /Draft ID: abcdef1234567890/);
   assert.deepEqual(publicPayload.allowedMentions, { parse: [] });
   assert.equal(publicPayload.components, undefined);
@@ -241,7 +330,7 @@ test('render failure and manual template edits clear stale attachment without lo
   assert.equal(failed.files, undefined);
   assert.equal(failed.embeds[0].data.image, undefined);
   assert.deepEqual(failed.attachments, []);
-  assert.equal(failed.embeds[0].data.description, template.body);
+  assert.equal(failed.embeds[0].data.description, formatAppreciation(readAppreciationDraft(template)));
   assert.deepEqual(logs, ['[ops] APPRECIATION_CARD_UNAVAILABLE']);
   const edited = await draftPayload({ ...draft, body: 'Manual free-form revision' }, { edit: true });
   assert.equal(edited.files, undefined);

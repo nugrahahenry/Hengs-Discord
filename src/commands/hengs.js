@@ -7,6 +7,8 @@ const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-assistant');
 const { formatOperationStatus } = require('../prompt-operations');
 const { appreciationFormRow } = require('../ops/appreciation-form');
+const { isEditor } = require('../ops/permissions');
+const { buildCommunityHelp, isHallGallery, botCommands } = require('../community-help');
 const { issueReview, getDraftForRequester } = require('../prompt-review');
 const { thinkingReplyPayload } = require('../assistant-ux');
 const { applyHomeWelcomeAction } = require('../guilds/home-welcome-actions');
@@ -142,18 +144,8 @@ async function execute(interaction, {
       await replyPrivate(interaction, 'Konfigurasi Hengs di server ini tidak dapat dibaca. Hubungi pengelola Hengs.');
       return;
     }
-    await replyPrivate(interaction, [
-      '**Mulai pakai Hengs**',
-      'Pengelola bisa mengatur bacaan harian dengan `/hengs ask`: `atur berita teknologi AI ke #hengs-news`. Preview dulu, lalu uji satu kiriman sebelum jadwal diaktifkan.',
-      'Tulis prompt langsung saat mention Hengs atau lewat `/hengs ask`, tanpa format rumit.',
-      'Contoh: "rancang struktur server gaming dengan area mabar dan creator".',
-      'Di server utama, owner atau Administrator juga bisa bilang "fokus belajar", "mulai scrim", atau "selesai fokus".',
-      'Di server utama, owner atau Administrator dapat mengubah, melihat, atau mereset welcome custom lewat `/hengs ask`, misalnya `ubah welcome jadi "Halo, selamat datang!"`.',
-      '`/hengs reset` untuk menghapus ingatan percakapanmu sendiri.',
-      'Pemilik server atau Administrator dapat mengatur Hengs lewat `/setup`.',
-      '`/hengs privacy` menjelaskan penggunaan data.',
-      '`/hengs invite` membawamu ke halaman undangan Discord.',
-    ].join('\n'));
+    await replyPrivate(interaction, buildCommunityHelp({ home: scope.kind === 'home', guild: interaction.guild,
+      manager: isGuildManager({ actor: interaction, guild: interaction.guild }), editor: isEditor(interaction) }));
     return;
   }
 
@@ -165,6 +157,10 @@ async function execute(interaction, {
     return;
   }
 
+  if (scope.kind === 'home' && subcommand === 'ask' && isHallGallery(interaction.channel)) {
+    await replyPrivate(interaction, `Hall of Fame khusus galeri. Yuk lanjutkan prompt di ${botCommands(interaction.guild)}; tidak ada tindakan yang dijalankan di sini.`);
+    return;
+  }
   if (!agent) throw new Error('HENGS_DEPENDENCY_MISSING');
 
   if (subcommand === 'reset') {

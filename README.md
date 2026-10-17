@@ -2,7 +2,13 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.60.0 - adaptive Crown Stage posters and structured revisions
+**Current checkpoint:** Hengs Discord v1.61.0 - spaced news and community-friendly appreciation
+
+Local-ready, not deployed: News sends one item at a time, at least one hour apart (for example
+08:00, 09:00, 10:00 WIB). `/hengs help` separates member features from privileged controls.
+Appreciation rosters use bullets; editors may select up to eight Discord members to notify on
+owner-approved publication, or keep no tags. Preview never notifies; edits clear selections.
+Existing Hall of Fame roster and pinned request instructions have already been updated live.
 
 Appreciation drafts now use the reviewed Crown Stage artwork, with an adaptive logo/trophy,
 literal tournament and result text, and up to eight players with optional nicknames. Edit
@@ -99,7 +105,9 @@ Fitur tidak aktif otomatis saat update. Pilih channel teks yang sudah ada di ser
 8. Untuk revisi di channel teruji: ubah draft, `preview berita`, lalu `terapkan berita`.
    Tidak perlu uji kirim lagi meskipun slot hari ini sudah terpakai. Preview tetap wajib.
 
-Maksimal 3 item dan satu digest per hari, termasuk kiriman uji. Sumber saat ini:
+Mulai v1.61.0, maksimal 3 item per hari dikirim terpisah, jeda minimal satu jam. Contoh:
+08:00 berita, 09:00 berita, 10:00 hiburan. Satu kiriman uji hanya berisi satu item dan menutup
+sisa slot hari itu. Slot kosong tidak diganti jenis lain. Sumber saat ini:
 [Mozilla Hacks](https://hacks.mozilla.org/feed/) dan [Cloudflare Blog](https://blog.cloudflare.com/rss/) untuk teknologi,
 [NVIDIA Blog](https://blogs.nvidia.com/feed/) untuk AI,
 [Steam News](https://store.steampowered.com/feeds/news.xml) untuk gaming, dan
@@ -121,8 +129,9 @@ Preview berlaku 10 menit untuk pemanggil, server dan channel yang sama. Konfirma
 dipakai ulang. `terapkan berita` mempertahankan status untuk channel yang sudah diuji; `simpan berita`
 tetap menjeda/reset uji. Channel baru selalu perlu uji sebelum aktif. Revisi saat kiriman masih
 berjalan ditolak sampai selesai; izin pengelola/tujuan dan revisi diperiksa kembali saat konfirmasi.
-Bot memeriksa jadwal tiap menit, dengan toleransi satu jam pada hari WIB yang sama, bukan
-mengejar semua hari yang terlewat. Jika hasil kiriman tidak pasti, bot tidak mencoba lagi hari itu;
+Bot memeriksa jadwal tiap menit, dengan jendela satu jam per slot pada hari WIB yang sama, bukan
+mengejar slot yang terlewat. Slot yang melewati tengah malam dilewati. Jika hasil kiriman tidak
+pasti, bot tidak mencoba ulang slot itu; slot berikutnya tetap menunggu jeda satu jam.
 receipt persisten dan nonce Discord mengurangi risiko duplikat. Pause tidak menarik kiriman
 yang sudah berangkat. Jadwal juga berhenti saat Hengs dinonaktifkan di server publik.
 
@@ -130,8 +139,11 @@ yang sudah berangkat. Jadwal juga berhenti saat Hengs dinonaktifkan di server pu
 bukan chat privat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari;
 saat jadwal dijeda, metadata lama bisa bertahan sampai perubahan berikutnya. File ikut snapshot Discord terenkripsi yang sudah ada dan
 divalidasi saat backup/restore. Restore dari backup lama dapat kehilangan receipt terbaru, jadi
-pause dan review jadwal sebelum mengaktifkan ulang sesudah restore. Rollback ke versi sebelum
-fitur ini menghentikan jadwal tanpa menghapus state. Tidak perlu mendaftarkan slash command baru.
+pause dan review jadwal sebelum mengaktifkan ulang sesudah restore. Schema v2 mempertahankan
+receipt lama sebagai klaim satu hari penuh. Sebelum rollback ke binary sebelum v1.61.0, hentikan
+service dan konversi state memakai `downgradeState` di `src/news/store.js` dengan write atomik
+tervalidasi. Adapter menggabungkan slot menjadi hari terpakai, bukan menghapus bukti pengiriman.
+Tidak perlu mendaftarkan slash command baru.
 
 **Public invite:** [Add Hengs to a Discord server](https://discord.com/oauth2/authorize?client_id=1512417103138000948&permissions=101376&scope=bot+applications.commands)
 
