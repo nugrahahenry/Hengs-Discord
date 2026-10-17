@@ -2,6 +2,29 @@
 
 Updated: 2026-10-17
 
+## Hengs Discord v1.60.0 Hall of Fame publication
+
+- Henry approved the proposed dedicated channel and final publication. Created exactly one
+  hall-of-fame text channel under the existing Community category after read-only duplicate,
+  category and bot-capability checks. No other channel/category or guild-wide role was changed.
+- Channel-specific permissions inherit visibility, allow member history/reactions/public threads
+  and thread replies, and deny ordinary main-channel messages. Hengs has an explicit posting
+  overwrite; administrators retain their usual Discord access. Readback checked exact overwrites,
+  baseline member visibility, and ordinary role permissions without changing existing roles.
+- Exactly one final post by Hengs contains the reviewed poster, full five-player roster and
+  unchanged organizer certificate. No mentions, mass ping, scheduled send or duplicate post.
+  REST readback verified two images and exact certificate bytes; authenticated Discord UI verified
+  the channel under Community, caption, roster, poster and certificate. Private receipt and
+  screenshot stay ignored, not in Git. The earlier bot-channel test remains unchanged.
+- No deploy or restart. Discord v1.60.0 and WA v0.46.0 health fresh, single consumer each,
+  zero supervised restarts, Canox memory v0.178.0 unchanged. Publication staging was removed.
+- This was a scoped operator publication, not an implementation of reusable certificate intake
+  or Hall of Fame routing in Ops. Existing draft publication destinations remain unchanged.
+  Next product work, if requested: integrate an explicitly selected Hall of Fame destination and
+  reviewed optional certificate attachments into the existing draft flow before claiming automation.
+- Documentation checkpoint only, product version unchanged. Subject: docs(community): Hengs
+  Discord v1.60.0 - record Hall of Fame channel and first publication.
+
 ## Hengs Discord v1.60.0 cloud acceptance and certificate dogfooding
 
 - Henry approved controlled deployment and a supervised certificate upload in the bot test

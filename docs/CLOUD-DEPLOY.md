@@ -10,8 +10,10 @@ permission, atau kebijakan Anti-Raid. v1.60.0 aktif/enabled sebagai satu-satunya
 Discord setelah restart terkontrol; v1.58.0 tetap tersedia sebagai rollback. Kandidat Node22
 lulus 651 tes, nol gagal, dengan tiga tes checkout-only dilewati dari arsip produksi (654 total).
 Dua heartbeat bergerak lulus. Poster Crown Stage dan sertifikat asli terverifikasi di channel
-bot, termasuk checksum sertifikat dan inspeksi visual Discord. Belum ada publikasi apresiasi
-ke announcements atau pembuatan channel Hall of Fame. Upload sertifikat ini memakai operator
+bot, termasuk checksum sertifikat dan inspeksi visual Discord. Setelah persetujuan lanjutan Henry,
+satu channel Hall of Fame dibuat di Community dan satu posting final diterbitkan oleh Hengs.
+Anggota dapat membaca, memberi reaksi dan berdiskusi di thread; posting utama hanya bot/admin.
+Tidak ada kiriman ke announcements atau perubahan routing draft Ops umum. Upload sertifikat ini memakai operator
 satu-kali; bukan bukti alur unggah sertifikat umum atau form Edit sudah diuji live.
 News terpasang
 dan satu kiriman uji berhasil pada 2026-10-16. Jadwal home guild diaktifkan atas persetujuan Henry

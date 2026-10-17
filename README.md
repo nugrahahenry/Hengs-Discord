@@ -10,6 +10,10 @@ opens a prefilled form and refuses stale revisions. Review remains private befor
 publication. v1.60.0 is deployed and the poster plus an unchanged organizer certificate were
 verified in the bot test channel. Reusable certificate ingestion remains deferred; this upload
 used a supervised one-off operator, not a new bot command.
+The home server now has a Hall of Fame under Community, with the first owner-approved
+poster and original certificate published. Members can react and discuss in public threads;
+main-channel posting is limited to Hengs and administrators. Reusable Ops destination selection
+has not changed: this publication was supervised, not automatic routing of future drafts.
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and
