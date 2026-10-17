@@ -18,6 +18,10 @@ async function main() {
     displayName: 'Raka', joinedAt: new Date('2026-05-01T12:00:00+07:00'), guild: { memberCount: 55 } };
   const cards = [
     ['appreciation', await renderAppreciationCard(data, { demo: !input })],
+    ['no-logo-demo', await renderAppreciationCard({ recipient: 'Tim Orion', achievement: 'Juara 2 turnamen MLBB',
+      occasion: 'Orion Cup', date: '17 Oktober 2026', players: 'Raka (Sky)\nDara\nBima (Nova)' }, { demo: true })],
+    ['eight-players-demo', await renderAppreciationCard({ recipient: 'Komunitas Orion', achievement: 'Terima kasih sudah membantu acara komunitas',
+      players: 'Raka (Sky)\nDara\nBima (Nova)\nNadia\nSatria (North)\nMaya\nAruna\nRio' }, { demo: true })],
     ['welcome-demo', await generateCard(member, 'welcome', { now, serverName: 'Hengs / DEMO' })],
     ['leave-demo', await generateCard(member, 'leave', { now, serverName: 'Hengs / DEMO', memberNumber: 54 })],
     ['long-name-demo', await generateCard({ ...member, displayName: 'Nama Member Panjang untuk Uji Keterbacaan' }, 'welcome', { now, serverName: 'Hengs / DEMO' })],
@@ -27,13 +31,14 @@ async function main() {
     fs.writeFileSync(path.join(output, `${name}.png`), buffer);
   }
   // A contact sheet at desktop and mobile display widths for visual inspection.
-  const sheet = createCanvas(930, 1150);
+  const decoded = await Promise.all(cards.map(async ([, buffer]) => loadImage(buffer)));
+  const sheetHeight = 20 + decoded.reduce((total, image) => total + image.height * 550 / image.width + 24, 0);
+  const sheet = createCanvas(930, Math.ceil(sheetHeight));
   const ctx = sheet.getContext('2d');
   ctx.fillStyle = '#202127'; ctx.fillRect(0, 0, sheet.width, sheet.height);
   for (const [column, width] of [[18, 550], [590, 320]]) {
     let y = 20;
-    for (const [, buffer] of cards) {
-      const image = await loadImage(buffer);
+    for (const image of decoded) {
       const height = image.height * width / image.width;
       ctx.drawImage(image, column, y, width, height);
       y += height + 24;

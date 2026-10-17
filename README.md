@@ -2,7 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.59.0 - appreciation cards and guided roster
+**Current checkpoint:** Hengs Discord v1.60.0 - adaptive Crown Stage posters and structured revisions
+
+Appreciation drafts now use the reviewed Crown Stage artwork, with an adaptive logo/trophy,
+literal tournament and result text, and up to eight players with optional nicknames. Edit
+opens a prefilled form and refuses stale revisions. Review remains private before owner
+publication. This local checkpoint is not deployed; certificate ingestion remains deferred.
 
 Selective Canox memory is available only to the configured owner through ephemeral `/hengs ask`
 in the home guild. `ingat: ...` opens a preview, `oke simpan ingatan` confirms it, and

@@ -1,6 +1,6 @@
 # Hengs Community Operations Dashboard
 
-## Kartu apresiasi v1.59.0
+## Kartu apresiasi v1.60.0
 
 Tulis `bikin kartu apresiasi` lewat mention Hengs atau `/hengs ask` di server utama. Form
 khusus peminta tersedia untuk owner/editor Ops, bukan Administrator tanpa role editor.
@@ -20,14 +20,23 @@ otomatis. Tidak melakukan lookup member maupun mengambil gambar dari URL penggun
 
 Gambar dan teks berasal dari template yang sama. Teks lengkap tetap tersedia dan Markdown
 ditampilkan literal, mention dinonaktifkan. Revisi AI dimatikan untuk melindungi fakta.
-Edit manual boleh mempertahankan label template; bila format diubah bebas, gambar lama
-dihapus dan draft menjadi teks biasa. Bila render gagal, teks tetap bisa direview/dikirim.
-Gambar hanya di RAM dan Discord, bukan file state baru. Logo tetap lokal/bundled.
+Edit membuka form lima isian yang terisi dari draft. Submit lama, beda peminta/server,
+izin editor yang dicabut, dan draft yang sudah diproses ditolak. Poster baru harus direview
+lagi sebelum Publish. Draft legacy yang sudah menjadi teks bebas tetap memakai editor teks.
+Bila render gagal, teks tetap bisa direview/dikirim. Gambar hanya di RAM dan Discord,
+bukan file state baru. Logo, panggung, trofi, font dan ikon tetap lokal/bundled.
+
+Poster Crown Stage 1080px lebar, minimal 1350px tinggi, bertambah sesuai panjang teks/roster
+dengan batas 3600px. Hasil juara hanya ditonjolkan dari pernyataan eksplisit pengguna; apresiasi
+umum tidak diberi peringkat rekaan. Nama dan nickname tidak dipotong. Exact Hengs Family/Familia
+memakai turunan crest transparan; penerima lain memakai trofi. Sertifikat belum diterima atau
+dibuat otomatis. Asal aset dan lisensi tersedia di `assets/appreciation/crown-stage/README.md`.
 
 Kompatibilitas: binary lama membaca draft ini sebagai announcement biasa. Retensi Ops tidak
 berubah: 250 draft finalized, 20 revisi per draft dan 500 audit; active drafts tetap tersimpan.
 Idempotensi memakai external ID, claim-before-send dan footer recovery ID existing.
-Tidak menambah queue, cache, scheduler, worker atau dependency baru.
+Tidak menambah queue, cache data pengguna, scheduler, worker atau dependency baru. Hanya
+hasil decode aset tetap yang digunakan ulang per proses; input dan poster tidak dicache.
 
 ## Tujuan
 

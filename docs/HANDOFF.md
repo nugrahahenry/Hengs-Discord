@@ -2,6 +2,35 @@
 
 Updated: 2026-10-17
 
+## Hengs Discord v1.60.0 Crown Stage (not deployed)
+
+- Approved local implementation replaces the appreciation graphic with the selected art-led
+  Crown Stage composition. Bundled stage, trophy, transparent crest derivative, Barlow fonts
+  and Phosphor icons have provenance/licenses in assets/appreciation/crown-stage/README.md.
+  Original assets/brand/hengs-family.png hash is unchanged. No new generation in this port.
+- Literal result/team/event/date/roster remain driven by bounded Ops draft fields. Only explicit
+  ranks are promoted; generic appreciation has no invented ranking. No-logo uses a trophy.
+  0-8 players, optional nickname, 2-3 centered columns, long names/details wrap without clipping.
+  Width 1080px, height 1350-3600px; full text remains in the embed and on render failure.
+- Canonical card Edit now opens a prefilled five-field modal. Actor/home/current editor access,
+  pending status and draft fingerprint are rechecked synchronously before save. Stale submissions
+  do not overwrite newer revisions; raw edit callbacks cannot break canonical card templates.
+  Panel updates recheck state after awaited rendering. Owner-only publish/schedule unchanged.
+- No new state/schema, provider, certificate intake/OCR, channel, role, points or auto-publish.
+  Decoded fixed art is cached once per process, never user data/posters. No user URL/path loading.
+  Certificate proposal remains deferred. Real roster fixture and previews remain ignored/local.
+- QA: full offline 654/654 passed on available Node24.15.0; runtime/package stays Node22.
+  Changed JS syntax, original crest hash, visual inspection of actual production renderer
+  (five-player crest, no-logo trophy, generic eight-player roster), whitespace and release
+  content checks. Ordinary-temp offline test run required for known sandbox rename EPERM;
+  no ACL changes. Initial full run caught one stale version assertion, corrected before rerun.
+- Main areas: src/utils/appreciation-card.js, src/ops/appreciation-form.js, src/ops/hub.js,
+  asset bundle, offline preview, focused tests and public documentation. No bot/cloud mutation,
+  live Discord acceptance, deployment, or production version change claimed.
+- Intended commit: feat(appreciation): Hengs Discord v1.60.0 - add adaptive Crown Stage posters.
+  Next gate: separately approved cloud deployment with Node22 acceptance, then private bot-channel
+  dogfooding before Henry approves publication. Production last verified remains v1.58.0.
+
 ## Hengs Discord v1.59.0 visual follow-up (preview only)
 
 - Henry selected A / Victory Arena, one adaptive with/without-logo composition, and corrected

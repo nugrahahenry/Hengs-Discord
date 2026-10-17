@@ -14,7 +14,7 @@ const store = require('./store');
 const { formatWib, parseScheduleInput } = require('./time');
 const { isOwner, isEditor } = require('./permissions');
 const { buildAppreciationDraft, isAppreciationDraft, readAppreciationDraft } = require('./appreciation');
-const { appreciationModal } = require('./appreciation-form');
+const { appreciationModal, appreciationRevision } = require('./appreciation-form');
 const { renderAppreciationCard } = require('../utils/appreciation-card');
 
 const DATA_DIR = process.env.OPS_DATA_DIR
@@ -222,7 +222,10 @@ async function editStoredPanel(guild, draft) {
   if (!channel?.messages?.fetch) return false;
   const message = await channel.messages.fetch(latest.panel.messageId).catch(() => null);
   if (!message) return false;
-  await message.edit(await draftPayload(latest, { edit: true }));
+  const payload = await draftPayload(latest, { edit: true });
+  const current = store.getDraft(latest.id);
+  if (!current || current.status !== latest.status || appreciationRevision(current) !== appreciationRevision(latest)) return false;
+  await message.edit(payload);
   return true;
 }
 
@@ -330,6 +333,16 @@ async function handleEdit(interaction, draftId) {
   const draft = store.getDraft(draftId);
   if (!draft || draft.status !== 'pending') {
     await interaction.reply({ content: 'ℹ️ Draft ini sudah diproses atau sedang direvisi.', ephemeral: true });
+    return;
+  }
+
+  const appreciation = readAppreciationDraft(draft);
+  if (appreciation) {
+    if (!process.env.DISCORD_GUILD_ID || interaction.guildId !== process.env.DISCORD_GUILD_ID) {
+      await interaction.reply({ content: 'Kartu apresiasi hanya dapat diedit di server utama.', ephemeral: true });
+      return;
+    }
+    await interaction.showModal(appreciationModal(interaction.user.id, { data: appreciation, draft }));
     return;
   }
 
@@ -502,6 +515,7 @@ async function handleButton(interaction, { agent } = {}) {
 async function handleModal(interaction) {
   if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('ops:')) return false;
   if (interaction.customId.startsWith('ops:appreciationform:')) return handleAppreciationForm(interaction);
+  if (interaction.customId.startsWith('ops:appreciationedit:')) return handleAppreciationEdit(interaction);
   const [, action, draftId] = interaction.customId.split(':');
   if (!['editmodal', 'schedulemodal'].includes(action) || !isValidDraftId(draftId)) {
     await interaction.reply({ content: '❌ Form Ops Hub tidak valid.', ephemeral: true });
@@ -545,6 +559,10 @@ async function handleModal(interaction) {
     return true;
   }
 
+  if (readAppreciationDraft(store.getDraft(draftId))) {
+    await interaction.reply({ content: 'Buka Edit pada kartu terbaru untuk mengubah data apresiasi tanpa merusak formatnya.', ephemeral: true });
+    return true;
+  }
   const updated = store.updatePendingDraft(draftId, {
     title: interaction.fields.getTextInputValue('title'),
     body: interaction.fields.getTextInputValue('body'),
@@ -581,6 +599,42 @@ function canUseAppreciationForm(interaction, action) {
     && Boolean(process.env.DISCORD_GUILD_ID)
     && interaction.guildId === process.env.DISCORD_GUILD_ID
     && isEditor(interaction);
+}
+
+async function handleAppreciationEdit(interaction) {
+  const match = interaction.customId.match(/^ops:appreciationedit:(\d{15,22}):([a-f0-9]{12}|[a-f0-9]{16}):([a-f0-9]{16})$/);
+  if (!match || match[1] !== interaction.user?.id || !process.env.DISCORD_GUILD_ID
+    || interaction.guildId !== process.env.DISCORD_GUILD_ID || !isEditor(interaction)) {
+    await interaction.reply({ content: 'Form edit ini khusus peminta yang masih punya akses editor di server utama.', ephemeral: true });
+    return true;
+  }
+  const draft = store.getDraft(match[2]);
+  if (!draft || draft.status !== 'pending' || !readAppreciationDraft(draft) || appreciationRevision(draft) !== match[3]) {
+    await interaction.reply({ content: 'Draft sudah berubah. Buka Edit dari kartu terbaru, lalu periksa lagi. Tidak ada data yang ditimpa.', ephemeral: true });
+    return true;
+  }
+  let replacement;
+  try {
+    replacement = buildAppreciationDraft(Object.fromEntries(['recipient', 'achievement', 'occasion', 'date', 'players']
+      .map(key => [key, interaction.fields.getTextInputValue(key)])));
+  } catch {
+    await interaction.reply({ content: 'Revisi belum disimpan. Isi nama dan pencapaian tanpa mention atau link; maksimal 8 pemain, 60 karakter per pemain. Buka Edit lagi untuk memperbaiki.', ephemeral: true });
+    return true;
+  }
+  // No await between the revision check and the existing synchronous pending-only write.
+  const updated = store.updatePendingDraft(draft.id, replacement, interaction.user.id, 'edit');
+  if (!updated) {
+    await interaction.reply({ content: 'Draft sudah diproses. Revisi tidak disimpan.', ephemeral: true });
+    return true;
+  }
+  await interaction.deferReply({ ephemeral: true });
+  let panelUpdated = false;
+  try { panelUpdated = await editStoredPanel(interaction.guild, updated); }
+  catch { console.warn('[ops] APPRECIATION_PANEL_UPDATE_FAILED'); }
+  await interaction.editReply({ content: panelUpdated
+    ? 'Data dan poster apresiasi sudah diperbarui. Cek preview dulu sebelum Publish; belum diumumkan.'
+    : 'Revisi tersimpan, tetapi preview belum diperbarui. Cek `/ops status` sebelum Publish.', allowedMentions: { parse: [] } });
+  return true;
 }
 
 async function handleAppreciationForm(interaction) {

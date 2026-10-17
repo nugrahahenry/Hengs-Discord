@@ -1,15 +1,16 @@
 # Brief buat ChatGPT — Konsep Desain Welcome Card Discord
 
-## Pembaruan v1.59.0
+## Pembaruan v1.60.0
 
 - Keluarga Aurora dipertahankan, bukan desain ulang logo/background. Nama tampilan member
   menjadi hero 30-46px, `@username` asli 15-19px menjadi penjelas, caption 15px diberi dua baris.
 - Welcome/leave tetap 900 x 280. Teks lengkap tetap di Discord saat gambar dikecilkan pada HP.
-- Apresiasi 1000 x 500 tanpa roster; dengan roster tinggi 576-744, dua kolom, maksimal delapan
-  pemain. Achievement amber 32px, roster 30px, latar navy/plum. Pemotongan teks hanya visual.
-- Logo owner `assets/brand/hengs-family.png` dibaca lokal dan ditunggu sampai bitmap selesai
-  decode. Logo tetap utuh, termasuk tulisan HENGS FAMILY. Asal aset/hash: `assets/brand/README.md`.
-  Penerima selain Hengs Familia/Family memakai trofi Canvas.
+- Apresiasi memakai Crown Stage, lebar 1080px dan tinggi 1350-3600px mengikuti data. Hierarki
+  hasil, crest/trofi, tim, turnamen, metadata, roster. Maksimal delapan pemain dalam 2-3 kolom;
+  nickname opsional dan teks panjang dibungkus, bukan dipotong. Welcome/leave tidak berubah.
+- Logo owner `assets/brand/hengs-family.png` tetap utuh. Poster memakai turunan transparan
+  yang disetujui; penerima selain Hengs Familia/Family memakai trofi. Aset dibaca lokal dan
+  decode ditunggu. Provenance/lisensi: `assets/appreciation/crown-stage/README.md`.
 - Preview offline: `scripts/preview-community-cards.js`. Input JSON opsional berisi appreciation
   fields; tanpa input memakai data sintetis berlabel DEMO. Hasil/data riil tetap di `.cloud/previews/`
   yang di-ignore. Tidak melakukan fetch avatar, login, atau post. Sheet pada lebar 550 dan 320px

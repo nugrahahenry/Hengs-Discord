@@ -5,6 +5,25 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.60.0] - 2026-10-17
+
+### Added
+
+- Hengs Discord v1.60.0: poster Crown Stage memakai aset panggung, trofi dan turunan logo
+  transparan yang disetujui owner. Font Barlow dan ikon Phosphor dibundel beserta lisensinya.
+- Komposisi menyesuaikan logo, nama tim/turnamen panjang, pencapaian umum, tanggal opsional,
+  serta 0-8 pemain. Nickname opsional; nama tidak dipotong. Teks lengkap tetap ada di embed.
+- Edit apresiasi membuka form lima isian yang sudah terisi. Peminta, server, izin editor,
+  status pending dan revisi terakhir diperiksa sebelum perubahan disimpan.
+
+### Fixed
+
+- Submit form lama tidak menimpa revisi baru. Jalur edit teks mentah tidak merusak template
+  apresiasi, dan pembaruan preview yang kedaluwarsa dibatalkan sebelum pengiriman edit.
+- Sheet preview offline menghitung tinggi dari semua gambar agar poster tidak terpotong.
+- Tidak ada perubahan state/schema, provider, penerimaan sertifikat, deployment, atau
+  pengumuman otomatis. Logo sumber tetap utuh dan bukan diganti oleh turunan transparannya.
+
 ## [1.59.0] - 2026-10-17
 
 ### Added

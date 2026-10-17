@@ -10,8 +10,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-appreciation-'));
 process.env.OPS_DATA_DIR = dir;
 const store = require('../src/ops/store');
 const { buildAppreciationDraft, readAppreciationDraft, validateAppreciation } = require('../src/ops/appreciation');
-const { appreciationFormRow, appreciationModal } = require('../src/ops/appreciation-form');
-const { renderAppreciationCard } = require('../src/utils/appreciation-card');
+const { appreciationFormRow, appreciationModal, appreciationRevision } = require('../src/ops/appreciation-form');
+const { renderAppreciationCard, cardContent, layoutCard } = require('../src/utils/appreciation-card');
 const { draftPayload, approvalRow, handleButton, handleModal, processDueSchedules } = require('../src/ops/hub');
 const { parseOperationPrompt } = require('../src/prompt-operations');
 const { resolvePrompt } = require('../src/prompt-assistant');
@@ -106,8 +106,8 @@ test('renderer outputs deterministic bounded PNG for generic, branded, long and 
     { recipient: 'N'.repeat(80), achievement: 'A'.repeat(220), occasion: 'M'.repeat(100), players: Array(8).fill('N'.repeat(58)).join('; ') }]) {
     const image = await renderAppreciationCard(input);
     assert.equal(image.subarray(1, 4).toString(), 'PNG');
-    assert.equal(image.readUInt32BE(16), 1000);
-    assert.ok(image.readUInt32BE(20) >= 500 && image.readUInt32BE(20) <= 744);
+    assert.equal(image.readUInt32BE(16), 1080);
+    assert.ok(image.readUInt32BE(20) >= 1350 && image.readUInt32BE(20) <= 3600);
     assert.ok(image.length < 8 * 1024 * 1024);
     assert.deepEqual(await renderAppreciationCard(input), image);
   }
@@ -116,15 +116,98 @@ test('renderer outputs deterministic bounded PNG for generic, branded, long and 
 test('branded logo pixels are actually decoded, not merely reported as complete', async () => {
   const { createCanvas, loadImage } = require('@napi-rs/canvas');
   const image = await loadImage(await renderAppreciationCard({ recipient: 'Hengs Familia', achievement: 'Juara 1' }));
-  const canvas = createCanvas(1000, 500);
+  const canvas = createCanvas(1080, 1350);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(image, 0, 0);
-  const pixels = ctx.getImageData(620, 100, 310, 310).data;
+  const pixels = ctx.getImageData(251, 202, 578, 578).data;
   let bluePixels = 0;
   for (let i = 0; i < pixels.length; i += 4) {
     if (pixels[i + 2] > 90 && pixels[i + 2] > pixels[i] * 1.7) bluePixels += 1;
   }
   assert.ok(bluePixels > 5000, 'the fixed blue crest must be visible');
+});
+
+test('Crown Stage promotes only explicit rankings and preserves generic achievements', () => {
+  assert.equal(cardContent(data).heading, 'JUARA 1');
+  assert.equal(cardContent(data).game, 'MLBB');
+  for (const achievement of ['Bantu komunitas', 'Hampir juara 1', 'Juara 1?', 'Juara 0', 'Juara 1 bersama tim lain']) {
+    const content = cardContent({ ...data, achievement });
+    assert.equal(content.game, '');
+    assert.ok(content.detail.length > 0);
+  }
+  const generic = cardContent({ recipient: 'Tim Orion', achievement: 'Bantu komunitas' });
+  assert.equal(generic.heading, 'APRESIASI');
+  assert.equal(generic.detail, 'Bantu komunitas');
+  assert.equal(generic.date, undefined);
+  assert.deepEqual(generic.players, []);
+  assert.deepEqual(cardContent(data).players, [{ name: 'Raka', nick: 'Sky' }, { name: 'Dara', nick: '' }]);
+});
+
+test('layout retains 0..8 players and full long text without overlapping text boxes', async () => {
+  await renderAppreciationCard(data); // Register bundled fonts before measuring.
+  const { createCanvas } = require('@napi-rs/canvas');
+  const ctx = createCanvas(1080, 1350).getContext('2d');
+  for (let count = 0; count <= 8; count += 1) {
+    const input = { recipient: 'W'.repeat(80), achievement: 'W'.repeat(220), occasion: 'M'.repeat(100),
+      date: '2'.repeat(48), players: Array.from({ length: count }, (_, i) => `P${i} ${'W'.repeat(55)}`).join('; ') };
+    const content = cardContent(input);
+    const layout = layoutCard(ctx, content, true);
+    assert.equal(content.players.length, count);
+    assert.ok(layout.height <= 3600);
+    const text = layout.blocks.map(b => b.lines.join('')).join('').replaceAll(' ', '');
+    for (const player of content.players) assert.ok(text.includes(player.name.replaceAll(' ', '')));
+    assert.ok(text.includes(content.achievement));
+    for (const block of layout.blocks) {
+      ctx.font = `${block.size}px "${block.family}"`;
+      assert.ok(block.y >= 0 && block.y + block.height <= layout.height);
+      for (const line of block.lines) assert.ok(ctx.measureText(line).width <= block.width + 1, line);
+    }
+    for (let i = 0; i < layout.blocks.length; i += 1) {
+      const a = layout.blocks[i];
+      for (const b of layout.blocks.slice(i + 1)) {
+        const overlapsX = Math.abs(a.x - b.x) < (a.width + b.width) / 2;
+        const overlapsY = a.y < b.y + b.height && b.y < a.y + a.height;
+        assert.equal(overlapsX && overlapsY, false, 'text boxes must not overlap');
+      }
+    }
+  }
+});
+
+test('structured revision prefills fields, redraws privately and refuses stale or unauthorized forms', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, BOT_SETTINGS_CHANNEL_ID: 'settings' });
+  const { draft } = store.createDraft({ ...template });
+  store.setPanel(draft.id, { channelId: 'settings', messageId: 'panel' });
+  const { interaction, sent, edits } = fixture();
+  interaction.customId = `ops:edit:${draft.id}`;
+  await handleButton(interaction);
+  const modal = interaction.modal.toJSON();
+  assert.match(modal.custom_id, /^ops:appreciationedit:/);
+  assert.equal(modal.components[4].components[0].value, 'Raka (Sky)\nDara');
+  assert.ok(modal.custom_id.length <= 100);
+  const original = store.getDraft(draft.id).body;
+  for (const overrides of [{ user: { id: OTHER } }, { guildId: OTHER }, { customId: `${modal.custom_id}:forged` }]) {
+    const bad = fixture().interaction;
+    bad.customId = modal.custom_id;
+    Object.assign(bad, overrides);
+    await handleModal(bad);
+    assert.equal(store.getDraft(draft.id).body, original);
+    assert.equal(bad.replyPayload.ephemeral, true);
+  }
+  interaction.customId = modal.custom_id;
+  interaction.fields.getTextInputValue = key => key === 'occasion' ? 'Orion Cup' : data[key] || '';
+  await handleModal(interaction);
+  assert.equal(readAppreciationDraft(store.getDraft(draft.id)).occasion, 'Orion Cup');
+  assert.equal(sent.length, 0, 'no public send on edit');
+  assert.ok(edits[0].files[0].attachment.length);
+  assert.deepEqual(edits[0].attachments, []);
+  interaction.fields.getTextInputValue = key => key === 'occasion' ? 'Stale Cup' : data[key] || '';
+  await handleModal(interaction);
+  assert.match(interaction.replyPayload.content, /sudah berubah/);
+  assert.equal(readAppreciationDraft(store.getDraft(draft.id)).occasion, 'Orion Cup');
+  interaction.customId = `ops:appreciationedit:${OWNER}:${draft.id}:${appreciationRevision(store.getDraft(draft.id))}`;
+  store.finalizeDraft(draft.id, 'discarded', OWNER);
+  await handleModal(interaction);
+  assert.match(interaction.replyPayload.content, /sudah berubah/);
 });
 
 test('Markdown-like user text remains literal in both card and embed', async () => {
