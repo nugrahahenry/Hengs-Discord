@@ -4,21 +4,17 @@ const { ContainerBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, TextDisp
 const { SOURCES, plain, articleUrl, imageUrl } = require('./feeds');
 const { wibClock } = require('./store');
 const { validatedCopy } = require('./editor');
-const { compositionLimits } = require('./selection');
 
 const text = content => new TextDisplayBuilder().setContent(content).toJSON();
 
 function digestPayload(settings, items, now, intro = '') {
   const components = [];
   const visible = items.slice(0, 3);
-  const entertainment = visible.filter(item => item.topic === 'memes').length;
-  const news = visible.length - entertainment;
-  const mix = compositionLimits(settings);
-  const availability = `Tersedia ${news} berita + ${entertainment} hiburan.${mix && (news < mix.news || entertainment < mix.entertainment)
-    ? ' Bahan segar belum cukup untuk semua slot; tidak diisi dengan item lama atau jenis lain.' : ''}`;
+  const entertainmentOnly = visible.length > 0 && visible.every(item => item.topic === 'memes');
   if (intro) components.push(text(intro));
-  components.push(text(settings.tone === 'casual'
-    ? `## Hengs News\nBiar nggak ketinggalan.\n${availability}` : `## Hengs News\nBacaan harian.\n${availability}`));
+  components.push(text(entertainmentOnly
+    ? '## Hengs Memes\nBuat rehat sebentar.'
+    : settings.tone === 'casual' ? '## Hengs News\nBiar nggak ketinggalan.' : '## Hengs News\nBacaan harian.'));
   for (const item of visible) {
     const copy = validatedCopy(item.editorial, item);
     const title = copy?.title || plain(item.title, 150);

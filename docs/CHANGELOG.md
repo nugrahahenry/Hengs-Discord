@@ -5,6 +5,15 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.61.1] - 2026-10-18
+
+### Fixed
+
+- Hengs Discord v1.61.1 removes availability and missing-slot counters from News cards/previews.
+  Entertainment-only cards use the Hengs Memes heading, with source/date and safety labels kept.
+- Local presentation-only patch. No routing, schema, permission, source, daily quota or schedule
+  changes; separate channels and member submission intake are not included. Not deployed.
+
 ## [1.61.0] - 2026-10-17
 
 ### Added

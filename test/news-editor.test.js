@@ -223,8 +223,8 @@ test('mixed selection reserves entertainment, orders news first and leaves missi
   assert.deepEqual(selectArticles({ ...mixed, count: 2 }, items, null, NOW).map(item => item.topic), ['ai', 'memes']);
   assert.equal(selectArticles({ ...mixed, topics: ['memes'] }, items, null, NOW).length, 1);
   const payload = JSON.stringify(digestPayload(mixed, [items[0]], NOW));
-  assert.match(payload, /Tersedia 0 berita \+ 1 hiburan/);
-  assert.match(payload, /Bahan segar belum cukup/);
+  assert.doesNotMatch(payload, /Tersedia \d+ berita|Bahan segar belum cukup/);
+  assert.match(payload, /Hengs Memes/);
 });
 
 test('editor maps dense IDs around no-excerpt comics and shares article cache across mixes', async () => {

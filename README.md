@@ -2,7 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.61.0 - spaced news and community-friendly appreciation
+**Current checkpoint:** Hengs Discord v1.61.1 - cleaner news and entertainment cards (local-only)
+
+Removes availability/missing-slot counters from public cards and previews. Entertainment-only
+cards use Hengs Memes, while news keeps Hengs News. Channel routing, schedule and member
+permissions are unchanged. Separate channels and member submission intake are not implemented
+in this patch; the reviewed-vs-direct-post policy still needs an owner decision before that work.
 
 Cloud-live since 2026-10-17: News sends one item at a time, at least one hour apart (for example
 08:00, 09:00, 10:00 WIB). `/hengs help` separates member features from privileged controls.

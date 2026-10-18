@@ -139,3 +139,20 @@ test('installed Discord SDK serializes visual payload without legacy content/emb
   assert.deepEqual(sdk.body.allowed_mentions, { parse: [] });
   assert.equal(sdk.files, null);
 });
+
+test('news and entertainment cards omit availability counters in send and preview', () => {
+  const comic = item({ topic: 'memes', source: SOURCES[3].name,
+    url: 'https://xkcd.com/123/', imageUrl: 'https://imgs.xkcd.com/comics/example.png' });
+  for (const tone of ['casual', 'neutral']) {
+    for (const items of [[item()], [comic], [item(), comic]]) {
+      for (const intro of ['', 'Preview privat. Belum dikirim.']) {
+        const payload = digestPayload({ tone, count: 3, topics: ['ai', 'memes'] }, items, NOW, intro);
+        const output = JSON.stringify(payload);
+        assert.doesNotMatch(output, /Tersedia \d+ berita|\d+ hiburan|Bahan segar belum cukup/);
+        assert.match(output, items.every(row => row.topic === 'memes') ? /Hengs Memes/ : /Hengs News/);
+        assert.deepEqual(payload.allowedMentions, { parse: [] });
+        assert.equal(payload.components.filter(row => row.type === ComponentType.Container).length, items.length);
+      }
+    }
+  }
+});

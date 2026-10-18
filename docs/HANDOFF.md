@@ -1,6 +1,29 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-17
+Updated: 2026-10-18
+
+## Hengs Discord v1.61.1 cleaner news cards and next routing gate
+
+- Henry requested separate news/meme channels, no availability counters, and member submissions
+  from destination channels or bot-commands. Independent presentation fix removes the counters
+  and names entertainment-only cards Hengs Memes. Sources, timestamps, no-mention policy and
+  image/fallback validation unchanged. No live deploy, channel creation, permission/state change,
+  provider call, submission capture, WA/Canox mutation or message publication occurred.
+- One material policy question is pending: reviewed contributions (recommended) versus direct
+  member posting. Combined architecture/design/implementation package is in ignored canonical
+  docs/NEWS-DIRECTION.md. Do not implement new persistent intake or widen permissions until
+  that choice approves/replaces the package. No new overlapping temporary spec/plan created.
+- Cloud stays exact v1.61.0 code82c94b168118447f3d3b8d9d44000d1a133e0cdf. Last verified live
+  acceptance is below; this task has not rechecked runtime. Local release metadata is1.61.1.
+- Regression was first reproduced with two failing assertions, then presentation24/24 passed.
+  Integrated scoped QA72/72 passed (all News, shared help and release policy/metadata), zero
+  skips/failures. Sandbox temp atomic rename was denied; one approved offline rerun outside
+  sandbox passed without ACL changes. Syntax/whitespace and secret boundaries passed. Only
+  static renderer copy changed; existing source/image allowlists and mention guards unchanged.
+  No new dependency or SDK/API contract. Full unrelated suite was not rerun for this copy patch.
+- Intended checkpoint: fix(news): Hengs Discord v1.61.1 - simplify news and entertainment cards
+  Next: get the contribution policy answer, then implement split routing and intake as one
+  coherent batch; keep deployment as its own approved operational step.
 
 ## Hengs Discord v1.61.0 cloud acceptance and public invite
 
