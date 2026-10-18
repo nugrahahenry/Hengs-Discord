@@ -10,6 +10,7 @@ const { isEditor } = require('./ops/permissions');
 const { parseOperationPrompt, operationReply } = require('./prompt-operations');
 const { parsePersonalPrompt } = require('./personal-assistant');
 const { isNewsIntent } = require('./news/prompts');
+const { parseShare, GUIDE: SHARE_GUIDE } = require('./news/sharing');
 
 const COMMUNITY_ACTION = /\b(?:buat|buatkan|bikin|rancang|siapkan|susun|atur|desain|rapikan)\b/i;
 const COMMUNITY_OBJECT = /\b(?:server|channel|kategori|ruang|komunitas|struktur|lobi|gaming|mabar|creator|galeri|core|voice|text)\b/i;
@@ -639,6 +640,7 @@ function applyFocusAction({ route, state } = {}) {
 }
 
 function resolvePrompt({ prompt, scopeKind, actor, guild, privateReply = false, personalPending = false, communityDraft = null } = {}) {
+  if (parseShare(prompt)) return { handled: true, kind: 'community_share_private', content: SHARE_GUIDE };
   if (isNewsIntent(prompt)) return { handled: true, kind: 'news_private', content: 'Hengs News punya preview dan jadwal harian. Pengelola server dapat mengaturnya lewat `/hengs ask`, misalnya `atur berita teknologi AI ke #hengs-news`. Belum ada berita yang dikirim dari pesan ini.' };
   const result = classifyPrompt(prompt);
   if (result.kind === 'help') return { handled: true, kind: 'help', content: buildPromptHelp({ home: scopeKind === 'home',

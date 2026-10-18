@@ -2,12 +2,13 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.61.1 - cleaner news and entertainment cards (local-only)
+**Current checkpoint:** Hengs Discord v1.62.0 - split channels and member sharing (not deployed)
 
-Removes availability/missing-slot counters from public cards and previews. Entertainment-only
-cards use Hengs Memes, while news keeps Hengs News. Channel routing, schedule and member
-permissions are unchanged. Separate channels and member submission intake are not implemented
-in this patch; the reviewed-vs-direct-post policy still needs an owner decision before that work.
+News and entertainment have separate destinations. Members may post directly according to
+Discord permissions, or privately preview and confirm their own contribution through Hengs.
+No admin queue or AI safety/fact-check certification. Availability counters remain removed.
+Local code is ready for a separate deployment and channel-activation step; existing live channels
+and permissions have not been changed by this checkpoint.
 
 Cloud-live since 2026-10-17: News sends one item at a time, at least one hour apart (for example
 08:00, 09:00, 10:00 WIB). `/hengs help` separates member features from privileged controls.
@@ -44,6 +45,41 @@ Discord token consumer; local Discord remains stopped as rollback only.
 
 ## Hengs News
 
+### Pisahkan news dan memes, kontribusi anggota
+
+Mulai v1.62.0 (belum live), `/admin setup` di server utama memiliki pilihan **News + memes**.
+Preview menjelaskan pembuatan/pemakaian dua channel dan pembukaan izin kirim/file/link bagi anggota.
+Konfirmasi hanya menyentuh kedua channel itu, bukan setup server lengkap. Nama/kategori channel
+lama dan overwrite role/anggota lain tetap; channel meme baru mengikuti kategori news.
+Pembuatan channel tidak mengubah tujuan atau mengaktifkan jadwal bot.
+
+Pengelola memilih tujuan dengan `/hengs ask`:
+`atur berita 2 berita 1 meme ke #hengs-news, meme ke #hengs-memes`, lalu `preview berita`
+dan `terapkan berita` untuk channel utama yang sudah teruji. Konfigurasi baru tetap perlu uji
+dan aktivasi. News dan meme harus berbeda. Tanpa tujuan meme, slot hiburan dilewati, bukan
+dikirim ke news. Jadwal dua berita dan satu komik tetap berjarak minimal satu jam.
+
+Anggota dapat mengirim sendiri di news/memes jika izin Discord mengizinkan, tanpa antrean admin.
+Untuk lewat Hengs, gunakan `/hengs ask` di bot-commands (atau channel yang diizinkan server publik):
+
+- `bagikan berita: https://contoh.com/artikel` untuk satu link HTTPS. Hengs tidak membuka link.
+- `bagikan joke: teks leluconmu` untuk teks tanpa link atau mention.
+- `bagikan meme: https://discord.com/channels/.../.../...` untuk link pesan milikmu di channel
+  perintah yang sama, dengan satu gambar PNG/JPG/WebP/GIF maksimal 8 MB. Hengs meneruskan link,
+  bukan mengunggah ulang gambar. Untuk gambar langsung tampil, unggah sendiri ke channel meme.
+
+Preview privat berlaku 10 menit; pengirim menekan **Kirim kirimanku** atau **Batal**. Izin
+source/tujuan, timeout, kepemilikan pesan, dan pengaturan dicek lagi saat konfirmasi. Hasil diberi
+nama pengirim tanpa ping dan label kiriman komunitas, bukan verifikasi fakta/keamanan. Tidak ada
+URL fetch, pemeriksaan AI atau penyimpanan isi ke file. Tidak otomatis meneruskan posting biasa.
+Relay dibatasi satu per menit per anggota dan server. Jika tujuan memakai slowmode, anggota
+diminta posting langsung agar tidak melewati batas Discord. Hasil kirim yang tidak pasti tidak
+dicoba ulang otomatis; cek tujuan dahulu. Reset/restart membatalkan preview.
+
+Schema news v3 menambah tujuan meme; upgrade mempertahankan pengaturan dan bukti kiriman lama.
+Rollback ke runtime lama memerlukan downgrade tervalidasi saat service berhenti, bukan restore
+receipt lama. Jadwal yang memuat hiburan dijeda pada downgrade agar tidak kembali tercampur.
+
 v1.58.1 memperketat format editor pada Groq GPT-OSS 120B/20B dengan schema JSON,
 penalaran rendah dan output penalaran disembunyikan. Provider/model lain tetap memakai kontrak
 JSON sebelumnya. Batas tetap 700 token, 8 detik, tanpa retry atau rotasi model. Pemeriksaan
@@ -60,7 +96,7 @@ pengaturan baru dipakai pada jadwal berikutnya yang masih punya slot. Pindah cha
 Gunakan `atur berita 2 berita 1 meme` untuk maksimal dua berita dari topik pilihan + satu komik.
 Jika topik berita belum dipilih, teknologi + AI dipakai. Dalam campuran dengan dua item, bagiannya
 menjadi satu berita + satu hiburan. Berita tampil dulu, komik terakhir dengan warna/label berbeda.
-Slot yang kosong tidak diganti jenis lain; jumlah tersedia ditampilkan supaya kekurangan bahan jelas.
+Slot yang kosong tidak diganti jenis lain; sejak v1.61.1 jumlah tersedia tidak lagi ditampilkan.
 Cloudflare Blog ditambahkan sebagai sumber teknologi. Komik tanpa cuplikan tidak dikirim ke AI
 untuk ditebak, dan tidak menggagalkan ringkasan berita lain. Versi ini sudah live; komposisi
 dua berita + satu komik dimulai pukul 08:00 WIB. Sejak v1.61.0 setiap item mendapat slot

@@ -86,6 +86,7 @@ async function execute(interaction, {
   personalAssistant,
   homeWelcomeStore,
   newsService,
+  communitySharing,
   logger = console,
 }) {
   if (!interaction.inGuild?.() || !interaction.guildId) {
@@ -165,6 +166,7 @@ async function execute(interaction, {
 
   if (subcommand === 'reset') {
     newsService?.clear(interaction);
+    communitySharing?.clear(interaction);
     const conversationKey = agent.buildConversationKey(interaction.guildId, interaction.user.id);
     agent.clearHistory(conversationKey);
     const memory = memoryContexts.get(agent);
@@ -187,6 +189,13 @@ async function execute(interaction, {
   const prompt = String(interaction.options.getString('prompt', true) || '').trim();
   if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
     await replyPrivate(interaction, 'Pertanyaan harus berisi 1 sampai 1800 karakter.');
+    return;
+  }
+
+  if (communitySharing?.canHandle(prompt)) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const result = await communitySharing.handle(interaction, prompt);
+    await interaction.editReply({ ...result, allowedMentions: { parse: [] } });
     return;
   }
 

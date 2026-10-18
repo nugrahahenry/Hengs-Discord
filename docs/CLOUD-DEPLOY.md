@@ -15,6 +15,18 @@ berhenti, dengan owner/mode file, pengaturan dan riwayat tetap. Rollback wajib m
 kiriman tidak terulang. Jangan memulihkan snapshot receipt lama. Staging sudah dibersihkan.
 Deskripsi aplikasi sudah memuat link invite publik terverifikasi, tanpa mengubah izin instalasi.
 
+Kandidat lokal v1.62.0 memisahkan tujuan news/memes dan menambah kiriman anggota melalui preview
+privat. Belum dideploy dan belum membuat/mengubah channel produksi. Gate upgrade berikutnya:
+uji exact committed candidate di Node22; hentikan Discord; migrasikan news schema2 ke3 secara
+atomik tervalidasi (tambahkan `memeChannelId: null`, pertahankan mode/owner dan seluruh receipt).
+Jangan kirim hiburan ke channel lama ketika tujuan meme belum dipilih. Jangan otomatis membuka
+izin anggota atau mengaktifkan routing karena hanya deployment yang disetujui.
+Rollback ke v1.61.0 wajib memakai `downgradeState(currentState, 2)` dari kandidat, mempertahankan
+receipt mutakhir dan menjeda jadwal yang memuat hiburan. Validasi file dengan kode target sebelum
+start binary lama; jangan mengembalikan backup receipt yang lebih tua. Route meme akan dilepas
+oleh downgrade. Dua heartbeat dan batas single-consumer tetap wajib. Tidak perlu registrasi
+slash command baru, QR, reboot, restart WA/Canox, atau uji kiriman nyata untuk migrasi ini.
+
 Pada acceptance v1.60.0, poster Crown Stage dan sertifikat asli terverifikasi di channel
 bot, termasuk checksum sertifikat dan inspeksi visual Discord. Setelah persetujuan lanjutan Henry,
 satu channel Hall of Fame dibuat di Community dan satu posting final diterbitkan oleh Hengs.

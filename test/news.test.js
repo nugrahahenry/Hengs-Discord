@@ -19,6 +19,7 @@ const GUILD = '223456789012345678';
 const OTHER = '923456789012345678';
 const USER = '323456789012345678';
 const CHANNEL = '423456789012345678';
+const MEMES = '523456789012345678';
 const BASE = Date.parse('2026-10-13T01:00:00Z');
 const { GAP, dueSlot, slotSettings, scheduleTimes } = require('../src/news/cadence');
 const { upgradeState, downgradeState } = require('../src/news/store');
@@ -38,12 +39,13 @@ function rss(source = SOURCES[0], count = 5, now = BASE) {
 function rig(t, options = {}) {
   const f = fixture(t);
   let permission = true; let enabledScope = true; let sendError = false;
-  const sent = []; const logs = [];
+  const sent = []; const logs = []; const destinations = [];
   const channel = { id: CHANNEL, name: 'hengs-news', guildId: GUILD, type: ChannelType.GuildText,
     permissionsFor: () => ({ has: () => permission }),
-    async send(payload) { sent.push(payload); if (sendError) throw new Error('PRIVATE RAW ERROR'); return { id: 'synthetic' }; } };
+    async send(payload) { destinations.push(this.id); sent.push(payload); if (sendError) throw new Error('PRIVATE RAW ERROR'); return { id: 'synthetic' }; } };
+  const memeChannel = { ...channel, id: MEMES, name: 'hengs-memes' };
   const guild = { id: GUILD, ownerId: USER, channels: {
-    cache: new Map([[CHANNEL, channel]]), async fetch() { return channel; },
+    cache: new Map([[CHANNEL, channel], [MEMES, memeChannel]]), async fetch(id) { return this.cache.get(id); },
   }, members: { async fetchMe() { return {}; } } };
   const guildAccess = { classify: () => ({ kind: enabledScope ? 'home' : 'pending' }) };
   const readFeeds = options.readFeeds || (async () => ({ items: parseFeed(rss(SOURCES[0], 5, f.now()), SOURCES[0], f.now()), failures: 0 }));
@@ -54,7 +56,7 @@ function rig(t, options = {}) {
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
   const client = { guilds: { cache: new Map([[GUILD, guild]]) } };
   const handle = prompt => service.handle(interaction, prompt);
-  return { ...f, service, handle, interaction, channel, guild, sent, logs, client, guildAccess,
+  return { ...f, service, handle, interaction, channel, guild, sent, destinations, logs, client, guildAccess,
     deny: () => { permission = false; }, disable: () => { enabledScope = false; }, failSend: () => { sendError = true; } };
 }
 async function testedRow(r) {
@@ -67,10 +69,52 @@ async function testedRow(r) {
   assert.match((await r.handle('aktifkan berita')).content, /Jadwal berita aktif/);
 }
 
+test('split-route parsing supports decorated names, keeps topics and rejects ambiguous/same targets', () => {
+  const channels = [{ id: CHANNEL, name: '📰・hengs-news' }, { id: MEMES, name: '😂・hengs-memes' }];
+  const value = editSettings('atur berita 2 berita 1 meme ke #hengs-news, meme ke #hengs-memes', DEFAULTS, channels);
+  assert.equal(value.channelId, CHANNEL); assert.equal(value.memeChannelId, MEMES);
+  assert.deepEqual(value.topics, ['tech', 'ai', 'memes']); assert.equal(value.count, 3);
+  const routeOnly = editSettings(`atur berita meme ke <#${MEMES}>`, settings(), channels);
+  assert.deepEqual(routeOnly.topics, settings().topics); assert.equal(routeOnly.channelId, CHANNEL);
+  assert.throws(() => editSettings(`atur berita meme ke <#${CHANNEL}>`, settings(), channels), /berbeda/);
+  assert.throws(() => editSettings('atur berita meme ke #hengs-memes', settings(), [...channels, { id: OTHER, name: 'hengs-memes' }]), /belum ditemukan/);
+});
+
+test('v2 upgrade and rollback preserve receipts, hashes and enabled state, with missing meme route skipped', async t => {
+  const r = rig(t); await testedRow(r);
+  const state = JSON.parse(fs.readFileSync(r.filePath, 'utf8'));
+  const old = downgradeState(state, 2);
+  assert.equal(old.schemaVersion, 2); assert.equal(old.guilds[0].settings.memeChannelId, undefined);
+  assert.deepEqual(old.guilds[0].receipts, state.guilds[0].receipts);
+  assert.deepEqual(upgradeState(old), state);
+  assert.throws(() => downgradeState(state, 4), /ROLLBACK_VERSION/);
+  const bad = structuredClone(state); bad.guilds[0].settings.memeChannelId = CHANNEL;
+  assert.throws(() => validateState(bad), /STATE_INVALID/);
+  const row = r.store.get(GUILD);
+  r.store.revise(GUILD, row.revision, { ...row.settings, topics: ['tech', 'ai', 'memes'] });
+  r.advance(DAY + 2 * GAP); r.service.start(r.client);
+  const count = r.sent.length; await r.service.tick(); await r.service.tick();
+  assert.equal(r.sent.length, count); assert.equal(r.store.get(GUILD).receipts.at(-1).status, 'cancelled');
+  assert.equal(r.store.get(GUILD).receipts.at(-1).slot, 2);
+  const rollback = downgradeState(JSON.parse(fs.readFileSync(r.filePath, 'utf8')), 2);
+  assert.equal(rollback.guilds[0].enabled, false, 'older runtimes must not resume mixed-channel posting');
+  assert.equal(rollback.guilds[0].receipts.length, r.store.get(GUILD).receipts.length);
+});
+
+test('adding a distinct meme destination requires preview and preserves prior delivery evidence', async t => {
+  const r = rig(t); await testedRow(r); const before = r.store.get(GUILD);
+  await r.handle('atur berita meme ke #hengs-memes');
+  assert.match((await r.handle('terapkan berita')).content, /preview berita/);
+  await r.handle('preview berita'); assert.match((await r.handle('terapkan berita')).content, /Revisi berita diterapkan/);
+  const after = r.store.get(GUILD); assert.equal(after.settings.memeChannelId, MEMES);
+  assert.equal(after.enabled, before.enabled); assert.deepEqual(after.receipts, before.receipts);
+  assert.deepEqual(after.seen, before.seen); assert.equal(r.sent.length, 1);
+});
+
 test('spaced scheduler sends two news and one comic as three durable single-item slots', async t => {
   const r = rig(t, { readFeeds: async () => ({ items: [SOURCES[0], SOURCES[1], SOURCES[3]]
     .flatMap(source => parseFeed(rss(source, 3, BASE), source, BASE)), failures: 0 }) });
-  let row = r.store.save(GUILD, 0, { ...settings(), topics: ['tech', 'ai', 'memes'] });
+  let row = r.store.save(GUILD, 0, { ...settings(), memeChannelId: MEMES, topics: ['tech', 'ai', 'memes'] });
   // Existing destination proof from yesterday, not an extra live test today.
   row = r.store.claim(GUILD, row.revision, '2026-10-12', [], 'claimed');
   row = r.store.finish(GUILD, row.revision, '2026-10-12', 'sent');
@@ -94,6 +138,7 @@ test('spaced scheduler sends two news and one comic as three durable single-item
     assert.deepEqual(payload.allowedMentions, { parse: [] });
   }
   assert.match(JSON.stringify(r.sent[2]), /Jeda komik/);
+  assert.deepEqual(r.destinations, [CHANNEL, CHANNEL, MEMES]);
   assert.equal(new Set(r.store.get(GUILD).receipts.filter(x => x.slot >= 0).map(x => x.publisher)).size, 3);
   r.advance(GAP); await restarted.tick(); assert.equal(r.sent.length, 3);
 });
@@ -133,7 +178,7 @@ test('legacy news migration preserves evidence and rollback conservatively consu
   assert.equal(f.store.get(GUILD).receipts[0].slot, -1);
   assert.deepEqual(fs.readFileSync(f.filePath), bytes, 'read-only upgrade must not write');
   f.store.pause(GUILD);
-  assert.equal(JSON.parse(fs.readFileSync(f.filePath)).schemaVersion, 2);
+  assert.equal(JSON.parse(fs.readFileSync(f.filePath)).schemaVersion, 3);
   assert.deepEqual(f.store.get(GUILD).seen, old.guilds[0].seen);
 });
 
@@ -149,7 +194,7 @@ test('news fresh install, schema checks, atomic writes, stale revision and tenan
   assert.equal(fs.readdirSync(f.root).length, 1);
   const reopened = createNewsStore({ filePath: f.filePath, now: f.now });
   assert.deepEqual(reopened.get(GUILD), row);
-  assert.throws(() => validateState({ schemaVersion: 3, guilds: [] }), /STATE_INVALID/);
+  assert.throws(() => validateState({ schemaVersion: 4, guilds: [] }), /STATE_INVALID/);
   fs.writeFileSync(f.filePath, '{corrupt');
   assert.throws(() => f.store.list(), /STATE_INVALID/);
   assert.throws(() => f.store.save(OTHER, 0, settings()), /STATE_INVALID/);

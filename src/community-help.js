@@ -29,6 +29,8 @@ function buildCommunityHelp({ home = false, manager = false, editor = false, gui
     '• "Jelasin konsep ini pakai contoh sederhana."',
     '• "Bantu cari ide kegiatan komunitas yang seru."',
     '• "Rapikan kalimat ini biar enak dibaca: ..."',
+    '', '**News dan memes**',
+    'Posting langsung sesuai izin channel, atau `/hengs ask` di bot-commands: `bagikan berita: link HTTPS` / `bagikan joke: teks`. Preview dulu, kamu yang konfirmasi. Bukan verifikasi AI.',
     ...(home ? ['', '**Punya pencapaian?**',
       `Ajukan kartu apresiasi di ${botCommands(guild)}, bukan di Hall of Fame. Siapkan tim/pemain, hasil, acara, tanggal, dan roster satu orang per baris. Owner/editor membantu review. Tag akun Discord opsional, bukan wajib.`] : []),
     '', '**Tombol bantuanmu**',
@@ -38,7 +40,7 @@ function buildCommunityHelp({ home = false, manager = false, editor = false, gui
   ];
   if (manager || (home && editor)) lines.push('', '**Khusus pengelola**',
     ...(manager ? ['• `/setup`: aktifkan dan pilih channel yang boleh dipakai.',
-      '• `/hengs ask` → "atur berita 2 berita 1 meme ke #hengs-news", lalu preview. Satu item per kiriman, jeda minimal satu jam.'] : []),
+      '• News terpisah: `atur berita 2 berita 1 meme ke #hengs-news, meme ke #hengs-memes`. Preview dulu; jeda otomatis minimal satu jam.'] : []),
     ...(home && manager ? ['• Rancang struktur server, preview opsi lalu konfirmasi. Contoh: "rancang server gaming".',
       '• Fitur privat: "ingatkan aku besok jam 7 pagi", "catat ...", "fokus belajar", atau "ubah welcome" lewat `/hengs ask`.'] : []),
     ...(home && editor ? ['• "Bikin kartu apresiasi" membuka form. Review di `bot-settings`; pilih Tag anggota atau Tanpa tag. Owner yang Publish/Jadwalkan.'] : []));

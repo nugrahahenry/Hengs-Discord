@@ -19,7 +19,9 @@ function rig() {
   const created = []; const legacy = []; const logs = [];
   const channels = new Collection();
   const guild = { id: GUILD, ownerId: OWNER, memberCount: 2,
-    members: { me: { id: BOT, permissions: { has: p => p === P.ManageChannels && manageChannels } },
+    members: { me: { id: BOT, permissions: { has: p => (Array.isArray(p) || p === P.ManageChannels) && manageChannels } },
+      async fetchMe() { return this.me; },
+      async fetch() { return { permissions: { has: () => true } }; },
       cache: new Collection([[BOT, { user: { bot: true } }], [OWNER, { user: { bot: false } }]]) },
     roles: { everyone: { id: GUILD } },
   };
@@ -62,6 +64,63 @@ function rig() {
     denySend: () => { sendPermissions = false; }, scope: value => { kind = value; },
     fetch: fn => { fetchHook = fn; }, create: fn => { createHook = fn; } };
 }
+
+test('community setup opens only news/meme participation bits and creates meme beside existing news', async () => {
+  const r = rig(); const parent = r.channel('ANNOUNCEMENTS', ChannelType.GuildCategory);
+  const news = r.channel('📰・hengs-news', ChannelType.GuildText, parent.id);
+  const writes = []; news.permissionOverwrites.edit = async (...args) => { writes.push(args); };
+  const p = await preview(r, 'community'); assert.match(p.content, /Anggota langsung posting/);
+  assert.equal(r.created.length, 0); assert.equal(writes.length, 0);
+  const i = await click(r, p, 'split');
+  assert.equal(r.created.length, 1); assert.equal(r.legacy.length, 0); assert.equal(writes.length, 1);
+  assert.equal(r.created[0].name, '😂・hengs-memes'); assert.equal(r.created[0].parent, parent.id);
+  assert.deepEqual(Object.keys(writes[0][1]).sort(), ['AttachFiles', 'EmbedLinks', 'ReadMessageHistory', 'SendMessages', 'ViewChannel']);
+  assert.equal(writes[0][0], GUILD); assert.equal(news.parentId, parent.id);
+  assert(r.created[0].permissionOverwrites[0].allow.includes(P.SendMessages));
+  assert.match(i.edits.at(-1).content, /Routing bot belum berubah/);
+  await click(r, p, 'split'); assert.equal(r.created.length, 1); assert.equal(writes.length, 1);
+});
+
+test('community fresh setup creates two separate channels, reuses exact existing ones without moves', async () => {
+  const r = rig(); await click(r, await preview(r, 'community'), 'split');
+  assert.equal(r.created.length, 2); assert.equal(r.legacy.length, 0);
+  await click(r, await preview(r, 'community'), 'split'); assert.equal(r.created.length, 2);
+});
+
+test('community preview rejects duplicate memes, inventory drift and hidden forged actions', async () => {
+  const r = rig(); r.channel('hengs-memes'); r.channel('😂・hengs-memes');
+  assert.equal((await preview(r, 'community')).components.length, 0);
+  assert.equal(r.created.length, 0);
+  const fresh = rig(); const p = await preview(fresh, 'community'); fresh.channel('new-channel');
+  await click(fresh, p, 'split'); assert.equal(fresh.created.length, 0);
+  const news = await preview(fresh, 'yes');
+  const forged = fresh.interaction({ customId: button(news, 'news').replace(/:news$/, ':split') });
+  await fresh.flow.handle(forged, fresh.deps); assert.equal(fresh.created.length, 0);
+});
+
+test('community setup checks fresh manager/bot permissions and does not retry partial failure', async () => {
+  const r = rig(); const p = await preview(r, 'community'); r.denyCreate();
+  await click(r, p, 'split'); assert.equal(r.created.length, 0);
+  const revoked = rig(); const other = { user: { id: OTHER }, memberPermissions: { has: () => true } };
+  const a = await preview(revoked, 'community', other);
+  revoked.guild.members.fetch = async () => ({ permissions: { has: () => false } });
+  await click(revoked, a, 'split', other); assert.equal(revoked.created.length, 0);
+  const partial = rig(); const b = await preview(partial, 'community');
+  partial.create(() => { if (partial.created.length === 2) throw new Error('private-provider'); });
+  const i = await click(partial, b, 'split'); await click(partial, b, 'split');
+  assert.equal(partial.created.length, 2); assert.equal(partial.channels.size, 1);
+  assert.match(i.edits.at(-1).content, /sebagian perubahan mungkin/);
+  assert(!JSON.stringify([i.edits, partial.logs]).includes('private-provider'));
+});
+
+test('community setup refuses changed inventory while apply acknowledgement is awaited', async () => {
+  const r = rig(); const p = await preview(r, 'community');
+  const i = await click(r, p, 'split', { async editReply(payload) {
+    this.edits.push(payload);
+    if (payload.content.startsWith('Menerapkan')) r.channel('concurrent-channel');
+  } });
+  assert.equal(r.created.length, 0); assert.match(i.edits.at(-1).content, /belum bisa dipastikan/);
+});
 function button(payload, action) {
   return payload.components.flatMap(row => row.toJSON().components).find(c => c.custom_id.endsWith(':' + action)).custom_id;
 }

@@ -38,8 +38,8 @@ async function inventory(guild) {
   return { channels, hash: crypto.createHash('sha256').update(JSON.stringify(rows)).digest('hex') };
 }
 
-function findNews(guild, channels) {
-  const matches = channels.filter(c => normalize(c.name) === 'hengs-news');
+function findNews(guild, channels, name = 'hengs-news') {
+  const matches = channels.filter(c => normalize(c.name) === name);
   if (matches.length > 1 || (matches.length === 1 && matches[0].type !== ChannelType.GuildText)) {
     throw new Error('NEWS_CHANNEL_CONFLICT');
   }
@@ -75,6 +75,45 @@ async function ensureNewsChannel(guild, { expectedId = null, parent = null } = {
   return { channel, created: true };
 }
 
+async function ensureCommunityChannels(guild, { newsId = null, memeId = null, expectedHash, assertLease = () => {} } = {}) {
+  const { channels, hash } = await inventory(guild);
+  if (expectedHash && expectedHash !== hash) throw new Error('SETUP_PREVIEW_STALE');
+  const news = findNews(guild, channels);
+  const meme = findNews(guild, channels, 'hengs-memes');
+  if ((news?.id || null) !== newsId || (meme?.id || null) !== memeId) throw new Error('SETUP_PREVIEW_STALE');
+  const me = await guild.members.fetchMe({ force: true });
+  if (!me.permissions.has([P.ManageChannels, P.ManageRoles])) throw new Error('COMMUNITY_SETUP_PERMISSIONS');
+  const allow = [P.ViewChannel, P.ReadMessageHistory, P.SendMessages, P.AttachFiles, P.EmbedLinks];
+  const result = [];
+  for (const [existing, name] of [[news, NEWS_NAME], [meme, '😂・hengs-memes']]) {
+    await assertLease();
+    if (existing) {
+      // Edit only the five public participation bits. Preserve other overwrites and thread policy.
+      await existing.permissionOverwrites.edit(guild.roles.everyone.id, {
+        ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true,
+      }, { reason: 'Hengs setup: owner confirmed direct community posting' });
+      result.push(existing);
+    } else {
+      const parent = news?.parentId || null;
+      if (parent && !channels.some(c => c.id === parent && c.type === ChannelType.GuildCategory)) throw new Error('NEWS_PARENT_INVALID');
+      const created = await guild.channels.create({ name, type: ChannelType.GuildText,
+        ...(parent ? { parent } : {}),
+        topic: name === NEWS_NAME ? 'Berita dan sumber dari Hengs serta anggota. Kiriman anggota bukan verifikasi fakta.'
+          : 'Meme, komik dan jokes. Anggota boleh unggah langsung; ikuti aturan server.',
+        reason: 'Hengs setup: owner confirmed separate community channels',
+        permissionOverwrites: [
+          { id: guild.roles.everyone.id, allow,
+            deny: [P.CreatePublicThreads, P.CreatePrivateThreads, P.SendMessagesInThreads] },
+          { id: me.id, allow: NEWS_PERMISSIONS },
+        ],
+      });
+      if (created?.guildId !== guild.id || created.type !== ChannelType.GuildText) throw new Error('NEWS_CREATE_UNCERTAIN');
+      result.push(created);
+    }
+  }
+  return result;
+}
+
 function newsNextSteps(channel) {
   return [
     `Channel berita siap: <#${channel.id}>. Jadwal berita belum diaktifkan.`,
@@ -96,7 +135,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
   function sweep() { for (const [id, ticket] of tickets) if (now() >= ticket.expires) tickets.delete(id); }
   function question(id, revision = 0) {
     return { ...safe('**Setup server Hengs**\nMau tambahkan Hengs News sekarang?\n\nPilih dulu, lalu tinjau preview. Belum ada channel yang diubah. Pilihan ini tidak menyalakan berita harian.'),
-      components: controls(id, [['yes', 'Ya, tambahkan news', ButtonStyle.Primary], ['no', 'Belum sekarang'], ['cancel', 'Batal']], revision) };
+      components: controls(id, [['yes', 'News saja'], ['community', 'News + memes', ButtonStyle.Primary], ['no', 'Belum sekarang'], ['cancel', 'Batal']], revision) };
   }
   async function reject(interaction, content) {
     await interaction.reply({ ...safe(content), flags: MessageFlags.Ephemeral });
@@ -116,7 +155,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
     async handle(interaction, { guildAccess } = {}) {
       if (!interaction.isButton?.() || !String(interaction.customId).startsWith(PREFIX)) return false;
       sweep();
-      const match = /^hengs-admin-setup:([a-f0-9]{24}):(\d{1,4}):(yes|no|back|cancel|news|full)$/.exec(interaction.customId);
+      const match = /^hengs-admin-setup:([a-f0-9]{24}):(\d{1,4}):(yes|no|community|split|back|cancel|news|full)$/.exec(interaction.customId);
       const ticket = match && tickets.get(match[1]);
       if (!ticket || ticket.revision !== Number(match[2]) || !canManage(interaction, guildAccess) || ticket.actor !== interaction.user.id
         || ticket.guild !== interaction.guildId || ticket.channel !== interaction.channelId) {
@@ -139,6 +178,22 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
         if (action === 'back') {
           ticket.phase = 'question'; ticket.revision++; delete ticket.hash;
           await interaction.editReply(question(id, ticket.revision)); return true;
+        }
+        if (action === 'community') {
+          if (ticket.phase !== 'question') throw new Error('SETUP_PHASE_INVALID');
+          const snapshot = await inventory(interaction.guild);
+          const news = findNews(interaction.guild, snapshot.channels);
+          const meme = findNews(interaction.guild, snapshot.channels, 'hengs-memes');
+          ticket.existingId = news?.id || null; ticket.memeId = meme?.id || null;
+          ticket.hash = snapshot.hash; ticket.phase = 'community-preview'; ticket.revision++;
+          await interaction.editReply({ ...safe([
+            '**Preview news + memes**',
+            `${news ? 'Pakai' : 'Buat'} hengs-news; ${meme ? 'pakai' : 'buat'} hengs-memes. Channel lama tidak dipindah/diubah namanya. Meme baru mengikuti kategori news; jika belum ada news, keduanya di luar kategori.`,
+            'Buka izin @everyone untuk melihat, membaca riwayat, mengirim, melampirkan file dan menyematkan link di kedua channel. Overwrite role/anggota lain tetap; batas akun/role Discord tetap berlaku.',
+            'Anggota langsung posting tanpa antrean admin/AI. Hengs tidak menjamin kebenaran atau keamanan isi kiriman. Tidak mengubah channel lain, tidak menjalankan setup lengkap.',
+            'Routing/jadwal bot belum diubah. Setelah channel siap, pilih tujuan melalui atur berita, preview berita, lalu terapkan berita.',
+          ].join('\n\n')), components: controls(id, [['split', 'Buat/buka kedua channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
+          return true;
         }
         if (['yes', 'no'].includes(action)) {
           if (ticket.phase !== 'question') throw new Error('SETUP_PHASE_INVALID');
@@ -165,7 +220,8 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           ], ticket.revision) });
           return true;
         }
-        if (ticket.phase !== 'preview' || (action === 'news' && !ticket.includeNews)) throw new Error('SETUP_PHASE_INVALID');
+        if (action === 'split' ? ticket.phase !== 'community-preview'
+          : ticket.phase !== 'preview' || (action === 'news' && !ticket.includeNews)) throw new Error('SETUP_PHASE_INVALID');
         if (applying.has(ticket.guild)) throw new Error('SETUP_BUSY');
         applying.add(ticket.guild); ownsLock = true;
         const snapshot = await inventory(interaction.guild);
@@ -178,7 +234,20 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
         // Consume before any external write; a timeout is uncertain, not a retry invitation.
         tickets.delete(id);
         await interaction.editReply(safe('Menerapkan pilihan setup. Tunggu hasilnya di panel ini.'));
-        if (action === 'news') {
+        if (action === 'split') {
+          const assertLease = async () => {
+            if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
+            if (interaction.user.id !== interaction.guild.ownerId) {
+              const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true });
+              if (!member.permissions.has(P.Administrator)) throw new Error('SETUP_PREVIEW_STALE');
+            }
+            if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
+          };
+          const [news, meme] = await ensureCommunityChannels(interaction.guild, {
+            newsId: ticket.existingId, memeId: ticket.memeId, expectedHash: ticket.hash, assertLease,
+          });
+          await interaction.editReply(safe(`Channel siap: <#${news.id}> untuk berita; <#${meme.id}> untuk meme/jokes. Anggota dapat posting sesuai izin Discord.\nRouting bot belum berubah. Lewat /hengs ask: atur berita 2 berita 1 meme ke <#${news.id}>, meme ke <#${meme.id}>, lalu preview berita dan terapkan berita (atau uji dahulu untuk konfigurasi baru).`));
+        } else if (action === 'news') {
           const result = await ensureNewsChannel(interaction.guild, { expectedId: ticket.existingId });
           await interaction.editReply(safe(newsNextSteps(result.channel)));
         } else {
@@ -191,6 +260,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           NEWS_CHANNEL_CONFLICT: 'Ada nama hengs-news yang ganda atau dipakai jenis channel lain. Rapikan dulu, lalu buka setup lagi.',
           NEWS_CHANNEL_PERMISSIONS: 'Hengs perlu izin View Channel, Send Messages, Embed Links dan Read Message History pada channel news.',
           SETUP_BOT_PERMISSIONS: 'Hengs perlu izin Manage Channels untuk pilihan ini. Belum ada channel yang dibuat.',
+          COMMUNITY_SETUP_PERMISSIONS: 'Hengs perlu Manage Channels dan Manage Roles untuk menyiapkan izin kirim anggota.',
           SETUP_PREVIEW_STALE: 'Isi server atau sesi berubah sejak preview. Buka setup lagi untuk melihat rencana terbaru.',
           SETUP_BUSY: 'Setup server ini sedang berjalan. Tunggu hasilnya sebelum membuka setup lagi.',
         };
@@ -206,4 +276,4 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
   };
 }
 
-module.exports = { PREFIX, createAdminSetupFlow, ensureNewsChannel, newsNextSteps };
+module.exports = { PREFIX, createAdminSetupFlow, ensureNewsChannel, ensureCommunityChannels, newsNextSteps };

@@ -28,14 +28,19 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     drafts.set(keyFor(interaction), { ...draft, expires: now() + TTL });
   }
   async function target(guild, channelId) {
+    if (!channelId) throw new Error('NEWS_CHANNEL_INVALID');
     const channel = await guild.channels.fetch(channelId);
-    if (!channel || channel.guildId !== guild.id || channel.type !== ChannelType.GuildText) throw new Error('NEWS_CHANNEL_INVALID');
+    if (!channel || channel.id !== channelId || channel.guildId !== guild.id || channel.type !== ChannelType.GuildText) throw new Error('NEWS_CHANNEL_INVALID');
     const me = await guild.members.fetchMe();
     const permissions = channel.permissionsFor(me);
     if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
       throw new Error('NEWS_CHANNEL_PERMISSIONS');
     }
     return channel;
+  }
+  async function checkTargets(guild, settings) {
+    await target(guild, settings.channelId);
+    if (settings.memeChannelId) await target(guild, settings.memeChannelId);
   }
   function selected(settings, items, row) {
     return selectArticles(settings, items, row, now());
@@ -52,7 +57,8 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
   }
   async function deliver(guild, row, items, expectedDay = wibClock(now()).day, assertLease = () => {}, slot = -1) {
     const { day } = wibClock(now());
-    const channel = await target(guild, row.settings.channelId);
+    const channelId = items[0]?.topic === 'memes' ? row.settings.memeChannelId : row.settings.channelId;
+    const channel = await target(guild, channelId);
     assertLease();
     assertRevision(guild.id, row.revision);
     if (stopped || expectedDay !== wibClock(now()).day) throw new Error('NEWS_STOPPED');
@@ -111,7 +117,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (!validSettings(draft.settings)) return { content: 'Pilih channel tujuan dulu: `atur berita ke #hengs-news`. Channel harus sudah ada.' };
       if (request.action === 'preview') {
         if (existing?.previewAt && now() - existing.previewAt < 30_000) return { content: 'Preview barusan masih berlaku. Revisi draft jika perlu, atau tunggu 30 detik untuk memperbarui.' };
-        await target(interaction.guild, draft.settings.channelId);
+        await checkTargets(interaction.guild, draft.settings);
         const result = await readFeeds(draft.settings.topics);
         assertLease();
         assertRevision(interaction.guildId, draft.revision);
@@ -130,7 +136,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (!existing?.approvedPreview || now() - existing.previewAt >= TTL) return { content: 'Buka `preview berita` terbaru dulu. Revisi atau restart membatalkan persetujuan lama.' };
       if (request.action === 'apply') {
         if (!row?.tested || row.settings.channelId !== draft.settings.channelId) return { content: 'Channel tujuan ini belum teruji. Lakukan uji lewat kirim berita sekali sebelum menerapkan revisi tanpa uji ulang. Jadwal lama tidak berubah.' };
-        await target(interaction.guild, draft.settings.channelId);
+        await checkTargets(interaction.guild, draft.settings);
         await assertManager(interaction);
         assertLease();
         assertRevision(interaction.guildId, draft.revision);
@@ -150,7 +156,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       }
       if (request.action === 'enable') {
         if (!row || JSON.stringify(row.settings) !== JSON.stringify(draft.settings) || !row.tested) return { content: 'Uji dulu pengaturan ini lewat kirim berita sekali. Jadwal belum aktif.' };
-        await target(interaction.guild, draft.settings.channelId);
+        await checkTargets(interaction.guild, draft.settings);
         await assertManager(interaction);
         assertLease();
         assertRevision(interaction.guildId, draft.revision);
@@ -161,8 +167,9 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (request.action === 'send') {
         const items = selected(draft.settings, existing.items || [], row);
         if (!items.length) return { content: 'Tidak ada item baru untuk dikirim. Coba preview berita saat sumber punya pembaruan.' };
+        if (items[0].topic === 'memes' && !draft.settings.memeChannelId) return { content: 'Pilih tujuan meme dahulu: atur berita meme ke #hengs-memes, lalu preview berita. Hiburan tidak dikirim ke news.' };
         if (row?.receipts.some(x => x.day === wibClock(now()).day)) return { content: 'Slot berita hari ini sudah dipakai, termasuk percobaan yang hasilnya tidak pasti. Tidak dikirim ulang.' };
-        await target(interaction.guild, draft.settings.channelId);
+        await checkTargets(interaction.guild, draft.settings);
         await assertManager(interaction);
         assertLease();
         assertRevision(interaction.guildId, draft.revision);
@@ -198,6 +205,9 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         const { day, slot } = due;
         const settings = slotSettings(row.settings, slot);
         try {
+          if (settings.topics.every(x => x === 'memes') && !row.settings.memeChannelId) {
+            store.claim(row.guildId, row.revision, day, [], 'cancelled', slot); continue;
+          }
           const guild = client.guilds.cache.get(row.guildId);
           if (!guild) continue;
           const result = await readFeeds(settings.topics);
@@ -225,7 +235,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     finally { ticking = false; }
   }
   return {
-    handle, tick,
+    handle, tick, getSettings: guildId => store.get(guildId),
     canHandle: (interaction, prompt) => Boolean(parsePrompt(prompt, Boolean(draftFor(interaction)))),
     clear(interaction) {
       const prefix = `${interaction.guildId}:${interaction.user.id}:`;

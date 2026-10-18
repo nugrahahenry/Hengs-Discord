@@ -55,7 +55,9 @@ const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createNewsEditor } = require('./news/editor');
+const { createCommunitySharing } = require('./news/sharing');
 let newsService;
+let communitySharing;
 const { startTypingIndicator } = require('./assistant-ux');
 
 // Satu proses saja boleh memakai token Discord + Ops state yang sama. Selain mencegah
@@ -78,6 +80,7 @@ process.on('exit', () => {
   runtimeHealth.stop();
   personalAssistant.stop();
   newsService?.stop();
+  communitySharing?.stop();
   instanceLock.release();
 });
 
@@ -91,6 +94,7 @@ const guildAccess = createGuildAccess({
   store: guildConfigStore,
 });
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }) });
+communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId) });
 const publicTrafficGuard = createPublicTrafficGuard();
 const publicDailyRequestLimit = parsePublicDailyRequestLimit(
   process.env.HENGS_PUBLIC_DAILY_REQUEST_LIMIT,
@@ -131,6 +135,7 @@ function gracefulShutdown(signal) {
   console.log(`\nHengs Discord menerima ${signal}; menutup koneksi...`);
   runtimeHealth.setConnection('STOPPING');
   waRecoveryAlerts.stop();
+  communitySharing?.stop();
   try { client.destroy(); } catch {}
   process.exit(0);
 }
@@ -141,6 +146,7 @@ function fatalExit(issueCode, error) {
   runtimeHealth.setConnection('FAILED', issueCode);
   console.error(`[fatal] ${issueCode}:`, error);
   waRecoveryAlerts.stop();
+  communitySharing?.stop();
   try { client.destroy(); } catch {}
   process.exit(1);
 }
@@ -633,6 +639,11 @@ client.on(Events.MessageCreate, async (msg) => {
 
 // ── Slash command handler ─────────────────────────────────────────────────────
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-share:')) {
+    try { await communitySharing.handleButton(interaction); }
+    catch { console.error('[community-share] INTERACTION_FAILED'); }
+    return;
+  }
   const interactionScope = guildAccess.classify(interaction.guildId);
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-prompt:')) {
     try {
@@ -846,6 +857,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       eventHub,
       personalAssistant,
       newsService,
+      communitySharing,
       reportHub,
       reportQueue,
       moderationHub,

@@ -7,7 +7,8 @@ const LABELS = Object.freeze({ tech: 'teknologi', ai: 'AI', gaming: 'gaming', me
 const TOPIC = /\b(teknologi|tech|ai|gaming|game|memes?|hiburan|komik)\b/gi;
 const topicId = word => /^(?:tech|teknologi)$/i.test(word) ? 'tech'
   : /^ai$/i.test(word) ? 'ai' : /^(?:gaming|game)$/i.test(word) ? 'gaming' : 'memes';
-const DEFAULTS = Object.freeze({ channelId: null, topics: ['tech', 'ai'], time: '08:00', count: 3, tone: 'casual' });
+const DEFAULTS = Object.freeze({ channelId: null, memeChannelId: null, topics: ['tech', 'ai'], time: '08:00', count: 3, tone: 'casual' });
+const channelName = value => String(value).toLowerCase().replace(/^[^\p{L}\p{N}]+/u, '');
 class NewsPromptError extends Error {}
 const HELP = [
   '🗞️ Hengs News: bacaan pilihan harian, lengkap dengan sumber dan tanggal.',
@@ -17,7 +18,9 @@ const HELP = [
   '`simpan berita` menyimpan dalam keadaan jeda. `kirim berita sekali` memakai preview terbaru.',
   'Setelah kiriman uji berhasil, `preview berita` lalu `aktifkan berita` untuk jadwal harian.',
   'Channel yang sudah diuji: ubah draft, `preview berita`, lalu `terapkan berita`. Status aktif/jeda tetap; tidak mengirim ulang.',
-  'Campuran: `atur berita 2 berita 1 meme`. Slot hiburan memakai komik xkcd, bukan katalog meme viral.',
+  'Pisahkan tujuan: `atur berita 2 berita 1 meme ke #hengs-news, meme ke #hengs-memes`. Channel harus sudah ada dan berbeda.',
+  'Slot hiburan memakai komik xkcd, bukan katalog meme viral. Tanpa tujuan meme, slot hiburan dilewati, bukan masuk news.',
+  'Anggota bisa posting langsung sesuai izin channel, atau `/hengs ask` → `bagikan berita: https://contoh.com/artikel` untuk preview dan konfirmasi sendiri.',
   '`jeda berita` menghentikan jadwal. `status berita` melihat pengaturan dan hasil terakhir.',
   'Ringkasan Indonesia memakai AI dari judul/cuplikannya saja. Jika tidak tersedia, tampil bahasa sumber. Hiburan bukan berita faktual.',
 ].join('\n');
@@ -49,6 +52,18 @@ function parsePrompt(value, hasDraft = false) {
 
 function editSettings(text, previous = DEFAULTS, channels = []) {
   const settings = structuredClone(previous);
+  const memeTargets = [...text.matchAll(/\b(?:memes?|hiburan|komik|jokes?)\s+ke\s+(<#\d{17,20}>|#[\p{L}\p{N}_-]+)/giu)]
+    .filter(match => !/\d\s+$/.test(text.slice(0, match.index)));
+  let routeChanged = false;
+  if (memeTargets.length) {
+    if (memeTargets.length !== 1) throw new NewsPromptError('Pilih satu channel meme.');
+    const target = memeTargets[0][1];
+    const id = /^<#(\d+)>$/.exec(target)?.[1];
+    const matches = channels.filter(c => id ? c.id === id : channelName(c.name) === target.slice(1));
+    if (matches.length !== 1) throw new NewsPromptError('Channel meme belum ditemukan. Mention channel teks yang sudah ada.');
+    settings.memeChannelId = matches[0].id; routeChanged = true;
+    text = text.replace(memeTargets[0][0], '');
+  }
   if (/\b(?:politik|ekonomi|saham|crypto|kripto|olahraga|custom|otomotif)\b|https?:\/\//i.test(text)) {
     throw new NewsPromptError('Pilih teknologi, AI, gaming, atau hiburan dulu. URL sumber bebas belum didukung.');
   }
@@ -66,7 +81,7 @@ function editSettings(text, previous = DEFAULTS, channels = []) {
     settings.topics = settings.topics.filter(topic => topic !== 'memes');
     if (!settings.topics.length) settings.topics = [...DEFAULTS.topics];
   }
-  let changed = false;
+  let changed = routeChanged;
   const clauses = text.split(/[,;]|\bdan\b/i);
   let replaced = false;
   let topicMode = 'replace';
@@ -97,11 +112,12 @@ function editSettings(text, previous = DEFAULTS, channels = []) {
   const targets = [...text.matchAll(/<#(\d{17,20})>|(?<!<)#([\p{L}\p{N}_-]+)/gu)];
   if (targets.length) {
     if (targets.length !== 1) throw new NewsPromptError('Pilih satu channel tujuan.');
-    const matches = channels.filter(channel => targets[0][1] ? channel.id === targets[0][1] : channel.name === targets[0][2]);
+    const matches = channels.filter(channel => targets[0][1] ? channel.id === targets[0][1] : channelName(channel.name) === targets[0][2]);
     if (matches.length !== 1) throw new NewsPromptError('Channel belum ditemukan. Mention channel teks yang sudah ada, misalnya #hengs-news.');
     settings.channelId = matches[0].id; changed = true;
   }
   if (!changed && !/^(?:atur|buat|bikin)\s+(?:berita|news)$/.test(text)) throw new NewsPromptError('Revisi belum jelas. Contoh: tambah gaming, lebih santai, atau ubah jam 09:00.');
+  if (settings.memeChannelId && settings.channelId === settings.memeChannelId) throw new NewsPromptError('Channel news dan meme harus berbeda. Draft belum diubah.');
   return settings;
 }
 
@@ -112,6 +128,7 @@ function describe(settings, status = 'draft') {
     'Slot yang terlewat atau melewati tengah malam tidak dirapel.',
     ...(mix ? [`Komposisi: maksimal ${mix.news} berita + ${mix.entertainment} hiburan. Slot kosong tidak diisi ulang dengan jenis lain.`] : []),
     settings.channelId ? `Tujuan: <#${settings.channelId}>.` : 'Tujuan: belum dipilih. Mention channel teks yang sudah ada.',
+    settings.memeChannelId ? `Memes/jokes: <#${settings.memeChannelId}>.` : 'Tujuan meme belum dipilih; hiburan tidak dikirim ke channel berita.',
   ].join('\n');
 }
 

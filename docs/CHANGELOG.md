@@ -5,6 +5,29 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.62.0] - 2026-10-18
+
+### Added
+
+- Hengs Discord v1.62.0 splits scheduled news and entertainment destinations. Schema v3 adds
+  `memeChannelId`; no meme route means skip, never post entertainment to news as fallback.
+  Validated migration preserves delivery evidence. Rollback to schema v1/v2 pauses entertainment
+  schedules, preserving receipts and preventing mixed-channel sends by an older runtime.
+- Optional News + memes setup previews direct member posting permissions and only creates/reuses
+  those channels. Fresh role/inventory gates, consumed confirmations, no automatic retry after
+  partial or uncertain mutations. Does not change routing, start a schedule or run full setup.
+- Private member self-sharing: explicit news links, text jokes or own Discord image-message links,
+  RAM-only preview and same-author confirmation. Fresh source/target permissions, ownership,
+  timeout, route binding, bounded cooldowns, mention/embed suppression and no retry after send
+  uncertainty. Native slowmode channels require direct posting. No AI judge, queue or URL fetch.
+- Member-first help explains native posting versus relay. Direct images remain native uploads;
+  relay forwards a link, not media bytes. Existing scheduled quotas/spacing remain unchanged.
+
+### Operations
+
+- Local checkpoint only. No deploy, live channel/permission/state edits, real messages, provider
+  requests or WA/Canox changes. Cloud remains v1.61.0 until a separately authorized deployment.
+
 ## [1.61.1] - 2026-10-18
 
 ### Fixed
