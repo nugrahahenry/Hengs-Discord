@@ -2,6 +2,47 @@
 
 Updated: 2026-10-18
 
+## Hengs Discord v1.62.0 split channels and member sharing
+
+- Henry selected direct posting, without an admin queue. Implemented separate news/meme
+  routing, optional narrowly scoped News + memes setup, and member self-confirm sharing from
+  bot-commands. No AI approval/censorship or claim that member links/images are verified safe.
+- News schema3 adds nullable memeChannelId. Missing meme destination skips entertainment;
+  never falls back to news. Existing receipt/seen evidence survives upgrade. Downgrade1/2
+  preserves current receipts and pauses schedules with entertainment before starting old code.
+  No stale receipt restore. Quotas, spacing, publishers and scheduled visuals unchanged.
+- Members can post natively after owner-confirmed channel permission setup. Bot relay accepts
+  explicit HTTPS news links, text jokes or own same-channel Discord raster image-message links.
+  RAM preview expires10min; same actor confirms, with fresh destination/source permissions,
+  timeout, route, author and content checks. Source allowlists unchanged. Images are linked,
+  not downloaded/reuploaded; native upload is the inline-image path. No content file or LLM use.
+- Replay/reset/shutdown/expiry/revocation fail closed; bounded100 drafts/operations and200
+  cooldown entries, 60s actor+guild cadence, in-flight guild send lock, nonce enforcement.
+  Native slowmode requires native posting. Ambiguous sends/mutations are consumed, not retried.
+- Security review covered privilege laundering, source privacy, mentions/unfurls, unsafe URL
+  forms, formatted-length overflow, stale inventory, source edits, partial setup and shutdown.
+  Final fix rechecks inventory after apply acknowledgement and expiry after fresh role read.
+  Existing overwrite grants remain untouched except the five previewed @everyone participation
+  bits. No broad role change, mass ping, hidden-source forwarding or automatic image fetching.
+- QA: full offline Node24 suite passed. Final focused102/102 passed, zero failures/skips
+  (news/store/schema/backup selection, sharing, optional setup, help, cloud release policy).
+  Tests use synthetic data, approved temporary filesystem access, no ACL modifications.
+  Node22 cloud candidate/live dogfooding remain for the authorized deployment gate.
+- Main files: src/news/{sharing,service,store,prompts}.js, src/guilds/admin-setup.js,
+  src/commands/hengs.js, src/prompt-assistant.js, src/community-help.js, src/index.js,
+  related tests, package/lock metadata and public/canonical docs. No dependencies added.
+- No deployment, real Discord send/channel/permission/state change, provider request,
+  bot-local start, WA/Canox action or new automation in this checkpoint. Cloud last accepted
+  exact v1.61.0 code82c94b168118447f3d3b8d9d44000d1a133e0cdf; not rechecked this turn.
+- Release subject: feat(news): Hengs Discord v1.62.0 - split channels and enable member sharing
+  Code checkpoint16c4a02 committed and pushed to origin/main. Handoff synchronization follows
+  as a documentation-only checkpoint at the same version. No repository-hosted CI workflow exists.
+- Next: obtain explicit deployment/activation authorization, test exact committed candidate
+  with Node22, stop Discord for validated schema3 migration and controlled restart, verify two
+  fresh heartbeats. Separately preview/confirm channel setup and route application; never run
+  full-server setup or publish test content outside bot-commands. See docs/NEWS-DIRECTION.md
+  and docs/CLOUD-DEPLOY.md for contract and rollback. No temporary active spec/plan to retain.
+
 ## Hengs Discord v1.61.1 cleaner news cards and next routing gate
 
 - Henry requested separate news/meme channels, no availability counters, and member submissions
