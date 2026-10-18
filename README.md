@@ -2,13 +2,14 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.62.0 - split channels and member sharing (not deployed)
+**Current checkpoint:** Hengs Discord v1.62.0 - split channels and member sharing (cloud accepted)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
 No admin queue or AI safety/fact-check certification. Availability counters remain removed.
-Local code is ready for a separate deployment and channel-activation step; existing live channels
-and permissions have not been changed by this checkpoint.
+Cloud deployment was accepted on 2026-10-18. Separate channel setup and routing remain pending
+owner login for live UI acceptance; existing channel permissions have not changed. Until a meme
+destination is selected, scheduled entertainment is skipped rather than mixed into news.
 
 Cloud-live since 2026-10-17: News sends one item at a time, at least one hour apart (for example
 08:00, 09:00, 10:00 WIB). `/hengs help` separates member features from privileged controls.
@@ -35,9 +36,9 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.61.0 accepted after controlled restart, private Canox memory connected.
-Node22 candidate QA: 661 passed, zero failed, three checkout-only skips (664 total). Two fresh
-advancing heartbeats passed; WhatsApp and Canox were not restarted. v1.60.0 remains available
+**Current cloud production:** v1.62.0 accepted after controlled restart, private Canox memory connected.
+Node22 candidate QA: 691 passed, zero failed, three checkout-only skips (694 total). Two fresh
+advancing heartbeats passed; WhatsApp and Canox were not restarted. v1.61.0 remains available
 for schema-aware rollback. The public bot invite is also included in Hengs' application description.
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
@@ -47,7 +48,7 @@ Discord token consumer; local Discord remains stopped as rollback only.
 
 ### Pisahkan news dan memes, kontribusi anggota
 
-Mulai v1.62.0 (belum live), `/admin setup` di server utama memiliki pilihan **News + memes**.
+Mulai v1.62.0, `/admin setup` di server utama memiliki pilihan **News + memes**.
 Preview menjelaskan pembuatan/pemakaian dua channel dan pembukaan izin kirim/file/link bagi anggota.
 Konfirmasi hanya menyentuh kedua channel itu, bukan setup server lengkap. Nama/kategori channel
 lama dan overwrite role/anggota lain tetap; channel meme baru mengikuti kategori news.

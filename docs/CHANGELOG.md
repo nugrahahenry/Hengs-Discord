@@ -25,8 +25,13 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Operations
 
-- Local checkpoint only. No deploy, live channel/permission/state edits, real messages, provider
-  requests or WA/Canox changes. Cloud remains v1.61.0 until a separately authorized deployment.
+- Cloud accepted on 2026-10-18 from exact code `86de70314dc8`: candidate Node22 QA 691 passed,
+  zero failed, three expected checkout-only skips (694 total); local Node24 QA 694/694 passed.
+  News schema2 upgraded atomically to3 under stopped Discord, preserving state/owner/mode and
+  delivery evidence. One controlled restart passed two fresh advancing health heartbeats.
+- WA and Canox unchanged; local bots remain off. Staging absent; schema-aware v1.61.0 rollback
+  available and not needed. Channel/permission setup and split routing await owner browser login;
+  no live publication or channel change during this deployment. Missing meme route skips its slot.
 
 ## [1.61.1] - 2026-10-18
 
@@ -34,8 +39,8 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Hengs Discord v1.61.1 removes availability and missing-slot counters from News cards/previews.
   Entertainment-only cards use the Hengs Memes heading, with source/date and safety labels kept.
-- Local presentation-only patch. No routing, schema, permission, source, daily quota or schedule
-  changes; separate channels and member submission intake are not included. Not deployed.
+- Presentation-only patch; deployed with v1.62.0. No routing, schema, permission, source, daily
+  quota or schedule changes in this patch; split routing and sharing were added in v1.62.0.
 
 ## [1.61.0] - 2026-10-17
 

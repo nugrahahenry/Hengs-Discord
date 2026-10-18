@@ -2,6 +2,35 @@
 
 Updated: 2026-10-18
 
+## Hengs Discord v1.62.0 cloud accepted, channel activation pending login
+
+- Henry authorized deployment and narrowly scoped news/memes setup. Exact source
+  86de70314dc8673a838d9bc3c0e2dd4a7df2bd6e is live at immutable1.62.0-86de70314dc8.
+- Fresh preflight passed; local Node24 suite694/694 passed. Candidate Node22 tests ran before
+  stopping Discord:694total,691passed,0failed,3 expected checkout-only skips. No dependency
+  additions. One controlled restart passed two fresh advancing CONNECTED/OK heartbeats.
+- News schema2 ->3 applied atomically while service stopped: only nullable memeChannelId added,
+  with owner/mode/settings/revisions/timestamps/history preserved. No stale receipt restoration.
+  News remains active/tested,08:00WIB,count3. Missing meme route skips entertainment safely.
+- Final audit: Discord1.62.0 and WA0.46.0 active/enabled/fresh, one consumer each, NRestarts0;
+  Canox memory-only0.178.0 unchanged. WA/Canox PIDs, releases and environment fingerprints
+  unchanged. Local bot processes0/autostartoff. Transfer/staging absent, rollback1.61.0 available.
+- Read-only Discord REST verified one existing news destination, no memes destination yet,
+  neither direct-member setup nor split route applied. No channel, role, permission or public
+  message changes in this turn. No QR, reboot, restore, backup, token change or Oracle action.
+- Owner Discord browser session expired. Asked Henry to log in privately; no password/OTP or
+  user token collected. Do not substitute bot credentials for an owner interaction or claim live
+  member UI dogfooding complete. Native setup, share preview/cancel and route apply remain pending.
+- Ignored operators: .cloud/automation/deploy-v1620. Deployment status ACCEPTED; do not rerun
+  stage/dispatch. Read-only audit.sh and channels-read.sh may verify the current baseline.
+- Next after login: in bot-commands use /admin setup -> News + memes -> exact limited preview
+  confirm (not full setup); verify channel placement beside news, configure distinct route via
+  atur berita / preview berita / terapkan berita, preserve receipts and existing08/09/10 schedule.
+  Test only in bot-commands; no fake news or member pings. Review native permissions and private
+  relay preview/cancel, then document actual activation. No new deployment is needed for setup.
+- Documentation-only checkpoint at1.62.0; no active temporary spec/plan. Commit subject:
+  docs(deploy): Hengs Discord v1.62.0 - record cloud acceptance and pending channel setup
+
 ## Hengs Discord v1.62.0 split channels and member sharing
 
 - Henry selected direct posting, without an admin queue. Implemented separate news/meme

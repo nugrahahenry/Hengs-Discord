@@ -1,26 +1,28 @@
 # Hengs Discord Always Free Deployment
 
 Panduan ini adalah kontrak operasi Hengs Discord di Ubuntu. Cloud production saat ini menjalankan
-v1.61.0 (accepted 2026-10-17). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
+v1.62.0 (accepted 2026-10-18). Deployment berikutnya, perubahan billing, dan cutover tetap memerlukan persetujuan Henry
 pada saat tindakan dilakukan.
 
 Prinsip utamanya adalah **one Discord token consumer**: hanya satu proses, lokal atau
 cloud, yang boleh memakai token Discord pada satu waktu. Deployment tidak mengubah mode,
-permission, atau kebijakan Anti-Raid. v1.61.0 aktif/enabled sebagai satu-satunya consumer
-Discord setelah restart terkontrol; v1.60.0 tetap tersedia sebagai rollback. Kandidat Node22
-lulus 661 tes, nol gagal, dengan tiga tes checkout-only dilewati dari arsip produksi (664 total).
-Dua heartbeat bergerak lulus. News schema1 dimigrasikan atomik ke schema2 ketika service
+permission, atau kebijakan Anti-Raid. v1.62.0 aktif/enabled sebagai satu-satunya consumer
+Discord setelah restart terkontrol; v1.61.0 tetap tersedia sebagai rollback. Kandidat Node22
+lulus 691 tes, nol gagal, dengan tiga tes checkout-only dilewati dari arsip produksi (694 total).
+Dua heartbeat bergerak lulus. News schema2 dimigrasikan atomik ke schema3 ketika service
 berhenti, dengan owner/mode file, pengaturan dan riwayat tetap. Rollback wajib menjalankan
-`downgradeState` tervalidasi sebelum binary lama dimulai; receipt dikoaleskan per hari agar
-kiriman tidak terulang. Jangan memulihkan snapshot receipt lama. Staging sudah dibersihkan.
+`downgradeState` tervalidasi sebelum binary lama dimulai. Jangan memulihkan snapshot receipt
+lama. Downgrade ke schema1 menggabungkan receipt per hari. Staging sudah dibersihkan.
 Deskripsi aplikasi sudah memuat link invite publik terverifikasi, tanpa mengubah izin instalasi.
 
-Kandidat lokal v1.62.0 memisahkan tujuan news/memes dan menambah kiriman anggota melalui preview
-privat. Belum dideploy dan belum membuat/mengubah channel produksi. Gate upgrade berikutnya:
-uji exact committed candidate di Node22; hentikan Discord; migrasikan news schema2 ke3 secara
-atomik tervalidasi (tambahkan `memeChannelId: null`, pertahankan mode/owner dan seluruh receipt).
-Jangan kirim hiburan ke channel lama ketika tujuan meme belum dipilih. Jangan otomatis membuka
-izin anggota atau mengaktifkan routing karena hanya deployment yang disetujui.
+v1.62.0 memisahkan tujuan news/memes dan menambah kiriman anggota melalui preview privat.
+Exact committed code `86de70314dc8673a838d9bc3c0e2dd4a7df2bd6e` sudah live; migration menambah
+`memeChannelId: null` tanpa mengubah mode/owner atau receipt. Henry juga menyetujui setup
+channel terpisah dan posting anggota, tetapi tahap UI itu belum dijalankan karena sesi Discord
+owner kedaluwarsa. News lama tetap active/tested, memes belum ada, permission belum diubah.
+Tunggu login owner untuk `/admin setup` -> News + memes -> preview/konfirmasi terbatas, lalu
+atur kedua tujuan melalui preview berita dan terapkan berita. Jangan menjalankan full setup.
+Tanpa tujuan meme, hiburan dilewati. Jangan mengirim test di news; dogfooding di bot-commands.
 Rollback ke v1.61.0 wajib memakai `downgradeState(currentState, 2)` dari kandidat, mempertahankan
 receipt mutakhir dan menjeda jadwal yang memuat hiburan. Validasi file dengan kode target sebelum
 start binary lama; jangan mengembalikan backup receipt yang lebih tua. Route meme akan dilepas
