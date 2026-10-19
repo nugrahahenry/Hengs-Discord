@@ -57,6 +57,8 @@ const { createNewsService } = require('./news/service');
 const { createNewsEditor } = require('./news/editor');
 const { createCommunitySharing } = require('./news/sharing');
 const { createCaster } = require('./caster/service');
+const { createScrimResults } = require('./scrim/service');
+const { createScrimStore } = require('./scrim/store');
 let newsService;
 let communitySharing;
 const { startTypingIndicator } = require('./assistant-ux');
@@ -107,6 +109,7 @@ const caster = createCaster({
   apiKey: process.env.GEMINI_API_KEY,
   dailyLimit: process.env.CASTER_DAILY_LIMIT,
 });
+const scrimResults = createScrimResults({ store: createScrimStore() });
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
@@ -655,6 +658,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     catch { console.error('[caster] INTERACTION_FAILED'); }
     return;
   }
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-scrim:')) {
+    try { await scrimResults.handleButton(interaction); }
+    catch { console.error('[scrim] INTERACTION_FAILED'); }
+    return;
+  }
   const interactionScope = guildAccess.classify(interaction.guildId);
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-prompt:')) {
     try {
@@ -870,6 +878,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       newsService,
       communitySharing,
       caster,
+      scrimResults,
       reportHub,
       reportQueue,
       moderationHub,

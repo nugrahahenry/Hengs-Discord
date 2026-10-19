@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, MessageFlags, PermissionFlagsBits: P,
 } = require('discord.js');
+const { ROLE_NAME, CHANNEL_NAME, BOT_PERMISSIONS, findTeamRole, findScrimChannel } = require('../scrim/service');
 
 const PREFIX = 'hengs-admin-setup:';
 const TTL = 10 * 60_000;
@@ -114,6 +115,46 @@ async function ensureCommunityChannels(guild, { newsId = null, memeId = null, ex
   return result;
 }
 
+async function ensureScrimSetup(guild, { roleId = null, channelId = null, expectedHash, assertLease = async () => {} } = {}) {
+  const { channels, hash } = await inventory(guild);
+  if (expectedHash && expectedHash !== hash) throw new Error('SETUP_PREVIEW_STALE');
+  const existingRole = await findTeamRole(guild);
+  const existingChannel = findScrimChannel(channels);
+  if ((existingRole?.id || null) !== roleId || (existingChannel?.id || null) !== channelId) throw new Error('SETUP_PREVIEW_STALE');
+  const me = await guild.members.fetchMe({ force: true });
+  if (!me.permissions.has([P.ManageChannels, P.ManageRoles])) throw new Error('COMMUNITY_SETUP_PERMISSIONS');
+  await assertLease();
+  // The role carries no server permissions; it only unlocks posting in hasil-scrim.
+  const role = existingRole || await guild.roles.create({ name: ROLE_NAME, permissions: [], mentionable: false,
+    hoist: false, reason: 'Hengs setup: owner confirmed scrim team role' });
+  if (!role?.id) throw new Error('SCRIM_ROLE_UNCERTAIN');
+  await assertLease();
+  const team = { ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true };
+  if (existingChannel) {
+    const reason = 'Hengs setup: owner confirmed team-only scrim posting';
+    // Edit only these bits for @everyone, the team role and Hengs; other overwrites stay.
+    await existingChannel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: true, ReadMessageHistory: true,
+      SendMessages: false, CreatePublicThreads: false, CreatePrivateThreads: false, SendMessagesInThreads: false }, { reason });
+    await existingChannel.permissionOverwrites.edit(role.id, team, { reason });
+    await existingChannel.permissionOverwrites.edit(me.id, team, { reason });
+    return { role, channel: existingChannel, createdRole: !existingRole, createdChannel: false };
+  }
+  const gaming = channels.filter(c => c.type === ChannelType.GuildCategory && normalize(c.name) === 'gaming');
+  const channel = await guild.channels.create({ name: CHANNEL_NAME, type: ChannelType.GuildText,
+    ...(gaming.length === 1 ? { parent: gaming[0].id } : {}),
+    topic: 'Hasil scrim tim. Anggota Hengs Family kirim lewat /scrim hasil di bot-commands atau unggah langsung.',
+    reason: 'Hengs setup: owner confirmed scrim results channel',
+    permissionOverwrites: [
+      { id: guild.roles.everyone.id, allow: [P.ViewChannel, P.ReadMessageHistory],
+        deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads, P.SendMessagesInThreads] },
+      { id: role.id, allow: BOT_PERMISSIONS },
+      { id: me.id, allow: BOT_PERMISSIONS },
+    ],
+  });
+  if (channel?.guildId !== guild.id || channel.type !== ChannelType.GuildText) throw new Error('SCRIM_CREATE_UNCERTAIN');
+  return { role, channel, createdRole: !existingRole, createdChannel: true };
+}
+
 function newsNextSteps(channel) {
   return [
     `Channel berita siap: <#${channel.id}>. Jadwal berita belum diaktifkan.`,
@@ -134,8 +175,8 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
   const applying = new Set();
   function sweep() { for (const [id, ticket] of tickets) if (now() >= ticket.expires) tickets.delete(id); }
   function question(id, revision = 0) {
-    return { ...safe('**Setup server Hengs**\nMau tambahkan Hengs News sekarang?\n\nPilih dulu, lalu tinjau preview. Belum ada channel yang diubah. Pilihan ini tidak menyalakan berita harian.'),
-      components: controls(id, [['yes', 'News saja'], ['community', 'News + memes', ButtonStyle.Primary], ['no', 'Belum sekarang'], ['cancel', 'Batal']], revision) };
+    return { ...safe('**Setup server Hengs**\nMau tambahkan Hengs News sekarang? Atau siapkan channel hasil scrim tim.\n\nPilih dulu, lalu tinjau preview. Belum ada channel yang diubah. Pilihan ini tidak menyalakan berita harian.'),
+      components: controls(id, [['yes', 'News saja'], ['community', 'News + memes', ButtonStyle.Primary], ['scrim', 'Scrim tim'], ['no', 'Belum sekarang'], ['cancel', 'Batal']], revision) };
   }
   async function reject(interaction, content) {
     await interaction.reply({ ...safe(content), flags: MessageFlags.Ephemeral });
@@ -155,7 +196,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
     async handle(interaction, { guildAccess } = {}) {
       if (!interaction.isButton?.() || !String(interaction.customId).startsWith(PREFIX)) return false;
       sweep();
-      const match = /^hengs-admin-setup:([a-f0-9]{24}):(\d{1,4}):(yes|no|community|split|back|cancel|news|full)$/.exec(interaction.customId);
+      const match = /^hengs-admin-setup:([a-f0-9]{24}):(\d{1,4}):(yes|no|community|split|back|cancel|news|full|scrim|scrimapply)$/.exec(interaction.customId);
       const ticket = match && tickets.get(match[1]);
       if (!ticket || ticket.revision !== Number(match[2]) || !canManage(interaction, guildAccess) || ticket.actor !== interaction.user.id
         || ticket.guild !== interaction.guildId || ticket.channel !== interaction.channelId) {
@@ -195,6 +236,22 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           ].join('\n\n')), components: controls(id, [['split', 'Buat/buka kedua channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
           return true;
         }
+        if (action === 'scrim') {
+          if (ticket.phase !== 'question') throw new Error('SETUP_PHASE_INVALID');
+          const snapshot = await inventory(interaction.guild);
+          const role = await findTeamRole(interaction.guild);
+          const channel = findScrimChannel(snapshot.channels);
+          ticket.roleId = role?.id || null; ticket.scrimId = channel?.id || null;
+          ticket.hash = snapshot.hash; ticket.phase = 'scrim-preview'; ticket.revision++;
+          await interaction.editReply({ ...safe([
+            '**Preview channel hasil scrim**',
+            `${role ? 'Pakai' : 'Buat'} role Hengs Family (tanpa izin server tambahan); ${channel ? 'pakai channel hasil-scrim yang ada' : 'buat channel 📸・hasil-scrim di kategori Gaming kalau ada'}.`,
+            'Semua member bisa melihat dan membaca. Cuma role Hengs Family dan Hengs yang bisa kirim, lampirkan file dan embed. Thread untuk member biasa ditutup.',
+            'Anggota tim ditambahkan ke role secara manual lewat Server Settings > Members. Hengs tidak memberi role ke siapa pun.',
+            'Tidak mengubah channel lain dan tidak menjalankan setup lengkap.',
+          ].join('\n\n')), components: controls(id, [['scrimapply', 'Buat/pakai role + channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
+          return true;
+        }
         if (['yes', 'no'].includes(action)) {
           if (ticket.phase !== 'question') throw new Error('SETUP_PHASE_INVALID');
           const snapshot = await inventory(interaction.guild);
@@ -220,8 +277,8 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           ], ticket.revision) });
           return true;
         }
-        if (action === 'split' ? ticket.phase !== 'community-preview'
-          : ticket.phase !== 'preview' || (action === 'news' && !ticket.includeNews)) throw new Error('SETUP_PHASE_INVALID');
+        const applyPhase = { split: 'community-preview', scrimapply: 'scrim-preview' }[action] || 'preview';
+        if (ticket.phase !== applyPhase || (action === 'news' && !ticket.includeNews)) throw new Error('SETUP_PHASE_INVALID');
         if (applying.has(ticket.guild)) throw new Error('SETUP_BUSY');
         applying.add(ticket.guild); ownsLock = true;
         const snapshot = await inventory(interaction.guild);
@@ -234,15 +291,20 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
         // Consume before any external write; a timeout is uncertain, not a retry invitation.
         tickets.delete(id);
         await interaction.editReply(safe('Menerapkan pilihan setup. Tunggu hasilnya di panel ini.'));
-        if (action === 'split') {
-          const assertLease = async () => {
-            if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
-            if (interaction.user.id !== interaction.guild.ownerId) {
-              const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true });
-              if (!member.permissions.has(P.Administrator)) throw new Error('SETUP_PREVIEW_STALE');
-            }
-            if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
-          };
+        const assertLease = async () => {
+          if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
+          if (interaction.user.id !== interaction.guild.ownerId) {
+            const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true });
+            if (!member.permissions.has(P.Administrator)) throw new Error('SETUP_PREVIEW_STALE');
+          }
+          if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
+        };
+        if (action === 'scrimapply') {
+          const { role, channel } = await ensureScrimSetup(interaction.guild, {
+            roleId: ticket.roleId, channelId: ticket.scrimId, expectedHash: ticket.hash, assertLease,
+          });
+          await interaction.editReply(safe(`Siap: role <@&${role.id}> dan channel <#${channel.id}>. Tambahkan anggota tim ke role Hengs Family lewat Server Settings > Members. Anggota tim kirim hasil lewat /scrim hasil di bot-commands.`));
+        } else if (action === 'split') {
           const [news, meme] = await ensureCommunityChannels(interaction.guild, {
             newsId: ticket.existingId, memeId: ticket.memeId, expectedHash: ticket.hash, assertLease,
           });
@@ -261,6 +323,8 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           NEWS_CHANNEL_PERMISSIONS: 'Hengs perlu izin View Channel, Send Messages, Embed Links dan Read Message History pada channel news.',
           SETUP_BOT_PERMISSIONS: 'Hengs perlu izin Manage Channels untuk pilihan ini. Belum ada channel yang dibuat.',
           COMMUNITY_SETUP_PERMISSIONS: 'Hengs perlu Manage Channels dan Manage Roles untuk menyiapkan izin kirim anggota.',
+          SCRIM_ROLE_CONFLICT: 'Ada lebih dari satu role bernama Hengs Family. Rapikan dulu, lalu buka setup lagi.',
+          SCRIM_CHANNEL_CONFLICT: 'Ada lebih dari satu channel hasil-scrim atau namanya dipakai jenis channel lain. Rapikan dulu.',
           SETUP_PREVIEW_STALE: 'Isi server atau sesi berubah sejak preview. Buka setup lagi untuk melihat rencana terbaru.',
           SETUP_BUSY: 'Setup server ini sedang berjalan. Tunggu hasilnya sebelum membuka setup lagi.',
         };
@@ -276,4 +340,4 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
   };
 }
 
-module.exports = { PREFIX, createAdminSetupFlow, ensureNewsChannel, ensureCommunityChannels, newsNextSteps };
+module.exports = { PREFIX, createAdminSetupFlow, ensureNewsChannel, ensureCommunityChannels, ensureScrimSetup, newsNextSteps };

@@ -126,6 +126,7 @@ async function execute(interaction, {
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
       'Hengs News menyimpan pengaturan serta receipt/hash URL berita, tanpa chat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari. `/setup disable` menghentikan jadwal news; pengaturan tetap tersimpan. Backup dapat menyimpan versi sebelumnya.',
       'Casterin (khusus server utama): teks momen dikirim ke Groq, lalu teriakannya ke Google Gemini free tier yang datanya bisa dipakai Google untuk mengembangkan layanan. Audio tidak disimpan ke file dan preview hangus 10 menit.',
+      'Hasil scrim (khusus server utama): Hengs menyimpan lawan, skor, hasil, game, catatan, ID pengirim dan ID pesan untuk rekap tim. Gambar SS tetap di Discord, tidak disimpan di file Hengs.',
     ].join('\n'));
     return;
   }

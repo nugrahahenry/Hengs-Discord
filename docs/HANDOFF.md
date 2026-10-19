@@ -2,6 +2,28 @@
 
 Updated: 2026-10-19
 
+## Hengs Discord v1.64.0 scrim results channel (local, not deployed)
+
+- Henry chose: channel plus submit via Hengs, team-role-only posting, new role "Hengs Family".
+  Future direction only: Hengs as coach reading results and meta from data; v1.64.0 stores clean
+  structured results for that. Design/spec/plan: docs/superpowers/specs/2026-10-19-scrim-results-design.md (ignored).
+- New src/scrim/{store,service}.js. `/scrim hasil` (attachment + lawan/skor/hasil/game/catatan) gives a
+  private preview, then one send posts the screenshot and card in hasil-scrim without pings and records
+  data/scrim-results.json (schema 1, newest 500 per guild, IDs and typed fields only, no image bytes/URLs).
+- `/admin setup` gains "Scrim tim": preview, then confirmed create/reuse of the permissionless Hengs Family
+  role and `📸・hasil-scrim` under Gaming (everyone read; team role and Hengs send/attach/embed). Role
+  assignment stays manual. Existing channel: only @everyone, team role and Hengs overwrites are edited.
+- Built on top of the Casterin commit a716830 (v1.63.0) in the same checkout after that session went
+  idle; it agreed not to edit discord-bot until this checkpoint lands. src/caster untouched.
+- QA: 9 new scrim tests; full suite result recorded in the commit report. Not proven: live Discord role/
+  channel creation, CDN download from a real attachment, and member UI. Needs dogfood after deploy.
+- Combined DC deploy (v1.63.0 + v1.64.0) needs Henry's explicit approval: GEMINI_API_KEY (and optional
+  CASTER_DAILY_LIMIT) in /etc/hengs/discord.env, Node22 candidate tests, controlled restart, then
+  `npm run deploy` to register /caster and the updated /scrim in the home guild. After deploy: owner runs
+  /admin setup -> Scrim tim, adds team members to Hengs Family, one member tries /scrim hasil in
+  bot-commands. Run the full suite from PowerShell; Git Bash GNU tar breaks state-transfer tests.
+- Commit subject: feat(scrim): Hengs Discord v1.64.0 - add team scrim results channel
+
 ## Hengs Discord v1.63.0 Casterin audio caster (local, not deployed)
 
 - `/caster` per local spec docs/superpowers/specs/2026-10-19-casterin-design.md and research
@@ -16,7 +38,7 @@ Updated: 2026-10-19
   C:\ paths); environment-only, same on the untouched baseline. Node22 candidate run belongs to deploy.
 - .env.example not updated: project guard Edit(**/.env.*) blocks agents; GEMINI_API_KEY and
   CASTER_DAILY_LIMIT are documented in README.
-- Next: Henry creates a Gemini API key in a new Google project for Hengs. Then, only with explicit
+- Next: Henry uses the existing Gemini key for Hengs (not the Canox key; motion-lab TTS shares it), one key, no rotation. Then, only with explicit
   authorization, deploy per docs/CLOUD-DEPLOY.md: secret transfer (GEMINI_API_KEY, CASTER_DAILY_LIMIT),
   Node22 candidate tests, controlled restart, npm run deploy for home guild commands, manual checks
   (one shout per persona, inline WAV desktop + mobile, Kirim/Ulang/Batal, non-admin channel guard).

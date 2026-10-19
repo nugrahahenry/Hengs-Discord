@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.64.0] - 2026-10-19
+
+### Added
+
+- Hengs Discord v1.64.0 adds a scrim results channel. `/admin setup` gains **Scrim tim**: after a
+  private preview and confirmation it creates (or reuses) the permissionless `Hengs Family` role and a
+  `📸・hasil-scrim` channel under Gaming where everyone reads and only the team role and Hengs post.
+- `/scrim hasil` lets a Hengs Family member submit a screenshot with opponent, score, result, game and
+  note. Private preview, one-click send without pings, Discord nonce, no automatic retry. Each sent
+  result is recorded in `data/scrim-results.json` (newest 500 per guild) for a future coach.
+
+### Security and privacy
+
+- Only Discord CDN PNG/JPEG/WebP images up to 8 MB are downloaded once at send time; image bytes and
+  URLs are not stored. Text fields drop control/format characters, angle brackets and `@`.
+- Role membership, channel and bot permissions are re-checked at send time; duplicate role or channel
+  names refuse instead of guessing. Role assignment stays manual.
+
 ## [1.63.0] - 2026-10-19
 
 ### Added

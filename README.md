@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.63.0 - Casterin audio caster (local, not deployed)
+**Current checkpoint:** Hengs Discord v1.64.0 - scrim results channel (local, not deployed; includes v1.63.0 Casterin)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -44,6 +44,18 @@ for schema-aware rollback. The public bot invite is also included in Hengs' appl
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
+
+## Hasil scrim
+
+Admin/owner: `/admin setup` -> **Scrim tim** -> preview -> konfirmasi. Hengs membuat role `Hengs Family`
+(tanpa izin server tambahan) dan channel `📸・hasil-scrim` di kategori Gaming kalau ada, atau memakai yang
+sudah ada. Semua member bisa melihat; hanya Hengs Family dan Hengs yang bisa kirim. Anggota tim ditambahkan
+ke role secara manual lewat Server Settings > Members.
+
+Anggota Hengs Family di bot-commands: `/scrim hasil ss lawan skor hasil [game] [catatan]`. Preview privat
+dulu (Kirim/Batal, hangus 10 menit), lalu Hengs memposting SS dan kartu hasil tanpa ping. Data terstruktur
+(lawan, skor, hasil, game, catatan, ID pengirim, ID pesan) disimpan di `data/scrim-results.json`, maksimal
+500 hasil terbaru per server, sebagai bahan rekap atau coach nanti. Gambar tetap di Discord.
 
 ## Casterin
 
