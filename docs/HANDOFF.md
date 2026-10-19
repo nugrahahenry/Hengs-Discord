@@ -2,6 +2,31 @@
 
 Updated: 2026-10-19
 
+## Hengs Discord v1.64.0 deployed with v1.63.0 - 2026-10-20
+
+- Henry approved: deploy v1.64.0 (includes Casterin v1.63.0) now, Gemini key later, one controlled
+  restart, WhatsApp untouched. Exact code 7693c082931d7fcae93f326dcddf6be8aa7aabe0, archive
+  hengs-discord-1.64.0-7693c082931d.tar.gz SHA-256 21c6d3b5bc437832e859ca2a4f48ff8853e4b916407e3b490bebfe2f3045d7d3
+  (built from PowerShell). Ignored operators: .cloud/automation/deploy-v1640 (derived from deploy-v1620 by
+  script; news migration removed because schema stays 3).
+- Preflight PASS at 01:59 WIB (outside the 07-10 WIB news window). Status ACCEPTED VERSION=1.64.0 TESTS=719
+  PASS=716 CHECKOUT_SKIPS=3 HEALTH=TWO_FRESH MEMORY=ON WA=UNCHANGED CANOX=UNCHANGED NEWS=UNCHANGED.
+  Independent audit PASS (DC 1.64.0, WA 0.47.0 fresh, single consumers, zero restarts, staging absent,
+  rollback 1.62.0 available).
+- register-commands.sh ran deploy-commands.js once as hengs-discord with /etc/hengs/discord.env
+  (COMMAND_REGISTRATION_OK, global + home PUT). Read-only check: 13 home commands, /caster present,
+  /scrim has hasil. No token printed or transferred; no GEMINI_API_KEY installed yet.
+- Not yet proven: owner /admin setup -> Scrim tim live (role + channel creation), a Hengs Family member
+  /scrim hasil end to end (CDN download, post, record), Casterin voice (needs key). Members currently get
+  "Casterin belum aktif." from /caster.
+- Next: owner runs /admin setup -> Scrim tim in bot-commands, adds members to Hengs Family, one member tests
+  /scrim hasil. Casterin activation: install the existing Hengs Gemini key (not the Canox key) into
+  /etc/hengs/discord.env with a reviewed secret-transfer step, restart once, test one shout per persona.
+- Hengs Coach research and phased design: docs/research/2026-10-20-hengs-coach.md and
+  docs/superpowers/specs/2026-10-20-hengs-coach-design.md (both ignored). Recommendation: phase 1 recap
+  from own scrim data first; vision only after a 10-screenshot accuracy test; no Gemini free tier for SS.
+- Docs commit: docs(deploy): Hengs Discord v1.64.0 - record cloud acceptance and command registration
+
 ## Hengs Discord v1.64.0 scrim results channel (local, not deployed)
 
 - Henry chose: channel plus submit via Hengs, team-role-only posting, new role "Hengs Family".

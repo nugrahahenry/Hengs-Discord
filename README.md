@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.64.0 - scrim results channel (local, not deployed; includes v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.64.0 - scrim results channel, cloud-live since 2026-10-20 (includes v1.63.0 Casterin)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -37,10 +37,11 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.62.0 accepted after controlled restart, private Canox memory connected.
-Node22 candidate QA: 691 passed, zero failed, three checkout-only skips (694 total). Two fresh
-advancing heartbeats passed; WhatsApp and Canox were not restarted. v1.61.0 remains available
-for schema-aware rollback. The public bot invite is also included in Hengs' application description.
+**Current cloud production:** v1.64.0 accepted on 2026-10-20 after one controlled restart, private
+Canox memory connected. Node22 candidate QA: 716 passed, zero failed, three checkout-only skips (719
+total). Two fresh advancing heartbeats passed; WhatsApp and Canox were not restarted; news state unchanged.
+Home guild commands re-registered (13, including `/caster` and `/scrim hasil`). Casterin stays inactive
+("belum aktif") until a Gemini key is installed. v1.62.0 remains available for rollback. The public bot invite is also included in Hengs' application description.
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.

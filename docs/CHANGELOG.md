@@ -15,6 +15,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - `/scrim hasil` lets a Hengs Family member submit a screenshot with opponent, score, result, game and
   note. Private preview, one-click send without pings, Discord nonce, no automatic retry. Each sent
   result is recorded in `data/scrim-results.json` (newest 500 per guild) for a future coach.
+- Cloud rollout accepted 2026-10-20 together with v1.63.0: VM suite 716 pass / 3 checkout skips,
+  two fresh heartbeats, WhatsApp and Canox unchanged, home commands re-registered. Casterin inactive
+  until its Gemini key is installed; Scrim tim setup and member submission not yet dogfooded.
 
 ### Security and privacy
 
