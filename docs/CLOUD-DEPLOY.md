@@ -18,11 +18,14 @@ Deskripsi aplikasi sudah memuat link invite publik terverifikasi, tanpa mengubah
 v1.62.0 memisahkan tujuan news/memes dan menambah kiriman anggota melalui preview privat.
 Exact committed code `86de70314dc8673a838d9bc3c0e2dd4a7df2bd6e` sudah live; migration menambah
 `memeChannelId: null` tanpa mengubah mode/owner atau receipt. Henry juga menyetujui setup
-channel terpisah dan posting anggota, tetapi tahap UI itu belum dijalankan karena sesi Discord
-owner kedaluwarsa. News lama tetap active/tested, memes belum ada, permission belum diubah.
-Tunggu login owner untuk `/admin setup` -> News + memes -> preview/konfirmasi terbatas, lalu
-atur kedua tujuan melalui preview berita dan terapkan berita. Jangan menjalankan full setup.
-Tanpa tujuan meme, hiburan dilewati. Jangan mengirim test di news; dogfooding di bot-commands.
+channel terpisah dan posting anggota. Pada 2026-10-19, owner menjalankan alur UI terbatas
+`/admin setup` -> News + memes, lalu preview dan terapkan routing terpisah. News tetap
+active/tested; receipt lama dipertahankan. Kedua channel berada di Announcements, bukan
+Bot Center. Izin native view/history/send/files/embed diperiksa read-only; bukan klaim uji
+akun anggota lain. Preview joke privat lalu Batal lulus tanpa kiriman publik. Preview berita
+tidak menemukan item segar dan tidak mengarang isi. Jadwal tetap maksimal dua berita pada
+08:00/09:00 dan satu hiburan pada 10:00 WIB; slot kosong dilewati. Tidak ada restart/deploy
+tambahan. Jangan mengirim test di news/memes; dogfooding tetap di bot-commands.
 Rollback ke v1.61.0 wajib memakai `downgradeState(currentState, 2)` dari kandidat, mempertahankan
 receipt mutakhir dan menjeda jadwal yang memuat hiburan. Validasi file dengan kode target sebelum
 start binary lama; jangan mengembalikan backup receipt yang lebih tua. Route meme akan dilepas

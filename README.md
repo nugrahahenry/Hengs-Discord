@@ -7,9 +7,10 @@
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
 No admin queue or AI safety/fact-check certification. Availability counters remain removed.
-Cloud deployment was accepted on 2026-10-18. Separate channel setup and routing remain pending
-owner login for live UI acceptance; existing channel permissions have not changed. Until a meme
-destination is selected, scheduled entertainment is skipped rather than mixed into news.
+Cloud deployment was accepted on 2026-10-18. On 2026-10-19, owner UI setup opened direct member
+posting in both destinations and applied separate routing without resetting delivery history.
+Both channels sit in Announcements, outside Bot Center. Private sharing preview/cancel passed;
+no test item was published. Native permissions were audited, not tested with another member account.
 
 Cloud-live since 2026-10-17: News sends one item at a time, at least one hour apart (for example
 08:00, 09:00, 10:00 WIB). `/hengs help` separates member features from privileged controls.

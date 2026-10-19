@@ -30,8 +30,12 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   News schema2 upgraded atomically to3 under stopped Discord, preserving state/owner/mode and
   delivery evidence. One controlled restart passed two fresh advancing health heartbeats.
 - WA and Canox unchanged; local bots remain off. Staging absent; schema-aware v1.61.0 rollback
-  available and not needed. Channel/permission setup and split routing await owner browser login;
-  no live publication or channel change during this deployment. Missing meme route skips its slot.
+  available and not needed. No live publication or channel change during this deployment.
+- On 2026-10-19, owner UI limited setup opened both channels for direct member contributions.
+  Distinct news/meme routing applied with active schedule and delivery history preserved. Both
+  destinations moved to Announcements. Read-only permission audit and private joke preview/cancel
+  passed, with no public test publication, redeployment or restart. Scheduled slots remain hourly;
+  no fresh item means skip, not fabricated content or a guaranteed three-item daily delivery.
 
 ## [1.61.1] - 2026-10-18
 

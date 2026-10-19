@@ -1,8 +1,28 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-18
+Updated: 2026-10-19
 
-## Hengs Discord v1.62.0 cloud accepted, channel activation pending login
+## Hengs Discord v1.62.0 channel activation accepted
+
+- Owner UI in bot-commands completed the limited News + memes setup, reusing news and creating
+  memes. Direct view/history/send/files/embed permissions verified by read-only REST; no guild
+  role changes or full setup. Both channels now reside in Announcements, outside Bot Center.
+- Explicit route draft -> private preview -> terapkan berita preserved active/tested schedule,
+  receipts and history. Slots remain 08:00/09:00 news, 10:00 entertainment, at most two plus one.
+  Empty/freshness-filtered slots skip. Preview had no fresh item, not a fabricated digest.
+- Private joke share preview/cancel passed with visible confirmation that no new post was sent.
+  No public dogfood post, member ping, ordinary-member account test or real news delivery claimed.
+- A single bot REST placement attempt failed at PLACEMENT, with unchanged channel readback.
+  Owner UI then moved both channels successfully, retaining the direct posting overwrites.
+  Do not rerun ignored place-channels.sh. Read-only channels-read.sh and audit.sh passed.
+- Cloud remains DC1.62.0, WA0.46.0, fresh single-consumer, zero restarts; Canox unchanged.
+  No deployment, restart, QR, token/auth change, reboot, restore or cloud provisioning this turn.
+- Screenshot: ignored .cloud/automation/deploy-v1620/channel-acceptance.png. Scope is now closed;
+  next work is WA sleep intent/status consistency and contextual conversational tone.
+- Documentation-only checkpoint at1.62.0. Commit subject:
+  docs(news): Hengs Discord v1.62.0 - record split channel activation
+
+## Previous checkpoint: cloud accepted on 2026-10-18 (activation completed above)
 
 - Henry authorized deployment and narrowly scoped news/memes setup. Exact source
   86de70314dc8673a838d9bc3c0e2dd4a7df2bd6e is live at immutable1.62.0-86de70314dc8.
