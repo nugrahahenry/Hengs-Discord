@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.63.0] - 2026-10-19
+
+### Added
+
+- Hengs Discord v1.63.0 adds Casterin: `/caster` in the home guild turns a short member moment into a
+  fictional caster shout written by Groq `openai/gpt-oss-120b` and voiced by Gemini TTS
+  `gemini-3.8-flash-tts`, falling back to `gemini-3.8-flash-lite-tts` on 429. Four fictional personas
+  with fixed prebuilt voices; no voice cloning, no game footage, no files written.
+- Private preview with Kirim/Ulang/Batal. Public posts carry "Suara AI, persona fiksi" and the requester
+  without pings. Members use it in bot-commands through the existing channel guard.
+- RAM limiter: `CASTER_DAILY_LIMIT` (default 20, UTC day so it resets 07:00 WIB with Google), 3 per
+  member per day, 60 s member cooldown, 20 s per-model gap (free tier 3 RPM), one generate at a time,
+  at most 10 drafts, 10 minute preview TTL. Groq refusals/failures spend no TTS quota. No auto retries.
+- Member help and `/hengs privacy` describe the Casterin data flow (Groq, Gemini free tier).
+
+### Operations
+
+- Not deployed. Activation needs a dedicated Gemini API key in `/etc/hengs/discord.env`, home guild
+  command registration and the manual checks in the Casterin spec.
+
 ## [1.62.0] - 2026-10-18
 
 ### Added

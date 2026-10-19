@@ -207,6 +207,8 @@ test('/hengs privacy explains provider processing and bounded memory without mut
     assert.match(value.replyPayload.content, /64.*24 pesan/i);
     assert.match(value.replyPayload.content, /tidak disimpan ke file/i);
     assert.match(value.replyPayload.content, /\/hengs reset/i);
+    assert.match(value.replyPayload.content, /Casterin/);
+    assert.match(value.replyPayload.content, /Google Gemini free tier/);
     assert.doesNotMatch(value.replyPayload.content, /Henry|[\u2013\u2014]/i);
     assert.equal(deps.calls.length, 0);
   }

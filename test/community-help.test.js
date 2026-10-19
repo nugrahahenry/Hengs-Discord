@@ -8,9 +8,11 @@ const guild = { channels: { cache: new Map([['bot', { type: 0, name: '🤖・bot
 test('member help is short and truthful; managers/editors see only applicable controls', () => {
   const member = buildCommunityHelp({ home: true, guild });
   assert.match(member, /<#[0-9]+>/); assert.match(member, /bukan di Hall of Fame/);
+  assert.match(member, /\/caster/); assert.match(member, /jangan tulis data pribadi/);
   assert.doesNotMatch(member, /Khusus pengelola|fokus belajar|Tag anggota atau/);
   const publicHelp = buildCommunityHelp({ manager: true });
   assert.match(publicHelp, /\/setup/); assert.doesNotMatch(publicHelp, /Hall of Fame|fokus belajar|bot-settings/);
+  assert.doesNotMatch(publicHelp, /\/caster/);
   const admin = buildCommunityHelp({ home: true, manager: true, editor: true, guild });
   assert.match(admin, /Tag anggota atau Tanpa tag/);
   for (const text of [member, publicHelp, admin]) { assert.ok(text.length <= 2000); assert.doesNotMatch(text, /[\u2013\u2014]/); }

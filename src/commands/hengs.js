@@ -125,6 +125,7 @@ async function execute(interaction, {
       'Fitur ingatan Canox opsional hanya untuk owner privat, disimpan setelah konfirmasi. Reset percakapan tidak menghapus catatan/ingatan tersimpan atau backup.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
       'Hengs News menyimpan pengaturan serta receipt/hash URL berita, tanpa chat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari. `/setup disable` menghentikan jadwal news; pengaturan tetap tersimpan. Backup dapat menyimpan versi sebelumnya.',
+      'Casterin (khusus server utama): teks momen dikirim ke Groq, lalu teriakannya ke Google Gemini free tier yang datanya bisa dipakai Google untuk mengembangkan layanan. Audio tidak disimpan ke file dan preview hangus 10 menit.',
     ].join('\n'));
     return;
   }

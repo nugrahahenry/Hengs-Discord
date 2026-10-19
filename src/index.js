@@ -56,6 +56,7 @@ const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createNewsEditor } = require('./news/editor');
 const { createCommunitySharing } = require('./news/sharing');
+const { createCaster } = require('./caster/service');
 let newsService;
 let communitySharing;
 const { startTypingIndicator } = require('./assistant-ux');
@@ -101,6 +102,11 @@ const publicDailyRequestLimit = parsePublicDailyRequestLimit(
 );
 const publicInsightsStore = createPublicInsightsStore({ dailyLimit: publicDailyRequestLimit });
 const communityPack = createCommunityPack();
+const caster = createCaster({
+  groq: agent.groq,
+  apiKey: process.env.GEMINI_API_KEY,
+  dailyLimit: process.env.CASTER_DAILY_LIMIT,
+});
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
@@ -644,6 +650,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     catch { console.error('[community-share] INTERACTION_FAILED'); }
     return;
   }
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-caster:')) {
+    try { await client.commands.get('caster').handleButton(interaction, { caster, guildAccess }); }
+    catch { console.error('[caster] INTERACTION_FAILED'); }
+    return;
+  }
   const interactionScope = guildAccess.classify(interaction.guildId);
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-prompt:')) {
     try {
@@ -858,6 +869,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       personalAssistant,
       newsService,
       communitySharing,
+      caster,
       reportHub,
       reportQueue,
       moderationHub,

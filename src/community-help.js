@@ -31,6 +31,8 @@ function buildCommunityHelp({ home = false, manager = false, editor = false, gui
     '• "Rapikan kalimat ini biar enak dibaca: ..."',
     '', '**News dan memes**',
     'Posting langsung sesuai izin channel, atau `/hengs ask` di bot-commands: `bagikan berita: link HTTPS` / `bagikan joke: teks`. Preview dulu, kamu yang konfirmasi. Bukan verifikasi AI.',
+    ...(home ? ['', '**Casterin**',
+      `\`/caster\` di ${botCommands(guild)}: tulis momen + pilih persona, dengerin preview privat, baru Kirim. Suara AI, jangan tulis data pribadi.`] : []),
     ...(home ? ['', '**Punya pencapaian?**',
       `Ajukan kartu apresiasi di ${botCommands(guild)}, bukan di Hall of Fame. Siapkan tim/pemain, hasil, acara, tanggal, dan roster satu orang per baris. Owner/editor membantu review. Tag akun Discord opsional, bukan wajib.`] : []),
     '', '**Tombol bantuanmu**',

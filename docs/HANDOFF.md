@@ -2,6 +2,26 @@
 
 Updated: 2026-10-19
 
+## Hengs Discord v1.63.0 Casterin audio caster (local, not deployed)
+
+- `/caster` per local spec docs/superpowers/specs/2026-10-19-casterin-design.md and research
+  docs/research/2026-10-19-casterin.md (both ignored). New: src/caster/{personas,service}.js,
+  src/commands/caster.js, test/caster.test.js. Changed: Groq client export in src/agent.js, service
+  wiring + hengs-caster: button route in src/index.js, help/privacy lines.
+- Groq gpt-oss-120b writes one shout (strict JSON, refusal path); Gemini 3.8 Flash TTS voices it,
+  Flash-Lite on 429. Probed 2026-10-19: free tier 3 RPM / 10 RPD per model, reset 00:00 UTC.
+- RAM-only limits and drafts; no dependency, schema, state file or backup change. freeCommands unchanged.
+- QA: local Node24 full suite 710/710 passed from PowerShell (694 baseline + 16 Casterin), zero
+  failures/skips. Under Git Bash, 5 cloud state-transfer tests fail TAR_FAILED (GNU tar misreads
+  C:\ paths); environment-only, same on the untouched baseline. Node22 candidate run belongs to deploy.
+- .env.example not updated: project guard Edit(**/.env.*) blocks agents; GEMINI_API_KEY and
+  CASTER_DAILY_LIMIT are documented in README.
+- Next: Henry creates a Gemini API key in a new Google project for Hengs. Then, only with explicit
+  authorization, deploy per docs/CLOUD-DEPLOY.md: secret transfer (GEMINI_API_KEY, CASTER_DAILY_LIMIT),
+  Node22 candidate tests, controlled restart, npm run deploy for home guild commands, manual checks
+  (one shout per persona, inline WAV desktop + mobile, Kirim/Ulang/Batal, non-admin channel guard).
+- Commit subject: feat(caster): Hengs Discord v1.63.0 - add Casterin audio caster command
+
 ## Hengs Discord v1.62.0 channel activation accepted
 
 - Owner UI in bot-commands completed the limited News + memes setup, reusing news and creating

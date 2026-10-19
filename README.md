@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.62.0 - split channels and member sharing (cloud accepted)
+**Current checkpoint:** Hengs Discord v1.63.0 - Casterin audio caster (local, not deployed)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -44,6 +44,19 @@ for schema-aware rollback. The public bot invite is also included in Hengs' appl
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
+
+## Casterin
+
+`/caster` (server utama; member biasa di bot-commands): tulis momen maksimal 150 karakter, pilih persona,
+lalu Hengs membalas teriakan caster AI berupa file suara. Persona fiksi: Bang Jago Esport, Bapak-bapak
+Bola, Wibu Ngegas, Caster Galau. Preview privat dulu (Kirim, Ulang, Batal; hangus 10 menit). Postingan
+publik diberi label "Suara AI, persona fiksi" dan nama pemesan tanpa ping.
+
+Naskah ditulis Groq `openai/gpt-oss-120b`, suara dari Gemini TTS `gemini-3.8-flash-tts` dengan cadangan
+`gemini-3.8-flash-lite-tts`. Free tier Gemini dibatasi 10 request per hari per model, jadi
+`CASTER_DAILY_LIMIT` default 20, ditambah 3 per member per hari, reset 07:00 WIB. Tidak ada file yang
+disimpan, tidak ada kloning suara, dan teks momen tidak dicatat di log. Butuh `GEMINI_API_KEY` dari
+project Google khusus Hengs; tanpa key, `/caster` menjawab "Casterin belum aktif."
 
 ## Hengs News
 
