@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { Collection, ChannelType, PermissionFlagsBits: P } = require('discord.js');
 const { createScrimStore, MAX_RESULTS } = require('../src/scrim/store');
-const { createScrimResults, parseScore, readSubmission, CHANNEL_NAME } = require('../src/scrim/service');
+const { createScrimResults, parseScore, readSubmission, CHANNEL_NAME, findTeamRole } = require('../src/scrim/service');
 const { createAdminSetupFlow, ensureScrimSetup } = require('../src/guilds/admin-setup');
 const scrimCommand = require('../src/commands/scrim');
 const { buildCommandPlan } = require('../src/deploy-commands');
@@ -273,4 +273,13 @@ test('/scrim registers hasil in the home guild with required screenshot and fiel
     [['ss', true], ['lawan', true], ['skor', true], ['hasil', true], ['game', false], ['catatan', false]]);
   const plan = buildCommandPlan([{ name: 'hengs' }, { name: 'setup' }, json]);
   assert.deepEqual(plan.home.map(command => command.name), ['scrim']);
+});
+
+test('the team role is found with or without an emoji prefix, and two candidates still conflict', async () => {
+  const guildWith = (...names) => ({ roles: { fetch: async () => new Collection(names.map((name, index) => [
+    `73000000000000000${index}`, { id: `73000000000000000${index}`, name }])) } });
+  assert.equal((await findTeamRole(guildWith('\u{1FAC2} Hengs Family', 'Member'))).name, '\u{1FAC2} Hengs Family');
+  assert.equal((await findTeamRole(guildWith('Hengs Family'))).name, 'Hengs Family');
+  assert.equal(await findTeamRole(guildWith('Hengs Family Fans', 'Member')), null);
+  await assert.rejects(findTeamRole(guildWith('Hengs Family', '\u{1FAC2} Hengs Family')), /SCRIM_ROLE_CONFLICT/);
 });

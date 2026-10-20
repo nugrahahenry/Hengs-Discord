@@ -5,6 +5,22 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.64.1] - 2026-10-20
+
+### Fixed
+
+- `/scrim hasil` and `/admin setup` find the team role with or without an emoji prefix, for example
+  `🫂 Hengs Family`, the same way the hasil-scrim channel was already matched. Two candidate roles still
+  refuse instead of guessing. Before this, renaming the role would have made `/scrim hasil` report it
+  missing.
+
+### Operations
+
+- 2026-10-20, at Henry's request, the five self-assign roles got their get-roles emoji in the name
+  (`🐉 Mobile Legends`, `🎯 Valorant`, `🧱 Roblox`, `📢 Announcements`, `🎉 Events`) through the bot's REST
+  identity. Reaction roles store IDs and `/admin getroles` matches names fuzzily, so nothing else changed.
+  The server has no Boost level 2, so Discord role icons are unavailable; emoji stay in the names.
+
 ## [1.64.0] - 2026-10-19
 
 ### Added

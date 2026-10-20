@@ -39,9 +39,10 @@ const normalize = name => String(name).toLowerCase().replace(/^[^a-z0-9]+/, '');
 const clean = (value, max) => String(value ?? '').replace(/[\p{Cc}\p{Cf}<>@]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 const shown = value => escapeMarkdown(value);
 
+// Like the channel, the role may carry an emoji prefix ("🫂 Hengs Family"); two candidates still conflict.
 async function findTeamRole(guild) {
   const roles = await guild.roles.fetch();
-  const matches = [...roles.values()].filter(role => role?.name === ROLE_NAME);
+  const matches = [...roles.values()].filter(role => normalize(role?.name) === normalize(ROLE_NAME));
   if (matches.length > 1) throw new Error('SCRIM_ROLE_CONFLICT');
   return matches[0] || null;
 }

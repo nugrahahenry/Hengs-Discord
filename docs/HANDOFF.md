@@ -2,6 +2,23 @@
 
 Updated: 2026-10-20
 
+## Hengs Discord v1.64.1 role emoji local checkpoint - 2026-10-20
+
+- Henry asked for icons on role names without one and for hasil-scrim to be readable by everyone but
+  postable only by Hengs Family. roles-check.sh (read-only) showed premium tier 0 (no ROLE_ICONS), the
+  bot's top role at position 21 (below Owner and Hengs Family), managed bot roles for Jockie Music x2,
+  Lofi Radio, OwO, Carl-bot and Luminary Tracker, and the hasil-scrim overwrites already as requested
+  (@everyone view and history, send and threads denied; Hengs Family and Hengs view, send, embed,
+  attach, history). Administrator also sits on Owner, Bots, Jockie Music x2 and OwO; those bypass
+  channel rules.
+- role-icons.sh renamed Mobile Legends, Valorant, Roblox, Announcements and Events with the get-roles
+  emoji (exact old name required, below the bot, not managed). Hengs Family is above the bot and must be
+  renamed by Henry, but findTeamRole matched the exact name, so v1.64.1 normalizes it like the channel.
+- QA: Node 22 full suite 720/720 locally. Not deployed: Hengs Family must keep its plain name until
+  v1.64.1 is live. Deploy helpers can be derived from deploy-v1640 (no command re-registration needed;
+  command shapes did not change).
+- Commit subject: fix(scrim): Hengs Discord v1.64.1 - accept an emoji prefix on the team role
+
 ## Scrim tim provisioned at owner request - 2026-10-20
 
 - A read-only REST check (.cloud/automation/deploy-v1640/scrim-check.sh, as hengs-discord) found no
