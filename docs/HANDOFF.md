@@ -2,6 +2,24 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.66.1 local checkpoint and 5x5 activation - 2026-10-21
+
+- Henry: "Silahkan lu lanjutkan aja, gw review nanti siang ... setelah semua berita dan meme udah keluar".
+- Dry run on the VM (news-v1660/dryrun.sh, read-only, 3 Groq calls): 177 items, 10 sources with items,
+  5 picks (2 Hacker News, CNN Indonesia, Okezone, Cloudflare), editor 3/3, Hengs meme sample rendered
+  (astronaut, 628 KB), Lemmy sample passed the vision check, state unchanged.
+- Applied 05:18 WIB with news-v1660/apply-5x5.sh (store.revise, refused while a slot is due): ENABLED=1
+  TOPICS=TECH.AI.GAMING NEWS=0800.1000.1200.1400.1600 MEMES=1300.1500.1700.1900.2100, same channels. State
+  file is schema 4 now: rollback to v1.64.x needs downgradeState(state, 3) first (it pauses the schedule),
+  and every future helper must expect schemaVersion 4 (deploy.cjs, preflight.sh, audit.sh).
+- Feed check (news-v1660/probe-feeds.sh): Jagat Play failed once then loaded (origin flaky); Revival TV was
+  rejected by the bot's public-address filter (192.0.78.x, WordPress.com). Fixed in v1.66.1 (http.js
+  publicIPv4: only 192.0.0.0/24 and 192.0.2.0/24 are special). Antara and Mozilla had no fresh items.
+- Session-only read-only checks scheduled: 08:07 (first news), 13:07 (first meme), 21:12 (day summary).
+- QA: Node 22 full suite 743/743. Cloud runs v1.66.0; v1.66.1 deploy needs a new approval, outside slot
+  windows (after 21:00 or before 08:00 WIB) so the news fingerprint check holds.
+- Commit subject: fix(news): Hengs Discord v1.66.1 - accept WordPress-hosted feed addresses
+
 ## Hengs Discord v1.66.0 deployed and accepted - 2026-10-21
 
 - Henry approved "Deploy Discord v1.66.0 sekarang" (one controlled restart, WhatsApp untouched). Code

@@ -295,6 +295,9 @@ test('news questions/negations never turn on schedules; drafts have bounded revi
 test('news source boundary rejects private DNS, redirects/unsafe article links and XML entities', async () => {
   for (const ip of ['127.0.0.1', '10.0.1.1', '192.168.1.1', '169.254.169.254', '100.100.100.100', '172.31.1.1', '::1', '224.1.1.1', '0.0.0.0', '192.0.2.1', '198.18.1.1']) assert.equal(publicIPv4(ip), false);
   assert.equal(publicIPv4('8.8.8.8'), true);
+  // Only 192.0.0.0/24 and 192.0.2.0/24 are special; WordPress.com feeds live in 192.0.64.0/18.
+  for (const ip of ['192.0.78.239', '192.0.1.1']) assert.equal(publicIPv4(ip), true, ip);
+  assert.equal(publicIPv4('192.0.0.8'), false);
   for (const url of ['http://hacks.mozilla.org/a', 'https://hacks.mozilla.org@localhost/a', 'https://hacks.mozilla.org.evil.invalid/a', 'https://hacks.mozilla.org:8443/a', 'https://127.0.0.1/a']) assert.equal(articleUrl(url, SOURCES[0]), null);
   assert.equal(articleUrl('https://hacks.mozilla.org/test/?utm_source=x#fragment', SOURCES[0]), 'https://hacks.mozilla.org/test/');
   assert.throws(() => parseFeed('<!DOCTYPE rss><rss></rss>', SOURCES[0]), /INVALID/);

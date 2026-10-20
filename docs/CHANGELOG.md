@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.66.1] - 2026-10-21
+
+### Fixed
+
+- The public-address check used for feeds and images rejected all of 192.0.0.0/16, so feeds hosted on
+  WordPress.com (192.0.64.0/18), such as Revival TV, never loaded (an older bug, carried into
+  `src/news/http.js`). Only the special ranges 192.0.0.0/24 and 192.0.2.0/24 are rejected now.
+
+### Operations
+
+- 2026-10-21 05:18 WIB, Henry asked for the setup to be finished for him ("lanjutkan"): after a read-only
+  dry run on the VM, the home guild schedule was set to 5 news (tech, AI, gaming; 08:00 to 16:00) and
+  5 memes (13:00 to 21:00) with the store's revise transition (the same one `terapkan berita` uses,
+  refused while a slot is due). Channels, tone and the enabled state did not change. The state file is
+  schema 4 from now on.
+
+### Verification
+
+- Node 22 full suite 743/743 via PowerShell. Not deployed: the cloud runs v1.66.0.
+
 ## [1.66.0] - 2026-10-21
 
 ### Added
