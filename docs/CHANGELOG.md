@@ -5,6 +5,35 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.65.0] - 2026-10-21
+
+### Added
+
+- Hengs News can send up to five news a day, one every two hours from the chosen time (the default stays
+  three: 08:00, 10:00, 12:00 WIB). New sources: the Hacker News front page (tech and AI, linked to the HN
+  discussion), CNN Indonesia, CNBC Indonesia, Liputan6, Okezone and ANTARA technology feeds, and Gamebrott,
+  Jagat Play, Esportsnesia and Revival TV for gaming. Indonesian media cards carry no publisher images.
+- Picks follow "heat": Hacker News points per hour, how many different publishers carry the same story
+  within 12 hours, and a bonus when Google Trends Indonesia shows the topic rising. Each card says why it
+  was picked. A story already sent is not sent again from another publisher; politics, SARA, crime,
+  disasters, gambling and adult topics are skipped.
+- Memes have their own count (0 to 5), clock (default 13:00) and channel:
+  `atur berita meme 5 jam 13:00 ke #hengs-memes`. In this version meme slots use new xkcd comics only.
+
+### Changed
+
+- News slots are two hours apart (was one hour). The fixed "2 news + 1 meme" mix is gone:
+  `atur berita 2 berita 1 meme` now means two news and one meme on separate clocks.
+- News state schema 4 (separate news and meme receipts). Older state upgrades on read without writing;
+  the rollback adapter pauses schedules an older runtime cannot follow. The live 3-item mix becomes news
+  at 08:00 and 10:00 plus a meme at 13:00 until a manager changes it.
+
+### Verification
+
+- Offline only, synthetic data: Node 22 full suite 731/731 via PowerShell. Read-only VM probe: all 14 new
+  hosts answered 200 with the expected types and article hosts; the Groq vision model is present and
+  answered exactly {"safe":true}. No deploy.
+
 ## [1.64.2] - 2026-10-20
 
 ### Changed

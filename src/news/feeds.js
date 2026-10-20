@@ -1,77 +1,43 @@
 'use strict';
 
-const https = require('node:https');
-const dns = require('node:dns');
-const net = require('node:net');
 const crypto = require('node:crypto');
 const { DAY } = require('./store');
+const { publicIPv4, fetchBounded } = require('./http');
 
+const FEED_TYPES = Object.freeze(['application/rss+xml', 'application/atom+xml', 'application/xml', 'text/xml']);
+const HN_URL = 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30';
+const noImage = { imageHost: null, imagePath: null };
 const SOURCES = Object.freeze([
   Object.freeze({ id: 'mozilla', topic: 'tech', name: 'Mozilla Hacks', url: 'https://hacks.mozilla.org/feed/', hosts: ['hacks.mozilla.org'], imageHost: 'hacks.mozilla.org', imagePath: '/wp-content/uploads/' }),
   Object.freeze({ id: 'nvidia', topic: 'ai', name: 'NVIDIA Blog', url: 'https://blogs.nvidia.com/feed/', hosts: ['blogs.nvidia.com'], imageHost: 'blogs.nvidia.com', imagePath: '/wp-content/uploads/' }),
   Object.freeze({ id: 'steam', topic: 'gaming', name: 'Steam News', url: 'https://store.steampowered.com/feeds/news.xml', hosts: ['store.steampowered.com', 'steamcommunity.com'], imageHost: 'cdn.fastly.steamstatic.com', imagePath: '/steam/apps/' }),
   Object.freeze({ id: 'xkcd', topic: 'memes', name: 'xkcd (komik)', url: 'https://xkcd.com/atom.xml', hosts: ['xkcd.com'], imageHost: 'imgs.xkcd.com', imagePath: '/comics/' }),
   Object.freeze({ id: 'cloudflare', topic: 'tech', name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', hosts: ['blog.cloudflare.com'], imageHost: 'blog.cloudflare.com', imagePath: '/_emdash/api/media/file/' }),
+  // Hacker News: one front-page fetch, split by title into an AI and a tech publisher (max one each per day).
+  Object.freeze({ id: 'hackernews', topic: 'tech', name: 'Hacker News', format: 'hn', url: HN_URL, hosts: ['news.ycombinator.com'], ...noImage }),
+  Object.freeze({ id: 'hackernews-ai', topic: 'ai', name: 'Hacker News', format: 'hn', url: HN_URL, hosts: ['news.ycombinator.com'], ...noImage }),
+  // Indonesian media: headline + own summary + link only, never their photos (ANTARA terms).
+  Object.freeze({ id: 'cnnindonesia', topic: 'tech', name: 'CNN Indonesia', url: 'https://www.cnnindonesia.com/teknologi/rss', hosts: ['www.cnnindonesia.com'], ...noImage }),
+  Object.freeze({ id: 'cnbcindonesia', topic: 'tech', name: 'CNBC Indonesia', url: 'https://www.cnbcindonesia.com/tech/rss', hosts: ['www.cnbcindonesia.com'], ...noImage }),
+  Object.freeze({ id: 'liputan6', topic: 'tech', name: 'Liputan6', url: 'https://feed.liputan6.com/rss/tekno', hosts: ['www.liputan6.com'], ...noImage }),
+  Object.freeze({ id: 'okezone', topic: 'tech', name: 'Okezone', url: 'https://sindikasi.okezone.com/index.php/rss/16/RSS2.0', hosts: ['ototekno.okezone.com'], ...noImage }),
+  Object.freeze({ id: 'antara', topic: 'tech', name: 'ANTARA', url: 'https://www.antaranews.com/rss/tekno.xml', hosts: ['www.antaranews.com'], ...noImage }),
+  Object.freeze({ id: 'gamebrott', topic: 'gaming', name: 'Gamebrott', url: 'https://gamebrott.com/feed/', hosts: ['gamebrott.com'], ...noImage }),
+  Object.freeze({ id: 'jagatplay', topic: 'gaming', name: 'Jagat Play', url: 'https://jagatplay.com/feed/', hosts: ['jagatplay.com'], ...noImage }),
+  Object.freeze({ id: 'esportsnesia', topic: 'gaming', name: 'Esportsnesia', url: 'https://esportsnesia.com/feed/', hosts: ['esportsnesia.com'], ...noImage }),
+  Object.freeze({ id: 'revivaltv', topic: 'gaming', name: 'Revival TV', url: 'https://revivaltv.id/feed/', hosts: ['revivaltv.id'], ...noImage }),
 ]);
 const MAX_FEED_BYTES = 1024 * 1024;
+const AI_TITLE = /\b(?:ai|llms?|gpt|openai|anthropic|claude|gemini|deepseek|mistral|llama|neural|machine learning|models?)\b/i;
 for (const source of SOURCES) Object.freeze(source.hosts);
 
-function publicIPv4(value) {
-  if (net.isIP(value) !== 4) return false;
-  const [a, b, c] = value.split('.').map(Number);
-  return !(a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127)
-    || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && (b === 168 || b === 0 || (b === 88 && c === 99)))
-    || (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100)))
-    || (a === 203 && b === 0 && c === 113));
-}
-
-function publicLookup(host, options, callback) {
-  dns.lookup(host, { family: 4, all: true }, (error, records) => {
-    if (error || !records?.length || records.some(row => !publicIPv4(row.address))) {
-      callback(new Error('NEWS_DNS_REJECTED')); return;
-    }
-    callback(null, records[0].address, 4);
-  });
-}
-
-function readFeed(source, { request = https.request, lookup = publicLookup, timeoutMs = 10_000 } = {}) {
+function readFeed(source, { request, lookup, timeoutMs = 10_000 } = {}) {
   if (!SOURCES.some(row => row === source)) return Promise.reject(new Error('NEWS_SOURCE_REJECTED'));
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    let finished = false;
-    const end = (error, content) => {
-      if (finished) return;
-      finished = true; clearTimeout(timer);
-      if (error) reject(new Error('NEWS_FEED_UNAVAILABLE')); else resolve(content);
-    };
-    let req;
-    try {
-      req = request(source.url, { method: 'GET', agent: false, lookup, family: 4,
-        signal: controller.signal, headers: { 'User-Agent': 'Hengs-News/1.0', Accept: 'application/rss+xml, application/atom+xml, text/xml', 'Accept-Encoding': 'identity' } }, res => {
-        const type = String(res.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-        if (res.statusCode !== 200 || !['application/rss+xml', 'application/atom+xml', 'application/xml', 'text/xml'].includes(type)
-          || (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity')
-          || Number(res.headers['content-length'] || 0) > MAX_FEED_BYTES) {
-          res.destroy(); end(true); return;
-        }
-        let bytes = 0; const chunks = [];
-        res.on('data', chunk => {
-          bytes += chunk.length;
-          if (bytes > MAX_FEED_BYTES) { res.destroy(); end(true); return; }
-          chunks.push(chunk);
-        });
-        res.on('end', () => end(null, Buffer.concat(chunks).toString('utf8')));
-        res.on('error', () => end(true));
-        res.on('aborted', () => end(true));
-      });
-      req.on('error', () => end(true));
-      req.end();
-    } catch { req?.destroy(); end(true); }
-  });
+  return fetchBounded(source.url, { hosts: [new URL(source.url).hostname],
+    types: source.format === 'hn' ? ['application/json'] : FEED_TYPES, maxBytes: MAX_FEED_BYTES, timeoutMs,
+    ...(request && { request }), ...(lookup && { lookup }) })
+    .then(body => body.toString('utf8'), () => { throw new Error('NEWS_FEED_UNAVAILABLE'); });
 }
-
 function plain(value, max = 200) {
   // Feed markup is data, never rendered as HTML. Only bounded plain snippets reach the editor.
   return String(value || '').slice(0, 4096).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
@@ -106,7 +72,7 @@ function decodeMarkup(value) {
 
 function imageUrl(raw, source) {
   // Only publisher-hosted raster paths observed in the fixed feeds. Never fetch media here.
-  if (!SOURCES.includes(source) || typeof raw !== 'string' || raw.length > 1000
+  if (!SOURCES.includes(source) || !source.imageHost || typeof raw !== 'string' || raw.length > 1000
     || /[\s\\<>\u0000-\u001f\u007f]|%(?:0[0-9a-f]|1[0-9a-f]|7f|2f|5c|25)/i.test(raw)) return null;
   try {
     const url = new URL(raw);
@@ -174,24 +140,55 @@ function parseFeed(xml, source, now = Date.now()) {
   return result;
 }
 
-function createFeedReader({ fetchFeed = readFeed, now = Date.now } = {}) {
+function parseHn(body, source, now = Date.now()) {
+  let data;
+  try { data = JSON.parse(body); } catch { throw new Error('NEWS_FEED_INVALID'); }
+  if (!Array.isArray(data?.hits)) throw new Error('NEWS_FEED_INVALID');
+  const result = [];
+  for (const hit of data.hits.slice(0, 100)) {
+    const id = String(hit?.objectID ?? '');
+    const points = Number(hit?.points); const comments = Number(hit?.num_comments ?? 0);
+    const publishedAt = Number(hit?.created_at_i) * 1000;
+    const title = plain(hit?.title, 150);
+    if (!/^\d{1,12}$/.test(id) || !title || !Number.isSafeInteger(points) || points < 1
+      || !Number.isSafeInteger(comments) || comments < 0 || !Number.isFinite(publishedAt)
+      || publishedAt > now || now - publishedAt > 3 * DAY || (source.topic === 'ai') !== AI_TITLE.test(title)) continue;
+    const url = articleUrl(`https://news.ycombinator.com/item?id=${id}`, source);
+    if (!url) continue;
+    let domain = null;
+    try { domain = new URL(hit.url).hostname.replace(/^www\./, ''); } catch {}
+    const hours = Math.max(1, Math.round((now - publishedAt) / 3_600_000));
+    result.push({ title, excerpt: `Dibahas di Hacker News: ${points} poin dan ${comments} komentar dalam ${hours} jam.`,
+      url, imageUrl: null, publishedAt, source: source.name, topic: source.topic, points, comments,
+      domain: domain && /^[a-z0-9.-]{1,60}$/.test(domain) ? domain : null,
+      hash: crypto.createHash('sha256').update(url).digest('hex') });
+  }
+  return result;
+}
+
+function createFeedReader({ fetchFeed = readFeed, readTrends = null, now = Date.now } = {}) {
   const cache = new Map();
-  async function load(source) {
-    const existing = cache.get(source.id);
+  function body(source) {
+    // Keyed by URL: both Hacker News publishers share one front-page request.
+    const existing = cache.get(source.url);
     if (existing && now() - existing.at < 600_000) return existing.promise;
-    const promise = (async () => {
-      try { return { items: parseFeed(await fetchFeed(source), source, now()), failed: false }; }
-      catch { return { items: [], failed: true }; }
-    })();
-    cache.set(source.id, { at: now(), promise });
+    const promise = Promise.resolve().then(() => fetchFeed(source)).then(text => ({ text }), () => ({ failed: true }));
+    cache.set(source.url, { at: now(), promise });
     return promise;
+  }
+  async function load(source) {
+    const row = await body(source);
+    if (row.failed) return { items: [], failed: true };
+    try { return { items: (source.format === 'hn' ? parseHn : parseFeed)(row.text, source, now()), failed: false }; }
+    catch { return { items: [], failed: true }; }
   }
   return async topics => {
     const rows = [];
     for (const source of SOURCES.filter(row => topics.includes(row.topic))) rows.push(await load(source));
+    const trends = readTrends && topics.some(topic => topic !== 'memes') ? await readTrends().catch(() => []) : [];
     return { items: rows.flatMap(row => row.items).filter(item => now() - item.publishedAt <= 3 * DAY),
-      failures: rows.filter(row => row.failed).length };
+      failures: rows.filter(row => row.failed).length, trends };
   };
 }
 
-module.exports = { SOURCES, MAX_FEED_BYTES, publicIPv4, readFeed, plain, articleUrl, imageUrl, parseFeed, createFeedReader };
+module.exports = { SOURCES, MAX_FEED_BYTES, publicIPv4, readFeed, plain, articleUrl, imageUrl, parseFeed, parseHn, createFeedReader };

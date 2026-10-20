@@ -19,7 +19,7 @@ function item(overrides = {}) {
 }
 
 test('image URLs only admit verified per-publisher HTTPS raster paths', () => {
-  for (const publisher of SOURCES) {
+  for (const publisher of SOURCES.filter(row => row.imageHost)) {
     for (const extension of ['jpg', 'jpeg', 'png', 'gif', 'webp']) {
       const url = `https://${publisher.imageHost}${publisher.imagePath}sample.${extension}`;
       assert.equal(imageUrl(url, publisher), url);
@@ -43,6 +43,9 @@ test('image URLs only admit verified per-publisher HTTPS raster paths', () => {
   ]) assert.equal(imageUrl(url, source), null, url);
   assert.equal(imageUrl(image, SOURCES[0]), null);
   assert.equal(imageUrl(image, { ...source }), null);
+  for (const publisher of SOURCES.filter(row => !row.imageHost)) {
+    assert.equal(imageUrl(`https://${publisher.hosts[0]}/wp-content/uploads/a.jpg`, publisher), null, publisher.id);
+  }
 });
 
 test('RSS extracts media thumbnail/content, image enclosures and HTML per entry', () => {
@@ -113,7 +116,9 @@ test('preview and send share cards, stay bounded and survive invalid images with
     reads++; return rss(`<img src="${image}"/>`);
   } });
   const { items } = await reader(['ai']);
-  await reader(['ai']); assert.equal(reads, 1);
+  // One read per AI source URL (NVIDIA + Hacker News); the second call is served from cache.
+  const first = reads;
+  await reader(['ai']); assert.equal(reads, first);
   const sent = digestPayload({ tone: 'casual' }, items, NOW);
   const preview = digestPayload({ tone: 'casual' }, items, NOW, 'Preview privat. Belum dikirim.');
   assert.deepEqual(preview.components.slice(1), sent.components);
@@ -155,4 +160,15 @@ test('news and entertainment cards omit availability counters in send and previe
       }
     }
   }
+});
+
+test('Hacker News cards link the discussion, name the article domain and explain the pick', () => {
+  const hn = SOURCES.find(row => row.id === 'hackernews');
+  const row = { title: 'Synthetic launch', excerpt: 'Dibahas di Hacker News: 120 poin dan 40 komentar dalam 2 jam.',
+    url: 'https://news.ycombinator.com/item?id=123', source: hn.name, topic: 'tech', publishedAt: NOW - 1000, imageUrl: null,
+    domain: 'example.com', reason: '60 poin per jam di Hacker News', trending: true };
+  const content = digestPayload({ tone: 'casual' }, [row], NOW).components[1].components[0].content;
+  assert.match(content, /\[Baca diskusi di Hacker News\]\(https:\/\/news.ycombinator.com\/item\?id=123\)/);
+  assert.match(content, /Artikel asli: example.com/);
+  assert.match(content, /Kenapa dipilih: 60 poin per jam di Hacker News · lagi naik di Google Trends Indonesia/);
 });

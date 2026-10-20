@@ -214,17 +214,15 @@ test('empty excerpts are excluded from model input and do not discard valid sibl
   assert.deepEqual(parseCopies(reversed, [article(), article(1, 1)]), [copy, copy]);
 });
 
-test('mixed selection reserves entertainment, orders news first and leaves missing slots empty', () => {
-  const mixed = { ...settings, topics: ['tech', 'ai', 'memes'] };
-  const items = [article(1, 3, 10), article(1, 1, 20), article(1, 4, 30), article(1, 0, 40)];
-  assert.deepEqual(selectArticles(mixed, items, null, NOW).map(item => item.source), [SOURCES[1].name, SOURCES[4].name, SOURCES[3].name]);
-  assert.deepEqual(selectArticles(mixed, items.slice(1), null, NOW).map(item => item.source), [SOURCES[1].name, SOURCES[4].name]);
-  assert.equal(selectArticles(mixed, [items[0]], null, NOW).length, 1);
-  assert.deepEqual(selectArticles({ ...mixed, count: 2 }, items, null, NOW).map(item => item.topic), ['ai', 'memes']);
-  assert.equal(selectArticles({ ...mixed, topics: ['memes'] }, items, null, NOW).length, 1);
-  const payload = JSON.stringify(digestPayload(mixed, [items[0]], NOW));
-  assert.doesNotMatch(payload, /Tersedia \d+ berita|Bahan segar belum cukup/);
-  assert.match(payload, /Hengs Memes/);
+test('selection ranks by heat, skips sensitive items and stories already covered', () => {
+  const hot = { ...article(1, 1), title: 'GPU baru meluncur', heat: 3 };
+  const warm = { ...article(2, 0), title: 'Browser rilis fitur tab', heat: 1 };
+  const twin = { ...article(3, 2), title: 'GPU baru meluncur di Indonesia', heat: 2.5, siblings: [hot.hash] };
+  const risky = { ...article(4, 4), title: 'Kampanye pemilu pakai AI', heat: 9 };
+  assert.deepEqual(selectArticles(settings, [warm, twin, hot, risky], null, NOW).map(item => item.title),
+    ['GPU baru meluncur', 'Browser rilis fitur tab']);
+  assert.deepEqual(selectArticles(settings, [twin, warm], { seen: [{ hash: hot.hash, at: NOW }] }, NOW).map(item => item.title),
+    ['Browser rilis fitur tab']);
 });
 
 test('editor maps dense IDs around no-excerpt comics and shares article cache across mixes', async () => {

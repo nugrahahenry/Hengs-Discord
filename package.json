@@ -1,6 +1,6 @@
 {
   "name": "discord-bot-henzzz",
-  "version": "1.64.2",
+  "version": "1.65.0",
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",

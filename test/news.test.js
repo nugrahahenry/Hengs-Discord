@@ -21,7 +21,7 @@ const USER = '323456789012345678';
 const CHANNEL = '423456789012345678';
 const MEMES = '523456789012345678';
 const BASE = Date.parse('2026-10-13T01:00:00Z');
-const { GAP, dueSlot, slotSettings, scheduleTimes } = require('../src/news/cadence');
+const { GAP, CADENCE, dueSlot, scheduleTimes } = require('../src/news/cadence');
 const { upgradeState, downgradeState } = require('../src/news/store');
 const settings = () => ({ ...structuredClone(DEFAULTS), channelId: CHANNEL });
 function fixture(t) {
@@ -50,7 +50,7 @@ function rig(t, options = {}) {
   const guildAccess = { classify: () => ({ kind: enabledScope ? 'home' : 'pending' }) };
   const readFeeds = options.readFeeds || (async () => ({ items: parseFeed(rss(SOURCES[0], 5, f.now()), SOURCES[0], f.now()), failures: 0 }));
   const service = createNewsService({ store: f.store, now: f.now, readFeeds, guildAccess,
-    editArticles: options.editArticles,
+    editArticles: options.editArticles, memeMaker: options.memeMaker,
     logger: { error: code => logs.push(code) } });
   t.after(() => service.stop());
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
@@ -73,32 +73,57 @@ test('split-route parsing supports decorated names, keeps topics and rejects amb
   const channels = [{ id: CHANNEL, name: '📰・hengs-news' }, { id: MEMES, name: '😂・hengs-memes' }];
   const value = editSettings('atur berita 2 berita 1 meme ke #hengs-news, meme ke #hengs-memes', DEFAULTS, channels);
   assert.equal(value.channelId, CHANNEL); assert.equal(value.memeChannelId, MEMES);
-  assert.deepEqual(value.topics, ['tech', 'ai', 'memes']); assert.equal(value.count, 3);
+  assert.deepEqual(value.topics, ['tech', 'ai']); assert.equal(value.count, 2); assert.equal(value.memeCount, 1);
   const routeOnly = editSettings(`atur berita meme ke <#${MEMES}>`, settings(), channels);
   assert.deepEqual(routeOnly.topics, settings().topics); assert.equal(routeOnly.channelId, CHANNEL);
   assert.throws(() => editSettings(`atur berita meme ke <#${CHANNEL}>`, settings(), channels), /berbeda/);
   assert.throws(() => editSettings('atur berita meme ke #hengs-memes', settings(), [...channels, { id: OTHER, name: 'hengs-memes' }]), /belum ditemukan/);
 });
 
-test('v2 upgrade and rollback preserve receipts, hashes and enabled state, with missing meme route skipped', async t => {
+test('v4 rollback pauses unsupported schedules and memes without a route are skipped', async t => {
   const r = rig(t); await testedRow(r);
   const state = JSON.parse(fs.readFileSync(r.filePath, 'utf8'));
-  const old = downgradeState(state, 2);
-  assert.equal(old.schemaVersion, 2); assert.equal(old.guilds[0].settings.memeChannelId, undefined);
-  assert.deepEqual(old.guilds[0].receipts, state.guilds[0].receipts);
-  assert.deepEqual(upgradeState(old), state);
+  assert.equal(state.schemaVersion, 4);
+  const v3 = downgradeState(state, 3);
+  assert.equal(v3.schemaVersion, 3); assert.equal(v3.guilds[0].enabled, true);
+  assert.deepEqual(v3.guilds[0].settings, { channelId: CHANNEL, memeChannelId: null, topics: ['tech', 'ai'], time: '08:00', count: 3, tone: 'casual' });
+  assert.deepEqual(v3.guilds[0].receipts.map(x => [x.day, x.slot, x.status]), [[wibClock(BASE).day, -1, 'cancelled']]);
+  assert.equal(downgradeState(state, 2).guilds[0].settings.memeChannelId, undefined);
   assert.throws(() => downgradeState(state, 4), /ROLLBACK_VERSION/);
   const bad = structuredClone(state); bad.guilds[0].settings.memeChannelId = CHANNEL;
   assert.throws(() => validateState(bad), /STATE_INVALID/);
-  const row = r.store.get(GUILD);
-  r.store.revise(GUILD, row.revision, { ...row.settings, topics: ['tech', 'ai', 'memes'] });
-  r.advance(DAY + 2 * GAP); r.service.start(r.client);
+  let row = r.store.get(GUILD);
+  row = r.store.revise(GUILD, row.revision, { ...row.settings, memeCount: 1, memeTime: '15:00' });
+  r.advance(DAY + 7 * 60 * 60_000); r.service.start(r.client); // 15:00 WIB next day, news windows already over
   const count = r.sent.length; await r.service.tick(); await r.service.tick();
-  assert.equal(r.sent.length, count); assert.equal(r.store.get(GUILD).receipts.at(-1).status, 'cancelled');
-  assert.equal(r.store.get(GUILD).receipts.at(-1).slot, 2);
-  const rollback = downgradeState(JSON.parse(fs.readFileSync(r.filePath, 'utf8')), 2);
-  assert.equal(rollback.guilds[0].enabled, false, 'older runtimes must not resume mixed-channel posting');
-  assert.equal(rollback.guilds[0].receipts.length, r.store.get(GUILD).receipts.length);
+  assert.equal(r.sent.length, count);
+  assert.deepEqual(['kind', 'slot', 'status'].map(key => r.store.get(GUILD).receipts.at(-1)[key]), ['meme', 0, 'cancelled']);
+  row = r.store.get(GUILD);
+  r.store.revise(GUILD, row.revision, { ...row.settings, count: 5 });
+  const busy = downgradeState(JSON.parse(fs.readFileSync(r.filePath, 'utf8')), 3);
+  assert.equal(busy.guilds[0].enabled, false, 'older runtimes must not resume a schedule they cannot follow');
+  assert.equal(busy.guilds[0].settings.count, 3);
+});
+
+test('v3 state upgrades to separate news and meme counts without writing', t => {
+  const f = fixture(t);
+  const legacy = { schemaVersion: 3, guilds: [{ guildId: GUILD, revision: 4, enabled: true, tested: true, updatedAt: BASE,
+    settings: { channelId: CHANNEL, memeChannelId: MEMES, topics: ['tech', 'ai', 'memes'], time: '08:00', count: 3, tone: 'casual' },
+    receipts: [{ day: '2026-10-12', status: 'sent', at: BASE - DAY, hashes: ['a'.repeat(64)], slot: 2, publisher: 'xkcd' },
+      { day: '2026-10-12', status: 'sent', at: BASE - DAY - 7_200_000, hashes: ['b'.repeat(64)], slot: 0, publisher: 'mozilla' }],
+    seen: [{ hash: 'a'.repeat(64), at: BASE - DAY }] }] };
+  fs.writeFileSync(f.filePath, JSON.stringify(legacy));
+  const bytes = fs.readFileSync(f.filePath);
+  const row = f.store.get(GUILD);
+  assert.deepEqual(row.settings, { channelId: CHANNEL, memeChannelId: MEMES, topics: ['tech', 'ai'], time: '08:00', count: 2,
+    memeTime: '13:00', memeCount: 1, tone: 'casual' });
+  assert.equal(row.enabled, true);
+  assert.deepEqual(row.receipts.map(x => [x.kind, x.slot]), [['meme', 2], ['news', 0]]);
+  assert.deepEqual(fs.readFileSync(f.filePath), bytes, 'read-only upgrade must not write');
+  const memesOnly = structuredClone(legacy); memesOnly.guilds[0].settings.topics = ['memes'];
+  fs.writeFileSync(f.filePath, JSON.stringify(memesOnly));
+  const paused = f.store.get(GUILD);
+  assert.equal(paused.enabled, false); assert.equal(paused.settings.memeCount, 3); assert.deepEqual(paused.settings.topics, ['tech', 'ai']);
 });
 
 test('adding a distinct meme destination requires preview and preserves prior delivery evidence', async t => {
@@ -111,24 +136,25 @@ test('adding a distinct meme destination requires preview and preserves prior de
   assert.deepEqual(after.seen, before.seen); assert.equal(r.sent.length, 1);
 });
 
-test('spaced scheduler sends two news and one comic as three durable single-item slots', async t => {
-  const r = rig(t, { readFeeds: async () => ({ items: [SOURCES[0], SOURCES[1], SOURCES[3]]
-    .flatMap(source => parseFeed(rss(source, 3, BASE), source, BASE)), failures: 0 }) });
-  let row = r.store.save(GUILD, 0, { ...settings(), memeChannelId: MEMES, topics: ['tech', 'ai', 'memes'] });
+test('spaced scheduler sends news every two hours and memes on their own clock', async t => {
+  // Distinct titles per publisher, otherwise ranking treats them as one story and sends it once.
+  const r = rig(t, { readFeeds: async topics => ({ items: [SOURCES[0], SOURCES[1], SOURCES[3]]
+    .filter(source => topics.includes(source.topic))
+    .flatMap(source => parseFeed(rss(source, 3, r.now()).replaceAll('Update', source.id), source, r.now())), failures: 0 }) });
+  let row = r.store.save(GUILD, 0, { ...settings(), memeChannelId: MEMES, count: 2, memeTime: '11:00', memeCount: 1 });
   // Existing destination proof from yesterday, not an extra live test today.
   row = r.store.claim(GUILD, row.revision, '2026-10-12', [], 'claimed');
   row = r.store.finish(GUILD, row.revision, '2026-10-12', 'sent');
-  r.advance(GAP); // First slot missed: test late start and no catch-up separately below.
-  r.advance(DAY - GAP);
+  r.advance(DAY);
   r.store.enable(GUILD, row.revision);
   r.service.start(r.client);
   await Promise.all([r.service.tick(), r.service.tick()]);
   assert.equal(r.sent.length, 1);
-  r.advance(GAP - 1); await r.service.tick(); assert.equal(r.sent.length, 1);
+  r.advance(CADENCE - 1); await r.service.tick(); assert.equal(r.sent.length, 1);
   r.advance(1); await r.service.tick(); assert.equal(r.sent.length, 2);
   r.service.stop();
   const restarted = createNewsService({ store: createNewsStore({ filePath: r.filePath, now: r.now }), now: r.now,
-    readFeeds: async () => ({ items: parseFeed(rss(SOURCES[3], 1, BASE), SOURCES[3], BASE), failures: 0 }), guildAccess: r.guildAccess });
+    readFeeds: async () => ({ items: parseFeed(rss(SOURCES[3], 1, r.now()), SOURCES[3], r.now()), failures: 0 }), guildAccess: r.guildAccess });
   t.after(() => restarted.stop()); restarted.start(r.client);
   await restarted.tick(); assert.equal(r.sent.length, 2);
   r.advance(GAP); await restarted.tick(); assert.equal(r.sent.length, 3);
@@ -139,23 +165,26 @@ test('spaced scheduler sends two news and one comic as three durable single-item
   }
   assert.match(JSON.stringify(r.sent[2]), /Jeda komik/);
   assert.deepEqual(r.destinations, [CHANNEL, CHANNEL, MEMES]);
-  assert.equal(new Set(r.store.get(GUILD).receipts.filter(x => x.slot >= 0).map(x => x.publisher)).size, 3);
-  r.advance(GAP); await restarted.tick(); assert.equal(r.sent.length, 3);
+  assert.deepEqual(r.store.get(GUILD).receipts.filter(x => x.slot >= 0).map(x => [x.kind, x.slot]), [['news', 0], ['news', 1], ['meme', 0]]);
+  r.advance(CADENCE); await restarted.tick(); assert.equal(r.sent.length, 3);
 });
 
 test('cadence skips expired slots, honors actual finish spacing and never crosses midnight quota', t => {
   const f = fixture(t);
   let row = f.store.save(GUILD, 0, settings());
-  assert.deepEqual(dueSlot(row, BASE + GAP * 2), { day: wibClock(BASE).day, slot: 2 });
+  assert.deepEqual(dueSlot(row, BASE + CADENCE * 2), { day: wibClock(BASE).day, slot: 2, kind: 'news' });
   row = f.store.claim(GUILD, row.revision, wibClock(BASE).day, ['a'.repeat(64)], 'claimed', 0, 'mozilla');
   f.advance(30_000); row = f.store.finish(GUILD, row.revision, wibClock(BASE).day, 'sent', 0);
   assert.equal(dueSlot(row, BASE + GAP), null);
-  assert.equal(dueSlot(row, BASE + GAP + 30_000).slot, 1);
+  assert.equal(dueSlot(row, BASE + CADENCE).slot, 1);
   assert.throws(() => f.store.claim(GUILD, row.revision, wibClock(BASE).day, [], 'empty', 1), /GAP_REQUIRED/);
-  assert.deepEqual(scheduleTimes({ ...settings(), time: '23:30' }), ['23:30']);
+  assert.deepEqual(scheduleTimes({ ...settings(), time: '20:30' }), ['20:30', '22:30']);
+  assert.deepEqual(scheduleTimes({ ...settings(), memeCount: 5 }, 'meme'), ['13:00', '15:00', '17:00', '19:00', '21:00']);
   assert.equal(dueSlot({ ...row, settings: { ...settings(), time: '23:30' } }, Date.parse('2026-10-14T17:30:00Z')), null);
-  assert.deepEqual(slotSettings({ ...settings(), topics: ['ai', 'memes'] }, 2).topics, ['memes']);
-  assert.deepEqual(slotSettings({ ...settings(), topics: ['ai', 'memes'] }, 0).topics, ['ai']);
+  assert.equal(dueSlot(row, BASE + CADENCE, 'meme'), null, 'memes are off by default');
+  // A news send never blocks a meme slot: gaps are per kind.
+  const memeRow = { ...row, settings: { ...row.settings, memeCount: 1, memeTime: '08:00' } };
+  assert.deepEqual(dueSlot(memeRow, BASE + 60_000, 'meme'), { day: wibClock(BASE).day, slot: 0, kind: 'meme' });
 });
 
 test('legacy news migration preserves evidence and rollback conservatively consumes all used days', t => {
@@ -178,7 +207,7 @@ test('legacy news migration preserves evidence and rollback conservatively consu
   assert.equal(f.store.get(GUILD).receipts[0].slot, -1);
   assert.deepEqual(fs.readFileSync(f.filePath), bytes, 'read-only upgrade must not write');
   f.store.pause(GUILD);
-  assert.equal(JSON.parse(fs.readFileSync(f.filePath)).schemaVersion, 3);
+  assert.equal(JSON.parse(fs.readFileSync(f.filePath)).schemaVersion, 4);
   assert.deepEqual(f.store.get(GUILD).seen, old.guilds[0].seen);
 });
 
@@ -194,7 +223,7 @@ test('news fresh install, schema checks, atomic writes, stale revision and tenan
   assert.equal(fs.readdirSync(f.root).length, 1);
   const reopened = createNewsStore({ filePath: f.filePath, now: f.now });
   assert.deepEqual(reopened.get(GUILD), row);
-  assert.throws(() => validateState({ schemaVersion: 4, guilds: [] }), /STATE_INVALID/);
+  assert.throws(() => validateState({ schemaVersion: 5, guilds: [] }), /STATE_INVALID/);
   fs.writeFileSync(f.filePath, '{corrupt');
   assert.throws(() => f.store.list(), /STATE_INVALID/);
   assert.throws(() => f.store.save(OTHER, 0, settings()), /STATE_INVALID/);
@@ -314,9 +343,14 @@ test('news feed transport bounds response size/time and never follows redirects'
 
 test('feed cache shares concurrent fetches and caches failures without retry storms', async () => {
   let calls = 0;
-  const read = createFeedReader({ now: () => BASE, fetchFeed: async source => { calls++; if (source.id === 'nvidia') throw new Error('provider'); return rss(source); } });
+  const read = createFeedReader({ now: () => BASE, fetchFeed: async source => {
+    calls++;
+    if (source.id === 'nvidia') throw new Error('provider');
+    return source.format === 'hn' ? JSON.stringify({ hits: [] }) : rss(source);
+  } });
   const [a, b] = await Promise.all([read(['tech', 'ai']), read(['tech', 'ai'])]);
-  assert.equal(calls, 3); assert.equal(a.failures, 1); assert.deepEqual(a, b);
+  const urls = new Set(SOURCES.filter(source => ['tech', 'ai'].includes(source.topic)).map(source => source.url));
+  assert.equal(calls, urls.size); assert.equal(a.failures, 1); assert.deepEqual(a, b);
 });
 
 test('news preview/revisions are private and side-effect free until explicit confirmation', async t => {
@@ -401,9 +435,9 @@ test('news tick honors pause during source read and coalesces concurrent ticks',
 
 test('news scheduled empty/failure consumes a slot and misses older windows quietly', async t => {
   const r = rig(t); await testedRow(r);
-  r.advance(DAY + 3 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
+  r.advance(DAY + 6 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
   assert.equal(r.sent.length, 1);
-  r.advance(DAY - 3 * 60 * 60_000);
+  r.advance(DAY - 6 * 60 * 60_000);
   const empty = createNewsService({ store: r.store, now: r.now, guildAccess: r.guildAccess,
     readFeeds: async () => ({ items: [], failures: 1 }) });
   t.after(() => empty.stop()); empty.start(r.client); await empty.tick(); await empty.tick();
@@ -549,8 +583,8 @@ test('tested same-channel revision preserves the schedule, receipts and restart 
   assert.match((await r.handle('terapkan berita')).content, /Revisi berita diterapkan/);
   const row = createNewsStore({ filePath: r.filePath, now: r.now }).get(GUILD);
   assert.equal(row.enabled, true); assert.equal(row.tested, true);
-  assert.deepEqual(row.settings.topics, ['tech', 'ai', 'memes']);
-  assert.equal(row.settings.count, 3); assert.equal(row.settings.time, '09:00');
+  assert.deepEqual(row.settings.topics, ['tech', 'ai']);
+  assert.equal(row.settings.count, 2); assert.equal(row.settings.memeCount, 1); assert.equal(row.settings.time, '09:00');
   assert.deepEqual(row.receipts, before.receipts); assert.deepEqual(row.seen, before.seen);
   assert.equal(r.sent.length, 1);
   r.advance(60 * 60_000); r.service.start(r.client); await r.service.tick();
@@ -576,17 +610,20 @@ test('apply requires existing tested destination, fresh permission and unchanged
   assert.throws(() => r.store.revise(GUILD, before.revision - 1, before.settings), /STALE/);
 });
 
-test('mixed composition prompts cannot silently change two news and one meme into two comics', () => {
+test('news and meme counts parse separately with their own limits and clock', () => {
   const config = editSettings('atur berita 2 berita + 1 meme', settings());
-  assert.deepEqual(config.topics, ['tech', 'ai', 'memes']); assert.equal(config.count, 3);
+  assert.deepEqual(config.topics, ['tech', 'ai']); assert.equal(config.count, 2); assert.equal(config.memeCount, 1);
   assert.equal(parsePrompt('terapkan berita').action, 'apply');
-  for (const value of ['terapkan berita?', 'jangan terapkan berita', 'kalau terapkan berita']) {
-    assert.equal(parsePrompt(value).action, 'help');
-  }
-  for (const value of ['atur berita 3 berita 1 meme', 'atur berita 1 berita 2 meme', 'atur berita 2 meme']) {
-    assert.throws(() => editSettings(value, config), /2 berita/);
-  }
-  assert.deepEqual(editSettings('atur berita gaming 2 berita 1 komik', config).topics, ['gaming', 'memes']);
+  for (const value of ['terapkan berita?', 'jangan terapkan berita', 'kalau terapkan berita']) assert.equal(parsePrompt(value).action, 'help');
+  assert.equal(editSettings('atur berita 5 berita', config).count, 5);
+  for (const value of ['atur berita 6 berita', 'atur berita 6 meme', 'atur berita 1 meme 2 meme']) assert.throws(() => editSettings(value, config));
+  assert.deepEqual(editSettings('atur berita gaming 2 berita 1 komik', config).topics, ['gaming']);
+  const channels = [{ id: CHANNEL, name: 'hengs-news' }, { id: MEMES, name: '😂・hengs-memes' }];
+  const memes = editSettings('atur berita meme 5 jam 13:30 ke #hengs-memes', { ...config, channelId: CHANNEL }, channels);
+  assert.deepEqual([memes.memeCount, memes.memeTime, memes.memeChannelId, memes.count, memes.time], [5, '13:30', MEMES, 2, '08:00']);
+  assert.equal(editSettings('atur berita meme 0', memes).memeCount, 0);
+  assert.throws(() => editSettings('atur berita meme 7', memes), /0 sampai 5/);
+  assert.throws(() => editSettings(`atur berita meme ke <#${CHANNEL}>`, memes, channels), /berbeda/);
 });
 
 test('apply rechecks stale preview, expiry, reset and manager permission without touching state', async t => {

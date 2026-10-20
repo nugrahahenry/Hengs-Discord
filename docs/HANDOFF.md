@@ -1,6 +1,22 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-20
+Updated: 2026-10-21
+
+## Hengs Discord v1.65.0 five news a day local checkpoint - 2026-10-21
+
+- Henry asked for 5 news + 5 memes a day picked by how fast they rise (2026-10-21). Research:
+  docs/research/2026-10-21-news-memes-trending.md; design: docs/superpowers/specs/2026-10-21-hengs-news-memes-5x5-design.md;
+  plan: docs/superpowers/plans/2026-10-21-hengs-news-memes-5x5.md (all gitignored, on disk).
+- M1 (this checkpoint): schema 4, two-hour slots per kind, HN + Indonesian tech/gaming feeds, heat ranking
+  with coverage and Google Trends, story dedupe across publishers, sensitive-topic filter. Memes: xkcd only.
+- VM probe (.cloud/automation/news-v1660, read-only, no restart): all 14 PROBE lines 200 with expected types;
+  article hosts match SOURCES (Okezone ototekno.okezone.com, Jagat Play jagatplay.com, which returns 522
+  from the laptop but 200 from the VM); VISION MODEL=PRESENT, VISION STATUS=200 JSON=SAFE_TRUE.
+- QA: Node 22 full suite 731/731 (Node 22 binary lives in the WA repo .cloud/tools/node22; PATH node is v24).
+  Cloud unchanged: DC v1.64.2, WA v0.50.0. Deploy waits for M2 (v1.66.0) and a new approval.
+- On-disk news state stays schema 3 until the first slot after deploy writes schema 4. Helpers derived after
+  that must expect schemaVersion 4 in deploy.cjs.
+- Commit subject: feat(news): Hengs Discord v1.65.0 - five trending news a day
 
 ## Hengs Discord v1.64.2 deployed and accepted - 2026-10-21
 

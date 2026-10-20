@@ -2,8 +2,8 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.64.2 - hasil-scrim is private to Hengs Family, cloud-live since
-2026-10-21 (includes v1.64.1 emoji-tolerant team role, v1.64.0 scrim results channel, v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.65.0 - up to five trending news a day (local, not deployed; the
+cloud still runs v1.64.2, where hasil-scrim is private to Hengs Family)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -86,11 +86,15 @@ Konfirmasi hanya menyentuh kedua channel itu, bukan setup server lengkap. Nama/k
 lama dan overwrite role/anggota lain tetap; channel meme baru mengikuti kategori news.
 Pembuatan channel tidak mengubah tujuan atau mengaktifkan jadwal bot.
 
-Pengelola memilih tujuan dengan `/hengs ask`:
-`atur berita 2 berita 1 meme ke #hengs-news, meme ke #hengs-memes`, lalu `preview berita`
-dan `terapkan berita` untuk channel utama yang sudah teruji. Konfigurasi baru tetap perlu uji
-dan aktivasi. News dan meme harus berbeda. Tanpa tujuan meme, slot hiburan dilewati, bukan
-dikirim ke news. Jadwal dua berita dan satu komik tetap berjarak minimal satu jam.
+Mulai v1.65.0, pengelola memilih tujuan dengan `/hengs ask`:
+`atur berita teknologi AI gaming 5 berita jam 08:00 ke #hengs-news` lalu
+`atur berita meme 5 jam 13:00 ke #hengs-memes`, kemudian `preview berita` dan `terapkan berita`
+untuk channel utama yang sudah teruji. Konfigurasi baru tetap perlu uji dan aktivasi. Berita dan
+meme punya jumlah (berita 1-5, meme 0-5), jam, dan channel sendiri; channel keduanya harus berbeda.
+Satu item per kiriman, tiap dua jam. Berita dipilih dari yang lagi panas: poin per jam di Hacker
+News, jumlah media berbeda yang memuat cerita yang sama dalam 12 jam, dan Google Trends Indonesia.
+Kartu media Indonesia tanpa foto penerbit. Tanpa tujuan meme, slot meme dilewati, bukan dikirim ke
+news. Di v1.65.0 slot meme masih memakai komik xkcd yang baru.
 
 Anggota dapat mengirim sendiri di news/memes jika izin Discord mengizinkan, tanpa antrean admin.
 Untuk lewat Hengs, gunakan `/hengs ask` di bot-commands (atau channel yang diizinkan server publik):

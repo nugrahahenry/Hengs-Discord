@@ -5,57 +5,78 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const TOPICS = Object.freeze(['tech', 'ai', 'gaming', 'memes']);
+const NEWS_TOPICS = Object.freeze(['tech', 'ai', 'gaming']);
+const DEFAULT_TOPICS = Object.freeze(['tech', 'ai']);
+const KINDS = Object.freeze(['news', 'meme']);
+const STATUSES = Object.freeze(['claimed', 'sent', 'empty', 'failed', 'cancelled']);
+const SCHEMA = 4;
 const DAY = 86_400_000;
 const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_RECEIPTS = Object.freeze({ 1: 31, 2: 93, 3: 93, 4: 341 });
 const snowflake = value => typeof value === 'string' && /^\d{17,20}$/.test(value);
 const epoch = value => Number.isSafeInteger(value) && value > 0 && value <= 8_640_000_000_000_000;
 const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+const clock = value => typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 const exact = (value, keys) => value && !Array.isArray(value) && typeof value === 'object'
   && Object.keys(value).sort().join(',') === keys.split(' ').sort().join(',');
 
-function validSettings(value) {
+// v1-v3: one clock, at most three items, memes mixed into topics.
+function validLegacySettings(value) {
   return (exact(value, 'channelId topics time count tone') || exact(value, 'channelId memeChannelId topics time count tone')) && snowflake(value.channelId)
     && (value.memeChannelId == null || (snowflake(value.memeChannelId) && value.memeChannelId !== value.channelId))
     && Array.isArray(value.topics) && value.topics.length >= 1 && value.topics.length <= 4
     && new Set(value.topics).size === value.topics.length && value.topics.every(x => TOPICS.includes(x))
-    && typeof value.time === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.time)
-    && Number.isInteger(value.count) && value.count >= 1 && value.count <= 3
+    && clock(value.time) && Number.isInteger(value.count) && value.count >= 1 && value.count <= 3
+    && ['casual', 'neutral'].includes(value.tone);
+}
+
+function validSettings(value) {
+  return exact(value, 'channelId memeChannelId topics time count memeTime memeCount tone') && snowflake(value.channelId)
+    && (value.memeChannelId === null || (snowflake(value.memeChannelId) && value.memeChannelId !== value.channelId))
+    && Array.isArray(value.topics) && value.topics.length >= 1 && value.topics.length <= 3
+    && new Set(value.topics).size === value.topics.length && value.topics.every(x => NEWS_TOPICS.includes(x))
+    && clock(value.time) && clock(value.memeTime)
+    && Number.isInteger(value.count) && value.count >= 1 && value.count <= 5
+    && Number.isInteger(value.memeCount) && value.memeCount >= 0 && value.memeCount <= 5
     && ['casual', 'neutral'].includes(value.tone);
 }
 
 function validateState(value) {
-  if (!exact(value, 'schemaVersion guilds') || ![1, 2, 3].includes(value.schemaVersion)
+  if (!exact(value, 'schemaVersion guilds') || ![1, 2, 3, 4].includes(value.schemaVersion)
     || !Array.isArray(value.guilds) || value.guilds.length > 100) throw new Error('NEWS_STATE_INVALID');
+  const version = value.schemaVersion;
   const ids = new Set();
   for (const row of value.guilds) {
     if (!exact(row, 'guildId revision settings enabled tested updatedAt receipts seen')
-      || !snowflake(row.guildId) || ids.has(row.guildId) || !validSettings(row.settings)
+      || !snowflake(row.guildId) || ids.has(row.guildId)
+      || !(version === SCHEMA ? validSettings(row.settings) : validLegacySettings(row.settings))
       || !Number.isSafeInteger(row.revision) || row.revision < 1 || !epoch(row.updatedAt)
       || typeof row.enabled !== 'boolean' || typeof row.tested !== 'boolean'
-      || (row.enabled && !row.tested) || !Array.isArray(row.receipts) || row.receipts.length > (value.schemaVersion === 1 ? 31 : 93)
-      || !Array.isArray(row.seen) || row.seen.length > 90) throw new Error('NEWS_STATE_INVALID');
-    if (value.schemaVersion === 3
-      ? !exact(row.settings, 'channelId memeChannelId topics time count tone')
-      : !exact(row.settings, 'channelId topics time count tone')) throw new Error('NEWS_STATE_INVALID');
+      || (row.enabled && !row.tested) || !Array.isArray(row.receipts) || row.receipts.length > MAX_RECEIPTS[version]
+      || !Array.isArray(row.seen) || row.seen.length > (version === SCHEMA ? 330 : 90)) throw new Error('NEWS_STATE_INVALID');
+    if ((version === 3 && !exact(row.settings, 'channelId memeChannelId topics time count tone'))
+      || (version < 3 && !exact(row.settings, 'channelId topics time count tone'))) throw new Error('NEWS_STATE_INVALID');
     ids.add(row.guildId);
-    const dates = new Set();
+    const keys = new Set();
     for (const receipt of row.receipts) {
-      const key = value.schemaVersion === 1 ? receipt.day : `${receipt.day}:${receipt.slot}`;
-      if (!exact(receipt, value.schemaVersion === 1 ? 'day status at hashes' : 'day status at hashes slot publisher') || typeof receipt.day !== 'string'
-        || !/^\d{4}-\d{2}-\d{2}$/.test(receipt.day) || dates.has(key)
-        || !['claimed', 'sent', 'empty', 'failed', 'cancelled'].includes(receipt.status)
-        || !epoch(receipt.at) || !Array.isArray(receipt.hashes) || receipt.hashes.length > 3
-        || !receipt.hashes.every(hash)) throw new Error('NEWS_STATE_INVALID');
-      if (value.schemaVersion >= 2 && (!Number.isInteger(receipt.slot) || receipt.slot < -1 || receipt.slot > 2
+      const fields = version === 1 ? 'day status at hashes'
+        : version === SCHEMA ? 'day status at hashes slot publisher kind' : 'day status at hashes slot publisher';
+      const key = version === 1 ? receipt.day : `${receipt.day}:${receipt.kind || 'news'}:${receipt.slot}`;
+      if (!exact(receipt, fields) || typeof receipt.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(receipt.day)
+        || keys.has(key) || !STATUSES.includes(receipt.status) || !epoch(receipt.at) || !Array.isArray(receipt.hashes)
+        || receipt.hashes.length > 3 || !receipt.hashes.every(hash)) throw new Error('NEWS_STATE_INVALID');
+      if (version >= 2 && (!Number.isInteger(receipt.slot) || receipt.slot < -1 || receipt.slot > (version === SCHEMA ? 4 : 2)
         || !(receipt.publisher === null || (typeof receipt.publisher === 'string' && /^[a-z0-9-]{1,64}$/.test(receipt.publisher)))
         || (receipt.slot >= 0 && receipt.hashes.length > 1))) throw new Error('NEWS_STATE_INVALID');
-      dates.add(key);
+      if (version === SCHEMA && (!KINDS.includes(receipt.kind) || (receipt.kind === 'meme' && receipt.slot === -1))) {
+        throw new Error('NEWS_STATE_INVALID');
+      }
+      keys.add(key);
     }
-    if (value.schemaVersion >= 2 && row.receipts.some(x => x.slot === -1
-      && row.receipts.some(y => y.day === x.day && y.slot !== -1))) throw new Error('NEWS_STATE_INVALID');
-    if (row.seen.some(item => !exact(item, 'hash at') || !hash(item.hash) || !epoch(item.at))) {
-      throw new Error('NEWS_STATE_INVALID');
-    }
+    // A test send (slot -1) closes that day's news slots; memes keep their own slots.
+    if (version >= 2 && row.receipts.some(x => x.slot === -1
+      && row.receipts.some(y => y.day === x.day && y.slot !== -1 && (y.kind || 'news') === 'news'))) throw new Error('NEWS_STATE_INVALID');
+    if (row.seen.some(item => !exact(item, 'hash at') || !hash(item.hash) || !epoch(item.at))) throw new Error('NEWS_STATE_INVALID');
   }
   return value;
 }
@@ -70,25 +91,55 @@ function upgradeState(value) {
     copy.schemaVersion = 3;
     for (const row of copy.guilds) row.settings.memeChannelId = null;
   }
+  if (copy.schemaVersion === 3) {
+    copy.schemaVersion = SCHEMA;
+    for (const row of copy.guilds) {
+      const old = row.settings;
+      const news = old.topics.filter(topic => topic !== 'memes');
+      const memes = old.topics.includes('memes');
+      const settings = { channelId: old.channelId, memeChannelId: old.memeChannelId, topics: news.length ? news : [...DEFAULT_TOPICS],
+        time: old.time, count: old.count, memeTime: '13:00', memeCount: 0, tone: old.tone };
+      if (memes && news.length && old.count >= 2) { settings.count = old.count - 1; settings.memeCount = 1; }
+      // A memes-only schedule never sent news; keep it paused until a manager previews the new split.
+      if (memes && !news.length) { settings.count = 1; settings.memeCount = old.count; row.enabled = false; }
+      row.settings = settings;
+      for (const receipt of row.receipts) receipt.kind = receipt.slot !== -1 && receipt.publisher === 'xkcd' ? 'meme' : 'news';
+    }
+  }
   return validateState(copy);
+}
+
+function mergeDays(receipts, slotted) {
+  const days = new Map();
+  for (const receipt of receipts) {
+    const old = days.get(receipt.day);
+    days.set(receipt.day, { day: receipt.day, status: 'cancelled', at: Math.max(old?.at || 0, receipt.at),
+      hashes: [...new Set([...(old?.hashes || []), ...receipt.hashes])].slice(0, 3), ...(slotted && { slot: -1, publisher: null }) });
+  }
+  return [...days.values()].slice(-93);
 }
 
 // Explicit rollback adapter: conservatively consume each affected day, never erase delivery proof.
 function downgradeState(value, version = 1) {
-  if (![1, 2].includes(version)) throw new Error('NEWS_ROLLBACK_VERSION_INVALID');
+  if (![1, 2, 3].includes(version)) throw new Error('NEWS_ROLLBACK_VERSION_INVALID');
   const copy = upgradeState(value);
   for (const row of copy.guilds) {
+    const settings = row.settings;
+    // v3 runtimes know one clock and at most three items. Pause rather than send a schedule they cannot follow.
+    if (settings.memeCount > 0 || settings.count > 3) row.enabled = false;
+    row.settings = { channelId: settings.channelId, memeChannelId: settings.memeChannelId, topics: settings.topics,
+      time: settings.time, count: Math.min(settings.count, 3), tone: settings.tone };
+    row.receipts = mergeDays(row.receipts, true);
+    row.seen = row.seen.slice(-90);
+  }
+  copy.schemaVersion = 3;
+  validateState(copy);
+  for (const row of copy.guilds) {
+    if (version === 3) continue;
     // Older runtimes cannot enforce split destinations. Pause entertainment on downgrade.
     if (row.settings.topics.includes('memes')) row.enabled = false;
     delete row.settings.memeChannelId;
-    if (version === 2) continue;
-    const days = new Map();
-    for (const receipt of row.receipts) {
-      const old = days.get(receipt.day);
-      days.set(receipt.day, { day: receipt.day, status: 'cancelled', at: Math.max(old?.at || 0, receipt.at),
-        hashes: [...new Set([...(old?.hashes || []), ...receipt.hashes])].slice(0, 3) });
-    }
-    row.receipts = [...days.values()].slice(-31);
+    if (version === 1) row.receipts = mergeDays(row.receipts, false).slice(-31);
   }
   copy.schemaVersion = version;
   return validateState(copy);
@@ -99,7 +150,7 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
   function read() {
     let stat;
     try { stat = fsImpl.lstatSync(filePath); } catch (error) {
-      if (error.code === 'ENOENT') return { schemaVersion: 3, guilds: [] };
+      if (error.code === 'ENOENT') return { schemaVersion: SCHEMA, guilds: [] };
       throw new Error('NEWS_STATE_READ_FAILED');
     }
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_BYTES) throw new Error('NEWS_STATE_INVALID');
@@ -135,8 +186,8 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
     }
     fn(row);
     row.revision += 1; row.updatedAt = now();
-    row.receipts = row.receipts.filter(x => now() - x.at < 30 * DAY).slice(-93);
-    row.seen = row.seen.filter(x => now() - x.at < 30 * DAY).slice(-90);
+    row.receipts = row.receipts.filter(x => now() - x.at < 30 * DAY).slice(-MAX_RECEIPTS[SCHEMA]);
+    row.seen = row.seen.filter(x => now() - x.at < 30 * DAY).slice(-330);
     write(state);
     return structuredClone(row);
   }
@@ -146,7 +197,7 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
     save(guildId, revision, settings) {
       if (!validSettings(settings)) throw new Error('NEWS_SETTINGS_INVALID');
       return change(guildId, revision, row => {
-        row.settings = { ...structuredClone(settings), memeChannelId: settings.memeChannelId ?? null }; row.enabled = false; row.tested = false;
+        row.settings = structuredClone(settings); row.enabled = false; row.tested = false;
       });
     },
     revise(guildId, revision, settings) {
@@ -154,7 +205,7 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
       return change(guildId, revision, row => {
         // Delivery proof belongs to the destination, not its editorial preferences.
         if (!row.tested || row.settings?.channelId !== settings.channelId) throw new Error('NEWS_TEST_REQUIRED');
-        row.settings = { ...structuredClone(settings), memeChannelId: settings.memeChannelId ?? null };
+        row.settings = structuredClone(settings);
       });
     },
     pause(guildId) {
@@ -168,21 +219,22 @@ function createNewsStore({ filePath = path.join(__dirname, '..', '..', 'data', '
         row.enabled = true;
       });
     },
-    claim(guildId, revision, day, hashes, status = 'claimed', slot = -1, publisher = null) {
+    claim(guildId, revision, day, hashes, status = 'claimed', slot = -1, publisher = null, kind = 'news') {
       return change(guildId, revision, row => {
-        if (row.receipts.some(x => x.day === day && (slot === -1 || x.slot === -1 || x.slot === slot))) throw new Error('NEWS_DAY_USED');
-        if (row.receipts.some(x => now() - x.at < 3_600_000)) throw new Error('NEWS_GAP_REQUIRED');
-        row.receipts.push({ day, status, at: now(), hashes, slot, publisher });
+        const same = row.receipts.filter(x => x.kind === kind);
+        if (same.some(x => x.day === day && (slot === -1 || x.slot === -1 || x.slot === slot))) throw new Error('NEWS_DAY_USED');
+        if (same.some(x => now() - x.at < 3_600_000)) throw new Error('NEWS_GAP_REQUIRED');
+        row.receipts.push({ day, status, at: now(), hashes, slot, publisher, kind });
         row.seen.push(...hashes.map(value => ({ hash: value, at: now() })));
       });
     },
-    finish(guildId, revision, day, status, slot = -1) {
+    finish(guildId, revision, day, status, slot = -1, kind = 'news') {
       return change(guildId, revision, row => {
-        const receipt = row.receipts.find(x => x.day === day && x.slot === slot && x.status === 'claimed');
+        const receipt = row.receipts.find(x => x.day === day && x.slot === slot && x.kind === kind && x.status === 'claimed');
         if (!receipt) throw new Error('NEWS_RECEIPT_INVALID');
         receipt.status = status;
         receipt.at = now();
-        if (status === 'sent') row.tested = true;
+        if (status === 'sent' && kind === 'news') row.tested = true;
       });
     },
   };
@@ -193,4 +245,5 @@ function wibClock(nowMs) {
   return { day: iso.slice(0, 10), time: iso.slice(11, 16) };
 }
 
-module.exports = { TOPICS, DAY, MAX_BYTES, snowflake, validSettings, validateState, upgradeState, downgradeState, createNewsStore, wibClock };
+module.exports = { TOPICS, NEWS_TOPICS, DAY, MAX_BYTES, SCHEMA, snowflake, validSettings, validateState, upgradeState,
+  downgradeState, createNewsStore, wibClock };

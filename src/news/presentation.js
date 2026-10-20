@@ -6,6 +6,7 @@ const { wibClock } = require('./store');
 const { validatedCopy } = require('./editor');
 
 const text = content => new TextDisplayBuilder().setContent(content).toJSON();
+const domainOf = value => typeof value === 'string' && /^[a-z0-9.-]{1,60}$/.test(value) ? value : null;
 
 function digestPayload(settings, items, now, intro = '') {
   const components = [];
@@ -27,6 +28,10 @@ function digestPayload(settings, items, now, intro = '') {
     if (image) card.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
       new MediaGalleryItemBuilder().setURL(image).setDescription(`Gambar dari ${source.name} untuk artikel: ${title}`),
     ));
+    const why = !comic && [item.reason, item.trending && 'lagi naik di Google Trends Indonesia'].filter(Boolean).join(' · ');
+    const link = source.format === 'hn'
+      ? `[Baca diskusi di Hacker News](${url})${domainOf(item.domain) ? `\n-# Artikel asli: ${domainOf(item.domain)}` : ''}`
+      : `[Baca di ${source.name}](${url})`;
     card.addTextDisplayComponents(text([
       comic ? '-# 🎨 Jeda komik' : '-# 📰 Pilihan berita',
       `### ${title}`,
@@ -34,7 +39,8 @@ function digestPayload(settings, items, now, intro = '') {
         : comic ? 'Jeda sebentar dengan komik pilihan. Buka sumber untuk melihat versi aslinya.' : 'Cuplikan belum tersedia. Buka sumber untuk membaca selengkapnya.',
       copy ? '-# Ringkasan AI dari judul/cuplikannya, bukan verifikasi fakta.'
         : comic && !item.excerpt ? '-# Judul dan gambar asli penerbit; tidak ditafsirkan oleh AI.' : '-# Bahasa sumber. Ringkasan Indonesia belum tersedia.',
-      `[Baca di ${source.name}](${url})`,
+      link,
+      ...(why ? [`-# Kenapa dipilih: ${why}`] : []),
       `-# ${wibClock(item.publishedAt).day} WIB${item.topic === 'memes' ? ' · Hiburan, bukan berita faktual' : ''}${image ? ' · Gambar dari feed sumber' : ' · Gambar tidak tersedia'}`,
     ].join('\n\n')));
     components.push(card.toJSON());
