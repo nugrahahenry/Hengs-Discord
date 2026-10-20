@@ -2,9 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.66.1 - WordPress-hosted feeds load again (local, not deployed).
-The cloud runs v1.66.0 (five trending news and five memes a day, cloud-live since 2026-10-21; includes
-v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.66.1 - WordPress-hosted feeds load again, cloud-live since
+2026-10-21 05:33 WIB (includes v1.66.0 five memes a day, v1.65.0 trending news, v1.64.2 private
+hasil-scrim, v1.63.0 Casterin)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.

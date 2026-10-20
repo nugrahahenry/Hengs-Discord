@@ -23,7 +23,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Node 22 full suite 743/743 via PowerShell. Not deployed: the cloud runs v1.66.0.
+- Node 22 full suite 743/743 via PowerShell.
+- Deployed 2026-10-21 05:33 WIB at Henry's request ("deploy aja sekarang"), before the 08:00 slot, with
+  one controlled Discord restart: VM suite 743 total, 740 pass, 3 checkout-only skips, two fresh
+  heartbeats, WhatsApp v0.50.0 and Canox untouched, news state unchanged, 13 home commands. Revival TV now
+  loads (no fresh items yet), Jagat Play loads.
 
 ## [1.66.0] - 2026-10-21
 

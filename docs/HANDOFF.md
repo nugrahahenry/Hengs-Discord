@@ -2,6 +2,16 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.66.1 deployed and accepted - 2026-10-21
+
+- Henry: "Deploy aja sekarang, kenapa harus setelah 21:00?" (the only constraint is that no slot runs during
+  the deploy; 05:29 WIB is before the 08:00 slot). Code 2a2bd2c9f9bd4bcf1ded43bd5a09a22e09977856, archive
+  hengs-discord-1.66.1-2a2bd2c9f9bd.tar.gz SHA-256 69703172ab07abc75b4b0e8a3b30474404c8049afff48e4630b077db559d1b2a;
+  helpers .cloud/automation/deploy-v1661 derived from deploy-v1660 with news schema 4 and count 5; rehearsal
+  743/740/3 skips.
+- Preflight PASS 05:29, dispatch 05:29:59, ACCEPTED 05:33:23. Audit PASS: DC 1.66.1, WA 0.50.0 fresh, restarts
+  zero, rollback to 1.66.0 available, 13 home commands. Revival TV loads (RESULT=OK).
+
 ## Hengs Discord v1.66.1 local checkpoint and 5x5 activation - 2026-10-21
 
 - Henry: "Silahkan lu lanjutkan aja, gw review nanti siang ... setelah semua berita dan meme udah keluar".
