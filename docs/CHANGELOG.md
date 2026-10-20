@@ -17,7 +17,8 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   result is recorded in `data/scrim-results.json` (newest 500 per guild) for a future coach.
 - Cloud rollout accepted 2026-10-20 together with v1.63.0: VM suite 716 pass / 3 checkout skips,
   two fresh heartbeats, WhatsApp and Canox unchanged, home commands re-registered. Casterin inactive
-  until its Gemini key is installed; Scrim tim setup and member submission not yet dogfooded.
+  until its Gemini key is installed. Scrim tim provisioned 2026-10-20 at Henry's request through the
+  same setup code (role and channel, no restart); member submission not yet dogfooded.
 
 ### Security and privacy
 

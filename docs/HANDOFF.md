@@ -1,6 +1,19 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-19
+Updated: 2026-10-20
+
+## Scrim tim provisioned at owner request - 2026-10-20
+
+- A read-only REST check (.cloud/automation/deploy-v1640/scrim-check.sh, as hengs-discord) found no
+  Hengs Family role and no hasil-scrim channel: /admin setup > Scrim tim had never been run. Henry then
+  asked: "Buat channel scrim lu buatin dong, sekalian role nya juga."
+- scrim-setup.sh ran once as hengs-discord (systemd-run, discord.env): a short-lived second gateway
+  session (Guilds intent only) fetched the home guild and called ensureScrimSetup with roleId and
+  channelId null, so it would have refused if either already existed. Result CREATED_ROLE=1
+  CREATED_CHANNEL=1 PARENT=SET (Gaming). Post-check CHANNEL_TEXT=1 ROLE=1; DC 1.64.0 CONNECTED/OK/fresh,
+  13 home commands incl. /scrim hasil; no restart. Ran after the WA v0.50.0 deploy was accepted.
+- Next: Henry adds teammates to Hengs Family (Server Settings > Members) and dogfoods /scrim hasil in
+  bot-commands.
 
 ## Hengs Discord v1.64.0 deployed with v1.63.0 - 2026-10-20
 

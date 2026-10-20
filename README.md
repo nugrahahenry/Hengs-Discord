@@ -41,7 +41,10 @@ migration. Memory is default off; reset clears RAM, not saved notes, revisions o
 Canox memory connected. Node22 candidate QA: 716 passed, zero failed, three checkout-only skips (719
 total). Two fresh advancing heartbeats passed; WhatsApp and Canox were not restarted; news state unchanged.
 Home guild commands re-registered (13, including `/caster` and `/scrim hasil`). Casterin stays inactive
-("belum aktif") until a Gemini key is installed. v1.62.0 remains available for rollback. The public bot invite is also included in Hengs' application description.
+("belum aktif") until a Gemini key is installed. v1.62.0 remains available for rollback. On 2026-10-20
+Scrim tim was provisioned at Henry's request: the permissionless `Hengs Family` role and
+`📸・hasil-scrim` under Gaming, created by the bot's own setup code without a restart. Teammates still
+get the role manually. The public bot invite is also included in Hengs' application description.
 
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
