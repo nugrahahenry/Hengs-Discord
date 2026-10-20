@@ -2,6 +2,20 @@
 
 Updated: 2026-10-20
 
+## Hengs Discord v1.64.1 deployed and accepted - 2026-10-20
+
+- Henry approved "Deploy Discord v1.64.1 sekarang" (one controlled restart, WhatsApp untouched).
+  Exact code 7a022917f5d084da84648ac8fec648e9516e8c8c, archive hengs-discord-1.64.1-7a022917f5d0.tar.gz
+  SHA-256 6c62833aa98a3dc42eb5966b023fbcc766a1da00e3945fd8c51265e7d173c36a. Operators in
+  .cloud/automation/deploy-v1641 were generated from deploy-v1640 by script (previous 1.64.0, WA 0.50.0,
+  QA counts 720/717/3 skips, unit names -1641); release tests were rehearsed first from the extracted
+  archive with junctioned node_modules and no .env: 720 tests, 717 pass, the same 3 checkout skips.
+- Timeline: preflight PASS, TESTS 21:02, HEALTH 21:04, ACCEPTED 21:05:40 WIB. Audit PASS: DC 1.64.1 and
+  WA 0.50.0 fresh, single consumer, NRestarts 0, staging absent, rollback to 1.64.0 available; 13 home
+  commands incl. /scrim hasil.
+- Henry can now rename the role to an emoji name (suggested "🫂 Hengs Family") and change its color
+  himself: the role sits above Hengs, so the bot cannot edit it.
+
 ## Hengs Discord v1.64.1 role emoji local checkpoint - 2026-10-20
 
 - Henry asked for icons on role names without one and for hasil-scrim to be readable by everyone but

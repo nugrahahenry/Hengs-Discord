@@ -2,8 +2,8 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.64.1 - the scrim team role may carry an emoji prefix (local, not
-deployed). Cloud runs v1.64.0: scrim results channel, live since 2026-10-20 (includes v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.64.1 - the scrim team role may carry an emoji prefix, cloud-live
+since 2026-10-20 (includes the v1.64.0 scrim results channel and v1.63.0 Casterin)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -38,11 +38,11 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.64.0 accepted on 2026-10-20 after one controlled restart, private
-Canox memory connected. Node22 candidate QA: 716 passed, zero failed, three checkout-only skips (719
-total). Two fresh advancing heartbeats passed; WhatsApp and Canox were not restarted; news state unchanged.
+**Current cloud production:** v1.64.1 accepted on 2026-10-20 21:05 WIB after one controlled restart,
+private Canox memory connected. Node22 candidate QA: 717 passed, zero failed, three checkout-only skips
+(720 total); command shapes unchanged, so no re-registration. v1.64.0 (accepted earlier the same day): Two fresh advancing heartbeats passed; WhatsApp and Canox were not restarted; news state unchanged.
 Home guild commands re-registered (13, including `/caster` and `/scrim hasil`). Casterin stays inactive
-("belum aktif") until a Gemini key is installed. v1.62.0 remains available for rollback. On 2026-10-20
+("belum aktif") until a Gemini key is installed. v1.64.0 remains available for rollback. On 2026-10-20
 Scrim tim was provisioned at Henry's request: the permissionless `Hengs Family` role and
 `📸・hasil-scrim` under Gaming, created by the bot's own setup code without a restart. Teammates still
 get the role manually. The public bot invite is also included in Hengs' application description.

@@ -21,6 +21,12 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   identity. Reaction roles store IDs and `/admin getroles` matches names fuzzily, so nothing else changed.
   The server has no Boost level 2, so Discord role icons are unavailable; emoji stay in the names.
 
+### Verification
+
+- Deployed 2026-10-20 21:05 WIB with one controlled Discord restart: VM suite 720 total, 717 pass,
+  3 checkout-only skips, two fresh heartbeats, WhatsApp v0.50.0, Canox and news unchanged, 13 home
+  commands. The release tests were first rehearsed from the extracted archive without a .env file.
+
 ## [1.64.0] - 2026-10-19
 
 ### Added
