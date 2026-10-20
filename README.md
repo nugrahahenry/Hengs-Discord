@@ -2,8 +2,8 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.66.0 - five trending news and five memes a day (local, not
-deployed; includes v1.65.0; the cloud still runs v1.64.2, where hasil-scrim is private to Hengs Family)
+**Current checkpoint:** Hengs Discord v1.66.0 - five trending news and five memes a day, cloud-live since
+2026-10-21 (includes v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -38,8 +38,12 @@ retrieve them. Ordinary local notes and the Canox project bridge keep their exis
 Canox must be reachable and configured with a dedicated capability after an approved schema
 migration. Memory is default off; reset clears RAM, not saved notes, revisions or backups.
 
-**Current cloud production:** v1.64.2 accepted on 2026-10-21 02:48 WIB after one controlled restart
-(hasil-scrim stays private after the restart). Before it, v1.64.1 was accepted on 2026-10-20 21:05 WIB,
+**Current cloud production:** v1.66.0 accepted on 2026-10-21 05:07 WIB after one controlled restart:
+Node22 candidate QA 740 passed, zero failed, three checkout-only skips (743 total), two fresh heartbeats,
+WhatsApp v0.50.0 and Canox untouched, news state unchanged on disk (it becomes schema 4 at the first slot).
+The live schedule reads as news 08:00 and 10:00 (tech + AI) and one meme at 13:00 until a manager sets 5 + 5.
+v1.64.2 remains available for rollback. Before it, v1.64.2 was accepted on 2026-10-21 02:48 WIB (hasil-scrim
+stays private after the restart) and v1.64.1 on 2026-10-20 21:05 WIB,
 private Canox memory connected. Node22 candidate QA: 717 passed, zero failed, three checkout-only skips
 (720 total); command shapes unchanged, so no re-registration. v1.64.0 (accepted earlier the same day): Two fresh advancing heartbeats passed; WhatsApp and Canox were not restarted; news state unchanged.
 Home guild commands re-registered (13, including `/caster` and `/scrim hasil`). Casterin stays inactive

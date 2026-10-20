@@ -29,6 +29,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Offline only, synthetic data: Node 22 full suite 743/743 via PowerShell. No Groq call, Discord message
   or deploy. The read-only VM probe from v1.65.0 already confirmed memegen, Imgflip, Lemmy and the vision
   model from the VM.
+- Deployed 2026-10-21 05:07 WIB (with v1.65.0) with one controlled Discord restart: VM suite 743 total,
+  740 pass, 3 checkout-only skips, two fresh heartbeats, WhatsApp v0.50.0, Canox and news state unchanged,
+  13 home commands. Read-only check afterwards: the runtime reads the live schedule as news 08:00 and 10:00
+  plus a meme at 13:00, and the state file was not written.
 
 ## [1.65.0] - 2026-10-21
 

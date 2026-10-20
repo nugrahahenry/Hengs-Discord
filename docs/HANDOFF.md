@@ -2,6 +2,20 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.66.0 deployed and accepted - 2026-10-21
+
+- Henry approved "Deploy Discord v1.66.0 sekarang" (one controlled restart, WhatsApp untouched). Code
+  f20b006b43eb0622f03b76d08dc91b27298472b1, archive hengs-discord-1.66.0-f20b006b43eb.tar.gz SHA-256
+  93ed2a5e494d9c633b56f3e38a8a2eb00484ba93455ff87eafbe725061500b00; helpers .cloud/automation/deploy-v1660
+  derived from deploy-v1642; archive rehearsal 743/740/3 skips before staging.
+- Preflight PASS 05:04 WIB, dispatch 05:04:38, TESTS until 05:06, HEALTH 05:06-05:07, ACCEPTED about 05:07:55.
+  Audit PASS: DC 1.66.0 and WA 0.50.0 fresh, single consumer, restarts zero, staging absent, rollback to
+  1.64.2 available, 13 home commands.
+- news-v1660/probe-state.sh (read-only): ENABLED=1 TOPICS=TECH.AI NEWS=0800.1000 MEMES=1300 MEMEROUTE=1, disk
+  still schema 3 and unchanged. The first Hengs-made meme posts at 13:00 today unless Henry runs `preview meme`
+  or changes the settings first. Gaming feeds stay unused until gaming is added to the topics.
+- Next helpers must expect news-state schemaVersion 4 in deploy.cjs, preflight.sh and audit.sh once a slot has run.
+
 ## Hengs Discord v1.66.0 five memes a day local checkpoint - 2026-10-21
 
 - M2: src/news/memes.js. Slots 0/2/4 Hengs-made (Imgflip-ranked memegen templates, Groq caption about a hot
