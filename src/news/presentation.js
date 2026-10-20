@@ -49,4 +49,29 @@ function digestPayload(settings, items, now, intro = '') {
   return { components, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
-module.exports = { digestPayload };
+const safeLink = value => typeof value === 'string' && /^https:\/\/[^\s()]+$/.test(value) ? value : null;
+
+// Hengs-made and Lemmy memes travel as attachments; xkcd keeps the publisher-hosted card.
+function memePayload(item, now, intro = '') {
+  if (!item?.file) return digestPayload({ tone: 'casual' }, [item], now, intro);
+  const components = [];
+  if (intro) components.push(text(intro));
+  components.push(text('## Hengs Memes\nBuat rehat sebentar.'));
+  const card = new ContainerBuilder().setAccentColor(0xf0b348).addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+    new MediaGalleryItemBuilder().setURL(`attachment://${item.file.name}`).setDescription(plain(item.alt, 900) || 'Gambar meme'),
+  ));
+  const topic = plain(item.topicTitle, 120);
+  const lines = item.kind === 'hengs'
+    ? ['-# 🤖 Meme buatan Hengs', safeLink(item.topicUrl) ? `Tema: [${topic}](${item.topicUrl})` : `Tema: ${topic}`,
+      '-# Template: memegen.link · Teks: AI Hengs · Hiburan, bukan berita faktual']
+    : ['-# 😂 Dari Lemmy programmer_humor', `### ${plain(item.title, 150)}`,
+      safeLink(item.url) ? `[Lihat post aslinya](${item.url})` : '',
+      `-# Skor ${Number(item.score) || 0}, ${Number(item.comments) || 0} komentar · Hiburan, bukan berita faktual`];
+  card.addTextDisplayComponents(text(lines.filter(Boolean).join('\n\n')));
+  components.push(card.toJSON());
+  components.push(text(`-# ${wibClock(now).day} WIB`));
+  return { components, files: [{ attachment: item.file.data, name: item.file.name }],
+    flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+}
+
+module.exports = { digestPayload, memePayload };

@@ -5,6 +5,31 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.66.0] - 2026-10-21
+
+### Added
+
+- Five memes a day on their own clock: three made by Hengs (a popular template from the Imgflip ranking,
+  an Indonesian caption written by Groq about a hot news topic or an everyday student/gamer theme,
+  rendered by memegen.link and posted as an attachment) and two from outside (a new xkcd comic,
+  otherwise a hot Lemmy programmer_humor post that passed a Groq vision safety check). If one kind is
+  unavailable the other fills the slot; if both fail the slot stays empty. Daily caps: Hengs 5, Lemmy 3,
+  xkcd 1. The Hengs slot at 17:00 (slot 2) always uses an everyday theme.
+- `preview meme` shows one private sample of a Hengs meme (up to 6 per hour); nothing is sent or stored.
+- Optional `GROQ_VISION_MODEL` (default `qwen/qwen3.8-27b`); without Groq, outside Lemmy memes are skipped.
+
+### Fixed
+
+- Two regular expressions from v1.65.0 (the prompt cleaner and the accent stripper) had their `\u`
+  escapes written as the raw invisible characters. Behavior was the same; the source now uses escapes
+  again, matching v1.64.2.
+
+### Verification
+
+- Offline only, synthetic data: Node 22 full suite 743/743 via PowerShell. No Groq call, Discord message
+  or deploy. The read-only VM probe from v1.65.0 already confirmed memegen, Imgflip, Lemmy and the vision
+  model from the VM.
+
 ## [1.65.0] - 2026-10-21
 
 ### Added

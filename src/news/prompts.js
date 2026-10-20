@@ -17,7 +17,7 @@ const HELP = [
   'Mulai: `atur berita teknologi AI gaming 5 berita jam 08:00 ke #hengs-news` (channel harus sudah ada).',
   'Lalu `preview berita`. Revisi bisa `tambah gaming`, `lebih santai`, atau `ubah jam 09:00`.',
   'Meme: `atur berita meme 5 jam 13:00 ke #hengs-memes`. `atur berita meme 0` mematikan meme. Channel news dan meme harus berbeda.',
-  'Meme memakai komik xkcd yang baru. Tanpa tujuan meme, slot meme dilewati, bukan masuk news.',
+  'Meme: 3 buatan Hengs (template yang lagi sering dipakai + teks AI soal topik yang lagi rame) dan 2 dari luar (xkcd baru atau Lemmy programmer_humor yang lolos cek gambar). `preview meme` menampilkan satu contoh privat. Tanpa tujuan meme, slot meme dilewati.',
   '`simpan berita` menyimpan dalam keadaan jeda. `kirim berita sekali` memakai preview terbaru.',
   'Setelah kiriman uji berhasil, `preview berita` lalu `aktifkan berita` untuk jadwal harian.',
   'Channel yang sudah diuji: ubah draft, `preview berita`, lalu `terapkan berita`. Status aktif/jeda tetap; tidak mengirim ulang.',
@@ -26,7 +26,7 @@ const HELP = [
   'Ringkasan Indonesia memakai AI dari judul/cuplikannya saja. Jika tidak tersedia, tampil bahasa sumber. Hiburan bukan berita faktual.',
 ].join('\n');
 
-const clean = value => String(value || '').replace(/[​-‏‪-‮⁦-⁩]/g, '')
+const clean = value => String(value || '').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '')
   .replace(/\s+/g, ' ').trim();
 
 function isNewsIntent(value) {
@@ -35,6 +35,7 @@ function isNewsIntent(value) {
 
 function parsePrompt(value, hasDraft = false) {
   const text = clean(value);
+  if (/^(?:preview|pratinjau|contoh)\s+meme$/i.test(text.replace(/[.!]+$/, ''))) return { action: 'preview_meme' };
   const contextual = hasDraft && /^(?:lebih |(?:ubah|ganti|tambah(?:kan|in)?|kurangi|hapus|pakai|pilih|pindah(?:kan)?)\b)/i.test(text)
     && /\b(?:santai|formal|netral|jam|pukul|teknologi|tech|ai|gaming|game|meme|hiburan|komik|item|channel)\b|<#\d|#hengs-news/i.test(text);
   if (!isNewsIntent(text) && !contextual) return null;

@@ -689,3 +689,29 @@ test('failed atomic revision leaves the old active configuration and receipt byt
   assert.equal(fs.readFileSync(r.filePath, 'utf8'), before);
   assert.deepEqual(fs.readdirSync(r.root), ['news-state.json']);
 });
+
+test('meme slots use the meme maker, attach files to the meme channel and preview stays private', async t => {
+  const made = { kind: 'hengs', publisher: 'hengs-meme', topic: 'memes', source: 'Hengs', lines: ['a b', 'c d'], template: 'drake',
+    title: 'a b / c d', topicTitle: 'Tema sintetis', topicUrl: null, alt: 'Meme drake: a b / c d',
+    file: { name: 'hengs-meme.png', data: Buffer.from('png') }, hash: 'e'.repeat(64), publishedAt: BASE };
+  const calls = [];
+  const memeMaker = { make: async input => { calls.push(['make', input.slot]); return made; },
+    preview: async () => { calls.push(['preview']); return made; } };
+  const r = rig(t, { memeMaker });
+  await testedRow(r);
+  const before = fs.readFileSync(r.filePath, 'utf8');
+  const preview = await r.handle('preview meme');
+  assert.deepEqual(preview.files, [{ attachment: made.file.data, name: 'hengs-meme.png' }]);
+  assert.equal(fs.readFileSync(r.filePath, 'utf8'), before); assert.equal(r.sent.length, 1);
+  const row = r.store.get(GUILD);
+  r.store.revise(GUILD, row.revision, { ...row.settings, memeChannelId: MEMES, memeCount: 1, memeTime: '15:00' });
+  r.advance(DAY + 7 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
+  assert.equal(r.sent.length, 2); assert.equal(r.destinations.at(-1), MEMES);
+  assert.deepEqual(r.sent.at(-1).files, [{ attachment: made.file.data, name: 'hengs-meme.png' }]);
+  const receipt = r.store.get(GUILD).receipts.at(-1);
+  assert.deepEqual([receipt.kind, receipt.slot, receipt.publisher, receipt.status], ['meme', 0, 'hengs-meme', 'sent']);
+  assert(!fs.readFileSync(r.filePath, 'utf8').includes('Tema sintetis'));
+  assert.deepEqual(calls, [['preview'], ['make', 0]]);
+  assert.equal(parsePrompt('preview meme').action, 'preview_meme');
+  assert.equal(parsePrompt('bagikan meme: https://discord.com/channels/1/2/3'), null);
+});

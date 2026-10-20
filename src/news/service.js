@@ -5,13 +5,14 @@ const crypto = require('node:crypto');
 const { createNewsStore, wibClock } = require('./store');
 const { createFeedReader, SOURCES } = require('./feeds');
 const { dueSlot } = require('./cadence');
-const { digestPayload } = require('./presentation');
+const { digestPayload, memePayload } = require('./presentation');
 const { selectArticles } = require('./selection');
 const { rankArticles, createTrendReader } = require('./trending');
 const { DEFAULTS, HELP, NewsPromptError, parsePrompt, editSettings, describe, validSettings } = require('./prompts');
 const { isGuildManager } = require('../prompt-assistant');
 
 const TTL = 10 * 60_000;
+const HOUR = 3_600_000;
 const KINDS = Object.freeze(['news', 'meme']);
 function createNewsService({ store = createNewsStore(), readFeeds = createFeedReader({ readTrends: createTrendReader() }),
   now = Date.now, guildAccess, logger = console, editArticles = async items => items, memeMaker = null } = {}) {
@@ -19,6 +20,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
   const busy = new Map();
   const delivering = new Set();
   let client; let timer; let ticking = false; let stopped = false;
+  let previews = [];
   const keyFor = interaction => `${interaction.guildId}:${interaction.user.id}:${interaction.channelId}`;
   function active(guildId) { return ['home', 'public'].includes(guildAccess?.classify(guildId)?.kind); }
   function draftFor(interaction) {
@@ -60,8 +62,9 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       throw new Error('NEWS_MANAGER_REQUIRED');
     }
   }
-  function payloadFor(row, items) {
-    return digestPayload({ ...row.settings, count: 1 }, items.slice(0, 1), now());
+  function payloadFor(row, items, kind = 'news') {
+    return kind === 'meme' && items[0]?.file ? memePayload(items[0], now())
+      : digestPayload({ ...row.settings, count: 1 }, items.slice(0, 1), now());
   }
   async function deliver(guild, row, items, expectedDay = wibClock(now()).day, assertLease = () => {}, slot = -1, kind = 'news') {
     const { day } = wibClock(now());
@@ -107,6 +110,18 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (request.action === 'status') return { content: row
         ? `${describe(row.settings, row.enabled ? 'aktif' : 'jeda')}\nHasil terakhir: ${{ claimed: 'belum terkonfirmasi', sent: 'terkirim', empty: 'tidak ada berita baru', failed: 'gagal atau belum pasti', cancelled: 'dibatalkan' }[row.receipts.at(-1)?.status] || 'belum ada kiriman'}.\nKiriman uji hanya satu berita dan menutup sisa slot berita hari itu. Hasil tidak pasti tidak dicoba ulang otomatis.`
         : 'Hengs News belum diatur. Mulai dengan `atur berita teknologi AI ke #hengs-news`.' };
+      if (request.action === 'preview_meme') {
+        if (!memeMaker) return { content: 'Meme buatan Hengs belum tersedia di versi ini.' };
+        previews = previews.filter(at => now() - at < HOUR);
+        if (previews.length >= 6) return { content: 'Preview meme maksimal 6 kali per jam. Coba lagi nanti.' };
+        previews.push(now());
+        const news = await readFeeds(draft.settings.topics);
+        assertLease();
+        const item = await memeMaker.preview({ row: row || { seen: [], receipts: [] }, newsItems: ranked(news) });
+        assertLease();
+        return item ? memePayload(item, now(), 'Preview privat meme buatan Hengs. Belum dikirim dan tidak disimpan.')
+          : { content: 'Meme belum bisa dibuat sekarang. Tidak ada yang dikirim.' };
+      }
       if (request.action === 'pause') {
         await assertManager(interaction);
         assertLease();
@@ -208,9 +223,13 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     if (!items.length) return { items, failures: result.failures };
     return { items: selected(settings, await editArticles(items, settings), row), failures: 0 };
   }
-  async function memeFor(row) {
-    const result = await readFeeds(['memes']);
-    return { items: selected({ ...row.settings, topics: ['memes'], count: 1 }, result.items, row), failures: result.failures };
+  async function memeFor(row, slot) {
+    const comics = await readFeeds(['memes']);
+    const xkcdItems = selected({ ...row.settings, topics: ['memes'], count: 1 }, comics.items, row);
+    if (!memeMaker) return { items: xkcdItems, failures: comics.failures };
+    const news = await readFeeds(row.settings.topics);
+    const made = await memeMaker.make({ row, slot, xkcdItems, newsItems: ranked(news) });
+    return { items: made ? [made] : [], failures: 0 };
   }
   async function runSlot(row, kind) {
     const due = dueSlot(row, now(), kind);

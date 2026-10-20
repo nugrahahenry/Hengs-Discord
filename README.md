@@ -2,8 +2,8 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.65.0 - up to five trending news a day (local, not deployed; the
-cloud still runs v1.64.2, where hasil-scrim is private to Hengs Family)
+**Current checkpoint:** Hengs Discord v1.66.0 - five trending news and five memes a day (local, not
+deployed; includes v1.65.0; the cloud still runs v1.64.2, where hasil-scrim is private to Hengs Family)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.
@@ -94,7 +94,13 @@ meme punya jumlah (berita 1-5, meme 0-5), jam, dan channel sendiri; channel kedu
 Satu item per kiriman, tiap dua jam. Berita dipilih dari yang lagi panas: poin per jam di Hacker
 News, jumlah media berbeda yang memuat cerita yang sama dalam 12 jam, dan Google Trends Indonesia.
 Kartu media Indonesia tanpa foto penerbit. Tanpa tujuan meme, slot meme dilewati, bukan dikirim ke
-news. Di v1.65.0 slot meme masih memakai komik xkcd yang baru.
+news.
+
+Mulai v1.66.0, meme 5 per hari: 3 buatan Hengs (template meme yang lagi sering dipakai menurut Imgflip,
+teks AI bahasa Indonesia soal topik yang lagi rame atau tema sehari-hari mahasiswa/gamer, dirender
+memegen.link) dan 2 dari luar (komik xkcd baru, atau post Lemmy programmer_humor yang lolos cek
+gambar oleh model vision Groq). `preview meme` menampilkan satu contoh privat. Opsional
+`GROQ_VISION_MODEL` di env (default `qwen/qwen3.8-27b`).
 
 Anggota dapat mengirim sendiri di news/memes jika izin Discord mengizinkan, tanpa antrean admin.
 Untuk lewat Hengs, gunakan `/hengs ask` di bot-commands (atau channel yang diizinkan server publik):

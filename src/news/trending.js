@@ -19,7 +19,7 @@ const STOP = new Set([
 const SENSITIVE = /\b(?:politik\w*|pemilu|pilpres|pilkada|partai|kampanye|capres|cawapres|koalisi|oposisi|sara|agama|rasis\w*|penistaan|teroris\w*|perang|militer|tewas|meninggal|wafat|korban jiwa|pembunuhan|dibunuh|bunuh diri|pemerkosaan|kekerasan seksual|cabul|porno\w*|bokep|judi|judol|slot gacor|togel|narkoba|sabu|kecelakaan|bencana|gempa|banjir|tsunami|longsor|election\w*|politic\w*|senate|congress|killed|murder\w*|suicide|porn\w*|gambling|terror\w*|shooting|ukraine|russia|gaza|israel|hamas|nato)\b/i;
 
 function keywords(value) {
-  const words = String(value || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const words = String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ').trim().split(' ');
   return [...new Set(words.filter(word => (word.length >= 3 && !STOP.has(word)) || /^(?=.*\d)[a-z0-9]{2,}$/.test(word)))];
 }

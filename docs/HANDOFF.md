@@ -2,6 +2,20 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.66.0 five memes a day local checkpoint - 2026-10-21
+
+- M2: src/news/memes.js. Slots 0/2/4 Hengs-made (Imgflip-ranked memegen templates, Groq caption about a hot
+  news topic or an evergreen theme, slot 2 always evergreen), slots 1/3 outside (new xkcd, else Lemmy
+  programmer_humor after a Groq vision check that must answer exactly {"safe":true}). Daily caps: Hengs 5,
+  Lemmy 3, xkcd 1. Budgets: writer 10/hour, vision 6/hour, preview meme 6/hour.
+- Vision model: GROQ_VISION_MODEL or qwen/qwen3.8-27b (VM probe: VISION STATUS=200 JSON=SAFE_TRUE).
+- Found and fixed: writing files through the tool layer decoded some `\u` escapes into raw invisible
+  characters (prompts.js clean(), trending.js accent regex, memes.js validator). The runtime dash test caught
+  memes.js; all three now use escape text again. WA repo scanned: clean.
+- QA: Node 22 full suite 743/743. Cloud unchanged: DC v1.64.2, WA v0.50.0. Deploy v1.66.0 (contains M1 + M2)
+  needs Henry's approval; helpers derive from deploy-v1642 (plan Task 18, rehearsal counts from Task 17).
+- Commit subject: feat(news): Hengs Discord v1.66.0 - five memes a day with Hengs-made memes
+
 ## Hengs Discord v1.65.0 five news a day local checkpoint - 2026-10-21
 
 - Henry asked for 5 news + 5 memes a day picked by how fast they rise (2026-10-21). Research:

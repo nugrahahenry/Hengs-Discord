@@ -55,6 +55,7 @@ const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createNewsEditor } = require('./news/editor');
+const { createMemeMaker } = require('./news/memes');
 const { createCommunitySharing } = require('./news/sharing');
 const { createCaster } = require('./caster/service');
 const { createScrimResults } = require('./scrim/service');
@@ -96,7 +97,8 @@ const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
   store: guildConfigStore,
 });
-newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }) });
+newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
+  memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, reviewImage: agent.reviewMemeImage }) });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId) });
 const publicTrafficGuard = createPublicTrafficGuard();
 const publicDailyRequestLimit = parsePublicDailyRequestLimit(
