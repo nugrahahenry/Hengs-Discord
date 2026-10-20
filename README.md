@@ -2,8 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.64.1 - the scrim team role may carry an emoji prefix, cloud-live
-since 2026-10-20 (includes the v1.64.0 scrim results channel and v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.64.2 - hasil-scrim is private to Hengs Family (local, not deployed;
+the live channel was already locked through the API). Cloud runs v1.64.1: the scrim team role may carry
+an emoji prefix (includes the v1.64.0 scrim results channel and v1.63.0 Casterin)
 
 News and entertainment have separate destinations. Members may post directly according to
 Discord permissions, or privately preview and confirm their own contribution through Hengs.

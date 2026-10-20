@@ -130,11 +130,13 @@ async function ensureScrimSetup(guild, { roleId = null, channelId = null, expect
   if (!role?.id) throw new Error('SCRIM_ROLE_UNCERTAIN');
   await assertLease();
   const team = { ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true };
+  // Scrim results must not leak: only the team role and Hengs can see the channel (owner decision 2026-10-20).
   if (existingChannel) {
-    const reason = 'Hengs setup: owner confirmed team-only scrim posting';
+    const reason = 'Hengs setup: owner confirmed private team scrim channel';
     // Edit only these bits for @everyone, the team role and Hengs; other overwrites stay.
-    await existingChannel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: true, ReadMessageHistory: true,
-      SendMessages: false, CreatePublicThreads: false, CreatePrivateThreads: false, SendMessagesInThreads: false }, { reason });
+    await existingChannel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false, ReadMessageHistory: false,
+      SendMessages: false, CreatePublicThreads: false, CreatePrivateThreads: false, SendMessagesInThreads: false,
+      AddReactions: false }, { reason });
     await existingChannel.permissionOverwrites.edit(role.id, team, { reason });
     await existingChannel.permissionOverwrites.edit(me.id, team, { reason });
     return { role, channel: existingChannel, createdRole: !existingRole, createdChannel: false };
@@ -142,11 +144,11 @@ async function ensureScrimSetup(guild, { roleId = null, channelId = null, expect
   const gaming = channels.filter(c => c.type === ChannelType.GuildCategory && normalize(c.name) === 'gaming');
   const channel = await guild.channels.create({ name: CHANNEL_NAME, type: ChannelType.GuildText,
     ...(gaming.length === 1 ? { parent: gaming[0].id } : {}),
-    topic: 'Hasil scrim tim. Anggota Hengs Family kirim lewat /scrim hasil di bot-commands atau unggah langsung.',
-    reason: 'Hengs setup: owner confirmed scrim results channel',
+    topic: 'Hasil scrim tim, privat untuk Hengs Family. Kirim lewat /scrim hasil di bot-commands atau unggah langsung.',
+    reason: 'Hengs setup: owner confirmed private scrim results channel',
     permissionOverwrites: [
-      { id: guild.roles.everyone.id, allow: [P.ViewChannel, P.ReadMessageHistory],
-        deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads, P.SendMessagesInThreads] },
+      { id: guild.roles.everyone.id, allow: [], deny: [P.ViewChannel, P.ReadMessageHistory, P.SendMessages,
+        P.CreatePublicThreads, P.CreatePrivateThreads, P.SendMessagesInThreads, P.AddReactions] },
       { id: role.id, allow: BOT_PERMISSIONS },
       { id: me.id, allow: BOT_PERMISSIONS },
     ],
@@ -246,7 +248,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           await interaction.editReply({ ...safe([
             '**Preview channel hasil scrim**',
             `${role ? 'Pakai' : 'Buat'} role Hengs Family (tanpa izin server tambahan); ${channel ? 'pakai channel hasil-scrim yang ada' : 'buat channel 📸・hasil-scrim di kategori Gaming kalau ada'}.`,
-            'Semua member bisa melihat dan membaca. Cuma role Hengs Family dan Hengs yang bisa kirim, lampirkan file dan embed. Thread untuk member biasa ditutup.',
+            'Channel privat: cuma role Hengs Family dan Hengs yang bisa melihat, membaca, kirim, lampirkan file dan embed. Member lain tidak bisa melihat channel ini; Owner dan role Administrator tetap bisa.',
             'Anggota tim ditambahkan ke role secara manual lewat Server Settings > Members. Hengs tidak memberi role ke siapa pun.',
             'Tidak mengubah channel lain dan tidak menjalankan setup lengkap.',
           ].join('\n\n')), components: controls(id, [['scrimapply', 'Buat/pakai role + channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });

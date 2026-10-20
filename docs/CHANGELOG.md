@@ -5,6 +5,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.64.2] - 2026-10-20
+
+### Changed
+
+- hasil-scrim is private to the team: `/admin setup` > Scrim tim now denies view, history, send, threads
+  and reactions for @everyone, on a new channel and when it reuses an existing one, and its preview says
+  so. Only Hengs Family and Hengs see the channel; Owner and Administrator roles still can. Henry asked
+  for this because scrim results must not leak.
+
+### Operations
+
+- 2026-10-20 the live channel was locked the same way through the bot's REST identity before this
+  release (only the @everyone overwrite changed; the team role and Hengs kept theirs).
+
 ## [1.64.1] - 2026-10-20
 
 ### Fixed

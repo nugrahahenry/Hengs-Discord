@@ -2,6 +2,18 @@
 
 Updated: 2026-10-20
 
+## Hengs Discord v1.64.2 private scrim channel local checkpoint - 2026-10-20
+
+- Henry: "hasil scrim di private aja buat role hengs family, scrim itu gak boleh bocor". The live
+  channel was locked at once with deploy-v1641/scrim-private.sh (PUT @everyone overwrite: deny view,
+  history, send, threads, reactions). Read-back: @everyone ALLOW=NONE, Hengs Family and Hengs allowed.
+- Code: ensureScrimSetup creates and re-edits the channel private, and the preview text says so; without
+  this, re-running /admin setup > Scrim tim on v1.64.1 would reopen the channel to everyone. Replies of
+  /scrim hasil were already ephemeral; only the final card goes to hasil-scrim.
+- Leak note for Henry: Owner and Administrator roles (Bots, Jockie Music x2, OwO) see every channel.
+- QA: Node 22 full suite 720/720 locally. Deploy needs a new approval; helpers derive from deploy-v1641.
+- Commit subject: fix(scrim): Hengs Discord v1.64.2 - keep hasil-scrim private to Hengs Family
+
 ## Hengs Discord v1.64.1 deployed and accepted - 2026-10-20
 
 - Henry approved "Deploy Discord v1.64.1 sekarang" (one controlled restart, WhatsApp untouched).

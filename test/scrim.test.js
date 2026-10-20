@@ -206,7 +206,7 @@ function rigGuild({ role = null, channel = null, gaming = true } = {}) {
   return { guild, created, edits, channels };
 }
 
-test('scrim setup creates a permissionless team role and a team-only channel under Gaming', async () => {
+test('scrim setup creates a permissionless team role and a private team channel under Gaming', async () => {
   const r = rigGuild();
   const { role, channel } = await ensureScrimSetup(r.guild, {});
   assert.equal(r.created.roles.length, 1);
@@ -219,8 +219,11 @@ test('scrim setup creates a permissionless team role and a team-only channel und
   const [everyone, team, bot] = created.permissionOverwrites;
   assert.equal(everyone.id, G);
   assert(everyone.deny.includes(P.SendMessages) && !everyone.allow.includes(P.SendMessages));
+  // Scrim results must not leak: members outside the team cannot even see the channel.
+  assert(everyone.deny.includes(P.ViewChannel) && everyone.deny.includes(P.ReadMessageHistory));
+  assert.deepEqual(everyone.allow, []);
   assert.equal(team.id, role.id);
-  assert(team.allow.includes(P.SendMessages) && team.allow.includes(P.AttachFiles));
+  assert(team.allow.includes(P.ViewChannel) && team.allow.includes(P.SendMessages) && team.allow.includes(P.AttachFiles));
   assert.equal(bot.id, BOT);
   assert.equal(channel.id, '730000000000000001');
 });
@@ -232,7 +235,10 @@ test('scrim setup reuses existing pieces, edits only three overwrites and refuse
   assert.equal(r.created.roles.length + r.created.channels.length, 0);
   assert.deepEqual(r.edits.map(edit => edit[0]), [G, role.id, BOT]);
   assert.equal(r.edits[0][1].SendMessages, false);
+  assert.equal(r.edits[0][1].ViewChannel, false);
+  assert.equal(r.edits[0][1].ReadMessageHistory, false);
   assert.equal(r.edits[1][1].SendMessages, true);
+  assert.equal(r.edits[1][1].ViewChannel, true);
   await assert.rejects(ensureScrimSetup(r.guild, { roleId: null, channelId: '730000000000000009' }), /SETUP_PREVIEW_STALE/);
   const duplicate = rigGuild({ role });
   duplicate.guild.roles.fetch = async () => new Collection([[role.id, role], ['720000000000000010', { id: '720000000000000010', name: 'Hengs Family' }]]);
@@ -256,6 +262,7 @@ test('owner setup flow previews Scrim tim first and applies role plus channel on
   const preview = choose.edits.at(-1);
   assert.match(preview.content, /Preview channel hasil scrim/);
   assert.match(preview.content, /Buat role Hengs Family/);
+  assert.match(preview.content, /Channel privat: cuma role Hengs Family dan Hengs yang bisa melihat/);
   assert.equal(r.created.roles.length + r.created.channels.length, 0);
   const apply = preview.components[0].toJSON().components.find(c => c.custom_id.endsWith(':scrimapply')).custom_id;
   const confirmed = interaction({ customId: apply });
