@@ -19,6 +19,12 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - 2026-10-20 the live channel was locked the same way through the bot's REST identity before this
   release (only the @everyone overwrite changed; the team role and Hengs kept theirs).
 
+### Verification
+
+- Deployed 2026-10-21 02:48 WIB with one controlled Discord restart: VM suite 720 total, 717 pass,
+  3 checkout-only skips, two fresh heartbeats, WhatsApp v0.50.0, Canox and news unchanged, 13 home
+  commands. After the restart @everyone is still denied view, history and send in hasil-scrim.
+
 ## [1.64.1] - 2026-10-20
 
 ### Fixed

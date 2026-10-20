@@ -2,6 +2,17 @@
 
 Updated: 2026-10-20
 
+## Hengs Discord v1.64.2 deployed and accepted - 2026-10-21
+
+- Henry approved "Deploy Discord v1.64.2 sekarang" (one controlled restart, WhatsApp untouched). Code
+  86a0520239436322888d4b29feec8b37b12892f3, archive hengs-discord-1.64.2-86a052023943.tar.gz SHA-256
+  62d0fcd1982851e27155c804b3aafb17ad017fbf02d5ca2ddf7db237f675c654; helpers .cloud/automation/deploy-v1642
+  generated from deploy-v1641; archive rehearsal 720/717/3 skips before staging.
+- Preflight PASS 02:42 WIB (outside the 07-10 news window), TESTS 02:44, HEALTH 02:47, ACCEPTED 02:48:06.
+  Audit PASS: DC 1.64.2 and WA 0.50.0 fresh, single consumer, NRestarts 0, staging absent, rollback to
+  1.64.1 available, 13 home commands. hasil-scrim read-back: @everyone ALLOW=NONE, view/history/send
+  denied; Hengs Family and Hengs allowed.
+
 ## Hengs Discord v1.64.2 private scrim channel local checkpoint - 2026-10-20
 
 - Henry: "hasil scrim di private aja buat role hengs family, scrim itu gak boleh bocor". The live
