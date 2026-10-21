@@ -25,7 +25,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 ### Verification
 
 - Node 22 full suite 774/774 via PowerShell, including v1.68.0 (Coach phase 1, fast-forwarded from
-  `coach-phase1`). No Discord, Groq or VM call. Not deployed.
+  `coach-phase1`).
+- Deployed 2026-10-21 17:09 WIB at Henry's request ("Deploy Discord v1.69.0 sekarang, di luar jam slot, plus
+  daftar ulang command"), after the 17:00 meme slot, with one controlled Discord restart: VM suite 774 total,
+  771 pass, 3 checkout-only skips, two fresh heartbeats, WhatsApp v0.52.0 and Canox untouched, news state
+  unchanged. Commands re-registered: 14 home commands, /scrim with rekap and statku, /kirim present.
 
 ## [1.68.0] - 2026-10-21
 

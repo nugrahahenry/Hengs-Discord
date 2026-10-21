@@ -2,6 +2,21 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.69.0 deployed and accepted - 2026-10-21
+
+- Henry: "Deploy Discord v1.69.0 sekarang, di luar jam slot, plus daftar ulang command." At 16:45 the minute guard
+  was at its edge, so the deploy waited for the 17:00 meme slot (Hengs meme, judged, sent 17:00).
+- Code 2880470970672fff7c85caa4d981024d50f79fc0, archive hengs-discord-1.69.0-288047097067.tar.gz SHA-256
+  394bdfdfca9c7f3e1cdfc6c0bb77b7f3d46047b805c67b54eee1e5fe863b012e, rehearsal 774/771/3 skips. Helpers
+  .cloud/automation/deploy-v1690 derived from deploy-v1670 with WA now expected at 0.52.0-e3dce2033f03; verify adds
+  SCRIM_COACH (rekap and statku on /scrim). apply-readonly.sh was not carried over (already applied).
+- Preflight PASS 17:05:39, stage 17:06:14, dispatch 17:06:19, ACCEPTED 17:09:28. Audit PASS: DC 1.69.0, WA 0.52.0
+  fresh, restarts zero, rollback to 1.67.0 available. Commands PUT; 14 home commands, CASTER, SCRIM_HASIL, KIRIM
+  and SCRIM_COACH present. data/scrim-games.json starts empty on first /scrim hasil.
+- Dogfood check 17:07 (read-only): today 8 receipts. Memes: 13:01 Hengs (v1.66.1, before the judge: the CPU or
+  deadline one), 15:01 Lemmy, 17:00 Hengs (v1.67.0, passed the judge on the first try). No NEWS_MEME_WEAK, REJECTED
+  or FAILED codes today. WA had no reply events since 15:16 (Henry had not tested yet).
+
 ## Hengs Discord v1.69.0 livelier Hengs memes, Coach merged (local, not deployed) - 2026-10-21
 
 - Henry, after the 15:01 Lemmy meme ("Spends whole life building communication networks / still cant talk to

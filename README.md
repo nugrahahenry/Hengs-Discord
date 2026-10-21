@@ -2,15 +2,15 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.67.0 - read-only news and meme channels, `/kirim` and
-judged Hengs memes, cloud-live since 2026-10-21 15:12 WIB (includes v1.66.1 WordPress feeds, v1.66.0
-five memes a day, v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.69.0 - livelier Hengs memes and Hengs Coach phase 1, cloud-live
+since 2026-10-21 17:09 WIB (includes v1.67.0 read-only news and meme channels with `/kirim`, v1.66.1
+WordPress feeds, v1.66.0 five memes a day, v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0
+Casterin)
 
-v1.69.0 (local, not deployed): Hengs-made memes get 12 more irony and twist formats (28 templates, rotating by
-day), five options per call and a stricter humour bar. Includes v1.68.0, Hengs Coach phase 1, a scrim notebook for
-Hengs Family: `/scrim hasil` logs one MLBB game (one dropdown for the result and loss reason, lineup prefilled),
-`/scrim rekap` gives a private team recap and `/scrim statku` sends a player's own numbers by DM. Every number
-shows its sample size.
+Hengs-made memes have 28 templates with irony and twist formats (rotating by day), five options per call and a
+judge that needs humour 8. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
+game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
+and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
 
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
