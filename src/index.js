@@ -56,6 +56,7 @@ const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createNewsEditor } = require('./news/editor');
 const { createMemeMaker } = require('./news/memes');
+const { createMemeTaste, memberReactions } = require('./news/meme-taste');
 const { createCommunitySharing } = require('./news/sharing');
 const { createCaster } = require('./caster/service');
 const { createScrimResults } = require('./scrim/service');
@@ -97,8 +98,14 @@ const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
   store: guildConfigStore,
 });
+// Members' reactions on a posted Hengs meme (REST read; Hengs' own reaction is not counted).
+const countMemeReactions = async ({ channelId, messageId }) => {
+  const channel = await client.channels.fetch(channelId);
+  return memberReactions(await channel?.messages?.fetch(messageId));
+};
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
-  memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage }) });
+  memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
+    taste: createMemeTaste(), countReactions: countMemeReactions }) });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();

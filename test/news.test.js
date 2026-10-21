@@ -699,7 +699,8 @@ test('meme slots use the meme maker, attach files to the meme channel and previe
     file: { name: 'hengs-meme.png', data: Buffer.from('png') }, hash: 'e'.repeat(64), publishedAt: BASE };
   const calls = [];
   const memeMaker = { make: async input => { calls.push(['make', input.slot]); return made; },
-    preview: async () => { calls.push(['preview']); return made; } };
+    preview: async () => { calls.push(['preview']); return made; },
+    remember: (guildId, post) => calls.push(['remember', guildId, post]) };
   const r = rig(t, { memeMaker });
   await testedRow(r);
   const before = fs.readFileSync(r.filePath, 'utf8');
@@ -714,7 +715,9 @@ test('meme slots use the meme maker, attach files to the meme channel and previe
   const receipt = r.store.get(GUILD).receipts.at(-1);
   assert.deepEqual([receipt.kind, receipt.slot, receipt.publisher, receipt.status], ['meme', 0, 'hengs-meme', 'sent']);
   assert(!fs.readFileSync(r.filePath, 'utf8').includes('Tema sintetis'));
-  assert.deepEqual(calls, [['preview'], ['make', 0]]);
+  // The posted Hengs meme is handed to the taste store so reactions can steer later memes.
+  assert.deepEqual(calls, [['preview'], ['make', 0],
+    ['remember', GUILD, { messageId: 'synthetic', channelId: MEMES, template: 'drake', situation: 'Tema sintetis' }]]);
   assert.equal(parsePrompt('preview meme').action, 'preview_meme');
   assert.equal(parsePrompt('bagikan meme: https://discord.com/channels/1/2/3'), null);
 });

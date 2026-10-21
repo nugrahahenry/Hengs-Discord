@@ -5,6 +5,23 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.70.0] - 2026-10-21
+
+### Added
+
+- Hengs memes learn from reactions. Each posted Hengs meme is remembered (message, template, situation) in
+  `data/meme-taste.json`; members' reactions are read back between 2 hours and 3 days after posting (Hengs'
+  own reaction does not count) and then frozen into per-template and per-situation totals. Only counts are
+  stored, never user IDs.
+- The three best-liked templates are offered first in each writer call, the other three keep rotating; the
+  first Hengs slot of the day reuses the best-liked situation unless it ran today or yesterday. Scores are
+  reactions per post pulled towards the server average, so one lucky post does not take over. A missing or
+  broken taste file, or a failed Discord read, never stops a meme.
+
+### Verification
+
+- Node 22 full suite 779/779 via PowerShell. Not deployed.
+
 ## [1.69.0] - 2026-10-21
 
 ### Changed

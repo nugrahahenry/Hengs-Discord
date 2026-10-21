@@ -2,6 +2,18 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.70.0 memes learn from reactions (local, not deployed) - 2026-10-21
+
+- Henry picked "Meme belajar dari reaksi" from the Hengs ideas list (with the WA owner number and titipan
+  replies, done in WA v0.53.0).
+- src/news/meme-taste.js keeps pending posts (max 50 per guild) and frozen totals in data/meme-taste.json;
+  service.js passes the sent message id to memeMaker.remember for Hengs-made memes; memes.js refreshes and
+  reads weights before each Hengs meme (offerTemplates top 3 liked plus rotation, pickTopic slot 0 best-liked
+  unless it ran today or yesterday). index.js counts reactions through client.channels.fetch and
+  messages.fetch (REST, no new intents), skipping Hengs' own reaction.
+- QA: Node 22 full suite 779/779. Deploy needs approval: helpers from deploy-v1690 (previous
+  1.69.0-288047097067, tests from the rehearsal), no command change (still 14 home commands).
+
 ## Hengs Discord v1.69.0 deployed and accepted - 2026-10-21
 
 - Henry: "Deploy Discord v1.69.0 sekarang, di luar jam slot, plus daftar ulang command." At 16:45 the minute guard

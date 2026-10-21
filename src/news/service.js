@@ -78,14 +78,21 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     delivering.add(guild.id);
     // Claim is durable before the external write. No automatic resend after an ambiguous outcome.
     try {
+      let sent;
       try {
         const nonce = BigInt(`0x${crypto.createHash('sha256').update(`hengs-news:${guild.id}:${day}:${kind}:${slot}`).digest('hex').slice(0, 16)}`).toString();
-        await channel.send({ ...payloadFor(row, items, kind), nonce, enforceNonce: true });
+        sent = await channel.send({ ...payloadFor(row, items, kind), nonce, enforceNonce: true });
       } catch {
         store.finish(guild.id, claimed.revision, day, 'failed', slot, kind);
         throw new Error('NEWS_SEND_UNCERTAIN');
       }
-      return store.finish(guild.id, claimed.revision, day, 'sent', slot, kind);
+      const finished = store.finish(guild.id, claimed.revision, day, 'sent', slot, kind);
+      // Hengs-made memes go to the taste store, so reactions can steer later memes.
+      if (kind === 'meme' && items[0]?.kind === 'hengs' && sent?.id) {
+        memeMaker?.remember?.(guild.id, { messageId: sent.id, channelId: channel.id, template: items[0].template,
+          situation: items[0].topicTitle });
+      }
+      return finished;
     } finally {
       delivering.delete(guild.id);
     }

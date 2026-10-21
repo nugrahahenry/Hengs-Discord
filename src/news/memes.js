@@ -161,20 +161,30 @@ function judgedBest(raw, options) {
   return best;
 }
 
-// Six templates per writer call, walking the whole ranked list by day and slot, so the less popular
-// formats get turns too instead of the same top six every day.
-function offerTemplates(ranked, day, slot) {
+// Six templates per writer call: the three this server laughed at most (when reactions exist), then the
+// rest walking the whole ranked list by day and slot, so less popular formats still get turns.
+function offerTemplates(ranked, day, slot, scores = null) {
   const turn = Math.floor(Date.parse(`${day}T00:00:00Z`) / DAY) * 5 + slot;
-  return Array.from({ length: Math.min(6, ranked.length) }, (_, i) => ranked[(turn * 6 + i) % ranked.length]);
+  const rotation = Array.from({ length: ranked.length }, (_, i) => ranked[(turn * 6 + i) % ranked.length]);
+  const liked = scores?.size ? ranked.filter(row => scores.has(row.id))
+    .sort((a, b) => scores.get(b.id) - scores.get(a.id)).slice(0, 3) : [];
+  return [...liked, ...rotation.filter(row => !liked.includes(row))].slice(0, Math.min(6, ranked.length));
 }
 
-function pickTopic(row, day, slot) {
+function pickTopic(row, day, slot, scores = null) {
   const seen = new Set((row?.seen || []).map(x => x.hash));
+  const ran = (theme, onDay) => seen.has(memeHash(`evergreen:${theme}:${onDay}`));
+  // The first Hengs slot of the day reuses the best-liked situation, unless it ran today or yesterday.
+  if (slot === 0 && scores?.size) {
+    const yesterday = new Date(Date.parse(`${day}T00:00:00Z`) - DAY).toISOString().slice(0, 10);
+    const best = EVERGREEN.filter(theme => scores.has(theme) && !ran(theme, day) && !ran(theme, yesterday))
+      .sort((a, b) => scores.get(b) - scores.get(a))[0];
+    if (best) return { key: `evergreen:${best}:${day}`, title: best, url: null };
+  }
   const start = (Number(day.replaceAll('-', '')) + slot) % EVERGREEN.length;
   for (let step = 0; step < EVERGREEN.length; step++) {
     const theme = EVERGREEN[(start + step) % EVERGREEN.length];
-    const key = `evergreen:${theme}:${day}`;
-    if (!seen.has(memeHash(key))) return { key, title: theme, url: null };
+    if (!ran(theme, day)) return { key: `evergreen:${theme}:${day}`, title: theme, url: null };
   }
   return null;
 }
@@ -257,7 +267,7 @@ function createTemplateRanker({ fetchJson = url => fetchBounded(url, { hosts: ['
 }
 
 function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = null, fetchBytes = fetchBounded,
-  rankTemplates = createTemplateRanker(), now = Date.now, logger = console } = {}) {
+  rankTemplates = createTemplateRanker(), taste = null, countReactions = null, now = Date.now, logger = console } = {}) {
   let writes = []; let reviews = []; let lemmyCache = null;
   function allow(list, max) {
     const fresh = list.filter(at => now() - at < HOUR);
@@ -272,14 +282,24 @@ function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = 
     lemmyCache = { at: now(), promise };
     return promise;
   }
+  // What this server laughed at so far; a failed read only means no taste this time.
+  async function tasteFor(row) {
+    if (!taste || !row?.guildId) return null;
+    try {
+      if (countReactions) await taste.refresh(row.guildId, countReactions);
+      return taste.weights(row.guildId);
+    } catch { logger.warn('[news] NEWS_MEME_TASTE_FAILED'); return null; }
+  }
   async function hengs(row, slot) {
     if (!completeMeme || !judgeMeme || usedToday(row, 'hengs-meme', now()) >= DAILY_CAP['hengs-meme']) return null;
-    const topic = pickTopic(row, wibClock(now()).day, slot);
+    const scores = await tasteFor(row);
+    const day = wibClock(now()).day;
+    const topic = pickTopic(row, day, slot, scores?.situations);
     const quota = topic && allow(writes, 10);
     if (!quota) return null;
     writes = quota;
     try {
-      const offered = offerTemplates(await rankTemplates(), wibClock(now()).day, slot);
+      const offered = offerTemplates(await rankTemplates(), day, slot, scores?.templates);
       const situasi = plain(topic.title, 150);
       const raw = await withTimeout(signal => completeMeme([{ role: 'system', content: MEME_SYSTEM }, { role: 'user', content: JSON.stringify({
         situasi, templates: offered.map(({ id, lines, hint, example }) => ({ id, lines, arti: hint, contoh: example })) }) }], { signal }), 30_000);
@@ -336,6 +356,10 @@ function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = 
     },
     // Private sample: same writer and budget, ignores the daily cap, never stored.
     preview({ row }) { return hengs({ ...row, receipts: [] }, 0); },
+    // A posted Hengs meme, so its reactions can be read back later.
+    remember(guildId, post) {
+      try { taste?.remember(guildId, post); } catch { logger.warn('[news] NEWS_MEME_TASTE_FAILED'); }
+    },
   };
 }
 
