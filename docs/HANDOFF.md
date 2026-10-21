@@ -2,6 +2,20 @@
 
 Updated: 2026-10-21
 
+## Hengs News + Memes 5x5 day-one observation (input for phase 2) - 2026-10-21
+
+- Read-only receipts at 21:12 WIB (news-v1660/probe-receipts.sh): 10 receipts, all SENT, none EMPTY or FAILED.
+- News 5/5: 08:01 Hacker News, 10:01 Hacker News AI, 12:01 Liputan6, 14:01 CNBC Indonesia, 16:00 CNN Indonesia.
+  Gaming never won a slot today (no gaming publisher picked); Hacker News took two of five.
+- Memes 5/5: hengs-meme 3 (13:01 on v1.66.1 before the judge, the CPU or deadline one Henry found nonsensical;
+  17:00 on v1.67.0 and 21:00 on v1.70.0, both passing the judge on the first try), lemmy 2 (15:01, 19:00), xkcd 0.
+- Journal codes today: NEWS_EDITOR_PARTIAL_FALLBACK 1; no NEWS_MEME_WEAK, NEWS_MEME_REJECTED or NEWS_MEME_FAILED.
+- Same day: v1.67.0 read-only channels and /kirim, v1.69.0 livelier memes and Coach, v1.70.0 reaction learning
+  (the 21:00 Hengs meme is the first one remembered; reactions are first read about two hours later).
+- Phase 2 candidates from this day: keep at least one gaming item per day when gaming is a chosen topic; watch the
+  editor partial fallback; check after a week whether reaction learning shifts templates; Henry still wants
+  outside memes as they are.
+
 ## Hengs Discord v1.70.0 deployed and accepted - 2026-10-21
 
 - Same approval as WA v0.53.0 ("... terus deploy Discord v1.70.0 di luar jam slot"); WA went first (accepted,
