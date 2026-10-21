@@ -661,8 +661,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     catch { console.error('[caster] INTERACTION_FAILED'); }
     return;
   }
-  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-scrim:')) {
-    try { await scrimResults.handleButton(interaction); }
+  if ((interaction.isButton() || interaction.isUserSelectMenu()) && String(interaction.customId || '').startsWith('hengs-scrim:')) {
+    try { await scrimResults.handleComponent(interaction); }
     catch { console.error('[scrim] INTERACTION_FAILED'); }
     return;
   }
@@ -697,7 +697,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
     try {
-      await cmd.autocomplete(interaction);
+      await cmd.autocomplete(interaction, { scrimResults });
     } catch (error) {
       console.error(`Autocomplete /${interaction.commandName} gagal:`, error.message);
       await interaction.respond([]).catch(() => {});

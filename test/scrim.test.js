@@ -5,55 +5,70 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { Collection, ChannelType, PermissionFlagsBits: P } = require('discord.js');
-const { createScrimStore, MAX_RESULTS } = require('../src/scrim/store');
-const { createScrimResults, parseScore, readSubmission, CHANNEL_NAME, findTeamRole } = require('../src/scrim/service');
+const { Collection, ChannelType, ComponentType, PermissionFlagsBits: P } = require('discord.js');
+const { createScrimStore, MAX_GAMES } = require('../src/scrim/store');
+const { createScrimResults, readSubmission, RESULT_CHOICES, CHANNEL_NAME, findTeamRole } = require('../src/scrim/service');
 const { createAdminSetupFlow, ensureScrimSetup } = require('../src/guilds/admin-setup');
 const scrimCommand = require('../src/commands/scrim');
+const hengsCommand = require('../src/commands/hengs');
+const { buildCommunityHelp } = require('../src/community-help');
 const { buildCommandPlan } = require('../src/deploy-commands');
 
 const G = '223456789012345678', U = '323456789012345678', BOT = '623456789012345678', SRC = '423456789012345678';
+const T2 = '523456789012345678', OUT = '923456789012345670'; // a second team member and someone outside the team
 const IMG = 'https://cdn.discordapp.com/attachments/1/2/ss.png';
+const NOW = Date.UTC(2026, 9, 21, 5, 0); // 12:00 WIB
 const deps = { guildAccess: { classify: () => ({ kind: 'home' }) } };
 
-function result(n, extra = {}) {
-  return { messageId: String(800000000000000000n + BigInt(n)), at: 1000 + n, submitterId: U, game: 'MLBB',
-    opponent: 'Tim Contoh', score: [2, 1], outcome: 'menang', note: '', ...extra };
+function game(n, extra = {}) {
+  return { messageId: String(800000000000000000n + BigInt(n)), at: 1000 + n, submitterId: U,
+    opponent: 'Tim Contoh', outcome: 'menang', reason: null, lineup: [U], note: '', ...extra };
 }
 
 function options(over = {}) {
-  const value = { ss: { url: IMG, contentType: 'image/png', size: 1000 }, lawan: 'Tim Contoh', skor: '2-1',
-    hasil: 'menang', game: null, catatan: null, ...over };
-  return { getAttachment: key => value[key], getString: key => value[key] ?? null };
+  const value = { ss: { url: IMG, contentType: 'image/png', size: 1000 }, lawan: 'Tim Contoh', hasil: 'menang',
+    catatan: null, ...over };
+  return { getAttachment: key => value[key] ?? null, getString: key => value[key] ?? null,
+    getFocused: full => (full ? { name: 'lawan', value: value.lawan } : value.lawan) };
 }
 
-function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, store } = {}) {
+function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, store, games = [] } = {}) {
   const role = { id: '700000000000000001', name: 'Hengs Family' };
-  const sends = []; const records = []; const downloads = [];
+  const sends = []; const records = []; const downloads = []; const dms = [];
+  const team = new Set(teamMember ? [U, T2] : [T2]);
+  const memberOf = id => ({ id, roles: { cache: new Collection(team.has(id) ? [[role.id, role]] : []) } });
   const channel = { id: '700000000000000002', name: CHANNEL_NAME, type: ChannelType.GuildText, guildId: G,
     permissionsFor: () => ({ has: () => botAllowed }),
     async send(payload) { sends.push(payload); return { id: String(900000000000000000n + BigInt(sends.length)) }; } };
   const guild = { id: G,
     roles: { async fetch() { return new Collection(roleExists ? [[role.id, role]] : []); } },
     channels: { async fetch() { return new Collection(channelExists ? [[channel.id, channel]] : []); } },
-    members: { async fetch() { return { id: U, roles: { cache: new Collection(teamMember ? [[role.id, role]] : []) } }; },
-      async fetchMe() { return { id: BOT }; } } };
-  const service = createScrimResults({ store: store || { add: (guildId, row) => records.push([guildId, row]) },
-    logger: { error() {} }, now: () => 5000,
-    fetchImpl: async (url, init) => { downloads.push([url, init]); return { ok: true,
-      headers: { get: key => ({ 'content-type': 'image/png', 'content-length': '4' })[key] },
-      arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; } });
+    members: { async fetch(query) {
+      if (Array.isArray(query?.user)) return new Collection(query.user.filter(id => team.has(id)).map(id => [id, memberOf(id)]));
+      return memberOf(U);
+    }, async fetchMe() { return { id: BOT }; } } };
+  const saved = structuredClone(games);
+  const service = createScrimResults({ store: store || { list: () => structuredClone(saved),
+    add: (guildId, row) => { records.push([guildId, row]); saved.push(structuredClone(row)); } },
+  logger: { error() {} }, now: () => NOW,
+  fetchImpl: async (url, init) => { downloads.push([url, init]); return { ok: true,
+    headers: { get: key => ({ 'content-type': 'image/png', 'content-length': '4' })[key] },
+    arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; } });
   function interaction(over = {}) {
-    return { id: '999999999999999991', guild, guildId: G, channelId: SRC, user: { id: U, bot: false },
-      options: options(), replies: [], edits: [], deferred: false, replied: false, isButton: () => false,
+    return { id: '999999999999999991', guild, guildId: G, channelId: SRC, member: memberOf(U),
+      user: { id: U, bot: false, async send(payload) { dms.push(payload); } },
+      options: options(), replies: [], edits: [], updates: [], responses: [], deferred: false, replied: false,
+      isButton: () => false, isUserSelectMenu: () => false,
       async reply(payload) { this.replied = true; this.replies.push(payload); },
       async deferReply() { this.deferred = true; }, async deferUpdate() { this.deferred = true; },
-      async editReply(payload) { this.edits.push(payload); }, ...over };
+      async editReply(payload) { this.edits.push(payload); }, async update(payload) { this.updates.push(payload); },
+      async respond(choices) { this.responses.push(choices); }, ...over };
   }
-  return { service, guild, channel, role, sends, records, downloads, interaction };
+  return { service, guild, channel, role, sends, records, downloads, dms, team, memberOf, interaction };
 }
 
-const buttonId = (payload, index) => payload.components[0].toJSON().components[index].custom_id;
+const buttonId = (payload, index) => payload.components[1].toJSON().components[index].custom_id;
+const selectOf = payload => payload.components[0].toJSON().components[0];
 
 async function previewed(r) {
   const i = r.interaction();
@@ -61,74 +76,129 @@ async function previewed(r) {
   return i.edits.at(-1);
 }
 
-test('scrim store keeps validated results, rejects duplicates and keeps the newest 500', () => {
+test('scrim store keeps one validated row per game, rejects duplicates and keeps the newest 500', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scrim-'));
-  const file = path.join(dir, 'scrim-results.json');
+  const file = path.join(dir, 'scrim-games.json');
   try {
     const store = createScrimStore({ filePath: file });
     assert.deepEqual(store.list(G), []);
-    store.add(G, result(1));
-    assert.deepEqual(store.list(G), [result(1)]);
-    assert.throws(() => store.add(G, result(1)), /SCRIM_RESULT_DUPLICATE/);
-    for (const bad of [{ ...result(2), opponent: '<@1>' }, { ...result(3), score: [2] },
-      { ...result(4), outcome: 'win' }, { ...result(5), extra: 1 }, { ...result(6), game: 'Dota' }]) {
+    const loss = game(2, { outcome: 'kalah', reason: 'teamfight', lineup: [] });
+    store.add(G, game(1));
+    store.add(G, loss);
+    assert.deepEqual(store.list(G), [game(1), loss]);
+    assert.throws(() => store.add(G, game(1)), /SCRIM_RESULT_DUPLICATE/);
+    const six = ['1', '2', '3', '4', '5', '6'].map(digit => digit.repeat(18));
+    for (const bad of [{ ...game(3), opponent: '<@1>' }, { ...game(4), outcome: 'seri' },
+      { ...game(5), outcome: 'kalah', reason: null }, { ...game(6), reason: 'draft' },
+      { ...game(7), outcome: 'kalah', reason: 'ngantuk' }, { ...game(8), lineup: [U, U] },
+      { ...game(9), lineup: six }, { ...game(10), lineup: ['abc'] }, { ...game(11), extra: 1 },
+      { ...game(12), score: [2, 1] }]) {
       assert.throws(() => store.add(G, bad), /SCRIM_RESULT_INVALID/);
     }
-    const full = Array.from({ length: MAX_RESULTS }, (_, n) => result(n + 10));
-    fs.writeFileSync(file, JSON.stringify({ schemaVersion: 1, guilds: [{ guildId: G, results: full }] }));
-    store.add(G, result(9999));
+    const full = Array.from({ length: MAX_GAMES }, (_, n) => game(n + 20));
+    fs.writeFileSync(file, JSON.stringify({ schemaVersion: 1, guilds: [{ guildId: G, games: full }] }));
+    store.add(G, game(9999));
     const kept = store.list(G);
-    assert.equal(kept.length, MAX_RESULTS);
-    assert.equal(kept[0].messageId, result(11).messageId);
-    assert.equal(kept.at(-1).messageId, result(9999).messageId);
-    assert.deepEqual(fs.readdirSync(dir), ['scrim-results.json']);
-    fs.writeFileSync(file, '{"schemaVersion":2,"guilds":[]}');
+    assert.equal(kept.length, MAX_GAMES);
+    assert.equal(kept[0].messageId, game(21).messageId);
+    assert.equal(kept.at(-1).messageId, game(9999).messageId);
+    assert.deepEqual(fs.readdirSync(dir), ['scrim-games.json']);
+    // The v1.64 per-series shape is never read as games.
+    fs.writeFileSync(file, JSON.stringify({ schemaVersion: 1, guilds: [{ guildId: G, results: [] }] }));
     assert.throws(() => store.list(G), /SCRIM_STATE_INVALID/);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  const seen = [];
+  const missing = { lstatSync(file) { seen.push(file); throw Object.assign(new Error('missing'), { code: 'ENOENT' }); } };
+  assert.deepEqual(createScrimStore({ fsImpl: missing }).list(G), []);
+  assert.ok(seen[0].endsWith(path.join('data', 'scrim-games.json')), 'games live in their own file, not scrim-results.json');
 });
 
-test('submissions accept only N-N scores, Discord CDN images and sanitized text', () => {
-  assert.deepEqual(parseScore('2-1'), [2, 1]);
-  assert.deepEqual(parseScore(' 13 : 7 '), [13, 7]);
-  for (const bad of ['2', '2-', 'a-b', '100-1', '2-1-0']) assert.equal(parseScore(bad), null, bad);
+test('one hasil dropdown gives outcome and loss reason, the screenshot is optional and text is sanitized', () => {
   const bidi = String.fromCharCode(0x202e);
-  const parsed = readSubmission(options({ lawan: `Tim <@1> @everyone${bidi}X`, catatan: 'draft **lemah**' }));
-  assert.deepEqual(parsed, { opponent: 'Tim 1 everyone X', score: [2, 1], outcome: 'menang', game: 'MLBB',
-    note: 'draft **lemah**', image: { url: IMG, type: 'image/png' } });
+  assert.deepEqual(readSubmission(options({ lawan: `Tim <@1> @everyone${bidi}X`, catatan: 'draft **lemah**' })),
+    { opponent: 'Tim 1 everyone X', outcome: 'menang', reason: null, note: 'draft **lemah**', image: { url: IMG, type: 'image/png' } });
+  assert.deepEqual(RESULT_CHOICES.map(choice => choice.value),
+    ['menang', 'kalah-early', 'kalah-objective', 'kalah-teamfight', 'kalah-draft', 'kalah-lainnya']);
+  for (const reason of ['early', 'objective', 'teamfight', 'draft', 'lainnya']) {
+    assert.deepEqual(readSubmission(options({ hasil: `kalah-${reason}`, ss: null })),
+      { opponent: 'Tim Contoh', outcome: 'kalah', reason, note: '', image: null });
+  }
   for (const [over, code] of [[{ ss: { url: 'https://evil.example/ss.png', contentType: 'image/png', size: 1 } }, /SCRIM_IMAGE_INVALID/],
     [{ ss: { url: 'http://cdn.discordapp.com/a.png', contentType: 'image/png', size: 1 } }, /SCRIM_IMAGE_INVALID/],
     [{ ss: { url: IMG, contentType: 'image/gif', size: 1 } }, /SCRIM_IMAGE_INVALID/],
     [{ ss: { url: IMG, contentType: 'image/png', size: 9 * 1024 * 1024 } }, /SCRIM_IMAGE_INVALID/],
-    [{ lawan: '  @  ' }, /SCRIM_FIELDS_INVALID/], [{ skor: 'x' }, /SCRIM_FIELDS_INVALID/],
-    [{ hasil: 'win' }, /SCRIM_FIELDS_INVALID/], [{ game: 'Dota' }, /SCRIM_FIELDS_INVALID/]]) {
+    [{ lawan: '  @  ' }, /SCRIM_FIELDS_INVALID/], [{ hasil: 'seri' }, /SCRIM_FIELDS_INVALID/],
+    [{ hasil: '__proto__' }, /SCRIM_FIELDS_INVALID/], [{ hasil: 'constructor' }, /SCRIM_FIELDS_INVALID/]]) {
     assert.throws(() => readSubmission(options(over)), code);
   }
 });
 
-test('team member previews privately, then one Kirim posts the image without pings and records it', async () => {
-  const r = rigService();
+test('a team member previews one game with the last team lineup prefilled, then one Kirim posts and records it', async () => {
+  const r = rigService({ games: [game(1, { at: NOW - 3_600_000, opponent: 'tim contoh', lineup: [U, OUT, T2] })] });
   const preview = await previewed(r);
-  assert.match(preview.content, /Hasil scrim MLBB: Menang 2-1/);
+  assert.match(preview.content, /MLBB vs Tim Contoh: Menang\*\*\nSkor hari ini vs lawan ini: 2-0\nLineup: <@323456789012345678> <@523456789012345678>\n/);
   assert.match(preview.content, /Belum dikirim/);
   assert.deepEqual(preview.allowedMentions, { parse: [] });
   assert.equal(preview.embeds[0].image.url, IMG);
-  assert.equal(r.sends.length, 0);
+  const select = selectOf(preview);
+  assert.match(select.custom_id, /^hengs-scrim:[a-f0-9]{24}:lineup$/);
+  assert.deepEqual([select.type, select.min_values, select.max_values], [ComponentType.UserSelect, 0, 5]);
+  assert.deepEqual(select.default_values, [{ id: U, type: 'user' }, { id: T2, type: 'user' }]);
   assert.match(buttonId(preview, 0), /^hengs-scrim:[a-f0-9]{24}:send$/);
+  assert.equal(r.sends.length, 0);
   const click = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
-  assert.equal(await r.service.handleButton(click), true);
+  assert.equal(await r.service.handleComponent(click), true);
   assert.equal(r.sends.length, 1);
-  assert.match(r.sends[0].content, /Lawan: Tim Contoh\nDikirim oleh <@323456789012345678>/);
+  assert.match(r.sends[0].content, /Skor hari ini vs lawan ini: 2-0\nLineup: <@323456789012345678> <@523456789012345678>\nDicatat oleh <@323456789012345678>/);
   assert.deepEqual(r.sends[0].allowedMentions, { parse: [] });
   assert.equal(r.sends[0].enforceNonce, true);
   assert.equal(r.sends[0].files[0].name, 'hasil-scrim.png');
   assert.deepEqual(r.downloads.map(([url, init]) => [url, init.redirect]), [[IMG, 'error']]);
-  assert.deepEqual(r.records, [[G, { messageId: '900000000000000001', at: 5000, submitterId: U, game: 'MLBB',
-    opponent: 'Tim Contoh', score: [2, 1], outcome: 'menang', note: '' }]]);
+  assert.deepEqual(r.records, [[G, { messageId: '900000000000000001', at: NOW, submitterId: U, opponent: 'Tim Contoh',
+    outcome: 'menang', reason: null, lineup: [U, T2], note: '' }]]);
   assert.match(click.edits.at(-1).content, /tercatat untuk rekap/);
   const again = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
-  await r.service.handleButton(again);
+  await r.service.handleComponent(again);
   assert.equal(r.sends.length, 1);
   assert.match(again.replies.at(-1).content, /kedaluwarsa/);
+});
+
+test('the lineup select keeps only Hengs Family members and mismatched components are refused', async () => {
+  const r = rigService();
+  const preview = await previewed(r);
+  assert.equal(selectOf(preview).default_values, undefined);
+  assert.match(preview.content, /Lineup: belum dipilih/);
+  const pick = r.interaction({ customId: selectOf(preview).custom_id, isUserSelectMenu: () => true, values: [T2, OUT, U],
+    members: new Collection([[T2, r.memberOf(T2)], [OUT, r.memberOf(OUT)], [U, { roles: [r.role.id] }]]) });
+  assert.equal(await r.service.handleComponent(pick), true);
+  const updated = pick.updates.at(-1);
+  assert.match(updated.content, /Lineup: <@523456789012345678> <@323456789012345678>\n/);
+  assert.match(updated.content, /1 pilihan diabaikan karena bukan Hengs Family/);
+  assert.deepEqual(selectOf(updated).default_values.map(value => value.id), [T2, U]);
+  const buttonAsLineup = r.interaction({ customId: buttonId(preview, 0).replace(':send', ':lineup'), isButton: () => true });
+  await r.service.handleComponent(buttonAsLineup);
+  assert.match(buttonAsLineup.replies.at(-1).content, /kedaluwarsa/);
+  const selectAsSend = r.interaction({ customId: buttonId(preview, 0), isUserSelectMenu: () => true, values: [], members: new Collection() });
+  await r.service.handleComponent(selectAsSend);
+  assert.match(selectAsSend.replies.at(-1).content, /kedaluwarsa/);
+  assert.equal(r.sends.length, 0);
+  await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
+  assert.deepEqual(r.records[0][1].lineup, [T2, U]);
+});
+
+test('a loss without a screenshot posts its reason as text only, with no download', async () => {
+  const r = rigService();
+  const i = r.interaction({ options: options({ hasil: 'kalah-objective', ss: null, catatan: 'telat rotasi ke lord' }) });
+  await r.service.preview(i, deps);
+  const preview = i.edits.at(-1);
+  assert.deepEqual(preview.embeds, []);
+  assert.match(preview.content, /MLBB vs Tim Contoh: Kalah \(objective\)\*\*\nSkor hari ini vs lawan ini: 0-1\n/);
+  await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
+  assert.deepEqual(r.sends[0].files, []);
+  assert.match(r.sends[0].content, /Catatan: telat rotasi ke lord/);
+  assert.equal(r.downloads.length, 0);
+  assert.deepEqual(r.records[0][1], { messageId: '900000000000000001', at: NOW, submitterId: U, opponent: 'Tim Contoh',
+    outcome: 'kalah', reason: 'objective', lineup: [], note: 'telat rotasi ke lord' });
 });
 
 test('non-team members, missing setup, other guilds and bad images never reach the channel', async () => {
@@ -155,7 +225,7 @@ test('cancel, revoked role, failed record and uncertain sends are reported hones
   let r = rigService();
   let preview = await previewed(r);
   let click = r.interaction({ customId: buttonId(preview, 1), isButton: () => true });
-  await r.service.handleButton(click);
+  await r.service.handleComponent(click);
   assert.equal(r.sends.length, 0);
   assert.match(click.edits.at(-1).content, /Dibatalkan/);
 
@@ -163,24 +233,29 @@ test('cancel, revoked role, failed record and uncertain sends are reported hones
   preview = await previewed(r);
   r.guild.members.fetch = async () => ({ id: U, roles: { cache: new Collection() } });
   click = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
-  await r.service.handleButton(click);
+  await r.service.handleComponent(click);
   assert.equal(r.sends.length, 0);
   assert.match(click.edits.at(-1).content, /khusus anggota/);
 
-  r = rigService({ store: { add() { throw new Error('private-disk'); } } });
+  r = rigService({ store: { list: () => [], add() { throw new Error('private-disk'); } } });
   preview = await previewed(r);
   click = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
-  await r.service.handleButton(click);
+  await r.service.handleComponent(click);
   assert.equal(r.sends.length, 1);
   assert.match(click.edits.at(-1).content, /belum tersimpan untuk rekap/);
+
+  r = rigService({ store: { list() { throw new Error('SCRIM_STATE_INVALID'); }, add() {} } });
+  preview = await previewed(r);
+  assert.equal(preview.components.length, 0);
+  assert.match(preview.content, /belum bisa dibuat/);
 
   r = rigService();
   preview = await previewed(r);
   let attempts = 0;
   r.channel.send = async () => { attempts += 1; throw new Error('private-network'); };
   click = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
-  await r.service.handleButton(click);
-  await r.service.handleButton(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
+  await r.service.handleComponent(click);
+  await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
   assert.equal(attempts, 1);
   assert.match(click.edits.at(-1).content, /belum bisa dipastikan/);
   assert.doesNotMatch(JSON.stringify(click.edits), /private-/);
@@ -273,13 +348,137 @@ test('owner setup flow previews Scrim tim first and applies role plus channel on
   assert.deepEqual(confirmed.edits.at(-1).allowedMentions, { parse: [] });
 });
 
-test('/scrim registers hasil in the home guild with required screenshot and fields first', () => {
+test('/scrim hasil logs one game: lawan with autocomplete and one hasil dropdown first, screenshot optional', () => {
   const json = scrimCommand.data.toJSON();
   const hasil = json.options.find(option => option.name === 'hasil');
   assert.deepEqual(hasil.options.map(option => [option.name, Boolean(option.required)]),
-    [['ss', true], ['lawan', true], ['skor', true], ['hasil', true], ['game', false], ['catatan', false]]);
+    [['lawan', true], ['hasil', true], ['ss', false], ['catatan', false]]);
+  assert.equal(hasil.options[0].autocomplete, true);
+  assert.deepEqual(hasil.options[1].choices.map(({ name, value }) => ({ name, value })), RESULT_CHOICES.map(choice => ({ ...choice })));
+  assert.ok(hasil.options[1].choices.every(choice => choice.name.length <= 100));
   const plan = buildCommandPlan([{ name: 'hengs' }, { name: 'setup' }, json]);
   assert.deepEqual(plan.home.map(command => command.name), ['scrim']);
+});
+
+test('a game logged through the service lands in the real store and shows up in rekap and statku', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scrim-flow-'));
+  try {
+    const store = createScrimStore({ filePath: path.join(dir, 'scrim-games.json') });
+    const r = rigService({ store });
+    const i = r.interaction({ options: options({ hasil: 'kalah-teamfight', catatan: 'war di lord telat' }) });
+    await r.service.preview(i, deps);
+    const preview = i.edits.at(-1);
+    await r.service.handleComponent(r.interaction({ customId: selectOf(preview).custom_id, isUserSelectMenu: () => true,
+      values: [U, T2], members: new Collection([[U, r.memberOf(U)], [T2, r.memberOf(T2)]]) }));
+    await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
+    assert.deepEqual(store.list(G).map(row => [row.outcome, row.reason, row.lineup, row.note]),
+      [['kalah', 'teamfight', [U, T2], 'war di lord telat']]);
+    const recap = r.interaction({ options: options({ lawan: null }) });
+    await r.service.recap(recap, deps);
+    assert.match(recap.edits.at(-1).content, /Semua: menang 0 dari 1 game, belum cukup data\./);
+    assert.match(recap.edits.at(-1).content, /war di lord telat/);
+    await r.service.stats(r.interaction(), deps);
+    assert.match(r.dms.at(-1).content, /Alasan kalah \(1 kalah\): teamfight 1\./);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('rekap answers a team member privately with honest numbers, filtered by a sanitized lawan', async () => {
+  const games = [game(1, { at: NOW - 3_600_000 }),
+    game(2, { at: NOW - 7_200_000, outcome: 'kalah', reason: 'draft', opponent: 'Lawan Lain', note: 'ban Fanny' })];
+  const r = rigService({ games });
+  const all = r.interaction({ options: options({ lawan: null }) });
+  await r.service.recap(all, deps);
+  assert.equal(all.deferred, true);
+  assert.match(all.edits.at(-1).content, /^📒 \*\*Rekap scrim Hengs Family \(MLBB\)\*\*\nSemua: menang 1 dari 2 game, belum cukup data\./);
+  assert.deepEqual(all.edits.at(-1).allowedMentions, { parse: [] });
+  const one = r.interaction({ options: options({ lawan: `LAWAN${String.fromCharCode(0x202e)} lain` }) });
+  await r.service.recap(one, deps);
+  assert.match(one.edits.at(-1).content, /^📒 \*\*Rekap scrim vs Lawan Lain\*\*/);
+  assert.match(one.edits.at(-1).content, /ban Fanny/);
+  assert.doesNotMatch(one.edits.at(-1).content, /Per lawan/);
+  const outsider = rigService({ teamMember: false, games });
+  const denied = outsider.interaction({ options: options({ lawan: null }) });
+  await outsider.service.recap(denied, deps);
+  assert.match(denied.edits.at(-1).content, /khusus anggota role Hengs Family/);
+  assert.doesNotMatch(denied.edits.at(-1).content, /menang/);
+  const elsewhere = r.interaction();
+  await r.service.recap(elsewhere, { guildAccess: { classify: () => ({ kind: 'public' }) } });
+  assert.match(elsewhere.replies.at(-1).content, /server utama/);
+});
+
+test('statku sends only the requester\'s own numbers by DM and never shows them in the server', async () => {
+  const games = [game(1, { lineup: [U, T2] }), game(2, { outcome: 'kalah', reason: 'teamfight', lineup: [T2] })];
+  const r = rigService({ games });
+  const i = r.interaction();
+  await r.service.stats(i, deps);
+  assert.equal(r.dms.length, 1);
+  assert.match(r.dms[0].content, /^📒 \*\*Statistik scrim kamu/);
+  assert.match(r.dms[0].content, /Semua: menang 1 dari 1 game, belum cukup data\./);
+  assert.doesNotMatch(r.dms[0].content, /teamfight/);
+  assert.deepEqual(r.dms[0].allowedMentions, { parse: [] });
+  assert.match(i.edits.at(-1).content, /sudah dikirim lewat DM/);
+  assert.doesNotMatch(i.edits.at(-1).content, /menang/);
+  const closed = r.interaction({ user: { id: U, bot: false, async send() { throw new Error('Cannot send messages to this user'); } } });
+  await r.service.stats(closed, deps);
+  assert.match(closed.edits.at(-1).content, /belum bisa DM kamu/);
+  assert.doesNotMatch(closed.edits.at(-1).content, /menang|Cannot/);
+  const outsider = rigService({ teamMember: false, games });
+  const denied = outsider.interaction();
+  await outsider.service.stats(denied, deps);
+  assert.equal(outsider.dms.length, 0);
+  assert.match(denied.edits.at(-1).content, /khusus anggota role Hengs Family/);
+});
+
+test('lawan autocomplete suggests distinct opponents, newest first, to team members only', async () => {
+  const games = [game(1, { opponent: 'Tim Garuda' }), game(2, { opponent: 'Rajawali' }), game(3, { opponent: 'TIM GARUDA' }),
+    game(4, { opponent: 'Elang' })];
+  const r = rigService({ games });
+  const typed = r.interaction({ options: options({ lawan: 'GA' }) });
+  await r.service.autocomplete(typed);
+  assert.deepEqual(typed.responses.at(-1), [{ name: 'TIM GARUDA', value: 'TIM GARUDA' }]);
+  const empty = r.interaction({ options: options({ lawan: '' }) });
+  await r.service.autocomplete(empty);
+  assert.deepEqual(empty.responses.at(-1).map(choice => choice.value), ['Elang', 'TIM GARUDA', 'Rajawali']);
+  const outsider = r.interaction({ member: { roles: [] } });
+  await r.service.autocomplete(outsider);
+  assert.deepEqual(outsider.responses.at(-1), []);
+});
+
+test('/scrim rekap and /scrim statku are registered and routed, and autocomplete reaches the service', async () => {
+  const json = scrimCommand.data.toJSON();
+  const rekap = json.options.find(option => option.name === 'rekap');
+  assert.deepEqual(rekap.options.map(option => [option.name, Boolean(option.required), option.autocomplete]), [['lawan', false, true]]);
+  assert.deepEqual(json.options.find(option => option.name === 'statku').options ?? [], []);
+  const calls = [];
+  const scrimResults = { recap: async () => calls.push('recap'), stats: async () => calls.push('stats'),
+    autocomplete: async () => calls.push('autocomplete') };
+  for (const sub of ['rekap', 'statku']) {
+    await scrimCommand.execute({ options: { getSubcommand: () => sub } }, { scrimResults, guildAccess: deps.guildAccess });
+  }
+  await scrimCommand.autocomplete({}, { scrimResults });
+  assert.deepEqual(calls, ['recap', 'stats', 'autocomplete']);
+});
+
+test('help and privacy describe the per-game notebook, the private recap and DM-only player stats', async () => {
+  const help = buildCommunityHelp({ home: true, guild: { channels: { cache: new Map() } } });
+  assert.match(help, /`\/scrim hasil` tiap game/);
+  assert.match(help, /`\/scrim rekap` buat rekap tim/);
+  assert.match(help, /`\/scrim statku` kirim statistikmu lewat DM/);
+  const privacy = { guildId: G, channelId: SRC, user: { id: U }, inGuild: () => true,
+    options: { getSubcommand: () => 'privacy', getString: () => null }, async reply(payload) { this.payload = payload; } };
+  await hengsCommand.execute(privacy, deps);
+  assert.match(privacy.payload.content, /lineup \(ID Discord anggota Hengs Family\)/);
+  assert.match(privacy.payload.content, /cuma dikirim ke pemain itu lewat DM/);
+  assert.doesNotMatch(privacy.payload.content, /skor, hasil, game/);
+  assert.ok(privacy.payload.content.length <= 2000);
+});
+
+test('runtime routes scrim buttons and the lineup select to the service and hands autocomplete the service', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
+  assert.ok(source.includes("(interaction.isButton() || interaction.isUserSelectMenu()) && String(interaction.customId || '').startsWith('hengs-scrim:')"));
+  assert.ok(source.includes('await scrimResults.handleComponent(interaction);'));
+  assert.ok(source.includes('await cmd.autocomplete(interaction, { scrimResults });'));
+  assert.doesNotMatch(source, /scrimResults\.handleButton/);
 });
 
 test('the team role is found with or without an emoji prefix, and two candidates still conflict', async () => {

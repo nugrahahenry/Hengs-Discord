@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.68.0] - 2026-10-21
+
+### Added
+
+- Hengs Coach phase 1, a scrim notebook for Hengs Family (MLBB). `/scrim rekap [lawan]` gives a private team recap:
+  all games, the last 7 and 30 days, the last five results, loss reasons, the top five opponents and the last three
+  notes. With `lawan` it becomes the memory before meeting the same opponent again. `/scrim statku` sends a player
+  the numbers for games with them in the lineup, by DM only; a closed DM gets instructions, never the numbers.
+- Every number reads "menang X dari N game". A percent appears from 5 games and "paling sering" from 5 losses; below
+  that the text says there is not enough data. Loss reasons are labelled as team labels, not personal ratings.
+- `lawan` autocomplete from opponents already logged, offered to Hengs Family members only.
+
+### Changed
+
+- `/scrim hasil` logs one game instead of one series: `lawan`, one `hasil` dropdown (Menang, or Kalah with the main
+  reason: early game, objective, teamfight, draft, lainnya), optional `ss` and `catatan`. `skor`, `seri` and `game`
+  are gone; the card shows today's running score against the same opponent (WIB). The private preview has a lineup
+  select (up to five, prefilled with the last lineup members who still hold the role; other picks are ignored and
+  counted).
+- Games live in a new file, `data/scrim-games.json` (one row per game, lineup as Discord IDs, newest 500 per
+  server). The v1.64 per-series `data/scrim-results.json` is no longer read or written; it was absent on the VM, so
+  nothing migrates and a rollback keeps working.
+- Help and `/hengs privacy` describe the notebook, the recap and DM-only player stats.
+
+### Verification
+
+- Node 22 full suite in the worktree: 769 tests, 768 pass, 0 fail, 1 skip (the sibling-checkout runtime check,
+  which only applies to the main checkout). No Discord, Groq or VM call. Not deployed; needs command
+  re-registration.
+
 ## [1.67.0] - 2026-10-21
 
 ### Added

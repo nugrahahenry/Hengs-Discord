@@ -2,6 +2,34 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.68.0 Hengs Coach phase 1 on branch coach-phase1 (not deployed) - 2026-10-21
+
+- Henry accepted the council scope by starting the side session: a scrim notebook for one MLBB team (Hengs
+  Family), one row per game, a loss-reason dropdown with logging under 30 seconds, per-player stats by DM, and the
+  sample size on every number (no conclusion under about 5 games). Spec (ignored):
+  docs/superpowers/specs/2026-10-20-hengs-coach-design.md, section "Fase 1 dibangun"; plan (ignored):
+  docs/superpowers/plans/2026-10-21-hengs-coach-phase1.md.
+- Built in the worktree HenryLabs/Hengs/discord-bot-coach on branch coach-phase1, rebased on main 75ae9df (v1.67.0
+  live since 15:12 WIB), pushed, not merged; main can fast-forward to it. Untouched: src/news/*,
+  src/commands/kirim.js, src/guilds/admin-setup.js.
+- Code: src/scrim/store.js (games file), new src/scrim/stats.js (pure numbers and text), src/scrim/service.js
+  (per-game preview, lineup select, recap, DM stats, autocomplete), src/commands/scrim.js, two lines of src/index.js
+  (route the lineup user select, pass scrimResults to autocomplete), help and privacy lines.
+- Agent decisions for Henry to review before deploy: hero/draft input waits for phase 2 (vision from the SS) so
+  logging stays under 30 seconds; one dropdown carries the outcome and the reason, so a loss always has one;
+  "lainnya" was added for DC or lag; the recap is private and never posted; a wrong log cannot be undone yet
+  (follow-up idea: deleting the card in hasil-scrim removes the row).
+- QA: Node 22 full suite via PowerShell in the worktree, 769 tests, 768 pass, 1 sibling-checkout skip that only
+  applies outside a worktree (baseline on this branch was 751 with the same skip).
+- Deploy needs, only with Henry's approval: fast-forward main to coach-phase1; derive helpers from
+  .cloud/automation/deploy-v1670 with version 1.68.0 (keep its minute guard and news fingerprint check, preflight
+  before stage); Node 22 candidate tests; one controlled Discord restart, WA untouched; then re-register commands
+  once (register-commands.sh: /scrim changes shape, still 14 home commands and 2 global). No env var, secret,
+  dependency or migration. data/scrim-games.json appears with the first logged game, inside the state dir and
+  backup walk. Preflight: confirm data/scrim-results.json is absent or empty; rows there stay but do not show in
+  the notebook.
+- Commit subject: feat(scrim): Hengs Discord v1.68.0 - per-game scrim notebook with recap and DM stats
+
 ## Hengs Discord v1.67.0 deployed, channels read-only - 2026-10-21
 
 - Henry: "Deploy WA v0.52.0 dan Discord v1.67.0 sekarang, di luar jam slot, terus jadiin #hengs-news dan

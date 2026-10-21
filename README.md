@@ -6,6 +6,10 @@
 judged Hengs memes, cloud-live since 2026-10-21 15:12 WIB (includes v1.66.1 WordPress feeds, v1.66.0
 five memes a day, v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
+v1.68.0 (branch `coach-phase1`, not deployed): Hengs Coach phase 1, a scrim notebook for Hengs Family. `/scrim hasil`
+logs one MLBB game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private
+team recap and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
+
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are
@@ -57,17 +61,28 @@ get the role manually. The public bot invite is also included in Hengs' applicat
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
 
-## Hasil scrim
+## Catatan scrim (Hengs Coach fase 1)
 
 Admin/owner: `/admin setup` -> **Scrim tim** -> preview -> konfirmasi. Hengs membuat role `Hengs Family`
-(tanpa izin server tambahan) dan channel `📸・hasil-scrim` di kategori Gaming kalau ada, atau memakai yang
-sudah ada. Semua member bisa melihat; hanya Hengs Family dan Hengs yang bisa kirim. Anggota tim ditambahkan
-ke role secara manual lewat Server Settings > Members.
+(tanpa izin server tambahan) dan channel privat `📸・hasil-scrim` di kategori Gaming kalau ada, atau memakai yang
+sudah ada. Cuma Hengs Family dan Hengs yang bisa melihat dan kirim. Anggota tim ditambahkan ke role secara manual
+lewat Server Settings > Members.
 
-Anggota Hengs Family di bot-commands: `/scrim hasil ss lawan skor hasil [game] [catatan]`. Preview privat
-dulu (Kirim/Batal, hangus 10 menit), lalu Hengs memposting SS dan kartu hasil tanpa ping. Data terstruktur
-(lawan, skor, hasil, game, catatan, ID pengirim, ID pesan) disimpan di `data/scrim-results.json`, maksimal
-500 hasil terbaru per server, sebagai bahan rekap atau coach nanti. Gambar tetap di Discord.
+Anggota Hengs Family di bot-commands, satu perintah per game (target di bawah 30 detik):
+`/scrim hasil lawan hasil [ss] [catatan]`. `lawan` punya autocomplete dari lawan yang pernah dicatat; `hasil`
+satu dropdown: Menang, atau Kalah plus alasan utama (early game, objective, teamfight, draft, lainnya). Preview
+privat menampilkan kartu, skor hari ini vs lawan yang sama dan pilihan lineup (maks 5, otomatis terisi lineup
+game terakhir yang masih Hengs Family), lalu Kirim/Batal (hangus 10 menit). Hengs memposting kartu (plus SS kalau
+ada) tanpa ping dan mencatat game itu.
+
+`/scrim rekap [lawan]`: rekap tim privat (semua game, 7 dan 30 hari, form 5 game terakhir, alasan kalah, 5 lawan
+teratas, 3 catatan terakhir); dengan `lawan` jadi ingatan sebelum ketemu lawan yang sama. `/scrim statku`:
+statistik game yang mencantumkan kamu di lineup, dikirim lewat DM saja. Semua angka ditulis "menang X dari N
+game"; persen baru muncul mulai 5 game dan "paling sering" mulai 5 kekalahan.
+
+Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
+lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama
+`data/scrim-results.json` (per seri, v1.64) tidak dibaca lagi.
 
 ## Casterin
 

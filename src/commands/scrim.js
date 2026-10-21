@@ -1,6 +1,6 @@
 // ─── /scrim ───────────────────────────────────────────────────────────────
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { GAMES } = require('../scrim/store');
+const { RESULT_CHOICES } = require('../scrim/service');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -21,21 +21,33 @@ module.exports = {
     )
     .addSubcommand(sub => sub
       .setName('hasil')
-      .setDescription('Kirim SS hasil scrim tim ke hasil-scrim (khusus Hengs Family)')
-      .addAttachmentOption(opt => opt.setName('ss').setDescription('Screenshot hasil akhir (PNG/JPG/WebP, maks 8 MB)').setRequired(true))
-      .addStringOption(opt => opt.setName('lawan').setDescription('Nama tim lawan').setRequired(true).setMaxLength(60))
-      .addStringOption(opt => opt.setName('skor').setDescription('Contoh: 2-1').setRequired(true).setMaxLength(7))
-      .addStringOption(opt => opt.setName('hasil').setDescription('Hasil untuk tim kita').setRequired(true)
-        .addChoices({ name: 'Menang', value: 'menang' }, { name: 'Kalah', value: 'kalah' }, { name: 'Seri', value: 'seri' }))
-      .addStringOption(opt => opt.setName('game').setDescription('Default MLBB').setRequired(false)
-        .addChoices(...GAMES.map(game => ({ name: game, value: game }))))
-      .addStringOption(opt => opt.setName('catatan').setDescription('Opsional, misalnya draft atau hal yang perlu dievaluasi').setRequired(false).setMaxLength(300))
+      .setDescription('Catat satu game scrim MLBB ke hasil-scrim (khusus Hengs Family)')
+      .addStringOption(opt => opt.setName('lawan').setDescription('Nama tim lawan').setRequired(true).setMaxLength(60).setAutocomplete(true))
+      .addStringOption(opt => opt.setName('hasil').setDescription('Menang, atau kalah plus alasan utamanya').setRequired(true)
+        .addChoices(...RESULT_CHOICES))
+      .addAttachmentOption(opt => opt.setName('ss').setDescription('Opsional: screenshot hasil game (PNG/JPG/WebP, maks 8 MB)').setRequired(false))
+      .addStringOption(opt => opt.setName('catatan').setDescription('Opsional: hal yang perlu dievaluasi, atau link video + menitnya').setRequired(false).setMaxLength(300))
+    )
+    .addSubcommand(sub => sub
+      .setName('rekap')
+      .setDescription('Rekap scrim tim, cuma kamu yang lihat (khusus Hengs Family)')
+      .addStringOption(opt => opt.setName('lawan').setDescription('Opsional: rekap vs satu lawan').setRequired(false).setMaxLength(60).setAutocomplete(true))
+    )
+    .addSubcommand(sub => sub
+      .setName('statku')
+      .setDescription('Statistik scrim kamu, dikirim lewat DM (khusus Hengs Family)')
     ),
+
+  async autocomplete(interaction, { scrimResults }) {
+    return scrimResults.autocomplete(interaction);
+  },
 
   async execute(interaction, { state, scrimResults, guildAccess }) {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'hasil') return scrimResults.preview(interaction, { guildAccess });
+    if (sub === 'rekap') return scrimResults.recap(interaction, { guildAccess });
+    if (sub === 'statku') return scrimResults.stats(interaction, { guildAccess });
 
     if (sub === 'on') {
       const game = interaction.options.getString('game');
