@@ -2,18 +2,14 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.66.1 - WordPress-hosted feeds load again, cloud-live since
-2026-10-21 05:33 WIB (includes v1.66.0 five memes a day, v1.65.0 trending news, v1.64.2 private
-hasil-scrim, v1.63.0 Casterin)
+**Current checkpoint:** Hengs Discord v1.67.0 - read-only news and meme channels, `/kirim` and
+judged Hengs memes, cloud-live since 2026-10-21 15:12 WIB (includes v1.66.1 WordPress feeds, v1.66.0
+five memes a day, v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
-v1.67.0 (local, not deployed): news and meme channels become read-only for members, who send memes
-and links with `/kirim meme` and `/kirim berita` (private preview, own confirmation, images checked by
-the vision model). Hengs-made memes come from everyday situations only and must pass a second Groq
-judge before they are posted.
-
-News and entertainment have separate destinations. Members privately preview and confirm their own
-contribution through Hengs (read-only channels arrive with v1.67.0). No admin queue or AI
-fact-check certification. Availability counters remain removed.
+News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
+`/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
+Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are
+posted. No admin queue or AI fact-check certification. Availability counters remain removed.
 Cloud deployment was accepted on 2026-10-18. On 2026-10-19, owner UI setup opened direct member
 posting in both destinations and applied separate routing without resetting delivery history.
 Both channels sit in Announcements, outside Bot Center. Private sharing preview/cancel passed;

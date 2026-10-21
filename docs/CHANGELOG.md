@@ -33,8 +33,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Node 22 full suite 751/751 via PowerShell. No Discord, Groq or VM call. Not deployed: the live
-  channels keep member posting until the deploy applies the read-only overwrites.
+- Node 22 full suite 751/751 via PowerShell.
+- Deployed 2026-10-21 at Henry's request ("deploy ... di luar jam slot, terus jadiin #hengs-news dan
+  #hengs-memes read-only"), between the 15:00 meme and 16:00 news slots, with one controlled Discord
+  restart: VM suite 751 total, 748 pass, 3 checkout-only skips, two fresh heartbeats, WhatsApp and Canox
+  untouched, news state unchanged. Commands registered: 14 home commands including /kirim.
+- Right after the deploy, the two live channels were made read-only (@everyone send and threads denied,
+  view, history and reactions allowed; Hengs send, attach and embed allowed). Read back: members cannot
+  send in either channel, Hengs can, and no other overwrite allows sending.
 
 ## [1.66.1] - 2026-10-21
 

@@ -2,6 +2,23 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.67.0 deployed, channels read-only - 2026-10-21
+
+- Henry: "Deploy WA v0.52.0 dan Discord v1.67.0 sekarang, di luar jam slot, terus jadiin #hengs-news dan
+  #hengs-memes read-only." Code 1e39ae52070be65e3f494d957547ace7fb7f8666, archive
+  hengs-discord-1.67.0-1e39ae52070b.tar.gz SHA-256 9441010583b54d1036bb5d4435ddd29192841a435af02173a86f899a9d902216,
+  local rehearsal 751/748/3 skips. Helpers .cloud/automation/deploy-v1670 derived from deploy-v1661; the morning
+  hour guard is now a minute guard (start only at minute 05 to 45, since slots run at the top of every hour
+  08 to 21 WIB) plus the unchanged news fingerprint check.
+- The 15:00 meme slot (Lemmy) was sent at 15:01 before staging. Preflight must run before stage (it requires
+  the stage folder to be absent); the first attempt staged first, so unstage.sh removed the sealed folder with
+  no bot change, then preflight PASS 15:07:57, stage and dispatch 15:08:29, ACCEPTED about 15:11:50.
+- Audit PASS: DC 1.67.0, WA 0.50.0 fresh, restarts zero, rollback to 1.66.1 available. register-commands.sh
+  PUT, verify: 14 home commands, CASTER, SCRIM_HASIL and KIRIM present.
+- apply-readonly.sh 15:12:30 (REST as the service user, only the @everyone and Hengs overwrites of the two
+  configured channels): NEWS and MEMES members send DENIED, Hengs send ALLOWED, other send allows 0.
+- First judged Hengs meme: 17:00 (slot 2). The 21:12 session check reads the day's receipts.
+
 ## Hengs Discord v1.67.0 read-only channels, /kirim and judged memes local checkpoint - 2026-10-21
 
 - Henry after the first live memes: "hengs meme malah garing dan aneh" (a Two Buttons meme choosing
