@@ -2,6 +2,17 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.70.0 deployed and accepted - 2026-10-21
+
+- Same approval as WA v0.53.0 ("... terus deploy Discord v1.70.0 di luar jam slot"); WA went first (accepted,
+  owner env applied 20:36:52), so these helpers expect WA 0.53.0.
+- Code 39fac4d39bb1de42bfe869bf83c7c97f19e981bf, archive hengs-discord-1.70.0-39fac4d39bb1.tar.gz SHA-256
+  935aed216d609075872435d7f0b356825c243c34b643c109f2c00c268a157290, rehearsal 779/776/3 skips. Helpers
+  .cloud/automation/deploy-v1700 derived from deploy-v1690.
+- Preflight PASS 20:37:06, stage 20:37:30, dispatch 20:37:36, ACCEPTED (seen 20:41:22). Audit PASS: DC 1.70.0,
+  WA 0.53.0 fresh, restarts zero, rollback to 1.69.0 available, 14 home commands. data/meme-taste.json is created
+  by the first remembered Hengs meme (21:00 slot); reactions are first read two hours later.
+
 ## Hengs Discord v1.70.0 memes learn from reactions (local, not deployed) - 2026-10-21
 
 - Henry picked "Meme belajar dari reaksi" from the Hengs ideas list (with the WA owner number and titipan

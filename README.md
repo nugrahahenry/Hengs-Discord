@@ -2,14 +2,14 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.69.0 - livelier Hengs memes and Hengs Coach phase 1, cloud-live
-since 2026-10-21 17:09 WIB (includes v1.67.0 read-only news and meme channels with `/kirim`, v1.66.1
-WordPress feeds, v1.66.0 five memes a day, v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0
-Casterin)
+**Current checkpoint:** Hengs Discord v1.70.0 - Hengs memes learn from members' reactions, cloud-live
+since 2026-10-21 20:41 WIB (includes v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news
+and meme channels with `/kirim`, v1.66.1 WordPress feeds, v1.66.0 five memes a day, v1.65.0 trending news,
+v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
 Hengs-made memes have 28 templates with irony and twist formats (rotating by day), five options per call and a
-judge that needs humour 8. v1.70.0 (local, not deployed): they also learn from members' reactions, offering the
-best-liked templates and situations first. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
+judge that needs humour 8, and they learn from members' reactions, offering the best-liked templates and
+situations first. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
 game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
 

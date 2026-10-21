@@ -20,7 +20,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Node 22 full suite 779/779 via PowerShell. Not deployed.
+- Node 22 full suite 779/779 via PowerShell.
+- Deployed 2026-10-21 20:41 WIB at Henry's request, before the 21:00 meme slot, with one controlled Discord
+  restart: VM suite 779 total, 776 pass, 3 checkout-only skips, two fresh heartbeats, WhatsApp v0.53.0 and
+  Canox untouched, news state unchanged, 14 home commands. The taste file starts empty and fills from the
+  21:00 Hengs meme on.
 
 ## [1.69.0] - 2026-10-21
 
