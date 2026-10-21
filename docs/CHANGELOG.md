@@ -29,9 +29,16 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   nothing migrates and a rollback keeps working.
 - Help and `/hengs privacy` describe the notebook, the recap and DM-only player stats.
 
+### Fixed (review before release)
+
+- Preview and Kirim refuse when @everyone can view hasil-scrim, because cards now carry the lineup and team notes.
+- A second Kirim click while the first is still posting answers "masih diproses" instead of claiming nothing was sent.
+- Opponent and note cuts (input, recap notes, long replies) never end on half an emoji.
+- `lawan` autocomplete reads the cached team role instead of a REST call per keystroke (3-second window).
+
 ### Verification
 
-- Node 22 full suite in the worktree: 769 tests, 768 pass, 0 fail, 1 skip (the sibling-checkout runtime check,
+- Node 22 full suite in the worktree: 772 tests, 771 pass, 0 fail, 1 skip (the sibling-checkout runtime check,
   which only applies to the main checkout). No Discord, Groq or VM call. Not deployed; needs command
   re-registration.
 

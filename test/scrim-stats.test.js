@@ -65,6 +65,13 @@ test('notes show the newest three, cut, escaped and dated in WIB', () => {
   assert.doesNotMatch(text, /pertama/);
 });
 
+test('cut notes never end on half an emoji', () => {
+  const emoji = String.fromCodePoint(0x1f600);
+  const text = formatTeamRecap([g({ note: `${'x'.repeat(116)}${emoji}${'y'.repeat(10)}` })], { now: NOW });
+  assert.match(text, /: x{116}\.\.\.\n/);
+  assert.equal([...text].some(ch => ch.length === 1 && ch.charCodeAt(0) >= 0xd800 && ch.charCodeAt(0) <= 0xdfff), false);
+});
+
 test('an opponent recap filters to that opponent and drops the per-opponent block', () => {
   const games = [g(), loss('draft', { opponent: 'Lawan Lain' }), loss('early', { opponent: 'tim garuda', note: 'mereka spam Fanny' })];
   const text = formatTeamRecap(games, { opponent: 'TIM  GARUDA', now: NOW });

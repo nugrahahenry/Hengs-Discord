@@ -16,7 +16,14 @@ const opponentKey = name => String(name).toLowerCase().replace(/\s+/g, ' ').trim
 const wibDay = at => Math.floor((at + WIB) / DAY);
 const dateLabel = at => { const day = new Date(at + WIB); return `${day.getUTCDate()} ${MONTHS[day.getUTCMonth()]}`; };
 const wins = games => games.filter(game => game.outcome === 'menang').length;
-const cut = (value, max) => (value.length > max ? `${value.slice(0, max - 3)}...` : value);
+
+// Slice to max UTF-16 units (what the store and Discord limits count) without leaving half an emoji at the end.
+function cutUnits(value, max) {
+  const kept = value.slice(0, max);
+  const last = kept.charCodeAt(kept.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? kept.slice(0, -1) : kept;
+}
+const cut = (value, max) => (value.length > max ? `${cutUnits(value, max - 3)}...` : value);
 const outcomeText = game => (game.outcome === 'menang' ? 'menang' : `kalah (${REASON_LABEL[game.reason]})`);
 
 function share(games) {
@@ -66,14 +73,8 @@ function body(games, now, { perOpponent }) {
     ...(perOpponent ? opponentLines(games) : []), ...noteLines(games)];
 }
 
-// Only hostile names and notes get this long; cut without splitting an emoji.
-function fit(text) {
-  if (text.length <= MAX_TEXT) return text;
-  let kept = text.slice(0, MAX_TEXT - 3);
-  const last = kept.charCodeAt(kept.length - 1);
-  if (last >= 0xd800 && last <= 0xdbff) kept = kept.slice(0, -1);
-  return `${kept}...`;
-}
+// Only hostile names and notes get this long.
+const fit = text => cut(text, MAX_TEXT);
 
 function formatTeamRecap(games, { opponent = null, now = Date.now() } = {}) {
   const key = opponent ? opponentKey(opponent) : null;
@@ -99,4 +100,4 @@ function todayScore(games, opponent, at) {
   return { won: wins(today), lost: today.length - wins(today) };
 }
 
-module.exports = { MIN_SAMPLE, REASON_LABEL, opponentKey, todayScore, formatTeamRecap, formatPlayerStats };
+module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, todayScore, formatTeamRecap, formatPlayerStats };

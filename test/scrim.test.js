@@ -18,7 +18,9 @@ const G = '223456789012345678', U = '323456789012345678', BOT = '623456789012345
 const T2 = '523456789012345678', OUT = '923456789012345670'; // a second team member and someone outside the team
 const IMG = 'https://cdn.discordapp.com/attachments/1/2/ss.png';
 const NOW = Date.UTC(2026, 9, 21, 5, 0); // 12:00 WIB
+const EMOJI = String.fromCodePoint(0x1f600);
 const deps = { guildAccess: { classify: () => ({ kind: 'home' }) } };
+const loneSurrogate = text => [...text].some(ch => ch.length === 1 && ch.charCodeAt(0) >= 0xd800 && ch.charCodeAt(0) <= 0xdfff);
 
 function game(n, extra = {}) {
   return { messageId: String(800000000000000000n + BigInt(n)), at: 1000 + n, submitterId: U,
@@ -32,16 +34,18 @@ function options(over = {}) {
     getFocused: full => (full ? { name: 'lawan', value: value.lawan } : value.lawan) };
 }
 
-function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, store, games = [] } = {}) {
+function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, everyoneCanView = false,
+  store, games = [] } = {}) {
   const role = { id: '700000000000000001', name: 'Hengs Family' };
   const sends = []; const records = []; const downloads = []; const dms = [];
   const team = new Set(teamMember ? [U, T2] : [T2]);
   const memberOf = id => ({ id, roles: { cache: new Collection(team.has(id) ? [[role.id, role]] : []) } });
   const channel = { id: '700000000000000002', name: CHANNEL_NAME, type: ChannelType.GuildText, guildId: G,
-    permissionsFor: () => ({ has: () => botAllowed }),
+    permissionsFor: target => ({ has: () => (target?.id === G ? everyoneCanView : botAllowed) }),
     async send(payload) { sends.push(payload); return { id: String(900000000000000000n + BigInt(sends.length)) }; } };
   const guild = { id: G,
-    roles: { async fetch() { return new Collection(roleExists ? [[role.id, role]] : []); } },
+    roles: { everyone: { id: G }, cache: new Collection(roleExists ? [[role.id, role]] : []),
+      async fetch() { return new Collection(roleExists ? [[role.id, role]] : []); } },
     channels: { async fetch() { return new Collection(channelExists ? [[channel.id, channel]] : []); } },
     members: { async fetch(query) {
       if (Array.isArray(query?.user)) return new Collection(query.user.filter(id => team.has(id)).map(id => [id, memberOf(id)]));
@@ -133,6 +137,30 @@ test('one hasil dropdown gives outcome and loss reason, the screenshot is option
   }
 });
 
+test('opponent and note cuts never leave half an emoji behind', () => {
+  const parsed = readSubmission(options({ lawan: `${'A'.repeat(59)}${EMOJI}`, catatan: `${'b'.repeat(299)}${EMOJI}` }));
+  assert.equal(parsed.opponent, 'A'.repeat(59));
+  assert.equal(parsed.note, 'b'.repeat(299));
+  assert.equal(loneSurrogate(parsed.opponent + parsed.note), false);
+});
+
+test('a second Kirim while the first is still posting says busy, not that nothing was sent', async () => {
+  const r = rigService();
+  const preview = await previewed(r);
+  let release;
+  const posting = new Promise(resolve => { release = resolve; });
+  const send = r.channel.send.bind(r.channel);
+  r.channel.send = async payload => { await posting; return send(payload); };
+  const first = r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
+  const second = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
+  await r.service.handleComponent(second);
+  assert.match(second.replies.at(-1).content, /Masih ada kiriman yang diproses/);
+  release();
+  await first;
+  assert.equal(r.sends.length, 1);
+  assert.equal(r.records.length, 1);
+});
+
 test('a team member previews one game with the last team lineup prefilled, then one Kirim posts and records it', async () => {
   const r = rigService({ games: [game(1, { at: NOW - 3_600_000, opponent: 'tim contoh', lineup: [U, OUT, T2] })] });
   const preview = await previewed(r);
@@ -204,7 +232,7 @@ test('a loss without a screenshot posts its reason as text only, with no downloa
 test('non-team members, missing setup, other guilds and bad images never reach the channel', async () => {
   for (const [setup, message] of [[{ teamMember: false }, /khusus anggota role Hengs Family/],
     [{ roleExists: false }, /Role Hengs Family belum ada/], [{ channelExists: false }, /Channel hasil-scrim belum ada/],
-    [{ botAllowed: false }, /Hengs perlu izin/]]) {
+    [{ botAllowed: false }, /Hengs perlu izin/], [{ everyoneCanView: true }, /masih bisa dilihat semua member/]]) {
     const r = rigService(setup);
     const preview = await previewed(r);
     assert.match(preview.content, message);
@@ -433,6 +461,8 @@ test('lawan autocomplete suggests distinct opponents, newest first, to team memb
   const games = [game(1, { opponent: 'Tim Garuda' }), game(2, { opponent: 'Rajawali' }), game(3, { opponent: 'TIM GARUDA' }),
     game(4, { opponent: 'Elang' })];
   const r = rigService({ games });
+  // Discord gives autocomplete 3 seconds; the cached role is enough, no REST call per keystroke.
+  r.guild.roles.fetch = async () => { throw new Error('REST is not needed here'); };
   const typed = r.interaction({ options: options({ lawan: 'GA' }) });
   await r.service.autocomplete(typed);
   assert.deepEqual(typed.responses.at(-1), [{ name: 'TIM GARUDA', value: 'TIM GARUDA' }]);

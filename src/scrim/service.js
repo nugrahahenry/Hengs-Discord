@@ -9,7 +9,7 @@ const {
   escapeMarkdown,
 } = require('discord.js');
 const { MAX_LINEUP } = require('./store');
-const { REASON_LABEL, opponentKey, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
+const { REASON_LABEL, cutUnits, opponentKey, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -37,6 +37,7 @@ const MESSAGES = Object.freeze({
   SCRIM_CHANNEL_MISSING: 'Channel hasil-scrim belum ada. Minta admin jalankan /admin setup lalu pilih Scrim tim.',
   SCRIM_ROLE_CONFLICT: 'Ada lebih dari satu role bernama Hengs Family. Rapikan dulu supaya Hengs tidak menebak.',
   SCRIM_CHANNEL_CONFLICT: 'Ada lebih dari satu channel hasil-scrim, atau namanya dipakai jenis channel lain. Rapikan dulu.',
+  SCRIM_CHANNEL_PUBLIC: 'Channel hasil-scrim masih bisa dilihat semua member. Minta admin jalankan /admin setup lalu pilih Scrim tim supaya privat lagi.',
   SCRIM_NOT_TEAM: 'Fitur scrim khusus anggota role Hengs Family. Minta admin menambahkan role-nya.',
   SCRIM_FIELDS_INVALID: 'Lawan wajib diisi dan hasil dipilih dari daftar.',
   SCRIM_IMAGE_INVALID: 'SS harus gambar PNG, JPG atau WebP, maksimal 8 MB.',
@@ -48,15 +49,18 @@ const MESSAGES = Object.freeze({
 const quiet = { allowedMentions: { parse: [] } };
 const normalize = name => String(name).toLowerCase().replace(/^[^a-z0-9]+/, '');
 // Control and format characters (zero-width, bidi), angle brackets and @ never reach a post.
-const clean = (value, max) => String(value ?? '').replace(/[\p{Cc}\p{Cf}<>@]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+const clean = (value, max) => cutUnits(String(value ?? '').replace(/[\p{Cc}\p{Cf}<>@]/gu, ' ').replace(/\s+/g, ' ').trim(), max);
 const shown = value => escapeMarkdown(value);
 
 // Like the channel, the role may carry an emoji prefix ("🫂 Hengs Family"); two candidates still conflict.
-async function findTeamRole(guild) {
-  const roles = await guild.roles.fetch();
+function teamRoleIn(roles) {
   const matches = [...roles.values()].filter(role => normalize(role?.name) === normalize(ROLE_NAME));
   if (matches.length > 1) throw new Error('SCRIM_ROLE_CONFLICT');
   return matches[0] || null;
+}
+
+async function findTeamRole(guild) {
+  return teamRoleIn(await guild.roles.fetch());
 }
 
 function findScrimChannel(channels) {
@@ -131,6 +135,8 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
     const role = await teamMember(i);
     const channel = findScrimChannel([...(await i.guild.channels.fetch()).values()]);
     if (!channel) throw new Error('SCRIM_CHANNEL_MISSING');
+    // Cards carry the lineup and team notes: never post them where every member can read.
+    if (channel.permissionsFor(i.guild.roles.everyone)?.has(P.ViewChannel)) throw new Error('SCRIM_CHANNEL_PUBLIC');
     if (!channel.permissionsFor(await i.guild.members.fetchMe({ force: true }))?.has(BOT_PERMISSIONS)) throw new Error('SCRIM_BOT_PERMISSIONS');
     return { role, channel };
   }
@@ -185,10 +191,14 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
       if ((!select && !i.isButton?.()) || !String(i.customId).startsWith(PREFIX)) return false;
       sweep();
       const key = keyFor(i);
+      // A second click while Kirim is still posting must not read as "nothing was sent".
+      if (busy.has(key)) {
+        await reply(i, 'SCRIM_BUSY');
+        return true;
+      }
       const match = /^hengs-scrim:([a-f0-9]{24}):(send|cancel|lineup)$/.exec(i.customId);
       const draft = drafts.get(key);
-      if (!match || !draft || draft.id !== match[1] || draft.source !== i.channelId || busy.has(key)
-        || (match[2] === 'lineup') !== select) {
+      if (!match || !draft || draft.id !== match[1] || draft.source !== i.channelId || (match[2] === 'lineup') !== select) {
         await reply(i, 'SCRIM_STALE');
         return true;
       }
@@ -270,10 +280,11 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
       return answer(i, 'Statistik scrim kamu sudah dikirim lewat DM. Cuma kamu yang bisa lihat.');
     },
 
-    // Opponent names are team data too: only Hengs Family members get suggestions.
+    // Opponent names are team data too: only Hengs Family members get suggestions. The cached role keeps this
+    // inside Discord's 3-second autocomplete window (no REST call per keystroke).
     async autocomplete(i) {
       try {
-        const role = await findTeamRole(i.guild);
+        const role = teamRoleIn(i.guild.roles.cache);
         if (!role || !hasRole(i.member, role.id)) return await i.respond([]);
         const typed = opponentKey(clean(i.options.getFocused(), 60));
         const names = new Map();

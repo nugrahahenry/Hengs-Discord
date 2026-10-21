@@ -19,7 +19,11 @@ Updated: 2026-10-21
   logging stays under 30 seconds; one dropdown carries the outcome and the reason, so a loss always has one;
   "lainnya" was added for DC or lag; the recap is private and never posted; a wrong log cannot be undone yet
   (follow-up idea: deleting the card in hasil-scrim removes the row).
-- QA: Node 22 full suite via PowerShell in the worktree, 769 tests, 768 pass, 1 sibling-checkout skip that only
+- Independent review (read-only subagent) found five low-to-medium risks, all fixed with tests in a second commit:
+  refuse posting when @everyone can view hasil-scrim (live channel is private since v1.64.2), a busy reply for a
+  second Kirim click during posting, no half-emoji cuts in input, notes or long replies, and the cached team role
+  for autocomplete.
+- QA: Node 22 full suite via PowerShell in the worktree, 772 tests, 771 pass, 1 sibling-checkout skip that only
   applies outside a worktree (baseline on this branch was 751 with the same skip).
 - Deploy needs, only with Henry's approval: fast-forward main to coach-phase1; derive helpers from
   .cloud/automation/deploy-v1670 with version 1.68.0 (keep its minute guard and news fingerprint check, preflight

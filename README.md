@@ -73,7 +73,7 @@ Anggota Hengs Family di bot-commands, satu perintah per game (target di bawah 30
 satu dropdown: Menang, atau Kalah plus alasan utama (early game, objective, teamfight, draft, lainnya). Preview
 privat menampilkan kartu, skor hari ini vs lawan yang sama dan pilihan lineup (maks 5, otomatis terisi lineup
 game terakhir yang masih Hengs Family), lalu Kirim/Batal (hangus 10 menit). Hengs memposting kartu (plus SS kalau
-ada) tanpa ping dan mencatat game itu.
+ada) tanpa ping dan mencatat game itu. Kalau hasil-scrim ternyata bisa dilihat semua member, Hengs menolak memposting.
 
 `/scrim rekap [lawan]`: rekap tim privat (semua game, 7 dan 30 hari, form 5 game terakhir, alasan kalah, 5 lawan
 teratas, 3 catatan terakhir); dengan `lawan` jadi ingatan sebelum ketemu lawan yang sama. `/scrim statku`:
