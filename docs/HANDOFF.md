@@ -2,6 +2,28 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.67.0 read-only channels, /kirim and judged memes local checkpoint - 2026-10-21
+
+- Henry after the first live memes: "hengs meme malah garing dan aneh" (a Two Buttons meme choosing
+  between upgrading a CPU and waiting for a deadline), and friends can still chat in the meme channel
+  although he had asked earlier (in this workspace or the Casterin session) for the permissions to
+  change. Answers (AskUserQuestion): every listed fault applies (forced caption, template mismatch,
+  topic not relatable, stiff language); both news and memes read-only; members submit through a bot
+  command; "yaudah lah lu benerin disini".
+- Cause of the meme: 4 of 5 Hengs memes per day took a hot news headline as the topic; the writer
+  scored its own options. Fix: topics only from 32 everyday situations, a worked example per
+  template, a rewritten writer prompt (medium reasoning) and a separate judge call (fit, humour,
+  language, all three at 7 or more, temperature 0.2). Weak or unjudged memes fall back to outside memes.
+- Read-only: ensureCommunityChannels now sets @everyone view/history/react and denies send and
+  threads, and gives Hengs view/send/attach/embed. Sharing only needs members to see the destination.
+- /kirim: new home command (14 home commands after registration). Meme images are checked by the
+  vision model before the preview; the same bytes (by SHA-256) are re-fetched and posted on confirm.
+- QA: Node 22 full suite 751/751 via PowerShell.
+- Not done yet, needs Henry's approval: deploy v1.67.0 (helpers from deploy-v1661, expect 14 home
+  commands) and the one-off read-only overwrite on the two live channels, applied right after the
+  deploy so members always have /kirim when posting closes. WA stays untouched.
+- Commit subject: feat(news): Hengs Discord v1.67.0 - read-only news and memes, /kirim and judged memes
+
 ## Hengs Discord v1.66.1 deployed and accepted - 2026-10-21
 
 - Henry: "Deploy aja sekarang, kenapa harus setelah 21:00?" (the only constraint is that no slot runs during

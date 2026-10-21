@@ -84,28 +84,31 @@ async function ensureCommunityChannels(guild, { newsId = null, memeId = null, ex
   if ((news?.id || null) !== newsId || (meme?.id || null) !== memeId) throw new Error('SETUP_PREVIEW_STALE');
   const me = await guild.members.fetchMe({ force: true });
   if (!me.permissions.has([P.ManageChannels, P.ManageRoles])) throw new Error('COMMUNITY_SETUP_PERMISSIONS');
-  const allow = [P.ViewChannel, P.ReadMessageHistory, P.SendMessages, P.AttachFiles, P.EmbedLinks];
+  // Members read and react; only Hengs posts. Members submit through /kirim, which previews first.
+  const memberBits = { ViewChannel: true, ReadMessageHistory: true, AddReactions: true, SendMessages: false,
+    SendMessagesInThreads: false, CreatePublicThreads: false, CreatePrivateThreads: false };
+  const botBits = { ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true };
+  const reason = { reason: 'Hengs setup: owner confirmed read-only news and meme channels' };
   const result = [];
   for (const [existing, name] of [[news, NEWS_NAME], [meme, '😂・hengs-memes']]) {
     await assertLease();
     if (existing) {
-      // Edit only the five public participation bits. Preserve other overwrites and thread policy.
-      await existing.permissionOverwrites.edit(guild.roles.everyone.id, {
-        ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true,
-      }, { reason: 'Hengs setup: owner confirmed direct community posting' });
+      // Edit only these bits for @everyone and Hengs. Other overwrites stay as they are.
+      await existing.permissionOverwrites.edit(guild.roles.everyone.id, memberBits, reason);
+      await existing.permissionOverwrites.edit(me.id, botBits, reason);
       result.push(existing);
     } else {
       const parent = news?.parentId || null;
       if (parent && !channels.some(c => c.id === parent && c.type === ChannelType.GuildCategory)) throw new Error('NEWS_PARENT_INVALID');
       const created = await guild.channels.create({ name, type: ChannelType.GuildText,
         ...(parent ? { parent } : {}),
-        topic: name === NEWS_NAME ? 'Berita dan sumber dari Hengs serta anggota. Kiriman anggota bukan verifikasi fakta.'
-          : 'Meme, komik dan jokes. Anggota boleh unggah langsung; ikuti aturan server.',
-        reason: 'Hengs setup: owner confirmed separate community channels',
+        topic: name === NEWS_NAME ? 'Berita pilihan Hengs dan kiriman anggota lewat /kirim berita. Kiriman anggota bukan verifikasi fakta.'
+          : 'Meme dari Hengs dan anggota. Kirim punyamu lewat /kirim meme di bot-commands.',
+        reason: 'Hengs setup: owner confirmed separate read-only news and meme channels',
         permissionOverwrites: [
-          { id: guild.roles.everyone.id, allow,
-            deny: [P.CreatePublicThreads, P.CreatePrivateThreads, P.SendMessagesInThreads] },
-          { id: me.id, allow: NEWS_PERMISSIONS },
+          { id: guild.roles.everyone.id, allow: [P.ViewChannel, P.ReadMessageHistory, P.AddReactions],
+            deny: [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads] },
+          { id: me.id, allow: [P.ViewChannel, P.ReadMessageHistory, P.SendMessages, P.AttachFiles, P.EmbedLinks] },
         ],
       });
       if (created?.guildId !== guild.id || created.type !== ChannelType.GuildText) throw new Error('NEWS_CREATE_UNCERTAIN');
@@ -232,8 +235,8 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           await interaction.editReply({ ...safe([
             '**Preview news + memes**',
             `${news ? 'Pakai' : 'Buat'} hengs-news; ${meme ? 'pakai' : 'buat'} hengs-memes. Channel lama tidak dipindah/diubah namanya. Meme baru mengikuti kategori news; jika belum ada news, keduanya di luar kategori.`,
-            'Buka izin @everyone untuk melihat, membaca riwayat, mengirim, melampirkan file dan menyematkan link di kedua channel. Overwrite role/anggota lain tetap; batas akun/role Discord tetap berlaku.',
-            'Anggota langsung posting tanpa antrean admin/AI. Hengs tidak menjamin kebenaran atau keamanan isi kiriman. Tidak mengubah channel lain, tidak menjalankan setup lengkap.',
+            'Cuma Hengs yang posting di kedua channel. @everyone boleh melihat, membaca riwayat dan kasih reaksi, tapi tidak mengirim atau membuat thread. Overwrite role/anggota lain tetap; admin tetap bisa posting.',
+            'Anggota kirim lewat /kirim meme (gambar, dicek otomatis) atau /kirim berita (link) di bot-commands, dengan preview dan konfirmasi sendiri. Hengs tidak menjamin kebenaran isi kiriman. Tidak mengubah channel lain, tidak menjalankan setup lengkap.',
             'Routing/jadwal bot belum diubah. Setelah channel siap, pilih tujuan melalui atur berita, preview berita, lalu terapkan berita.',
           ].join('\n\n')), components: controls(id, [['split', 'Buat/buka kedua channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
           return true;
@@ -324,7 +327,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           NEWS_CHANNEL_CONFLICT: 'Ada nama hengs-news yang ganda atau dipakai jenis channel lain. Rapikan dulu, lalu buka setup lagi.',
           NEWS_CHANNEL_PERMISSIONS: 'Hengs perlu izin View Channel, Send Messages, Embed Links dan Read Message History pada channel news.',
           SETUP_BOT_PERMISSIONS: 'Hengs perlu izin Manage Channels untuk pilihan ini. Belum ada channel yang dibuat.',
-          COMMUNITY_SETUP_PERMISSIONS: 'Hengs perlu Manage Channels dan Manage Roles untuk menyiapkan izin kirim anggota.',
+          COMMUNITY_SETUP_PERMISSIONS: 'Hengs perlu Manage Channels dan Manage Roles untuk mengatur izin channel news dan memes.',
           SCRIM_ROLE_CONFLICT: 'Ada lebih dari satu role bernama Hengs Family. Rapikan dulu, lalu buka setup lagi.',
           SCRIM_CHANNEL_CONFLICT: 'Ada lebih dari satu channel hasil-scrim atau namanya dipakai jenis channel lain. Rapikan dulu.',
           SETUP_PREVIEW_STALE: 'Isi server atau sesi berubah sejak preview. Buka setup lagi untuk melihat rencana terbaru.',

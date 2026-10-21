@@ -5,6 +5,37 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.67.0] - 2026-10-21
+
+### Added
+
+- `/kirim meme` (image plus optional caption) and `/kirim berita` (link plus optional note) in
+  bot-commands. Same private preview and own confirmation as `bagikan`; Hengs posts it in the channel
+  with "Dibagikan oleh <member>". Images must be PNG, JPG or WebP up to 8 MB from Discord's CDN, the
+  bytes must match the declared type, and the vision model (the one used for outside memes) must
+  answer exactly `{"safe":true}`. At send time the image is fetched again and must match the checked
+  hash. Without a vision model, image submissions are refused.
+
+### Changed
+
+- News and meme channels are read-only for members: @everyone can view, read history and react, but
+  cannot send or open threads; Hengs keeps view, send, attach and embed. The "News + memes" setup now
+  applies this instead of opening member posting. Sharing no longer asks members for send permission
+  in the destination.
+- Hengs-made memes start only from 32 everyday situations (campus, MLBB, Valorant, Roblox, daily life),
+  never from news headlines: a news topic had produced a Two Buttons meme choosing between "upgrade
+  CPU" and "waiting for the deadline". Every template now carries a worked example, the writer prompt
+  asks for one situation per meme, the exact template meaning and casual Indonesian, and the writer
+  runs with medium reasoning.
+- A second Groq call judges every option on fit, humour and language (1 to 10, temperature 0.2). Only
+  an option with all three at 7 or more is posted; otherwise the slot falls back to an outside meme.
+  The writer's own score is no longer used. Meme slots no longer read the news feeds.
+
+### Verification
+
+- Node 22 full suite 751/751 via PowerShell. No Discord, Groq or VM call. Not deployed: the live
+  channels keep member posting until the deploy applies the read-only overwrites.
+
 ## [1.66.1] - 2026-10-21
 
 ### Fixed

@@ -17,7 +17,7 @@
 require('dotenv').config();
 const OpenAI = require('openai');
 const { HISTORY_TTL_MS, cleanText, appendExchange, selectHistory, featureReceipt } = require('./conversation-context');
-const { createNewsCompletion, createMemeCompletion, createVisionReview } = require('./news/completion');
+const { createNewsCompletion, createMemeCompletion, createMemeJudge, createVisionReview } = require('./news/completion');
 
 // ── Lapis 1 & 2: Groq (primary) ─────────────────────────────────────────────
 const groq = process.env.GROQ_API_KEY
@@ -447,6 +447,8 @@ module.exports = {
   completeNews: createNewsCompletion({ client: groq || openrouter,
     model: groq ? GROQ_MODELS[0] : FREE_MODELS[0], provider: groq ? 'groq' : 'openrouter' }),
   completeMeme: createMemeCompletion({ client: groq || openrouter,
+    model: groq ? GROQ_MODELS[0] : FREE_MODELS[0], provider: groq ? 'groq' : 'openrouter' }),
+  judgeMeme: createMemeJudge({ client: groq || openrouter,
     model: groq ? GROQ_MODELS[0] : FREE_MODELS[0], provider: groq ? 'groq' : 'openrouter' }),
   // Vision safety check for outside memes. Groq only; without it outside Lemmy memes are skipped.
   reviewMemeImage: groq ? createVisionReview({ client: groq, model: process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b' }) : null,

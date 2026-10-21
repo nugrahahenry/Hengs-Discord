@@ -98,8 +98,9 @@ const guildAccess = createGuildAccess({
   store: guildConfigStore,
 });
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
-  memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, reviewImage: agent.reviewMemeImage }) });
-communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId) });
+  memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage }) });
+communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
+  reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
 const publicDailyRequestLimit = parsePublicDailyRequestLimit(
   process.env.HENGS_PUBLIC_DAILY_REQUEST_LIMIT,

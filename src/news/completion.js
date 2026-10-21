@@ -54,15 +54,19 @@ function createNewsCompletion({ client, model, provider } = {}) {
   }, { signal, timeout: 8000 });
 }
 
-function createMemeCompletion({ client, model, provider } = {}) {
+// Meme writer and judge: same JSON call, the judge just runs cold. Medium reasoning because
+// low reasoning wrote fluent nonsense.
+function createMemeCall({ client, model, provider } = {}, temperature, maxTokens) {
   if (!client || !model) return null;
   const groqOss = isGroqOss(provider, model);
   return (messages, { signal } = {}) => chatJson(client, {
-    model, messages, temperature: 0.9,
-    ...(groqOss ? { max_completion_tokens: 900, reasoning_effort: 'low', include_reasoning: false } : { max_tokens: 900 }),
+    model, messages, temperature,
+    ...(groqOss ? { max_completion_tokens: 2000, reasoning_effort: 'medium', include_reasoning: false } : { max_tokens: maxTokens }),
     response_format: { type: 'json_object' },
-  }, { signal, timeout: 15000 });
+  }, { signal, timeout: 25000 });
 }
+const createMemeCompletion = options => createMemeCall(options, 0.9, 900);
+const createMemeJudge = options => createMemeCall(options, 0.2, 600);
 
 const VISION_SYSTEM = `Kamu moderator gambar untuk komunitas Discord umum di Indonesia (remaja dan mahasiswa).
 Tolak kalau gambar memuat politik, agama, konten seksual atau sugestif, kekerasan atau darah, kebencian atau hinaan
@@ -80,4 +84,4 @@ function createVisionReview({ client, model } = {}) {
   }, { signal, timeout: 20000 });
 }
 
-module.exports = { createNewsCompletion, createMemeCompletion, createVisionReview, NewsCompletionError };
+module.exports = { createNewsCompletion, createMemeCompletion, createMemeJudge, createVisionReview, NewsCompletionError };

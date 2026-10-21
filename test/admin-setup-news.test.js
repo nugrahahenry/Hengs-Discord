@@ -65,20 +65,25 @@ function rig() {
     fetch: fn => { fetchHook = fn; }, create: fn => { createHook = fn; } };
 }
 
-test('community setup opens only news/meme participation bits and creates meme beside existing news', async () => {
+test('community setup makes news and memes read-only for members, only Hengs posts, beside existing news', async () => {
   const r = rig(); const parent = r.channel('ANNOUNCEMENTS', ChannelType.GuildCategory);
   const news = r.channel('📰・hengs-news', ChannelType.GuildText, parent.id);
   const writes = []; news.permissionOverwrites.edit = async (...args) => { writes.push(args); };
-  const p = await preview(r, 'community'); assert.match(p.content, /Anggota langsung posting/);
+  const p = await preview(r, 'community'); assert.match(p.content, /Cuma Hengs yang posting/); assert.match(p.content, /\/kirim meme/);
   assert.equal(r.created.length, 0); assert.equal(writes.length, 0);
   const i = await click(r, p, 'split');
-  assert.equal(r.created.length, 1); assert.equal(r.legacy.length, 0); assert.equal(writes.length, 1);
+  assert.equal(r.created.length, 1); assert.equal(r.legacy.length, 0); assert.equal(writes.length, 2);
   assert.equal(r.created[0].name, '😂・hengs-memes'); assert.equal(r.created[0].parent, parent.id);
-  assert.deepEqual(Object.keys(writes[0][1]).sort(), ['AttachFiles', 'EmbedLinks', 'ReadMessageHistory', 'SendMessages', 'ViewChannel']);
   assert.equal(writes[0][0], GUILD); assert.equal(news.parentId, parent.id);
-  assert(r.created[0].permissionOverwrites[0].allow.includes(P.SendMessages));
+  assert.deepEqual(writes[0][1], { ViewChannel: true, ReadMessageHistory: true, AddReactions: true, SendMessages: false,
+    SendMessagesInThreads: false, CreatePublicThreads: false, CreatePrivateThreads: false });
+  assert.equal(writes[1][0], BOT);
+  assert.deepEqual(writes[1][1], { ViewChannel: true, ReadMessageHistory: true, SendMessages: true, AttachFiles: true, EmbedLinks: true });
+  const [everyone, bot] = r.created[0].permissionOverwrites;
+  assert(everyone.deny.includes(P.SendMessages) && !everyone.allow.includes(P.SendMessages));
+  assert(bot.allow.includes(P.SendMessages) && bot.allow.includes(P.AttachFiles));
   assert.match(i.edits.at(-1).content, /Routing bot belum berubah/);
-  await click(r, p, 'split'); assert.equal(r.created.length, 1); assert.equal(writes.length, 1);
+  await click(r, p, 'split'); assert.equal(r.created.length, 1); assert.equal(writes.length, 2);
 });
 
 test('community fresh setup creates two separate channels, reuses exact existing ones without moves', async () => {

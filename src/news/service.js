@@ -115,9 +115,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         previews = previews.filter(at => now() - at < HOUR);
         if (previews.length >= 6) return { content: 'Preview meme maksimal 6 kali per jam. Coba lagi nanti.' };
         previews.push(now());
-        const news = await readFeeds(draft.settings.topics);
-        assertLease();
-        const item = await memeMaker.preview({ row: row || { seen: [], receipts: [] }, newsItems: ranked(news) });
+        const item = await memeMaker.preview({ row: row || { seen: [], receipts: [] } });
         assertLease();
         return item ? memePayload(item, now(), 'Preview privat meme buatan Hengs. Belum dikirim dan tidak disimpan.')
           : { content: 'Meme belum bisa dibuat sekarang. Tidak ada yang dikirim.' };
@@ -227,8 +225,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     const comics = await readFeeds(['memes']);
     const xkcdItems = selected({ ...row.settings, topics: ['memes'], count: 1 }, comics.items, row);
     if (!memeMaker) return { items: xkcdItems, failures: comics.failures };
-    const news = await readFeeds(row.settings.topics);
-    const made = await memeMaker.make({ row, slot, xkcdItems, newsItems: ranked(news) });
+    const made = await memeMaker.make({ row, slot, xkcdItems });
     return { items: made ? [made] : [], failures: 0 };
   }
   async function runSlot(row, kind) {
