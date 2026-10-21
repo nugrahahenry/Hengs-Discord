@@ -19,7 +19,7 @@ test('meme and vision completions send bounded JSON requests and map provider fa
   const write = createMemeCompletion({ client, model: 'openai/gpt-oss-120b', provider: 'groq' });
   assert.equal(await write([{ role: 'user', content: 'x' }], {}), '{"safe":true}');
   assert.equal(bodies[0].temperature, 0.9); assert.deepEqual(bodies[0].response_format, { type: 'json_object' });
-  assert.equal(bodies[0].reasoning_effort, 'medium');
+  assert.equal(bodies[0].reasoning_effort, 'medium'); assert.equal(bodies[0].max_completion_tokens, 3000);
   const judge = createMemeJudge({ client, model: 'openai/gpt-oss-120b', provider: 'groq' });
   await judge([{ role: 'user', content: 'x' }], {});
   assert.equal(bodies[1].temperature, 0.2); assert.deepEqual(bodies[1].response_format, { type: 'json_object' });
@@ -34,8 +34,8 @@ test('meme and vision completions send bounded JSON requests and map provider fa
   await assert.rejects(limited([], {}), error => error.code === 'NEWS_EDITOR_RATE_LIMITED');
 });
 
-const { TEMPLATES, EVERGREEN, memegenUrl, validMeme, validOptions, judgedBest, pickTopic, parseLemmy, safeVerdict, imageKind,
-  memeHash, createTemplateRanker, createMemeMaker } = require('../src/news/memes');
+const { TEMPLATES, EVERGREEN, MEME_SYSTEM, memegenUrl, validMeme, validOptions, judgedBest, offerTemplates, pickTopic, parseLemmy,
+  safeVerdict, imageKind, memeHash, createTemplateRanker, createMemeMaker } = require('../src/news/memes');
 const drake = TEMPLATES.find(row => row.id === 'drake');
 const option = (lines = ['nugas H-1 jam 23.59', 'nugas dari awal minggu?'], extra = {}) => ({ template: 'drake', lines, ...extra });
 const score = (nyambung, lucu, bahasa) => ({ nyambung, lucu, bahasa });
@@ -63,6 +63,30 @@ test('every template carries a clean example within its own line limit', () => {
   for (const template of TEMPLATES) {
     assert.ok(validMeme({ template: template.id, lines: template.example }, [template]), template.id);
   }
+  // Irony and twist formats (Forever Alone "still can't talk to people", Panik Kalm Panik, expectation vs reality).
+  for (const id of ['fa', 'panik-kalm-panik', 'dbg', 'midwit', 'db', 'harold']) assert.ok(TEMPLATES.some(row => row.id === id), id);
+  assert.ok(TEMPLATES.length >= 28);
+});
+
+test('template offers rotate by day and slot, so every template gets its turn within ten days', () => {
+  const seen = new Set();
+  for (let day = 1; day <= 10; day++) {
+    for (let slot = 0; slot < 5; slot += 2) {
+      const offered = offerTemplates(TEMPLATES, `2026-10-${String(day).padStart(2, '0')}`, slot);
+      assert.equal(offered.length, 6); assert.equal(new Set(offered).size, 6);
+      offered.forEach(row => seen.add(row.id));
+    }
+  }
+  assert.equal(seen.size, TEMPLATES.length);
+  assert.deepEqual(offerTemplates(TEMPLATES, DAYKEY, 0), offerTemplates(TEMPLATES, DAYKEY, 0));
+});
+
+test('the writer asks for five options in known Indonesian meme formats with a twist at the end', () => {
+  assert.match(MEME_SYSTEM, /tepat 5 opsi/);
+  assert.match(MEME_SYSTEM, /Seumur hidup/);
+  assert.match(MEME_SYSTEM, /twist/);
+  const five = Array.from({ length: 6 }, (_, i) => option([`nugas H-${i + 1} jam 23.59`, 'nugas dari awal minggu?']));
+  assert.equal(validOptions(JSON.stringify({ options: five }), [drake]).length, 5);
 });
 
 test('Hengs memes come from everyday situations, never news headlines, and do not repeat a topic', () => {
@@ -81,6 +105,9 @@ test('the judge must score every option, and only an option at 7 or more on all 
   assert.equal(judgedBest(verdict([score(9, 9, 9), score(9, 6, 9)]), options), options[0]);
   // The CPU or deadline meme: fluent, but the two buttons are no real dilemma.
   assert.equal(judgedBest(verdict([score(2, 6, 9), score(9, 9, 6)]), options), null);
+  // Henry does not want dry memes: humour needs 8, so a merely okay joke loses to a funny one.
+  assert.equal(judgedBest(verdict([score(10, 7, 10), score(7, 8, 7)]), options), options[1]);
+  assert.equal(judgedBest(verdict([score(10, 7, 10), score(9, 7, 9)]), options), null);
   for (const raw of [verdict([score(9, 9, 9)]), verdict([score(9, 9, 9), score(9, 9, 11)]),
     verdict([score(9, 9, 9), { nyambung: '9', lucu: 9, bahasa: 9 }]), 'nope', '{}']) {
     assert.equal(judgedBest(raw, options), null, raw);
@@ -159,7 +186,9 @@ test('even slots post the option the judge rates best, about an everyday situati
   const item = await meme.make({ row: empty, slot: 0 });
   assert.deepEqual([item.kind, item.publisher, item.topic], ['hengs', 'hengs-meme', 'memes']);
   assert.deepEqual(item.lines, ['nugas H-1 jam 23.59', 'nugas dari awal minggu?']);
-  assert.equal(calls.fetch[0], 'https://api.memegen.link/images/drake/nugas_H--1_jam_23.59/nugas_dari_awal_minggu~q.png');
+  const template = offerTemplates(TEMPLATES, DAYKEY, 0)[0].id;
+  assert.equal(item.template, template);
+  assert.equal(calls.fetch[0], `https://api.memegen.link/images/${template}/nugas_H--1_jam_23.59/nugas_dari_awal_minggu~q.png`);
   assert.deepEqual(item.file, { name: 'hengs-meme.png', data: PNG });
   assert.ok(EVERGREEN.includes(item.topicTitle)); assert.equal(item.topicUrl, null);
   // The writer sees a worked example per template; the judge sees the situation and what each template means.

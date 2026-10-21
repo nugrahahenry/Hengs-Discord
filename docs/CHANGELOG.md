@@ -5,6 +5,28 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.69.0] - 2026-10-21
+
+### Changed
+
+- Hengs-made memes get 12 more templates in irony and twist formats: Forever Alone (the "still can't talk to
+  people" shape Henry liked), Panik Kalm Panik, Expectation vs Reality, Midwit, Distracted Boyfriend, Hide the
+  Pain Harold, Woman Yelling at Cat, Spider-Man pointing, None of my business, Success Kid, Bad Luck Brian and
+  Roll Safe, each with an Indonesian worked example (28 templates). Ids and line meanings were checked against
+  the memegen API on 2026-10-21.
+- Template offers walk the whole ranked list by day and slot, six per writer call, so every format gets turns
+  instead of the same top six every day.
+- The writer asks for 5 options in formats that usually land ("Seumur hidup X, tetep nggak bisa Y",
+  expectation vs reality, panik lalu kalm lalu panik, gw vs juga gw, simple vs overthought) with a twist in the
+  last line. Groq budget 3000 tokens for writer and judge.
+- The judge's humour bar rises to 8 (fit and language stay at 7): Henry would rather see an outside meme than a
+  dry Hengs one.
+
+### Verification
+
+- Node 22 full suite 774/774 via PowerShell, including v1.68.0 (Coach phase 1, fast-forwarded from
+  `coach-phase1`). No Discord, Groq or VM call. Not deployed.
+
 ## [1.68.0] - 2026-10-21
 
 ### Added

@@ -61,7 +61,8 @@ function createMemeCall({ client, model, provider } = {}, temperature, maxTokens
   const groqOss = isGroqOss(provider, model);
   return (messages, { signal } = {}) => chatJson(client, {
     model, messages, temperature,
-    ...(groqOss ? { max_completion_tokens: 2000, reasoning_effort: 'medium', include_reasoning: false } : { max_tokens: maxTokens }),
+    // Five options plus medium reasoning: 3000 leaves room so the JSON is not cut off.
+    ...(groqOss ? { max_completion_tokens: 3000, reasoning_effort: 'medium', include_reasoning: false } : { max_tokens: maxTokens }),
     response_format: { type: 'json_object' },
   }, { signal, timeout: 25000 });
 }

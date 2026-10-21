@@ -2,6 +2,22 @@
 
 Updated: 2026-10-21
 
+## Hengs Discord v1.69.0 livelier Hengs memes, Coach merged (local, not deployed) - 2026-10-21
+
+- Henry, after the 15:01 Lemmy meme ("Spends whole life building communication networks / still cant talk to
+  people"): outside memes are fine as they are; Hengs-made ones should not be stiff ("gw gamau garing"). He
+  picked "Review + deploy Coach" for the parallel track.
+- Coach: reviewed the coach-phase1 diff (per-game store, DM-only stats, team-only autocomplete, no pings, refuses
+  a public hasil-scrim) and fast-forwarded main to 85d9a96; suite 772/772 on main.
+- Memes: 12 more memegen templates with Indonesian examples (ids and line meanings read from
+  api.memegen.link/templates; Imgflip names from get_memes for ranking), offerTemplates rotates six per call by
+  day and slot over all 28, writer asks for 5 options with known formats and a last-line twist, judge humour
+  bar 8. RED confirmed by stashing src (6 failing), then GREEN; full suite 774/774.
+- Deploy needs Henry's approval: release 1.69.0 carries v1.68.0 too, so the deploy must register commands
+  (/scrim gets rekap and statku; still 14 home commands) and the new data file data/scrim-games.json starts
+  empty. Helpers: derive deploy-v1690 from deploy-v1670 (tests 774/771/3 expected on the extract, previous
+  1.67.0-1e39ae52070b); keep the minute 05-45 guard; preflight before stage.
+
 ## Hengs Discord v1.68.0 Hengs Coach phase 1 on branch coach-phase1 (not deployed) - 2026-10-21
 
 - Henry accepted the council scope by starting the side session: a scrim notebook for one MLBB team (Hengs

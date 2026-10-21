@@ -6,16 +6,18 @@
 judged Hengs memes, cloud-live since 2026-10-21 15:12 WIB (includes v1.66.1 WordPress feeds, v1.66.0
 five memes a day, v1.65.0 trending news, v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
-v1.68.0 (branch `coach-phase1`, not deployed): Hengs Coach phase 1, a scrim notebook for Hengs Family. `/scrim hasil`
-logs one MLBB game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private
-team recap and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
+v1.69.0 (local, not deployed): Hengs-made memes get 12 more irony and twist formats (28 templates, rotating by
+day), five options per call and a stricter humour bar. Includes v1.68.0, Hengs Coach phase 1, a scrim notebook for
+Hengs Family: `/scrim hasil` logs one MLBB game (one dropdown for the result and loss reason, lineup prefilled),
+`/scrim rekap` gives a private team recap and `/scrim statku` sends a player's own numbers by DM. Every number
+shows its sample size.
 
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are
 posted. No admin queue or AI fact-check certification. Availability counters remain removed.
-Cloud deployment was accepted on 2026-10-18. On 2026-10-19, owner UI setup opened direct member
-posting in both destinations and applied separate routing without resetting delivery history.
+Cloud deployment was accepted on 2026-10-18 and separate routing has been live since 2026-10-19.
+On 2026-10-21 both channels became read-only for members, who now send with `/kirim`.
 Both channels sit in Announcements, outside Bot Center. Private sharing preview/cancel passed;
 no test item was published. Native permissions were audited, not tested with another member account.
 
