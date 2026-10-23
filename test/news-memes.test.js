@@ -245,4 +245,6 @@ test('meme cards attach the image, describe it and never mention anyone', () => 
   const lemmy = JSON.stringify(memePayload({ ...item, kind: 'lemmy', publisher: 'lemmy', title: 'Synthetic joke',
     url: 'https://programming.dev/post/7', score: 300, comments: 4, file: { name: 'lemmy-meme.jpg', data: JPG } }, NOW));
   assert.match(lemmy, /Lihat post aslinya\]\(https:\/\/programming.dev\/post\/7\)/); assert.match(lemmy, /Skor 300, 4 komentar/);
+  // Every meme asks for a tap; only Hengs-made memes claim that Hengs learns from it.
+  assert.match(lemmy, /Reaksi 😂 kalau lucu, 😐 kalau garing\./); assert.doesNotMatch(lemmy, /belajar dari reaksi/);
 });

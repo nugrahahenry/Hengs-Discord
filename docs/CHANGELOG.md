@@ -5,6 +5,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.72.1] - 2026-10-23
+
+### Fixed
+
+- Every meme now gets real reaction buttons (😂 😐 💀 under the message), not only Hengs-made ones. Henry could not
+  react: since the v1.71.0 deploy the only meme was from Lemmy (17:01), and it had no reactions. The emoji he saw
+  were part of the card text ("😂 Dari Lemmy"). Lemmy and xkcd cards also say "Reaksi 😂 kalau lucu, 😐 kalau
+  garing." without claiming Hengs learns from them. The taste store still learns only from Hengs-made memes.
+
+### Verification
+
+- Node 22 full suite 808/808 via PowerShell.
+
 ## [1.72.0] - 2026-10-23
 
 ### Added

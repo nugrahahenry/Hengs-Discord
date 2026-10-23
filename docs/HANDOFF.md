@@ -2,6 +2,18 @@
 
 Updated: 2026-10-23
 
+## Hengs Discord v1.72.1 reactions on every meme (local, not deployed) - 2026-10-23
+
+- Henry: "Semua meme dapet tapi bisa di react gitu, soalnya tadi gw cek di dalem text gabisa di react." The live
+  check at 18:36 showed why: after the 15:09 v1.71.0 deploy, the only meme was a Lemmy meme at 17:01, and outside
+  memes had no reactions. The same day's log has NEWS_MEME_REVIEW_FAILED 4 and NEWS_MEME_WEAK 1, so the 15:00
+  and 17:00 slots fell back to Lemmy.
+- Deploy is on hold: "Jangan deploy dulu, tunggu aset dari GPT-ku" (Henry, 23 Oct). When it ships, v1.72.0 and
+  v1.72.1 go out together; the analyst channel stays dormant until `/admin setup` > Analis MLBB.
+- Henry asked next for automatic broadcast-style data (KDA, gold, items, emblems, draft order, first pick)
+  feeding a coach. Liquipedia has none of it; its t1h1-t1h5 order is not pick order. A background research doc
+  on legitimate automated sources is due at docs/research/2026-10-23-mlbb-pro-stats-sources.md.
+
 ## Hengs Discord v1.72.0 Hengs Analis (local, not deployed) - 2026-10-23
 
 - Henry approved the analyst design ("Desain oke, lanjut bikin v1.72.0"). His choices: MPL PH + MPL ID +

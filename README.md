@@ -2,15 +2,17 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.72.0 - Hengs Analis (MLBB pro series cards from Liquipedia in
-`📊・hengs-analis`), committed, not deployed yet. Cloud-live is v1.71.0 (one-tap meme votes) since 2026-10-23
+**Current checkpoint:** Hengs Discord v1.72.1 - reaction buttons under every meme (outside memes too) on top of
+v1.72.0 Hengs Analis (MLBB pro series cards from Liquipedia in `📊・hengs-analis`), committed, not deployed yet
+(Henry waits for his GPT assets). Cloud-live is v1.71.0 (one-tap meme votes) since 2026-10-23
 15:09 WIB (includes v1.70.0 memes that learn from members' reactions, v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news
 and meme channels with `/kirim`, v1.66.1 WordPress feeds, v1.66.0 five memes a day, v1.65.0 trending news,
 v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
 Hengs-made memes have 28 templates with irony and twist formats (rotating by day), five options per call and a
 judge that needs humour 8, and they learn from members' reactions, offering the best-liked templates and
-situations first. Hengs adds 😂 😐 💀 under every Hengs meme so a vote is one tap; 😐 counts against. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
+situations first. Hengs adds 😂 😐 💀 as real reactions under every meme (Hengs-made, Lemmy and xkcd) so a vote
+is one tap; on Hengs memes 😐 counts against in the taste store. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
 game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
 

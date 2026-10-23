@@ -723,3 +723,18 @@ test('meme slots use the meme maker, attach files to the meme channel and previe
   assert.equal(parsePrompt('preview meme').action, 'preview_meme');
   assert.equal(parsePrompt('bagikan meme: https://discord.com/channels/1/2/3'), null);
 });
+test('outside memes get the same tap-to-vote reactions but never go to the taste store', async t => {
+  const made = { kind: 'lemmy', publisher: 'lemmy', topic: 'memes', source: 'Lemmy', title: 'Synthetic joke',
+    url: 'https://programming.dev/post/7', score: 300, comments: 4, alt: 'Synthetic joke',
+    file: { name: 'lemmy-meme.jpg', data: Buffer.from('jpg') }, hash: 'f'.repeat(64), publishedAt: BASE };
+  const calls = [];
+  const memeMaker = { make: async () => made, preview: async () => made, remember: (...args) => calls.push(args) };
+  const r = rig(t, { memeMaker });
+  await testedRow(r);
+  const row = r.store.get(GUILD);
+  r.store.revise(GUILD, row.revision, { ...row.settings, memeChannelId: MEMES, memeCount: 1, memeTime: '15:00' });
+  r.advance(DAY + 7 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
+  assert.equal(r.destinations.at(-1), MEMES);
+  assert.deepEqual(r.reactions, ['😂', '😐', '💀']);
+  assert.deepEqual(calls, []);
+});

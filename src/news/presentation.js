@@ -6,6 +6,8 @@ const { wibClock } = require('./store');
 const { validatedCopy } = require('./editor');
 
 const text = content => new TextDisplayBuilder().setContent(content).toJSON();
+// Outside memes ask for a tap too, without claiming Hengs learns from them (only Hengs-made memes are learned from).
+const MEME_TAP = '-# Reaksi 😂 kalau lucu, 😐 kalau garing.';
 const domainOf = value => typeof value === 'string' && /^[a-z0-9.-]{1,60}$/.test(value) ? value : null;
 
 function digestPayload(settings, items, now, intro = '') {
@@ -45,7 +47,8 @@ function digestPayload(settings, items, now, intro = '') {
     ].join('\n\n')));
     components.push(card.toJSON());
   }
-  components.push(text(`-# ${wibClock(now).day} WIB · Maksimal satu artikel per penerbit. Baca sumber untuk konteks lengkap.`));
+  components.push(text(`-# ${wibClock(now).day} WIB · Maksimal satu artikel per penerbit. Baca sumber untuk konteks lengkap.`
+    + (entertainmentOnly ? `\n${MEME_TAP}` : '')));
   return { components, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
@@ -67,7 +70,7 @@ function memePayload(item, now, intro = '') {
       '-# Reaksi 😂 kalau lucu, 😐 kalau garing. Hengs belajar dari reaksi kalian']
     : ['-# 😂 Dari Lemmy programmer_humor', `### ${plain(item.title, 150)}`,
       safeLink(item.url) ? `[Lihat post aslinya](${item.url})` : '',
-      `-# Skor ${Number(item.score) || 0}, ${Number(item.comments) || 0} komentar · Hiburan, bukan berita faktual`];
+      `-# Skor ${Number(item.score) || 0}, ${Number(item.comments) || 0} komentar · Hiburan, bukan berita faktual`, MEME_TAP];
   card.addTextDisplayComponents(text(lines.filter(Boolean).join('\n\n')));
   components.push(card.toJSON());
   components.push(text(`-# ${wibClock(now).day} WIB`));

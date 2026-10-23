@@ -92,11 +92,11 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (kind === 'meme' && items[0]?.kind === 'hengs' && sent?.id) {
         memeMaker?.remember?.(guild.id, { messageId: sent.id, channelId: channel.id, template: items[0].template,
           situation: items[0].topicTitle });
-        // Tap-to-vote buttons; Hengs' own reactions are never counted. Best effort only.
-        if (typeof sent.react === 'function') {
-          for (const emoji of MEME_REACTIONS) {
-            try { await sent.react(emoji); } catch { logger.error('[news] NEWS_MEME_REACT_FAILED'); break; }
-          }
+      }
+      // Real reaction buttons under every meme, outside ones too; Hengs' own reactions are never counted. Best effort.
+      if (kind === 'meme' && typeof sent?.react === 'function') {
+        for (const emoji of MEME_REACTIONS) {
+          try { await sent.react(emoji); } catch { logger.error('[news] NEWS_MEME_REACT_FAILED'); break; }
         }
       }
       return finished;

@@ -240,6 +240,9 @@ test('editor maps dense IDs around no-excerpt comics and shares article cache ac
   assert.deepEqual(result[0].editorial, copy); assert.equal(result[1].editorial, undefined);
   assert.equal(calls, 1);
   assert.match(JSON.stringify(digestPayload(settings, [comic], NOW)), /tidak ditafsirkan oleh AI/);
+  // A comic in the meme channel asks for a tap like every meme; news digests do not.
+  assert.match(JSON.stringify(digestPayload(settings, [comic], NOW)), /Reaksi 😂 kalau lucu, 😐 kalau garing\./);
+  assert.doesNotMatch(JSON.stringify(digestPayload(settings, [article()], NOW)), /kalau garing/);
 });
 
 test('failed, unavailable and unsafe inputs fall back without raw errors or immediate retry', async () => {
