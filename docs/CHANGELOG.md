@@ -5,6 +5,49 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.72.0] - 2026-10-23
+
+### Added
+
+- Hengs Analis: one result card per finished MLBB pro series in a read-only `📊・hengs-analis` channel. Henry asked
+  for MPL recaps from the strongest region (the Philippines, six straight M titles) without screenshots, in a
+  dedicated analyst channel.
+- Data: the Liquipedia MediaWiki API (`src/esports/liquipedia.js`), query only, gzip, at most one request per 2
+  seconds, User-Agent `HengsDiscordBot/<version> (+https://github.com/nugrahahenry/Hengs-Discord)`. One revisions
+  request per check, page content only when a revision changed. Checks run every 20 minutes while a watched series
+  is live and every 3 hours otherwise, and only once an analyst channel exists. A failed check waits like any other.
+  Watchlist: MPL PH S18 Playoffs and MPL ID S18 Playoffs. International pages join when Liquipedia has them.
+- Parser (`src/esports/wikitext.js`): `{{Match}}`/`{{Map}}` wikitext into series with teams (names and tickers learned
+  from map comments), WIB start times (SGT, ICT and other listed zones), per game winner, sides, length, objective,
+  picks, bans and VOD. Inconsistent results are invalid and never posted; unknown time zones are not posted.
+- Card (`src/esports/card.js`): drawn by Hengs with the bundled Barlow fonts. It shows the score, every game, the
+  MVP (or "belum ada di data Liquipedia") and up to two notes counted from the games: comeback, sweep, decider,
+  a hero in every game, side record and longest game. There are no logos, hero art or photos. It uses
+  `assets/esports/series-bg.png` when Henry adds it, otherwise the Aurora gradient.
+- Posting (`src/esports/service.js`): only series that started in the last 36 hours, at most 3 per check. Each post
+  is claimed on disk before the send (no automatic resend) and seeded with 🔥 🤔 ⚠️. For 72 hours Liquipedia
+  corrections edit the card with "Diperbarui HH:MM WIB". A member's ⚠️ (Hengs' own seed excluded) sends the guild
+  owner one DM with the card and source links.
+- `/admin setup` > Analis MLBB: preview, then create or reuse `📊・hengs-analis` in the news category. The channel
+  is read-only for @everyone (view, history, react). Hengs gets Pin Messages there only when the server already
+  granted it. Setup then posts the pinned guide: coverage, timing, how to read the card, reactions, why no
+  screenshots, accuracy. `assets/esports/guide-banner.png` goes on top when it exists.
+- `fetchBounded` accepts `gzip: true`. The size cap then also applies to the decoded bytes. News callers are
+  unchanged and still refuse compressed replies.
+
+### Fixed
+
+- The moderation test "panel maintenance keeps retrying until a private card is persisted" waited a fixed 80 ms
+  and failed under a busy parallel run. It now waits until the panel is saved, up to 2 seconds.
+
+### Verification
+
+- Node 22 full suite 807/807 via PowerShell, twice in the default parallel mode and once with
+  `--test-concurrency=1` (the VM's mode).
+- Parser checked against one real Liquipedia API response (MPL PH and MPL ID S18 playoffs, 2026-10-23 18:04 WIB,
+  1 request, kept outside the repo): every played PH series read correctly, including Team Falcons PH 3-2 Aurora
+  Gaming PH in the upper bracket final.
+
 ## [1.71.0] - 2026-10-23
 
 ### Added

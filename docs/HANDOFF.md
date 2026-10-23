@@ -2,6 +2,21 @@
 
 Updated: 2026-10-23
 
+## Hengs Discord v1.72.0 Hengs Analis (local, not deployed) - 2026-10-23
+
+- Henry approved the analyst design ("Desain oke, lanjut bikin v1.72.0"). His choices: MPL PH + MPL ID +
+  international, cards now and weekly stats later, the public repo URL as the Liquipedia contact, and
+  `📊・hengs-analis` with a description and a pinned guide. He will make the assets in his own GPT.
+- New `src/esports/` (liquipedia, wikitext, store, card, presentation, service); `/admin setup` > Analis MLBB;
+  `fetchBounded` gzip option; index.js starts the service and passes `postAnalystGuide` to the setup buttons.
+- Live data at build time: MPL PH S18 upper bracket final Team Falcons PH 3-2 Aurora Gaming PH (23 Oct, MVP still
+  empty on Liquipedia); lower bracket final 24 Oct and grand final 25 Oct, both 16:00 WIB.
+- Deploy needs approval. Then Henry runs `/admin setup` > Analis MLBB. The first check posts at most 3 series
+  that started in the last 36 hours. The helpers derive from deploy-v1710 (previous 1.71.0-e32090affdba); the
+  rehearsal count must be measured again (807 locally, so VM 807/804/3 skips expected).
+- Next (v1.73.0, before MPL ID playoffs on 4 Nov): weekly stats, match-day previews, M8 and Esports Nations Cup
+  pages in the watchlist, and Henry's GPT assets (`series-bg.png`, `guide-banner.png`).
+
 ## Hengs Discord v1.71.0 deployed and accepted - 2026-10-23
 
 - Henry: "Deploy Discord v1.71.0 sekarang, di luar jam slot." Helpers .cloud/automation/deploy-v1710 derived from

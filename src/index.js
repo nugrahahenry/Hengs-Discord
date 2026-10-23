@@ -54,6 +54,7 @@ const setupCommand = require('./commands/setup');
 const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
+const { createEsportsService } = require('./esports/service');
 const { createNewsEditor } = require('./news/editor');
 const { createMemeMaker } = require('./news/memes');
 const { createMemeTaste, memberReactions } = require('./news/meme-taste');
@@ -106,6 +107,8 @@ const countMemeReactions = async ({ channelId, messageId }) => {
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
   memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
     taste: createMemeTaste(), countReactions: countMemeReactions }) });
+// Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only).
+const esportsService = createEsportsService({ guildAccess });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
@@ -262,6 +265,7 @@ client.once(Events.ClientReady, async (c) => {
   eventHub.start(c);
   personalAssistant.start(c);
   newsService.start(c);
+  esportsService.start(c);
   try {
     await reportHub.start(c);
     console.log('  → Report Hub privat siap menerima laporan member.');
@@ -763,7 +767,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-admin-setup:')) {
     try {
-      await client.commands.get('admin').handleSetupComponent(interaction, { guildAccess });
+      await client.commands.get('admin').handleSetupComponent(interaction, {
+        guildAccess, postAnalystGuide: channel => esportsService.ensureGuide(channel) });
     } catch {
       console.error('[admin-setup] SETUP_COMPONENT_FAILED');
       const payload = { content: 'Panel setup belum bisa diperbarui. Cek hasil sebelumnya sebelum mencoba lagi.',

@@ -3,6 +3,7 @@
 const https = require('node:https');
 const dns = require('node:dns');
 const net = require('node:net');
+const zlib = require('node:zlib');
 
 function publicIPv4(value) {
   if (net.isIP(value) !== 4) return false;
@@ -23,9 +24,10 @@ function publicLookup(host, options, callback) {
   });
 }
 
-// One bounded HTTPS GET to a fixed public host: no redirects, no compression, typed and size-capped.
+// One bounded HTTPS GET to a fixed public host: no redirects, typed and size-capped. Compression only when the
+// caller asks for gzip (some APIs require it); the cap then applies to the decoded bytes too.
 function fetchBounded(url, { hosts = [], types = [], maxBytes = 0, timeoutMs = 10_000, request = https.request,
-  lookup = publicLookup, userAgent = 'Hengs-News/1.0' } = {}) {
+  lookup = publicLookup, userAgent = 'Hengs-News/1.0', gzip = false } = {}) {
   let target;
   try { target = new URL(url); } catch { return Promise.reject(new Error('NEWS_FETCH_REJECTED')); }
   if (target.protocol !== 'https:' || target.username || target.password || target.port
@@ -42,10 +44,10 @@ function fetchBounded(url, { hosts = [], types = [], maxBytes = 0, timeoutMs = 1
     let req;
     try {
       req = request(target.href, { method: 'GET', agent: false, lookup, family: 4, signal: controller.signal,
-        headers: { 'User-Agent': userAgent, Accept: types.join(', '), 'Accept-Encoding': 'identity' } }, res => {
+        headers: { 'User-Agent': userAgent, Accept: types.join(', '), 'Accept-Encoding': gzip ? 'gzip' : 'identity' } }, res => {
         const type = String(res.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-        if (res.statusCode !== 200 || !types.includes(type)
-          || (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity')
+        const encoding = String(res.headers['content-encoding'] || 'identity').toLowerCase();
+        if (res.statusCode !== 200 || !types.includes(type) || !['identity', ...(gzip ? ['gzip'] : [])].includes(encoding)
           || Number(res.headers['content-length'] || 0) > maxBytes) {
           res.destroy(); end(true); return;
         }
@@ -55,7 +57,10 @@ function fetchBounded(url, { hosts = [], types = [], maxBytes = 0, timeoutMs = 1
           if (bytes > maxBytes) { res.destroy(); end(true); return; }
           chunks.push(chunk);
         });
-        res.on('end', () => end(null, Buffer.concat(chunks)));
+        res.on('end', () => {
+          if (encoding !== 'gzip') { end(null, Buffer.concat(chunks)); return; }
+          zlib.gunzip(Buffer.concat(chunks), { maxOutputLength: maxBytes }, (error, decoded) => end(error, decoded));
+        });
         res.on('error', () => end(true));
         res.on('aborted', () => end(true));
       });

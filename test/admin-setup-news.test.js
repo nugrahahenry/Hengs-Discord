@@ -381,7 +381,7 @@ test('actual admin command and component route offer the optional question witho
   assert.equal(r.created.length, 1);
   const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
   assert(source.includes("startsWith('hengs-admin-setup:')"));
-  assert(source.includes("client.commands.get('admin').handleSetupComponent(interaction, { guildAccess })"));
+  assert(source.includes("client.commands.get('admin').handleSetupComponent(interaction, {\n        guildAccess, postAnalystGuide: channel => esportsService.ensureGuide(channel) })"));
 });
 
 test('actual full admin setup adds optional news in announcements without enabling a news scheduler', async () => {
@@ -394,4 +394,41 @@ test('actual full admin setup adds optional news in announcements without enabli
   assert(embed.fields.some(f => f.name.includes('Hengs News') && f.value.includes('belum diaktifkan')));
   const source = fs.readFileSync(path.join(__dirname, '../src/guilds/admin-setup.js'), 'utf8');
   assert(!/news\/store|news\/service|\.setEnabled\(|\.send\(/.test(source));
+});
+
+test('analyst setup previews first, then makes one read-only hengs-analis beside news and posts the pinned guide', async () => {
+  const r = rig(); const parent = r.channel('GAMING', ChannelType.GuildCategory);
+  r.channel('📰・hengs-news', ChannelType.GuildText, parent.id);
+  const guides = []; r.deps.postAnalystGuide = async channel => { guides.push(channel.name); return { posted: true, pinned: true }; };
+  const question = await open(r);
+  assert.ok(button(question, 'analis'));
+  const p = (await click(r, question, 'analis')).edits.at(-1);
+  assert.match(p.content, /Preview channel analis/); assert.match(p.content, /Cuma Hengs yang posting/); assert.match(p.content, /Liquipedia/);
+  assert.equal(r.created.length, 0); assert.deepEqual(guides, []);
+  const i = await click(r, p, 'analisapply');
+  assert.equal(r.created.length, 1); assert.equal(r.legacy.length, 0);
+  const options = r.created[0];
+  assert.equal(options.name, '📊・hengs-analis'); assert.equal(options.parent, parent.id); assert.match(options.topic, /Liquipedia/);
+  const [everyone, bot] = options.permissionOverwrites;
+  assert(everyone.deny.includes(P.SendMessages) && everyone.allow.includes(P.AddReactions) && everyone.allow.includes(P.ViewChannel));
+  assert(bot.allow.includes(P.SendMessages) && bot.allow.includes(P.AttachFiles) && bot.allow.includes(P.EmbedLinks));
+  assert(!bot.allow.includes(P.PinMessages)); // Hengs cannot grant itself a permission it lacks server-wide
+  assert.deepEqual(guides, ['📊・hengs-analis']);
+  assert.match(i.edits.at(-1).content, /Channel analis siap/); assert.match(i.edits.at(-1).content, /Panduan sudah dikirim dan di-pin/);
+  // Running it again reuses the channel and lets the guide step decide whether anything is missing.
+  r.deps.postAnalystGuide = async channel => { guides.push(channel.name); return { posted: true, pinned: false }; };
+  const again = await click(r, (await click(r, await open(r), 'analis')).edits.at(-1), 'analisapply');
+  assert.equal(r.created.length, 1); assert.equal(guides.length, 2);
+  assert.match(again.edits.at(-1).content, /pin manual/);
+});
+
+test('analyst setup grants Hengs pinning only when the server already gave it, and reports a failed guide', async () => {
+  const r = rig();
+  r.guild.members.me.permissions.has = p => Array.isArray(p) || p === P.ManageChannels || p === P.PinMessages;
+  r.deps.postAnalystGuide = async () => { throw new Error('private-provider'); };
+  const i = await click(r, (await click(r, await open(r), 'analis')).edits.at(-1), 'analisapply');
+  assert(r.created[0].permissionOverwrites[1].allow.includes(P.PinMessages));
+  assert.equal(r.created[0].parent, undefined);
+  assert.match(i.edits.at(-1).content, /Panduan belum terkirim/);
+  assert(!JSON.stringify([i.edits, r.logs]).includes('private-provider'));
 });

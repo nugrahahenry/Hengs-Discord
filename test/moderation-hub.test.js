@@ -568,7 +568,8 @@ test('panel maintenance keeps retrying until a private card is persisted', async
   const client = { guilds: { cache: new Map([[guild.id, guild]]) } };
 
   await hub.start(client, { panelRetryDelayMs: 10 });
-  await new Promise(resolve => setTimeout(resolve, 80));
+  // Wait for the retries to land instead of a fixed 80 ms, which flaked under a busy parallel test run.
+  for (let i = 0; i < 200 && !store.listIncidents()[0].panel; i++) await new Promise(resolve => setTimeout(resolve, 10));
 
   assert.ok(store.listIncidents()[0].panel);
   assert.equal(channel.sent.length, 1);
