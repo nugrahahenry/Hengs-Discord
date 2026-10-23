@@ -86,6 +86,17 @@ function createScrimStore({ filePath = path.join(__dirname, '..', '..', 'data', 
       row.games = [...row.games, structuredClone(game)].slice(-MAX_GAMES);
       write(state);
     },
+    // Undo a wrong log: true when the game was there and is gone now; nothing to remove never writes the file.
+    remove(guildId, messageId) {
+      if (!snowflake(guildId) || !snowflake(messageId)) return false;
+      const state = read();
+      const row = state.guilds.find(item => item.guildId === guildId);
+      const kept = row?.games.filter(item => item.messageId !== messageId);
+      if (!row || kept.length === row.games.length) return false;
+      row.games = kept;
+      write(state);
+      return true;
+    },
   };
 }
 

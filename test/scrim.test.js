@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { Collection, ChannelType, ComponentType, PermissionFlagsBits: P } = require('discord.js');
 const { createScrimStore, MAX_GAMES } = require('../src/scrim/store');
-const { createScrimResults, readSubmission, RESULT_CHOICES, CHANNEL_NAME, findTeamRole } = require('../src/scrim/service');
+const { createScrimResults, readSubmission, RESULT_CHOICES, MESSAGES, CHANNEL_NAME, findTeamRole } = require('../src/scrim/service');
 const { createAdminSetupFlow, ensureScrimSetup } = require('../src/guilds/admin-setup');
 const scrimCommand = require('../src/commands/scrim');
 const hengsCommand = require('../src/commands/hengs');
@@ -37,11 +37,12 @@ function options(over = {}) {
 function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, everyoneCanView = false,
   store, games = [] } = {}) {
   const role = { id: '700000000000000001', name: 'Hengs Family' };
-  const sends = []; const records = []; const downloads = []; const dms = [];
+  const sends = []; const records = []; const downloads = []; const dms = []; const removals = []; const cardDeletes = [];
   const team = new Set(teamMember ? [U, T2] : [T2]);
   const memberOf = id => ({ id, roles: { cache: new Collection(team.has(id) ? [[role.id, role]] : []) } });
   const channel = { id: '700000000000000002', name: CHANNEL_NAME, type: ChannelType.GuildText, guildId: G,
     permissionsFor: target => ({ has: () => (target?.id === G ? everyoneCanView : botAllowed) }),
+    messages: { async delete(id) { cardDeletes.push(id); } },
     async send(payload) { sends.push(payload); return { id: String(900000000000000000n + BigInt(sends.length)) }; } };
   const guild = { id: G,
     roles: { everyone: { id: G }, cache: new Collection(roleExists ? [[role.id, role]] : []),
@@ -53,7 +54,14 @@ function rigService({ teamMember = true, roleExists = true, channelExists = true
     }, async fetchMe() { return { id: BOT }; } } };
   const saved = structuredClone(games);
   const service = createScrimResults({ store: store || { list: () => structuredClone(saved),
-    add: (guildId, row) => { records.push([guildId, row]); saved.push(structuredClone(row)); } },
+    add: (guildId, row) => { records.push([guildId, row]); saved.push(structuredClone(row)); },
+    remove: (guildId, messageId) => {
+      const at = saved.findIndex(row => row.messageId === messageId);
+      if (at < 0) return false;
+      removals.push([guildId, messageId]);
+      saved.splice(at, 1);
+      return true;
+    } },
   logger: { error() {} }, now: () => NOW,
   fetchImpl: async (url, init) => { downloads.push([url, init]); return { ok: true,
     headers: { get: key => ({ 'content-type': 'image/png', 'content-length': '4' })[key] },
@@ -68,7 +76,7 @@ function rigService({ teamMember = true, roleExists = true, channelExists = true
       async editReply(payload) { this.edits.push(payload); }, async update(payload) { this.updates.push(payload); },
       async respond(choices) { this.responses.push(choices); }, ...over };
   }
-  return { service, guild, channel, role, sends, records, downloads, dms, team, memberOf, interaction };
+  return { service, guild, channel, role, sends, records, downloads, dms, removals, cardDeletes, saved, team, memberOf, interaction };
 }
 
 const buttonId = (payload, index) => payload.components[1].toJSON().components[index].custom_id;
@@ -137,6 +145,129 @@ test('one hasil dropdown gives outcome and loss reason, the screenshot is option
   }
 });
 
+test('scrim store removes one game by message ID and leaves everything else', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scrim-'));
+  const file = path.join(dir, 'scrim-games.json');
+  const OTHER = '723456789012345678';
+  try {
+    const store = createScrimStore({ filePath: file });
+    assert.equal(store.remove(G, game(1).messageId), false);
+    assert.deepEqual(fs.readdirSync(dir), [], 'nothing to remove never creates the file');
+    store.add(G, game(1));
+    store.add(G, game(2));
+    store.add(OTHER, game(3));
+    assert.equal(store.remove(G, game(1).messageId), true);
+    assert.deepEqual(store.list(G), [game(2)]);
+    assert.deepEqual(store.list(OTHER), [game(3)]);
+    assert.equal(store.remove(G, game(1).messageId), false);
+    assert.equal(store.remove(OTHER, game(2).messageId), false);
+    assert.equal(store.remove(G, 'not-a-snowflake'), false);
+    assert.deepEqual(fs.readdirSync(dir), ['scrim-games.json']);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('scrim hapus previews only the requester\'s own last game, then one confirm removes it and pulls the card', async () => {
+  const mine = game(1, { at: NOW - 3_600_000, outcome: 'kalah', reason: 'teamfight', lineup: [U, T2] });
+  const r = rigService({ games: [game(0, { at: NOW - 7_200_000 }), mine, game(2, { at: NOW - 600_000, submitterId: T2 })] });
+  const ask = r.interaction();
+  await r.service.remove(ask, deps);
+  const preview = ask.edits.at(-1);
+  assert.match(preview.content, /Hapus game terakhir yang kamu catat\?/);
+  assert.match(preview.content, /MLBB vs Tim Contoh: L \(teamfight\), 21 Okt 11:00 WIB\nLineup: <@323456789012345678> <@523456789012345678>/);
+  assert.deepEqual(preview.allowedMentions, { parse: [] });
+  const [remove, keep] = preview.components[0].toJSON().components.map(component => component.custom_id);
+  assert.match(remove, /^hengs-scrim:[a-f0-9]{24}:delete$/);
+  assert.match(keep, /^hengs-scrim:[a-f0-9]{24}:keep$/);
+  assert.equal(r.removals.length + r.cardDeletes.length, 0);
+  const confirm = r.interaction({ customId: remove, isButton: () => true });
+  assert.equal(await r.service.handleComponent(confirm), true);
+  assert.deepEqual(r.removals, [[G, mine.messageId]]);
+  assert.deepEqual(r.cardDeletes, [mine.messageId]);
+  assert.match(confirm.edits.at(-1).content, /Beres, game itu udah dihapus dari rekap dan kartunya di hasil-scrim ikut ditarik/);
+  const again = r.interaction({ customId: remove, isButton: () => true });
+  await r.service.handleComponent(again);
+  assert.equal(r.removals.length, 1);
+  assert.match(again.replies.at(-1).content, /Jalanin \/scrim hapus lagi/);
+});
+
+test('scrim hapus keeps on Batal, says when nothing is left and reports a card it could not pull', async () => {
+  const removeId = payload => payload.components[0].toJSON().components[0].custom_id;
+  async function asked(r) { const i = r.interaction(); await r.service.remove(i, deps); return i.edits.at(-1); }
+  let r = rigService({ games: [game(1, { submitterId: T2 })] });
+  let preview = await asked(r);
+  assert.match(preview.content, /Belum ada game yang kamu catat/);
+  assert.deepEqual(preview.components, []);
+
+  r = rigService({ games: [game(1)] });
+  preview = await asked(r);
+  const kept = r.interaction({ customId: preview.components[0].toJSON().components[1].custom_id, isButton: () => true });
+  await r.service.handleComponent(kept);
+  assert.equal(r.removals.length, 0);
+  assert.match(kept.edits.at(-1).content, /nggak jadi dihapus/);
+
+  r = rigService({ games: [game(1)] });
+  preview = await asked(r);
+  r.channel.messages.delete = async () => { throw Object.assign(new Error('private-network'), { code: 50013 }); };
+  let click = r.interaction({ customId: removeId(preview), isButton: () => true });
+  await r.service.handleComponent(click);
+  assert.equal(r.removals.length, 1);
+  assert.match(click.edits.at(-1).content, /kartunya di hasil-scrim belum bisa ditarik/);
+  assert.doesNotMatch(JSON.stringify(click.edits), /private-/);
+
+  r = rigService({ games: [game(1)] });
+  preview = await asked(r);
+  r.channel.messages.delete = async () => { throw Object.assign(new Error('gone'), { code: 10008 }); };
+  click = r.interaction({ customId: removeId(preview), isButton: () => true });
+  await r.service.handleComponent(click);
+  assert.match(click.edits.at(-1).content, /Beres, game itu udah dihapus dari rekap/);
+
+  r = rigService({ games: [game(1)] });
+  preview = await asked(r);
+  r.saved.length = 0; // an admin deleted the card in the meantime
+  click = r.interaction({ customId: removeId(preview), isButton: () => true });
+  await r.service.handleComponent(click);
+  assert.equal(r.cardDeletes.length, 0);
+  assert.match(click.edits.at(-1).content, /udah nggak ada di rekap/);
+
+  r = rigService({ games: [game(1)] });
+  preview = await asked(r);
+  r.guild.members.fetch = async () => ({ id: U, roles: { cache: new Collection() } });
+  click = r.interaction({ customId: removeId(preview), isButton: () => true });
+  await r.service.handleComponent(click);
+  assert.equal(r.removals.length, 0);
+  assert.match(click.edits.at(-1).content, /khusus anggota role Hengs Family/);
+});
+
+test('deleting one Hengs card in hasil-scrim drops its game; other channels and unknown messages change nothing', () => {
+  const r = rigService({ games: [game(1), game(2)] });
+  const scrimChannel = { name: CHANNEL_NAME };
+  assert.equal(r.service.forget({ guildId: G, id: game(1).messageId, channel: scrimChannel }), true);
+  assert.deepEqual(r.removals, [[G, game(1).messageId]]);
+  assert.equal(r.service.forget({ guildId: G, id: game(2).messageId, channel: { name: 'general' } }), false);
+  assert.equal(r.service.forget({ guildId: G, id: '999999999999999999', channel: scrimChannel }), false);
+  assert.equal(r.service.forget({ id: game(2).messageId, channel: scrimChannel }), false);
+  assert.equal(r.removals.length, 1);
+});
+
+test('/scrim hapus is registered without options and routed to the service', async () => {
+  const hapus = scrimCommand.data.toJSON().options.find(option => option.name === 'hapus');
+  assert.deepEqual(hapus.options ?? [], []);
+  const calls = [];
+  await scrimCommand.execute({ options: { getSubcommand: () => 'hapus' } },
+    { scrimResults: { remove: async () => calls.push('remove') }, guildAccess: deps.guildAccess });
+  assert.deepEqual(calls, ['remove']);
+});
+
+test('coach messages and result choices stay kid-safe and free of long dashes', () => {
+  const unsafe = /anjay|anjir|bjir|goblok|bego|tolol|beban|noob|feeder|cupu|ampas/i;
+  const longDash = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`);
+  for (const text of [...Object.values(MESSAGES), ...RESULT_CHOICES.map(choice => choice.name)]) {
+    assert.doesNotMatch(text, unsafe);
+    assert.doesNotMatch(text, longDash);
+  }
+  assert.deepEqual(RESULT_CHOICES.map(choice => choice.name.split(/[ :]/)[0]), ['W', 'L', 'L', 'L', 'L', 'L']);
+});
+
 test('opponent and note cuts never leave half an emoji behind', () => {
   const parsed = readSubmission(options({ lawan: `${'A'.repeat(59)}${EMOJI}`, catatan: `${'b'.repeat(299)}${EMOJI}` }));
   assert.equal(parsed.opponent, 'A'.repeat(59));
@@ -154,7 +285,7 @@ test('a second Kirim while the first is still posting says busy, not that nothin
   const first = r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
   const second = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
   await r.service.handleComponent(second);
-  assert.match(second.replies.at(-1).content, /Masih ada kiriman yang diproses/);
+  assert.match(second.replies.at(-1).content, /masih diproses, sabar bentar/);
   release();
   await first;
   assert.equal(r.sends.length, 1);
@@ -164,8 +295,8 @@ test('a second Kirim while the first is still posting says busy, not that nothin
 test('a team member previews one game with the last team lineup prefilled, then one Kirim posts and records it', async () => {
   const r = rigService({ games: [game(1, { at: NOW - 3_600_000, opponent: 'tim contoh', lineup: [U, OUT, T2] })] });
   const preview = await previewed(r);
-  assert.match(preview.content, /MLBB vs Tim Contoh: Menang\*\*\nSkor hari ini vs lawan ini: 2-0\nLineup: <@323456789012345678> <@523456789012345678>\n/);
-  assert.match(preview.content, /Belum dikirim/);
+  assert.match(preview.content, /MLBB vs Tim Contoh: W\*\*\nSkor hari ini vs mereka: 2-0\nLineup: <@323456789012345678> <@523456789012345678>\n/);
+  assert.match(preview.content, /belum kekirim apa-apa/);
   assert.deepEqual(preview.allowedMentions, { parse: [] });
   assert.equal(preview.embeds[0].image.url, IMG);
   const select = selectOf(preview);
@@ -177,18 +308,18 @@ test('a team member previews one game with the last team lineup prefilled, then 
   const click = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
   assert.equal(await r.service.handleComponent(click), true);
   assert.equal(r.sends.length, 1);
-  assert.match(r.sends[0].content, /Skor hari ini vs lawan ini: 2-0\nLineup: <@323456789012345678> <@523456789012345678>\nDicatat oleh <@323456789012345678>/);
+  assert.match(r.sends[0].content, /Skor hari ini vs mereka: 2-0\nLineup: <@323456789012345678> <@523456789012345678>\nDicatat sama <@323456789012345678>/);
   assert.deepEqual(r.sends[0].allowedMentions, { parse: [] });
   assert.equal(r.sends[0].enforceNonce, true);
   assert.equal(r.sends[0].files[0].name, 'hasil-scrim.png');
   assert.deepEqual(r.downloads.map(([url, init]) => [url, init.redirect]), [[IMG, 'error']]);
   assert.deepEqual(r.records, [[G, { messageId: '900000000000000001', at: NOW, submitterId: U, opponent: 'Tim Contoh',
     outcome: 'menang', reason: null, lineup: [U, T2], note: '' }]]);
-  assert.match(click.edits.at(-1).content, /tercatat untuk rekap/);
+  assert.match(click.edits.at(-1).content, /kecatat buat rekap/);
   const again = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
   await r.service.handleComponent(again);
   assert.equal(r.sends.length, 1);
-  assert.match(again.replies.at(-1).content, /kedaluwarsa/);
+  assert.match(again.replies.at(-1).content, /udah basi/);
 });
 
 test('the lineup select keeps only Hengs Family members and mismatched components are refused', async () => {
@@ -201,14 +332,14 @@ test('the lineup select keeps only Hengs Family members and mismatched component
   assert.equal(await r.service.handleComponent(pick), true);
   const updated = pick.updates.at(-1);
   assert.match(updated.content, /Lineup: <@523456789012345678> <@323456789012345678>\n/);
-  assert.match(updated.content, /1 pilihan diabaikan karena bukan Hengs Family/);
+  assert.match(updated.content, /1 pilihan di-skip karena bukan Hengs Family/);
   assert.deepEqual(selectOf(updated).default_values.map(value => value.id), [T2, U]);
   const buttonAsLineup = r.interaction({ customId: buttonId(preview, 0).replace(':send', ':lineup'), isButton: () => true });
   await r.service.handleComponent(buttonAsLineup);
-  assert.match(buttonAsLineup.replies.at(-1).content, /kedaluwarsa/);
+  assert.match(buttonAsLineup.replies.at(-1).content, /udah basi/);
   const selectAsSend = r.interaction({ customId: buttonId(preview, 0), isUserSelectMenu: () => true, values: [], members: new Collection() });
   await r.service.handleComponent(selectAsSend);
-  assert.match(selectAsSend.replies.at(-1).content, /kedaluwarsa/);
+  assert.match(selectAsSend.replies.at(-1).content, /udah basi/);
   assert.equal(r.sends.length, 0);
   await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
   assert.deepEqual(r.records[0][1].lineup, [T2, U]);
@@ -220,7 +351,7 @@ test('a loss without a screenshot posts its reason as text only, with no downloa
   await r.service.preview(i, deps);
   const preview = i.edits.at(-1);
   assert.deepEqual(preview.embeds, []);
-  assert.match(preview.content, /MLBB vs Tim Contoh: Kalah \(objective\)\*\*\nSkor hari ini vs lawan ini: 0-1\n/);
+  assert.match(preview.content, /MLBB vs Tim Contoh: L \(objective\)\*\*\nSkor hari ini vs mereka: 0-1\n/);
   await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
   assert.deepEqual(r.sends[0].files, []);
   assert.match(r.sends[0].content, /Catatan: telat rotasi ke lord/);
@@ -232,7 +363,7 @@ test('a loss without a screenshot posts its reason as text only, with no downloa
 test('non-team members, missing setup, other guilds and bad images never reach the channel', async () => {
   for (const [setup, message] of [[{ teamMember: false }, /khusus anggota role Hengs Family/],
     [{ roleExists: false }, /Role Hengs Family belum ada/], [{ channelExists: false }, /Channel hasil-scrim belum ada/],
-    [{ botAllowed: false }, /Hengs perlu izin/], [{ everyoneCanView: true }, /masih bisa dilihat semua member/]]) {
+    [{ botAllowed: false }, /Hengs butuh izin/], [{ everyoneCanView: true }, /masih bisa dilihat semua member/]]) {
     const r = rigService(setup);
     const preview = await previewed(r);
     assert.match(preview.content, message);
@@ -255,7 +386,7 @@ test('cancel, revoked role, failed record and uncertain sends are reported hones
   let click = r.interaction({ customId: buttonId(preview, 1), isButton: () => true });
   await r.service.handleComponent(click);
   assert.equal(r.sends.length, 0);
-  assert.match(click.edits.at(-1).content, /Dibatalkan/);
+  assert.match(click.edits.at(-1).content, /dibatalin/);
 
   r = rigService();
   preview = await previewed(r);
@@ -270,7 +401,7 @@ test('cancel, revoked role, failed record and uncertain sends are reported hones
   click = r.interaction({ customId: buttonId(preview, 0), isButton: () => true });
   await r.service.handleComponent(click);
   assert.equal(r.sends.length, 1);
-  assert.match(click.edits.at(-1).content, /belum tersimpan untuk rekap/);
+  assert.match(click.edits.at(-1).content, /belum kesimpan buat rekap/);
 
   r = rigService({ store: { list() { throw new Error('SCRIM_STATE_INVALID'); }, add() {} } });
   preview = await previewed(r);
@@ -285,7 +416,7 @@ test('cancel, revoked role, failed record and uncertain sends are reported hones
   await r.service.handleComponent(click);
   await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
   assert.equal(attempts, 1);
-  assert.match(click.edits.at(-1).content, /belum bisa dipastikan/);
+  assert.match(click.edits.at(-1).content, /belum bisa dipastiin/);
   assert.doesNotMatch(JSON.stringify(click.edits), /private-/);
 });
 
@@ -403,10 +534,10 @@ test('a game logged through the service lands in the real store and shows up in 
       [['kalah', 'teamfight', [U, T2], 'war di lord telat']]);
     const recap = r.interaction({ options: options({ lawan: null }) });
     await r.service.recap(recap, deps);
-    assert.match(recap.edits.at(-1).content, /Semua: menang 0 dari 1 game, belum cukup data\./);
+    assert.match(recap.edits.at(-1).content, /Semua: W 0 dari 1 game, datanya masih dikit, belum bisa dinilai/);
     assert.match(recap.edits.at(-1).content, /war di lord telat/);
     await r.service.stats(r.interaction(), deps);
-    assert.match(r.dms.at(-1).content, /Alasan kalah \(1 kalah\): teamfight 1\./);
+    assert.match(r.dms.at(-1).content, /Kalah \(1\): teamfight 1\./);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -417,7 +548,7 @@ test('rekap answers a team member privately with honest numbers, filtered by a s
   const all = r.interaction({ options: options({ lawan: null }) });
   await r.service.recap(all, deps);
   assert.equal(all.deferred, true);
-  assert.match(all.edits.at(-1).content, /^📒 \*\*Rekap scrim Hengs Family \(MLBB\)\*\*\nSemua: menang 1 dari 2 game, belum cukup data\./);
+  assert.match(all.edits.at(-1).content, /^📒 \*\*Rekap scrim Hengs Family \(MLBB\)\*\*\nSemua: W 1 dari 2 game, datanya masih dikit, belum bisa dinilai/);
   assert.deepEqual(all.edits.at(-1).allowedMentions, { parse: [] });
   const one = r.interaction({ options: options({ lawan: `LAWAN${String.fromCharCode(0x202e)} lain` }) });
   await r.service.recap(one, deps);
@@ -428,7 +559,7 @@ test('rekap answers a team member privately with honest numbers, filtered by a s
   const denied = outsider.interaction({ options: options({ lawan: null }) });
   await outsider.service.recap(denied, deps);
   assert.match(denied.edits.at(-1).content, /khusus anggota role Hengs Family/);
-  assert.doesNotMatch(denied.edits.at(-1).content, /menang/);
+  assert.doesNotMatch(denied.edits.at(-1).content, /dari \d+ game/);
   const elsewhere = r.interaction();
   await r.service.recap(elsewhere, { guildAccess: { classify: () => ({ kind: 'public' }) } });
   assert.match(elsewhere.replies.at(-1).content, /server utama/);
@@ -440,16 +571,16 @@ test('statku sends only the requester\'s own numbers by DM and never shows them 
   const i = r.interaction();
   await r.service.stats(i, deps);
   assert.equal(r.dms.length, 1);
-  assert.match(r.dms[0].content, /^📒 \*\*Statistik scrim kamu/);
-  assert.match(r.dms[0].content, /Semua: menang 1 dari 1 game, belum cukup data\./);
+  assert.match(r.dms[0].content, /^📒 \*\*Stat scrim kamu/);
+  assert.match(r.dms[0].content, /Semua: W 1 dari 1 game, datanya masih dikit, belum bisa dinilai/);
   assert.doesNotMatch(r.dms[0].content, /teamfight/);
   assert.deepEqual(r.dms[0].allowedMentions, { parse: [] });
-  assert.match(i.edits.at(-1).content, /sudah dikirim lewat DM/);
-  assert.doesNotMatch(i.edits.at(-1).content, /menang/);
+  assert.match(i.edits.at(-1).content, /udah dikirim lewat DM/);
+  assert.doesNotMatch(i.edits.at(-1).content, /dari \d+ game/);
   const closed = r.interaction({ user: { id: U, bot: false, async send() { throw new Error('Cannot send messages to this user'); } } });
   await r.service.stats(closed, deps);
   assert.match(closed.edits.at(-1).content, /belum bisa DM kamu/);
-  assert.doesNotMatch(closed.edits.at(-1).content, /menang|Cannot/);
+  assert.doesNotMatch(closed.edits.at(-1).content, /dari \d+ game|Cannot/);
   const outsider = rigService({ teamMember: false, games });
   const denied = outsider.interaction();
   await outsider.service.stats(denied, deps);
@@ -494,11 +625,13 @@ test('help and privacy describe the per-game notebook, the private recap and DM-
   assert.match(help, /`\/scrim hasil` tiap game/);
   assert.match(help, /`\/scrim rekap` buat rekap tim/);
   assert.match(help, /`\/scrim statku` kirim statistikmu lewat DM/);
+  assert.match(help, /Salah catat\? `\/scrim hapus`/);
   const privacy = { guildId: G, channelId: SRC, user: { id: U }, inGuild: () => true,
     options: { getSubcommand: () => 'privacy', getString: () => null }, async reply(payload) { this.payload = payload; } };
   await hengsCommand.execute(privacy, deps);
   assert.match(privacy.payload.content, /lineup \(ID Discord anggota Hengs Family\)/);
   assert.match(privacy.payload.content, /cuma dikirim ke pemain itu lewat DM/);
+  assert.match(privacy.payload.content, /Pencatat bisa menghapus game terakhirnya lewat \/scrim hapus/);
   assert.doesNotMatch(privacy.payload.content, /skor, hasil, game/);
   assert.ok(privacy.payload.content.length <= 2000);
 });
@@ -509,6 +642,9 @@ test('runtime routes scrim buttons and the lineup select to the service and hand
   assert.ok(source.includes('await scrimResults.handleComponent(interaction);'));
   assert.ok(source.includes('await cmd.autocomplete(interaction, { scrimResults });'));
   assert.doesNotMatch(source, /scrimResults\.handleButton/);
+  // One deleted card drops its game; a bulk purge never wipes the notebook.
+  assert.match(source, /client\.on\(Events\.MessageDelete, [\s\S]{0,200}scrimResults\.forget\(message\)/);
+  assert.doesNotMatch(source, /MessageBulkDelete[\s\S]{0,300}scrimResults/);
 });
 
 test('the team role is found with or without an emoji prefix, and two candidates still conflict', async () => {

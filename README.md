@@ -86,15 +86,20 @@ lewat Server Settings > Members.
 
 Anggota Hengs Family di bot-commands, satu perintah per game (target di bawah 30 detik):
 `/scrim hasil lawan hasil [ss] [catatan]`. `lawan` punya autocomplete dari lawan yang pernah dicatat; `hasil`
-satu dropdown: Menang, atau Kalah plus alasan utama (early game, objective, teamfight, draft, lainnya). Preview
+satu dropdown: W, atau L plus alasan utama (early game, objective, teamfight, draft, lainnya). Preview
 privat menampilkan kartu, skor hari ini vs lawan yang sama dan pilihan lineup (maks 5, otomatis terisi lineup
 game terakhir yang masih Hengs Family), lalu Kirim/Batal (hangus 10 menit). Hengs memposting kartu (plus SS kalau
 ada) tanpa ping dan mencatat game itu. Kalau hasil-scrim ternyata bisa dilihat semua member, Hengs menolak memposting.
 
 `/scrim rekap [lawan]`: rekap tim privat (semua game, 7 dan 30 hari, form 5 game terakhir, alasan kalah, 5 lawan
 teratas, 3 catatan terakhir); dengan `lawan` jadi ingatan sebelum ketemu lawan yang sama. `/scrim statku`:
-statistik game yang mencantumkan kamu di lineup, dikirim lewat DM saja. Semua angka ditulis "menang X dari N
-game"; persen baru muncul mulai 5 game dan "paling sering" mulai 5 kekalahan.
+statistik game yang mencantumkan kamu di lineup, dikirim lewat DM saja. Semua angka ditulis "W X dari N game";
+persen baru muncul mulai 5 game dan "paling sering" mulai 5 kekalahan. Suara coach: Gen Z santai buat anak-anak
+(W/L, slang secukupnya, tanpa kata kasar, tanpa nyalahin pemain atau ngeledek lawan).
+
+Salah catat: `/scrim hapus` menampilkan game terakhir yang kamu catat secara privat; "Hapus game ini" menghapusnya dari
+rekap dan menarik kartunya di hasil-scrim. Admin yang menghapus satu kartu Hengs di hasil-scrim juga ikut menghapus
+game-nya; purge massal tidak menyentuh data.
 
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama
