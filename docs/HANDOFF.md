@@ -21,7 +21,12 @@ Updated: 2026-10-23
   on failures, Discord errors falling back to shared chat, member notes inside system text). Second commit fixes all
   nine with tests: masking instead of dropping, data card as a user message, `guard` hook in agent.chat before history,
   destination() for the coach gate (unknown @everyone permissions now count as public for /scrim hasil too).
-- QA: Node 22 full suite from PowerShell 810 total, 809 pass, 1 worktree-only skip. From Git Bash five state-transfer
+- Third commit: coach rules tuned with the coach exam (bans first, reminder line at the end of the data card,
+  temperature 0.3 via a new optional `temperature` in agent.chat, code-decided bedtime line, habit targets, no links,
+  notes with insults hidden whole, "N menit pertama" rewritten to "di awal game"). Exam (ignored, in the main checkout):
+  .cloud/evals/coach-2026-10-23 (run.cjs, scenarios.json, grades.json, score.cjs, tanya.cjs) and
+  docs/research/2026-10-23-hengs-coach-exam.md. Plain chat 19/40, coach 17 to 20/40 before tuning, 33/40 after.
+- QA: Node 22 full suite from PowerShell 816 total, 815 pass, 1 worktree-only skip. From Git Bash five state-transfer
   tests fail with TAR_FAILED (GNU tar on Windows paths), unrelated to this change.
 - Deploy (Henry's approval): after coach-gaul, fast-forward, register commands once (new `tanya`, still 14 home
   commands). No env, secret or data change. Design flag for Henry before switching it on: parental consent for members

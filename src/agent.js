@@ -238,7 +238,10 @@ async function chat(userMessage, conversationKey, context = {}) {
   const finish = typeof context?.guard === 'function' ? context.guard : reply => reply;
   // gpt-oss memakai sebagian budget untuk reasoning internal. 400 token bisa habis
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
-  const params = { messages, max_tokens: 700, temperature: 0.7 };
+  // Coach mode asks for a lower temperature so the model keeps to its rules.
+  const temperature = typeof context?.temperature === 'number' && context.temperature >= 0 && context.temperature <= 1
+    ? context.temperature : 0.7;
+  const params = { messages, max_tokens: 700, temperature };
   const commit = (reply) => {
     if (stateless) return true;
     if (histories.get(conversationKey) !== conversation || conversation.generation !== generation

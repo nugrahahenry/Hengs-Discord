@@ -12,7 +12,7 @@ const {
 } = require('discord.js');
 const { MAX_LINEUP } = require('./store');
 const { REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
-const { COACH_DAILY_LIMIT, COACH_RULES, coachData, scrubIds, guardReply, createCoachQuota } = require('./coach');
+const { COACH_DAILY_LIMIT, coachContext, createCoachQuota } = require('./coach');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -217,18 +217,13 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
   // A personal turn (/scrim tanya) adds the asker's own stats and keeps no history. Only a real model answer
   // (the guard ran) costs a question; cooldown and outage replies are free.
   async function coachReply({ guildId, userId, text, personal = false }) {
-    const question = scrubIds(text);
     let answered = false;
-    const reply = await agent.chat(question, agent.buildConversationKey(guildId, userId), {
-      kind: 'home', visibility: 'coach', system: COACH_RULES, ...(personal ? { stateless: true } : {}),
-      data: coachData(store.list(guildId), { text: question, userId: personal ? userId : null, now: now() }),
-      guard(answer) {
+    const { question, context } = coachContext(store.list(guildId), { text, userId: personal ? userId : null, now: now(),
+      onGuard(answer, checked) {
         answered = true;
-        const checked = guardReply(answer, { question });
         if (checked.masked) logger.error('[scrim] COACH_REPLY_MASKED');
-        return checked.text;
-      },
-    });
+      } });
+    const reply = await agent.chat(question, agent.buildConversationKey(guildId, userId), context);
     if (answered) quota.spend(userId);
     return reply;
   }

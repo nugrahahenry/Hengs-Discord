@@ -29,6 +29,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   A Discord error answers with an error instead of falling back to shared chat.
 - Coach chat keeps its own short history (12 messages, 4000 characters per request), apart from shared and private
   chat, so team numbers never travel into other channels. `/hengs reset` clears it too.
+- Coach rules tuned with a 20-scenario coach exam (local, `.cloud/evals/coach-2026-10-23`): the most-broken bans come
+  first, one reminder line closes the data card, temperature 0.3, code decides when it is late (22.00 to 05.00 WIB),
+  targets are habits rather than wins, no links. Code also hides a member note that contains an insult (the model spun a
+  masked one into praise) and rewrites made-up "N menit pertama" windows to "di awal game".
 
 ### Changed
 
@@ -42,7 +46,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - An independent review found nine issues before release (helpline lost when a reply was blocked, Discord IDs in notes,
   look-alike thread names, blocked replies kept in history, gaps in the word list, a strict help marker, quota spent on
   failures, Discord errors falling back to shared chat, notes inside system text); all are fixed with tests.
-- Node 22 full suite in the worktree (PowerShell): 810 tests, 809 pass, 1 worktree-only skip. Not deployed; deploy
+- Coach exam through the real chat path (gpt-oss-120b, Hengs Discord key), graded 2/1/0 against keys frozen before the
+  first run: plain Hengs chat 19/40; coach before tuning 17 to 20/40 (wards from other games, own percentages, made-up
+  minutes); after tuning 29/40 then 33/40 (average 1.65). No privacy leak and no shown forbidden word in any run. The
+  three scenarios the last two code fixes target re-ran at 2/2 each. One run per scenario, so a few points are noise.
+- Node 22 full suite in the worktree (PowerShell): 816 tests, 815 pass, 1 worktree-only skip. Not deployed; deploy
   needs command re-registration for the new `tanya` subcommand (still 14 home commands).
 
 ## [1.72.0] - 2026-10-23

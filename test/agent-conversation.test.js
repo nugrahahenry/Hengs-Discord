@@ -209,6 +209,16 @@ test('a guard rewrites the model reply before it is stored or returned, and fixe
   assert.deepEqual(turns(value.calls.at(-1)), ['Q1', 'JAWABAN FIXTURE', 'Q2']);
 });
 
+test('a turn may lower the temperature; anything else keeps the default', async () => {
+  const value = fixture();
+  await value.agent.chat('Q1', KEY, { visibility: 'coach', temperature: 0.3 });
+  value.tick();
+  await value.agent.chat('Q2', KEY, { visibility: 'coach', temperature: 'hot' });
+  value.tick();
+  await value.agent.chat('Q3', KEY);
+  assert.deepEqual(value.calls.map(call => call.temperature), [0.3, 0.7, 0.7]);
+});
+
 test('a stateless coach turn neither reads nor writes history', async () => {
   const value = fixture();
   await value.agent.chat('COACH_1', KEY, { visibility: 'coach' });
