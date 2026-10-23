@@ -34,6 +34,21 @@ test('the coach data card carries the time and the team recap, labelled as data'
     /di bawah 5 game/);
   assert.doesNotMatch(coachData([], { now: NOW }), /di bawah 5 game/);
   assert.match(coachData([], { now: NOW }), /Belum ada game yang kecatat/);
+  // Exam v8: without a target the coach still talked about "target early-game safety", so the card says there is none.
+  assert.match(data, /\n\nTARGET TIM: belum ada\. Jangan sebut target lain; kalau perlu, sarankan pasang pakai \/scrim target\.\n/);
+});
+
+test('a question about one opponent says to answer from that opponent\'s recap', () => {
+  const data = coachData(games, { text: 'gimana lawan TIM GARUDA muda besok?', now: NOW });
+  assert.match(data, /Rekap scrim vs Tim Garuda Muda[\s\S]*\nPertanyaan ini soal Tim Garuda Muda: jawab dari rekap vs Tim Garuda Muda di atas, bukan rekap tim keseluruhan\.\n/);
+  assert.doesNotMatch(coachData(games, { text: 'kita latihan apa?', now: NOW }), /Pertanyaan ini soal/);
+});
+
+test('a knowledge question does not get the push to set a team target', () => {
+  // Exam v8: a hero question ended with "pasang /scrim target buat pantau Ling".
+  const data = coachData(games, { now: NOW, extras: ['KAMUS MLBB (Liquipedia, dicek 2026-10-24)\nLing (x): role Assassin.'] });
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\.\n/);
+  assert.doesNotMatch(data, /Fokus atau target: satu saja/);
 });
 
 test('only a late question gets the bedtime line, decided by the clock in code', () => {
@@ -81,8 +96,8 @@ test('a fresh team target joins the data card with the games logged since; a tar
   const target = { text: 'semua kumpul sebelum objective pertama', setBy: U, at: NOW - 3 * HOUR };
   assert.match(coachData(games, { now: NOW, target }),
     /\n\nTARGET TIM: "semua kumpul sebelum objective pertama" \(dipasang 21 Okt, 3 game kecatat sejak itu\)\. Buku catatan nggak nyatet target ini jalan atau nggak: tanya timnya, jangan ngarang\.\n/);
-  assert.doesNotMatch(coachData(games, { now: NOW, target: { ...target, at: NOW - 15 * 24 * HOUR } }), /TARGET TIM/);
-  assert.doesNotMatch(coachData(games, { now: NOW }), /TARGET TIM/);
+  assert.match(coachData(games, { now: NOW, target: { ...target, at: NOW - 15 * 24 * HOUR } }), /TARGET TIM: belum ada\./);
+  assert.match(coachData(games, { now: NOW }), /TARGET TIM: belum ada\./);
   assert.match(coachContext(games, { text: 'gimana?', now: NOW, target }).context.data, /TARGET TIM/);
   assert.match(COACH_RULES, /TARGET TIM/);
   assert.match(COACH_RULES, /\/scrim target/);
@@ -113,7 +128,8 @@ test('one coach turn adds the pro draft card and hero facts it needs, and says w
   const pages = { 'MPL/Indonesia/Season 18/Playoffs': { revid: 1, matches: [{ games: [draft] }] } };
   const meta = coachContext(games, { text: 'hero meta pro apa?', now: NOW, pages });
   assert.match(meta.context.data, /META PRO \(data draft Liquipedia: MPL ID S18 Playoffs; 1 game dengan draft lengkap\)/);
-  assert.equal(meta.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');
+  // Exam v8: the model kept dropping the pro-pattern caveat, so code puts it under the reply with the credit.
+  assert.equal(meta.credit, '-# Data: Liquipedia (CC-BY-SA 3.0). Pola draft pro belum tentu cocok buat tim sendiri.');
   const hero = coachContext(games, { text: 'Fanny main di lane apa?', now: NOW });
   assert.match(hero.context.data, /KAMUS MLBB \(Liquipedia/);
   assert.equal(hero.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');

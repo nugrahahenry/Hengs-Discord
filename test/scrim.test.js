@@ -875,7 +875,7 @@ test('a meta question brings the pro draft card into the coach data and the Liqu
   const msg = r.message();
   await r.service.coach(msg, 'hero meta pro sekarang apa?');
   assert.match(agent.calls[0].context.data, /META PRO \(data draft Liquipedia: MPL ID S18 Playoffs; 1 game dengan draft lengkap\)/);
-  assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0)'));
+  assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0). Pola draft pro belum tentu cocok buat tim sendiri.'));
   const plain = r.message();
   await r.service.coach(plain, 'kita kalah mulu, latihan apa?');
   assert.doesNotMatch(agent.calls[1].context.data, /META PRO/);
