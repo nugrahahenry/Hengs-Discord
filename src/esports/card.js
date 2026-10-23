@@ -69,7 +69,8 @@ function cardContent(match, { league = '' } = {}) {
     games: match.games.filter(g => g.winner).map(g => ({
       label: [`Game ${g.number}`, g.length, `${tag(match.teams[g.winner - 1])} menang`].filter(Boolean).join(' · '),
       sides: g.sides[0] && g.sides[1] ? `${tag(a)} ${SIDE[g.sides[0]]} · ${tag(b)} ${SIDE[g.sides[1]]}` : '',
-      objective: g.objective ? `Objektif: ${g.objective.name} (${tag(match.teams[g.objective.team - 1])})` : '',
+      objective: g.objective
+        ? `Objektif: ${g.objective.name}${g.objective.team ? ` (${tag(match.teams[g.objective.team - 1])})` : ''}` : '',
       picks: g.picks[0].length || g.picks[1].length
         ? [0, 1].map(t => `${tag(match.teams[t])}: ${g.picks[t].join(', ') || 'belum ada'}`) : ['Draft belum ada di data Liquipedia'],
       bans: g.bans[0].length || g.bans[1].length

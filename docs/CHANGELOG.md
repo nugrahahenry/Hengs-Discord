@@ -5,6 +5,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.72.2] - 2026-10-23
+
+### Fixed
+
+- Hengs Analis reads Liquipedia's newer `|mapmode=` field as well as the old "[[Team]] picked [[Mode]]" comment.
+  Liquipedia added the field on 2026-10-15 (Lua-Modules commit bd1eaba, PR #8167) and plans a bot run that moves
+  old comments into it. Without this, cards would silently lose the "Objektif" line. The field names only the
+  mode, so the card then shows "Objektif: Golden Turret" without a team. Found by the stats-sources research
+  (docs/research/2026-10-23-mlbb-pro-stats-sources.md).
+
+### Verification
+
+- Node 22 full suite 809/809 via PowerShell.
+
 ## [1.72.1] - 2026-10-23
 
 ### Fixed

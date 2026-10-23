@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.72.1 - reaction buttons under every meme (outside memes too) on top of
+**Current checkpoint:** Hengs Discord v1.72.2 - Liquipedia `mapmode` support and reaction buttons under every meme on top of
 v1.72.0 Hengs Analis (MLBB pro series cards from Liquipedia in `📊・hengs-analis`), committed, not deployed yet
 (Henry waits for his GPT assets). Cloud-live is v1.71.0 (one-tap meme votes) since 2026-10-23
 15:09 WIB (includes v1.70.0 memes that learn from members' reactions, v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news

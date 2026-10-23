@@ -106,6 +106,14 @@ test('a series right after another keeps the round label, not a comment from ins
   assert.equal(matches[3].stage, 'Lower Bracket Semifinal');
 });
 
+test('the newer mapmode field gives the objective without a team; the old comment form still names the team', () => {
+  const withMode = WIKI.replace("comment=[[TNC Pro Team|'''TNC''']] picked <b>[[Golden Turret]]</b>", 'comment= |mapmode=Golden Turret');
+  const [play] = parseMatches(withMode, { page: PAGE });
+  assert.deepEqual(play.games[1].objective, { team: 0, name: 'Golden Turret' });
+  assert.deepEqual(play.games[0].objective, { team: 1, name: 'Revealing Wisps' });
+  assert.equal(play.games[2].objective, null);
+});
+
 test('inconsistent results are invalid instead of guessed', () => {
   const gap = WIKI.replace('|map1=' + map({ winner: 1, comment: "[[Team Falcons PH|'''FLCP''']] picked <b>[[Healing Turtle]]</b>" }), '|map1={{Map|winner=}}');
   const upper = parseMatches(gap, { page: PAGE })[1];

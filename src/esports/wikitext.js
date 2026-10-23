@@ -69,15 +69,18 @@ function game(number, value, teams) {
   const winner = Number(named.winner);
   const side = s => ['blue', 'red'].includes(String(s).toLowerCase()) ? String(s).toLowerCase() : '';
   const heroes = (team, kind) => [1, 2, 3, 4, 5].map(i => heroName(named[`t${team}${kind}${i}`])).filter(Boolean);
+  // Old form: "[[Team|'''TAG''']] picked [[Mode]]" in the comment (names the team). Since 2026-10-15 Liquipedia
+  // also has |mapmode= (mode only), which its bot fills from the comments; read both.
   const pick = OBJECTIVE.exec(named.comment || '');
   const team = pick ? teams.findIndex(t => t.key && t.key.toLowerCase() === pick[1].trim().toLowerCase()) + 1 : 0;
+  const mode = (named.mapmode || '').replace(/\[\[|\]\]/g, '').trim();
   return {
     number, winner: winner === 1 || winner === 2 ? winner : 0,
     skipped: /^skip$/i.test(named.finished || ''),
     sides: [side(named.team1side), side(named.team2side)],
     length: /^\d{1,2}:\d{2}$/.test(named.length || '') ? named.length : '',
     vod: /^https:\/\/\S+$/.test(named.vod || '') ? named.vod : '',
-    objective: team ? { team, name: pick[2].trim() } : null,
+    objective: team ? { team, name: pick[2].trim() } : mode ? { team: 0, name: mode } : null,
     picks: [heroes(1, 'h'), heroes(2, 'h')], bans: [heroes(1, 'b'), heroes(2, 'b')],
   };
 }

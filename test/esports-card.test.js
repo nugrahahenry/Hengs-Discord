@@ -41,6 +41,9 @@ test('missing drafts and unknown times say so instead of inventing them', () => 
   assert.equal(content.date, '');
   assert.deepEqual(content.games[1], { label: 'Game 2 · FLCP menang', sides: '', objective: '', picks: ['Draft belum ada di data Liquipedia'], bans: '' });
   assert.equal(wibDate(Date.UTC(2026, 9, 25, 9, 0)), 'Minggu, 25 Okt 2026 · 16:00 WIB');
+  // A map mode without a named team (Liquipedia's newer field) shows just the mode.
+  const mode = match([1, 1, 1]); mode.games[0].objective = { team: 0, name: 'Golden Turret' };
+  assert.equal(cardContent(mode, META).games[0].objective, 'Objektif: Golden Turret');
 });
 
 test('notes come from the numbers: comeback first, then sweep, decider, a hero every game, side, longest game', () => {
