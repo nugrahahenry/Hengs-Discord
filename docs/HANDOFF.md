@@ -2,6 +2,23 @@
 
 Updated: 2026-10-24
 
+## Coach branches merged into main as v1.72.3, v1.73.0 and v1.74.0 (not deployed) - 2026-10-24
+
+- Henry, in this session: "Ya, gabung honest-prompt, coach-gaul, lalu coach-llm ke main sebagai v1.72.3, v1.73.0,
+  v1.74.0, push main, siapin deploy tapi jangan deploy dulu." The coach side session had relayed the same request.
+- Merges, each `--no-ff` with only version bookkeeping in conflict (package pins, cloud-release test, CHANGELOG,
+  HANDOFF); code merged without conflicts:
+  - 33a6a0b: honest-prompt (branch v1.71.1), released as v1.72.3. Suite 810/810.
+  - b87fc85: coach-gaul (branch v1.72.0), released as v1.73.0. Suite 818/818.
+  - 0b7b760: coach-llm (branch v1.73.0), released as v1.74.0. Suite 846/846.
+- The branch commits keep their old version numbers in their subjects; CHANGELOG headings carry the released ones.
+  Hengs Analis weekly stats move from v1.73.0 to the next free version.
+- Deploy gates: Henry's approval in chat, his GPT assets for Hengs Analis, and two open coach decisions:
+  - parental consent for members under 18 (UU PDP Art. 25);
+  - Discord's minimum age of 13.
+- When it ships, register commands once: `/scrim` choices changed, and the subcommands `hapus` and `tanya` were
+  added. It stays at 14 home commands. No env, secret, dependency or data migration.
+
 ## Hengs Discord v1.74.0 Coach LLM on branch coach-llm (not deployed) - 2026-10-23
 
 - Merged into main as v1.74.0 on 2026-10-24 (branch release number was v1.73.0).
