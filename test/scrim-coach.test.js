@@ -35,13 +35,25 @@ test('the coach data card carries the time and the team recap, labelled as data'
   assert.doesNotMatch(coachData([], { now: NOW }), /di bawah 5 game/);
   assert.match(coachData([], { now: NOW }), /Belum ada game yang kecatat/);
   // Exam v8: without a target the coach still talked about "target early-game safety", so the card says there is none.
-  assert.match(data, /\n\nTARGET TIM: belum ada\. Jangan sebut target lain; kalau perlu, sarankan pasang pakai \/scrim target\.\n/);
+  assert.match(data, /\n\nTARGET TIM: belum ada\. Jangan sebut target lain\.\n/);
 });
 
 test('a question about one opponent says to answer from that opponent\'s recap', () => {
   const data = coachData(games, { text: 'gimana lawan TIM GARUDA muda besok?', now: NOW });
   assert.match(data, /Rekap scrim vs Tim Garuda Muda[\s\S]*\nPertanyaan ini soal Tim Garuda Muda: jawab dari rekap vs Tim Garuda Muda di atas, bukan rekap tim keseluruhan\.\n/);
   assert.doesNotMatch(coachData(games, { text: 'kita latihan apa?', now: NOW }), /Pertanyaan ini soal/);
+});
+
+test('only a training, focus or target question gets the one-focus push, and the empty-target line does not push', () => {
+  // Exam v9: the push on every question made the coach suggest /scrim target for tracking results and for win rates.
+  for (const text of ['kita harus latihan apa?', 'bikinin target dong', 'fokus minggu ini apa?']) {
+    assert.match(coachData(games, { text, now: NOW }), /Fokus atau target: satu saja, pasang pakai \/scrim target\./, text);
+  }
+  for (const text of ['vs Tim Garuda gimana rekor kita?', 'barusan menang 2-0!', 'target kita jalan nggak?']) {
+    assert.doesNotMatch(coachData(games, { text, now: NOW }), /Fokus atau target/, text);
+  }
+  assert.match(coachData(games, { now: NOW }), /\nTARGET TIM: belum ada\. Jangan sebut target lain\.\n/);
+  assert.match(COACH_RULES, /\/scrim target cuma buat satu kebiasaan main tim, bukan buat nyatet hasil atau mantau hero/);
 });
 
 test('a knowledge question does not get the push to set a team target', () => {
