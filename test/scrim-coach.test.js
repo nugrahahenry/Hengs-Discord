@@ -100,8 +100,22 @@ test('a pro meta card joins the data card as given, and the rules say how to use
   const meta = 'META PRO (data draft Liquipedia: MPL PH S18 Playoffs; 3 game dengan draft lengkap)\nPaling sering dipick: Ling 3 (dari 3 game).';
   assert.match(coachData(games, { now: NOW, extras: [meta] }), new RegExp(`\\n\\n${meta.replace(/[()]/g, '\\$&')}\\n`));
   assert.doesNotMatch(coachData(games, { now: NOW }), /META PRO/);
-  assert.match(coachContext(games, { text: 'meta?', now: NOW, extras: [meta] }).context.data, /META PRO/);
   assert.match(COACH_RULES, /KAMUS MLBB di DATA itu fakta hero dari Liquipedia/);
+});
+
+test('one coach turn adds the pro draft card and hero facts it needs, and says when the Liquipedia credit is due', () => {
+  const draft = { winner: 1, picks: [['Fanny', 'Lolita', 'Valentina', 'Claude', 'Chou'], ['Ling', 'Tigreal', 'Pharsa', 'Beatrix', 'Paquito']],
+    bans: [['Joy'], ['Lancelot']] };
+  const pages = { 'MPL/Indonesia/Season 18/Playoffs': { revid: 1, matches: [{ games: [draft] }] } };
+  const meta = coachContext(games, { text: 'hero meta pro apa?', now: NOW, pages });
+  assert.match(meta.context.data, /META PRO \(data draft Liquipedia: MPL ID S18 Playoffs; 1 game dengan draft lengkap\)/);
+  assert.equal(meta.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');
+  const hero = coachContext(games, { text: 'Fanny main di lane apa?', now: NOW });
+  assert.match(hero.context.data, /KAMUS MLBB \(Liquipedia/);
+  assert.equal(hero.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');
+  const plain = coachContext(games, { text: 'kita kalah mulu, latihan apa?', now: NOW, pages });
+  assert.doesNotMatch(plain.context.data, /META PRO|KAMUS MLBB/);
+  assert.equal(plain.credit, '');
   assert.match(COACH_RULES, /META PRO di DATA itu data draft pro/);
 });
 

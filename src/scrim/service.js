@@ -14,8 +14,6 @@ const { MAX_LINEUP } = require('./store');
 const { REASON_LABEL, cutUnits, opponentKey, wibDay, dateLabel, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
 const { COACH_DAILY_LIMIT, coachContext, createCoachQuota, safeText, debriefText, targetFresh, isLate } = require('./coach');
 const { MAX_TARGET } = require('./coach-store');
-const { LIQUIPEDIA_CREDIT, proMetaCard } = require('./pro-meta');
-const { heroCard } = require('./mlbb-dictionary');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -241,16 +239,15 @@ function createScrimResults({ store, agent = null, coachStore = null, proPages =
     } catch { logger.error('[scrim] DEBRIEF_FAILED'); }
   }
 
-  // Pro draft numbers only for meta or pro-hero questions; an unreadable esports file just leaves them out.
-  function proMeta(text) {
-    try { return proPages ? proMetaCard(proPages(), { text }) : ''; } catch { logger.error('[scrim] PRO_META_FAILED'); return ''; }
+  // The pro drafts Hengs Analis keeps; an unreadable esports file just leaves the pro card out.
+  function pages() {
+    try { return proPages ? proPages() : null; } catch { logger.error('[scrim] PRO_META_FAILED'); return null; }
   }
 
   async function coachReply({ guildId, userId, text, personal = false }) {
     let answered = false;
-    const extras = [proMeta(text), heroCard(text)].filter(Boolean);
-    const { question, context } = coachContext(store.list(guildId), { text, userId: personal ? userId : null, now: now(),
-      target: teamTarget(guildId), extras,
+    const { question, context, credit } = coachContext(store.list(guildId), { text, userId: personal ? userId : null, now: now(),
+      target: teamTarget(guildId), pages: pages(),
       onGuard(answer, checked) {
         answered = true;
         if (checked.masked) logger.error('[scrim] COACH_REPLY_MASKED');
@@ -259,7 +256,7 @@ function createScrimResults({ store, agent = null, coachStore = null, proPages =
     if (!answered) return reply;
     quota.spend(userId);
     // Liquipedia is CC-BY-SA: a reply built on its pro drafts or hero facts carries the credit.
-    return extras.length ? `${cutUnits(reply, 2000 - LIQUIPEDIA_CREDIT.length - 1)}\n${LIQUIPEDIA_CREDIT}` : reply;
+    return credit ? `${cutUnits(reply, 2000 - credit.length - 1)}\n${credit}` : reply;
   }
 
   async function download(image) {

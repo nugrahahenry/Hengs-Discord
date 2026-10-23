@@ -6,6 +6,8 @@
 // the coach exam (.cloud/evals/coach-2026-10-23, ignored) showed them broken most: made-up minutes, own percentages,
 // wards from other games, long lists.
 const { cutUnits, opponentKey, dateLabel, whenLabel, wibDay, formatTeamRecap, formatPlayerStats } = require('./stats');
+const { LIQUIPEDIA_CREDIT, proMetaCard } = require('./pro-meta');
+const { heroCard } = require('./mlbb-dictionary');
 
 const COACH_DAILY_LIMIT = 15;
 const COACH_TEMPERATURE = 0.3;
@@ -135,9 +137,13 @@ function guardReply(reply, { question = '' } = {}) {
 
 // Everything agent.chat needs for one coach turn. A personal turn (an asker's userId) adds their own stats and keeps no
 // history. onGuard sees every real model answer (cooldown and outage replies never reach it).
-function coachContext(games, { text = '', userId = null, now = Date.now(), target = null, extras = [], onGuard = () => {} } = {}) {
+// pages: the Liquipedia pages Hengs Analis keeps (pro drafts), or null. credit: the line a reply built on Liquipedia
+// knowledge must carry (CC-BY-SA), or ''.
+function coachContext(games, { text = '', userId = null, now = Date.now(), target = null, pages = null, onGuard = () => {} } = {}) {
   const question = scrubIds(text);
-  return { question, context: { kind: 'home', visibility: 'coach', system: COACH_RULES, temperature: COACH_TEMPERATURE,
+  const extras = [pages ? proMetaCard(pages, { text: question }) : '', heroCard(question)].filter(Boolean);
+  return { question, credit: extras.length ? LIQUIPEDIA_CREDIT : '', context: { kind: 'home', visibility: 'coach',
+    system: COACH_RULES, temperature: COACH_TEMPERATURE,
     data: coachData(games, { text: question, userId, now, target, extras }), ...(userId ? { stateless: true } : {}),
     guard(answer) {
       const checked = guardReply(answer, { question });
