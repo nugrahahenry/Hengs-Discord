@@ -5,6 +5,22 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.71.1] - 2026-10-23
+
+### Fixed
+
+- Hengs chat (home and public prompts) admits unknown game facts instead of inventing them. Hero, skill, item, battle
+  spell, objective, patch, number, schedule or champion facts are answered only when the model is sure; otherwise it
+  says it does not know, without invented names or numbers, points to official patch notes for recent info and
+  corrects false premises. In the textbook exam (30 questions through the real chat path, gpt-oss-120b) the score went
+  from 32/60 to 40/60 and answers with a confidently wrong fact from 17 to 10. Plausible-sounding fake names (a battle
+  spell, an objective, a new hero) still slip through, so MLBB facts still need a sourced knowledge file.
+
+### Verification
+
+- Node 22 full suite in the worktree: 780 tests, 779 pass, 1 worktree-only skip. Not deployed; no command, env or data
+  change.
+
 ## [1.71.0] - 2026-10-23
 
 ### Added

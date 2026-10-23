@@ -2,6 +2,25 @@
 
 Updated: 2026-10-23
 
+## Hengs Discord v1.71.1 honest game facts on branch honest-prompt (not deployed) - 2026-10-23
+
+- Henry asked to test Hengs' "text book" knowledge, then: "tambah aturan jujur ke system prompt Hengs ..., jalankan ulang
+  ujian yang sama, bandingkan skornya. Jangan deploy dulu", then to commit it as v1.71.1 and push the branch without
+  deploying or merging into main.
+- Exam (internal docs/research/2026-10-23-hengs-textbook-exam.md, files in .cloud/evals/textbook-2026-10-23, both
+  ignored): 30 questions through src/agent.js chat() with the home prompt. Before: 32/60 (MOBA theory 18/20, MLBB facts
+  8/20, traps 6/20, 17 answers with a confidently wrong fact). With the rule: 40/60 (19/20, 10/20, 11/20, 10 such
+  answers). Still invented: battle spell Phantom Step, objective Naga Emas, the "Lord removed" premise, new hero
+  Obsidia, Gold Lane as mid, Turtle numbers. One run per version at temperature 0.7.
+- Change: GAME_FACTS_RULE in src/agent.js, used by the home and public prompts, plus one prompt test. No command, env
+  or data change.
+- The first exam run held up the v1.71.0 staging: its node22 process from the WhatsApp repo path tripped the
+  LOCAL_CONSUMER guard. Future evals should use another Node binary or run outside a deploy window.
+- QA: Node 22 full suite 780 total, 779 pass, 1 worktree-only skip.
+- Deploy needs Henry's approval: fast-forward main to honest-prompt (rebased on b929aad), helpers from deploy-v1710
+  with version 1.71.1, no command registration (still 14 home commands).
+- Commit subject: fix(chat): Hengs Discord v1.71.1 - admit unknown game facts instead of inventing them
+
 ## Hengs Discord v1.71.0 deployed and accepted - 2026-10-23
 
 - Henry: "Deploy Discord v1.71.0 sekarang, di luar jam slot." Helpers .cloud/automation/deploy-v1710 derived from

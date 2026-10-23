@@ -95,6 +95,16 @@ test('home AI prompt uses the Hengs identity', () => {
   assert.doesNotMatch(prompt, /Henzzz/i);
 });
 
+// Textbook exam 2026-10-23: the model invented heroes, items, spells and patch numbers it did not know.
+test('both chat prompts make Hengs admit unknown game facts instead of inventing names or numbers', () => {
+  for (const prompt of [buildSystemPrompt(), buildSystemPrompt({ kind: 'public' })]) {
+    assert.match(prompt, /Fakta game/);
+    assert.match(prompt, /bilang terus terang nggak tahu, jangan mengarang nama, angka, atau detail/);
+    assert.match(prompt, /ketinggalan patch terbaru/);
+    assert.match(prompt, /anggapan yang belum tentu benar, koreksi dulu/);
+  }
+});
+
 test('AI module can load during secretless immutable release acceptance', () => {
   const env = { ...process.env };
   delete env.GROQ_API_KEY;
