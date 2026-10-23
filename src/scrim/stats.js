@@ -15,6 +15,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', '
 const opponentKey = name => String(name).toLowerCase().replace(/\s+/g, ' ').trim();
 const wibDay = at => Math.floor((at + WIB) / DAY);
 const dateLabel = at => { const day = new Date(at + WIB); return `${day.getUTCDate()} ${MONTHS[day.getUTCMonth()]}`; };
+const whenLabel = at => { const time = new Date(at + WIB); return `${dateLabel(at)} ${String(time.getUTCHours()).padStart(2, '0')}:${String(time.getUTCMinutes()).padStart(2, '0')} WIB`; };
 const wins = games => games.filter(game => game.outcome === 'menang').length;
 
 // Slice to max UTF-16 units (what the store and Discord limits count) without leaving half an emoji at the end.
@@ -104,4 +105,4 @@ function todayScore(games, opponent, at) {
   return { won: wins(today), lost: today.length - wins(today) };
 }
 
-module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, todayScore, formatTeamRecap, formatPlayerStats };
+module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats };

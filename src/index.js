@@ -966,6 +966,12 @@ async function handleReaction(reaction, user, add) {
 client.on(Events.MessageReactionAdd,    (r, u) => handleReaction(r, u, true));
 client.on(Events.MessageReactionRemove, (r, u) => handleReaction(r, u, false));
 
+// One deleted Hengs card in hasil-scrim drops its game from the notebook (bulk purges deliberately do not).
+client.on(Events.MessageDelete, (message) => {
+  if (guildAccess.classify(message.guildId)?.kind !== 'home') return;
+  try { scrimResults.forget(message); } catch { console.error('[scrim] FORGET_FAILED'); }
+});
+
 // ── Login ────────────────────────────────────────────────────────────────────
 console.log('🚀 Starting Discord Bot...\n');
 client.login(process.env.DISCORD_TOKEN).catch(error => {

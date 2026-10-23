@@ -85,6 +85,10 @@ statistik game yang mencantumkan kamu di lineup, dikirim lewat DM saja. Semua an
 persen baru muncul mulai 5 game dan "paling sering" mulai 5 kekalahan. Suara coach: Gen Z santai buat anak-anak
 (W/L, slang secukupnya, tanpa kata kasar, tanpa nyalahin pemain atau ngeledek lawan).
 
+Salah catat: `/scrim hapus` menampilkan game terakhir yang kamu catat secara privat; "Hapus game ini" menghapusnya dari
+rekap dan menarik kartunya di hasil-scrim. Admin yang menghapus satu kartu Hengs di hasil-scrim juga ikut menghapus
+game-nya; purge massal tidak menyentuh data.
+
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama
 `data/scrim-results.json` (per seri, v1.64) tidak dibaca lagi.

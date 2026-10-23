@@ -3,13 +3,14 @@
 // /scrim hasil: a Hengs Family member logs one MLBB game (opponent, win or loss reason, optional screenshot),
 // checks the lineup in a private preview, then Hengs posts the card in hasil-scrim and records the game.
 // /scrim rekap and /scrim statku read the games back: the team recap privately, per-player numbers only by DM.
+// /scrim hapus undoes the requester's own last log; deleting one Hengs card in hasil-scrim drops its game too.
 const crypto = require('node:crypto');
 const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, MessageFlags, PermissionFlagsBits: P, UserSelectMenuBuilder,
   escapeMarkdown,
 } = require('discord.js');
 const { MAX_LINEUP } = require('./store');
-const { REASON_LABEL, cutUnits, opponentKey, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
+const { REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -44,6 +45,7 @@ const MESSAGES = Object.freeze({
   SCRIM_IMAGE_INVALID: 'SS harus gambar PNG, JPG atau WebP, maksimal 8 MB.',
   SCRIM_BOT_PERMISSIONS: 'Hengs butuh izin lihat, baca riwayat, kirim, lampirkan file dan embed di hasil-scrim.',
   SCRIM_STALE: 'Preview-nya udah basi atau berubah. Jalanin /scrim hasil lagi ya, belum ada yang kekirim.',
+  SCRIM_DELETE_STALE: 'Konfirmasi hapusnya udah basi atau berubah. Jalanin /scrim hapus lagi ya, belum ada yang kehapus.',
   SCRIM_BUSY: 'Kiriman sebelumnya masih diproses, sabar bentar ya.',
   SCRIM_LIMIT: 'Lagi banyak preview yang kebuka. Coba lagi bentar lagi.',
 });
@@ -110,15 +112,30 @@ function previewPayload(draft, userId, notice = null) {
   )], ...quiet };
 }
 
+function removalPayload(game, pendingId) {
+  const result = game.outcome === 'menang' ? 'W' : `L (${REASON_LABEL[game.reason]})`;
+  return { content: ['🗑️ **Hapus game terakhir yang kamu catat?**', `MLBB vs ${shown(game.opponent)}: ${result}, ${whenLabel(game.at)}`,
+    `Lineup: ${game.lineup.length ? game.lineup.map(id => `<@${id}>`).join(' ') : 'belum dipilih'}`,
+    game.note ? `Catatan: ${shown(game.note)}` : null,
+    '-# Cuma kamu yang lihat. Hangus 10 menit. Kalau dihapus, kartunya di hasil-scrim ikut ditarik.'].filter(Boolean).join('\n'),
+  components: [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`${PREFIX}${pendingId}:delete`).setLabel('Hapus game ini').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`${PREFIX}${pendingId}:keep`).setLabel('Batal').setStyle(ButtonStyle.Secondary),
+  )], ...quiet };
+}
+
 const answer = (i, content) => (i.deferred || i.replied
   ? i.editReply({ content, embeds: [], components: [], ...quiet })
   : i.reply({ content, flags: MessageFlags.Ephemeral, ...quiet }));
 
 function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger = console } = {}) {
   const drafts = new Map();
+  const removals = new Map(); // pending /scrim hapus confirmations, same key and TTL as drafts
   const busy = new Set();
   const keyFor = i => `${i.guildId}:${i.user?.id}`;
-  function sweep() { for (const [key, draft] of drafts) if (now() >= draft.expires) drafts.delete(key); }
+  function sweep() {
+    for (const pending of [drafts, removals]) for (const [key, item] of pending) if (now() >= item.expires) pending.delete(key);
+  }
   const reply = (i, code) => i.reply({ content: MESSAGES[code] || MESSAGES.SCRIM_STALE, flags: MessageFlags.Ephemeral, ...quiet });
   const home = (i, guildAccess) => guildAccess?.classify(i.guildId)?.kind === 'home';
 
@@ -149,6 +166,46 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
       const members = await guild.members.fetch({ user: ids, time: 5_000 });
       return ids.filter(id => hasRole(members.get(id), roleId));
     } catch { return []; }
+  }
+
+  // Second step of /scrim hapus. The row goes first (the recap must stop counting it), then the card, best effort.
+  async function confirmRemoval(i, key, match, select) {
+    const pending = removals.get(key);
+    if (select || !pending || pending.id !== match[1] || pending.source !== i.channelId) {
+      await reply(i, 'SCRIM_DELETE_STALE');
+      return true;
+    }
+    // Consume before awaiting Discord so a double click can never delete twice.
+    removals.delete(key);
+    busy.add(key);
+    try {
+      await i.deferUpdate();
+      if (match[2] === 'keep') {
+        await i.editReply({ content: 'Oke, nggak jadi dihapus. Game-nya tetap ada di rekap.', embeds: [], components: [], ...quiet });
+        return true;
+      }
+      await teamMember(i);
+      if (now() >= pending.expires) throw new Error('SCRIM_DELETE_STALE');
+      const owned = store.list(i.guildId).some(game => game.messageId === pending.messageId && game.submitterId === i.user.id);
+      if (!owned || !store.remove(i.guildId, pending.messageId)) {
+        await i.editReply({ content: 'Game itu udah nggak ada di rekap (mungkin udah dihapus). Nggak ada yang berubah.', embeds: [], components: [], ...quiet });
+        return true;
+      }
+      let cardGone = true;
+      try {
+        const channel = findScrimChannel([...(await i.guild.channels.fetch()).values()]);
+        if (channel) await channel.messages.delete(pending.messageId);
+      } catch (error) {
+        if (error?.code !== 10008) { cardGone = false; logger.error('[scrim] CARD_DELETE_FAILED'); } // 10008: card already gone
+      }
+      await i.editReply({ content: cardGone ? 'Beres, game itu udah dihapus dari rekap dan kartunya di hasil-scrim ikut ditarik.'
+        : 'Game itu udah dihapus dari rekap, tapi kartunya di hasil-scrim belum bisa ditarik. Minta admin hapus manual ya.',
+      embeds: [], components: [], ...quiet });
+    } catch (error) {
+      logger.error('[scrim] REMOVE_FAILED');
+      await answer(i, MESSAGES[error.message] || 'Hapus game belum berhasil. Cek rekap dulu ya, Hengs nggak nyoba ulang otomatis.');
+    } finally { busy.delete(key); }
+    return true;
   }
 
   async function download(image) {
@@ -197,7 +254,8 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
         await reply(i, 'SCRIM_BUSY');
         return true;
       }
-      const match = /^hengs-scrim:([a-f0-9]{24}):(send|cancel|lineup)$/.exec(i.customId);
+      const match = /^hengs-scrim:([a-f0-9]{24}):(send|cancel|lineup|delete|keep)$/.exec(i.customId);
+      if (match && (match[2] === 'delete' || match[2] === 'keep')) return confirmRemoval(i, key, match, select);
       const draft = drafts.get(key);
       if (!match || !draft || draft.id !== match[1] || draft.source !== i.channelId || (match[2] === 'lineup') !== select) {
         await reply(i, 'SCRIM_STALE');
@@ -298,6 +356,36 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
         logger.error('[scrim] AUTOCOMPLETE_FAILED');
         await i.respond([]).catch(() => {});
       }
+    },
+
+    // /scrim hapus: own last game only, private preview, then Hapus or Batal (confirmRemoval).
+    async remove(i, { guildAccess } = {}) {
+      if (!home(i, guildAccess)) return reply(i, 'SCRIM_ACCESS');
+      sweep();
+      const key = keyFor(i);
+      if (busy.has(key)) return reply(i, 'SCRIM_BUSY');
+      if (removals.size >= MAX_DRAFTS && !removals.has(key)) return reply(i, 'SCRIM_LIMIT');
+      removals.delete(key);
+      try {
+        await i.deferReply({ flags: MessageFlags.Ephemeral });
+        await teamMember(i);
+        const game = store.list(i.guildId).findLast(item => item.submitterId === i.user.id);
+        if (!game) return await answer(i, 'Belum ada game yang kamu catat, jadi nggak ada yang bisa dihapus.');
+        const pending = { id: crypto.randomBytes(12).toString('hex'), messageId: game.messageId, source: i.channelId, expires: now() + TTL };
+        removals.set(key, pending);
+        await i.editReply(removalPayload(game, pending.id));
+      } catch (error) {
+        logger.error('[scrim] REMOVE_PREVIEW_FAILED');
+        removals.delete(key);
+        await answer(i, MESSAGES[error.message] || 'Belum bisa nyiapin hapus game. Coba lagi bentar ya, belum ada yang kehapus.');
+      }
+    },
+
+    // A Hengs card deleted in hasil-scrim (by an admin, or by /scrim hapus) drops its game, so the recap never counts
+    // a card that is gone. Bulk purges are not wired here on purpose: cleaning the channel must not wipe the notebook.
+    forget(message) {
+      if (!message?.guildId || normalize(message.channel?.name) !== CHANNEL_KEY) return false;
+      return store.remove(message.guildId, message.id);
     },
   };
 }

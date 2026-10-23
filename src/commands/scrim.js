@@ -36,6 +36,10 @@ module.exports = {
     .addSubcommand(sub => sub
       .setName('statku')
       .setDescription('Stat scrim kamu, dikirim lewat DM (khusus Hengs Family)')
+    )
+    .addSubcommand(sub => sub
+      .setName('hapus')
+      .setDescription('Salah catat? Hapus game terakhir yang kamu catat (khusus Hengs Family)')
     ),
 
   async autocomplete(interaction, { scrimResults }) {
@@ -48,6 +52,7 @@ module.exports = {
     if (sub === 'hasil') return scrimResults.preview(interaction, { guildAccess });
     if (sub === 'rekap') return scrimResults.recap(interaction, { guildAccess });
     if (sub === 'statku') return scrimResults.stats(interaction, { guildAccess });
+    if (sub === 'hapus') return scrimResults.remove(interaction, { guildAccess });
 
     if (sub === 'on') {
       const game = interaction.options.getString('game');

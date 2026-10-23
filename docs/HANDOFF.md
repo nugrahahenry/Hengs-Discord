@@ -13,7 +13,12 @@ Updated: 2026-10-23
   src/scrim/service.js (W/L dropdown names with the same stored values, card, preview, replies, errors),
   src/commands/scrim.js (descriptions), README coach section, tests. Help and /hengs privacy unchanged.
 - Kid-safe guard: tests fail on swearing (anjay included), blaming words (beban, noob, feeder) or mocking opponents.
-- QA: Node 22 full suite 783 total, 782 pass, 1 worktree-only skip.
+- Second commit, same release: "hapus salah catat" (Henry's pick for the next coach step). `/scrim hapus` previews the
+  requester's own last game with Hapus or Batal; Hapus removes the row (store.remove, atomic) and then pulls the card
+  (Unknown Message 10008 counts as done). index.js listens to MessageDelete in the home guild: one deleted Hengs card
+  in hasil-scrim drops its game (Partials.Message is on, so uncached cards count too); MessageBulkDelete is not wired
+  on purpose. Help and /hengs privacy mention /scrim hapus.
+- QA: Node 22 full suite 788 total, 787 pass, 1 worktree-only skip (both commits).
 - Deploy needs Henry's approval: fast-forward main to coach-gaul (includes v1.71.1), helpers from deploy-v1710 with
   version 1.72.0, then register commands once (choice names and descriptions changed; still 14 home commands).
 - Commit subject: feat(scrim): Hengs Discord v1.72.0 - Gen Z coach voice for the scrim notebook

@@ -7,6 +7,15 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [1.72.0] - 2026-10-23
 
+### Added
+
+- `/scrim hapus` (Hengs Family): shows the requester's own last logged game privately (opponent, result, WIB time,
+  lineup) with "Hapus game ini" and "Batal". Hapus removes the row from `data/scrim-games.json` first, then pulls the
+  card from hasil-scrim; a card that is already gone counts as done, and a card that cannot be pulled is reported so an
+  admin can delete it by hand. Team role and ownership are checked again on the click; a double click deletes once.
+- Deleting one Hengs card in hasil-scrim (an admin with Manage Messages) drops its game too, so the recap and the
+  channel stay in sync. Bulk purges deliberately do not touch the notebook.
+
 ### Changed
 
 - Coach voice is now Gen Z santai, for the kids who use it (Henry: "coach gaul ... yang pakai juga bakal bocah
@@ -21,7 +30,7 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Node 22 full suite in the worktree: 783 tests, 782 pass, 1 worktree-only skip. Not deployed; deploy needs command
+- Node 22 full suite in the worktree: 788 tests, 787 pass, 1 worktree-only skip. Not deployed; deploy needs command
   re-registration because choice names and descriptions changed (still 14 home commands).
 
 ## [1.71.1] - 2026-10-23
