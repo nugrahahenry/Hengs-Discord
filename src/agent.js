@@ -89,7 +89,7 @@ let nextConversationId = 0;
 const lastChatAt = new Map();       // key: guildId:userId
 const CHAT_COOLDOWN_MS = 3000;      // jeda min antar-pesan per user
 const MAX_USERS = 300;              // cap memori histories (cegah numpuk selamanya)
-const CHAT_VISIBILITIES = new Set(['shared', 'private']);
+const CHAT_VISIBILITIES = new Set(['shared', 'private', 'coach']);
 
 // Textbook exam 2026-10-23: without this the model invented heroes, items, spells, objectives and patch numbers.
 const GAME_FACTS_RULE = 'Fakta game (nama hero, skill, item, battle spell, objective, patch, angka, jadwal atau juara turnamen): jawab hanya kalau kamu yakin. Kalau nggak yakin atau namanya nggak kamu kenal, bilang terus terang nggak tahu, jangan mengarang nama, angka, atau detail. Pengetahuanmu bisa ketinggalan patch terbaru, jadi untuk info terbaru sarankan cek patch notes atau sumber resmi. Kalau pertanyaannya berisi anggapan yang belum tentu benar, koreksi dulu.';
@@ -175,8 +175,8 @@ function ensureConversation(conversationKey) {
       histories.delete(oldest);
       lastChatAt.delete(oldest);
     }
-    histories.set(conversationKey, { shared: [], private: [], generation: 0, serial: ++nextConversationId,
-      updatedAt: { shared: Date.now(), private: Date.now() } });
+    histories.set(conversationKey, { shared: [], private: [], coach: [], generation: 0, serial: ++nextConversationId,
+      updatedAt: { shared: Date.now(), private: Date.now(), coach: Date.now() } });
   }
   return histories.get(conversationKey);
 }
@@ -218,19 +218,25 @@ async function chat(userMessage, conversationKey, context = {}) {
 
   const conversation = ensureConversation(conversationKey);
   freshSurface(conversation, visibility);
-  const history = conversation[visibility];
+  // Stateless turns (/scrim tanya with private stats) neither read nor leave any history.
+  const stateless = context?.stateless === true;
+  const history = stateless ? [] : conversation[visibility];
   const generation = conversation.generation;
 
   // user-turn baru masuk ke 'messages' tapi BELUM di-commit ke history agar kalau
   // semua model gagal, history nggak ketambahan user-turn yatim (bikin context rusak).
   const pendingUser = { role: 'user', content: cleanText(userMessage, 1800) };
-  const messages = [{ role: 'system', content: buildSystemPrompt(context) },
+  const base = buildSystemPrompt(context);
+  // Coach mode adds its rules and the scrim data card after the normal persona and safety rules.
+  const system = typeof context?.system === 'string' && context.system ? `${base}\n\n${context.system}` : base;
+  const messages = [{ role: 'system', content: system },
     ...(visibility === 'private' && context.memory?.recall ? require('./selective-memory').memoryMessages(context.memory.recall) : []),
     ...selectHistory(history, pendingUser.content, visibility), pendingUser];
   // gpt-oss memakai sebagian budget untuk reasoning internal. 400 token bisa habis
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
   const params = { messages, max_tokens: 700, temperature: 0.7 };
   const commit = (reply) => {
+    if (stateless) return true;
     if (histories.get(conversationKey) !== conversation || conversation.generation !== generation
         || Date.now() < now || Date.now() - now >= HISTORY_TTL_MS) return false;
     appendExchange(history, pendingUser.content, reply, visibility);

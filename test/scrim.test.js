@@ -13,6 +13,7 @@ const scrimCommand = require('../src/commands/scrim');
 const hengsCommand = require('../src/commands/hengs');
 const { buildCommunityHelp } = require('../src/community-help');
 const { buildCommandPlan } = require('../src/deploy-commands');
+const { BLOCKED_REPLY } = require('../src/scrim/coach');
 
 const G = '223456789012345678', U = '323456789012345678', BOT = '623456789012345678', SRC = '423456789012345678';
 const T2 = '523456789012345678', OUT = '923456789012345670'; // a second team member and someone outside the team
@@ -35,7 +36,7 @@ function options(over = {}) {
 }
 
 function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, everyoneCanView = false,
-  store, games = [] } = {}) {
+  store, games = [], agent = null } = {}) {
   const role = { id: '700000000000000001', name: 'Hengs Family' };
   const sends = []; const records = []; const downloads = []; const dms = []; const removals = []; const cardDeletes = [];
   const team = new Set(teamMember ? [U, T2] : [T2]);
@@ -62,7 +63,7 @@ function rigService({ teamMember = true, roleExists = true, channelExists = true
       saved.splice(at, 1);
       return true;
     } },
-  logger: { error() {} }, now: () => NOW,
+  agent, logger: { error() {} }, now: () => NOW,
   fetchImpl: async (url, init) => { downloads.push([url, init]); return { ok: true,
     headers: { get: key => ({ 'content-type': 'image/png', 'content-length': '4' })[key] },
     arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; } });
@@ -76,7 +77,13 @@ function rigService({ teamMember = true, roleExists = true, channelExists = true
       async editReply(payload) { this.edits.push(payload); }, async update(payload) { this.updates.push(payload); },
       async respond(choices) { this.responses.push(choices); }, ...over };
   }
-  return { service, guild, channel, role, sends, records, downloads, dms, removals, cardDeletes, saved, team, memberOf, interaction };
+  // A mention of Hengs in a guild channel (hasil-scrim unless the test swaps the channel).
+  function message(over = {}) {
+    return { id: '999999999999999981', guild, guildId: G, channel, channelId: channel.id, author: { id: U, bot: false },
+      member: memberOf(U), replies: [], async reply(payload) { this.replies.push(payload); }, ...over };
+  }
+  return { service, guild, channel, role, sends, records, downloads, dms, removals, cardDeletes, saved, team, memberOf, interaction,
+    message };
 }
 
 const buttonId = (payload, index) => payload.components[1].toJSON().components[index].custom_id;
@@ -626,12 +633,15 @@ test('help and privacy describe the per-game notebook, the private recap and DM-
   assert.match(help, /`\/scrim rekap` buat rekap tim/);
   assert.match(help, /`\/scrim statku` kirim statistikmu lewat DM/);
   assert.match(help, /Salah catat\? `\/scrim hapus`/);
+  assert.match(help, /Ngobrol sama coach: mention Hengs di hasil-scrim, atau `\/scrim tanya` buat pertanyaan pribadi/);
   const privacy = { guildId: G, channelId: SRC, user: { id: U }, inGuild: () => true,
     options: { getSubcommand: () => 'privacy', getString: () => null }, async reply(payload) { this.payload = payload; } };
   await hengsCommand.execute(privacy, deps);
   assert.match(privacy.payload.content, /lineup \(ID Discord anggota Hengs Family\)/);
   assert.match(privacy.payload.content, /cuma dikirim ke pemain itu lewat DM/);
   assert.match(privacy.payload.content, /Pencatat bisa menghapus game terakhirnya lewat \/scrim hapus/);
+  assert.match(privacy.payload.content, /pertanyaan ke coach dikirim ke penyedia AI bersama rekap scrim tim/);
+  assert.match(privacy.payload.content, /untuk \/scrim tanya juga stat penanya sendiri/);
   assert.doesNotMatch(privacy.payload.content, /skor, hasil, game/);
   assert.ok(privacy.payload.content.length <= 2000);
 });
@@ -654,4 +664,112 @@ test('the team role is found with or without an emoji prefix, and two candidates
   assert.equal((await findTeamRole(guildWith('Hengs Family'))).name, 'Hengs Family');
   assert.equal(await findTeamRole(guildWith('Hengs Family Fans', 'Member')), null);
   await assert.rejects(findTeamRole(guildWith('Hengs Family', '\u{1FAC2} Hengs Family')), /SCRIM_ROLE_CONFLICT/);
+});
+
+function coachAgent(reply = 'Gas, satu fokus dulu: early game.') {
+  const calls = [];
+  return { calls, buildConversationKey: (guildId, userId) => `${guildId}:${userId}`,
+    async chat(text, key, context) { calls.push({ text, key, context }); return reply; } };
+}
+
+test('a team member mentioning Hengs in hasil-scrim gets the coach, which reads the team notebook', async () => {
+  const agent = coachAgent('Gas, satu fokus dulu: early game. [[BANTUAN]]');
+  const games = [game(1, { at: NOW - 3_600_000, lineup: [U, T2] }),
+    game(2, { at: NOW - 7_200_000, outcome: 'kalah', reason: 'early', lineup: [T2], note: 'gank awal' })];
+  const r = rigService({ games, agent });
+  const msg = r.message();
+  assert.equal(await r.service.coach(msg, 'kita kalah mulu, latihan apa?'), true);
+  assert.equal(agent.calls.length, 1);
+  const { text, key, context } = agent.calls[0];
+  assert.equal(text, 'kita kalah mulu, latihan apa?');
+  assert.equal(key, `${G}:${U}`);
+  assert.deepEqual([context.kind, context.visibility, Boolean(context.stateless)], ['home', 'coach', false]);
+  assert.match(context.system, /MODE COACH/);
+  assert.match(context.system, /Semua: W 1 dari 2 game/);
+  assert.match(context.system, /gank awal/);
+  assert.doesNotMatch(context.system.slice(context.system.indexOf('DATA dari buku catatan')), /STAT KAMU/);
+  assert.doesNotMatch(context.system, new RegExp(`${U}|${T2}`));
+  assert.equal(msg.replies.length, 1);
+  assert.match(msg.replies[0].content, /^Gas, satu fokus dulu: early game\.\n\nKamu nggak sendirian/);
+  assert.deepEqual(msg.replies[0].allowedMentions, { parse: [] });
+});
+
+test('the coach stays out of other channels, leaves outsiders and bots to normal chat and refuses a public hasil-scrim', async () => {
+  const agent = coachAgent();
+  const r = rigService({ agent });
+  assert.equal(await r.service.coach(r.message({ channel: { ...r.channel, name: 'general' } }), 'halo'), false);
+  assert.equal(await r.service.coach(r.message({ author: { id: U, bot: true } }), 'halo'), false);
+  const outsider = rigService({ agent, teamMember: false });
+  assert.equal(await outsider.service.coach(outsider.message(), 'halo'), false);
+  const open = rigService({ agent, everyoneCanView: true });
+  const msg = open.message();
+  assert.equal(await open.service.coach(msg, 'halo'), true);
+  assert.equal(msg.replies[0].content, MESSAGES.SCRIM_CHANNEL_PUBLIC);
+  assert.equal(agent.calls.length, 0);
+  const unwired = rigService();
+  assert.equal(await unwired.service.coach(unwired.message(), 'halo'), false);
+});
+
+test('/scrim tanya answers privately, once, with the asker\'s own stats on top of the team recap', async () => {
+  const agent = coachAgent('Fokus satu hal dulu ya.');
+  const games = [game(1, { lineup: [U] }), game(2, { outcome: 'kalah', reason: 'teamfight', lineup: [T2] })];
+  const r = rigService({ games, agent });
+  const i = r.interaction({ options: options({ pertanyaan: 'aku harus latihan apa? <@1>' }) });
+  await r.service.ask(i, deps);
+  assert.equal(i.deferred, true);
+  const { text, context } = agent.calls[0];
+  assert.equal(text, 'aku harus latihan apa? 1');
+  assert.deepEqual([context.visibility, context.stateless], ['coach', true]);
+  assert.match(context.system, /STAT KAMU \(cuma buat penanya\):\n📒 \*\*Stat scrim kamu, Hengs Family \(MLBB\)\*\*\nSemua: W 1 dari 1 game/);
+  assert.match(context.system, /Semua: W 1 dari 2 game/);
+  assert.doesNotMatch(context.system, new RegExp(`${U}|${T2}`));
+  assert.equal(i.edits.at(-1).content, 'Fokus satu hal dulu ya.');
+  assert.deepEqual(i.edits.at(-1).allowedMentions, { parse: [] });
+  const outsider = rigService({ games, agent, teamMember: false });
+  const denied = outsider.interaction({ options: options({ pertanyaan: 'halo' }) });
+  await outsider.service.ask(denied, deps);
+  assert.match(denied.edits.at(-1).content, /khusus anggota role Hengs Family/);
+  const elsewhere = r.interaction({ options: options({ pertanyaan: 'halo' }) });
+  await r.service.ask(elsewhere, { guildAccess: { classify: () => ({ kind: 'public' }) } });
+  assert.match(elsewhere.replies.at(-1).content, /server utama/);
+  assert.equal(agent.calls.length, 1);
+});
+
+test('coach replies with swearing or blame labels never reach the team', async () => {
+  const r = rigService({ agent: coachAgent('Jangan main kayak noob ya') });
+  const msg = r.message();
+  await r.service.coach(msg, 'gimana?');
+  assert.equal(msg.replies[0].content, BLOCKED_REPLY);
+});
+
+test('the coach allows 15 questions per person per day across mentions and /scrim tanya', async () => {
+  const agent = coachAgent();
+  const r = rigService({ agent });
+  for (let n = 0; n < 15; n++) assert.equal(await r.service.coach(r.message(), `tanya ${n}`), true);
+  const msg = r.message();
+  await r.service.coach(msg, 'satu lagi');
+  assert.equal(msg.replies[0].content, MESSAGES.COACH_QUOTA);
+  const i = r.interaction({ options: options({ pertanyaan: 'boleh nanya?' }) });
+  await r.service.ask(i, deps);
+  assert.equal(i.edits.at(-1).content, MESSAGES.COACH_QUOTA);
+  assert.equal(agent.calls.length, 15);
+});
+
+test('/scrim tanya is registered with one required question and routed to the service', async () => {
+  const json = scrimCommand.data.toJSON();
+  const tanya = json.options.find(option => option.name === 'tanya');
+  assert.deepEqual(tanya.options.map(option => [option.name, Boolean(option.required), option.max_length]), [['pertanyaan', true, 500]]);
+  const calls = [];
+  await scrimCommand.execute({ options: { getSubcommand: () => 'tanya' } },
+    { scrimResults: { ask: async () => calls.push('ask') }, guildAccess: deps.guildAccess });
+  assert.deepEqual(calls, ['ask']);
+  assert.deepEqual(buildCommandPlan([{ name: 'hengs' }, { name: 'setup' }, json]).home.map(command => command.name), ['scrim']);
+});
+
+test('runtime hands mentions in hasil-scrim to the coach before any other prompt route', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
+  assert.ok(source.includes('createScrimResults({ store: createScrimStore(), agent })'));
+  const coachAt = source.indexOf("if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;");
+  assert.ok(coachAt > source.indexOf('if (text.length > MAX_PROMPT_LENGTH)'));
+  assert.ok(coachAt < source.indexOf('const promptRoute = resolvePrompt({'));
 });

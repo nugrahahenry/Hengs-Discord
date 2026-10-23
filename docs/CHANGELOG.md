@@ -5,6 +5,36 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.73.0] - 2026-10-23
+
+### Added
+
+- Coach chat for Hengs Family (Henry: "gw pengennya sih bisa jadi llm bukan cuman yang command gitu doang"). A team
+  member who mentions Hengs (or replies to it) in hasil-scrim reaches a coach mode of the normal Hengs chat. Before
+  the call, code builds a data card from the scrim notebook: the team recap, the recap against an opponent named in
+  the question, and the WIB time. Coach rules come from sourced coaching research: one focus per answer (target, where
+  the team is, one concrete next step), process goals written into the next `/scrim hasil` note, a reflection
+  question, decisions instead of people, wins reviewed too, no other player's stats, numbers only from the card. The
+  model never sees Discord IDs or raw rows.
+- `/scrim tanya pertanyaan` (Hengs Family, private): one question, answered with the team recap plus the asker's own
+  stats, with no history kept.
+- Code checks every coach reply: swearing or blame labels swap the answer for a safe line, and the model's
+  `[[BANTUAN]]` marker becomes a fixed helpline text checked on 2026-10-23 (SAPA 129 KemenPPPA, Healing119 Kemenkes,
+  110). 15 coach questions per person per WIB day, counted in memory.
+- Coach chat keeps its own short history (12 messages, 4000 characters per request), apart from shared and private
+  chat, so team numbers never travel into other channels. `/hengs reset` clears it too.
+
+### Changed
+
+- Help: the scrim paragraph names the coach and drops the option list (the command shows it). `/hengs privacy` says
+  coach questions go to the AI provider with the team recap (plus the asker's own stats for `/scrim tanya`) and lists
+  the coach context size.
+
+### Verification
+
+- Node 22 full suite in the worktree (PowerShell): 805 tests, 804 pass, 1 worktree-only skip. Not deployed; deploy
+  needs command re-registration for the new `tanya` subcommand (still 14 home commands).
+
 ## [1.72.0] - 2026-10-23
 
 ### Added

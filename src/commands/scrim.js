@@ -40,6 +40,11 @@ module.exports = {
     .addSubcommand(sub => sub
       .setName('hapus')
       .setDescription('Salah catat? Hapus game terakhir yang kamu catat (khusus Hengs Family)')
+    )
+    .addSubcommand(sub => sub
+      .setName('tanya')
+      .setDescription('Tanya coach Hengs, dijawab pakai data scrim tim, cuma kamu yang lihat (khusus Hengs Family)')
+      .addStringOption(opt => opt.setName('pertanyaan').setDescription('Mau nanya apa ke coach?').setRequired(true).setMaxLength(500))
     ),
 
   async autocomplete(interaction, { scrimResults }) {
@@ -53,6 +58,7 @@ module.exports = {
     if (sub === 'rekap') return scrimResults.recap(interaction, { guildAccess });
     if (sub === 'statku') return scrimResults.stats(interaction, { guildAccess });
     if (sub === 'hapus') return scrimResults.remove(interaction, { guildAccess });
+    if (sub === 'tanya') return scrimResults.ask(interaction, { guildAccess });
 
     if (sub === 'on') {
       const game = interaction.options.getString('game');

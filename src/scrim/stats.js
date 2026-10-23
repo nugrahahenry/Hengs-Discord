@@ -105,4 +105,4 @@ function todayScore(games, opponent, at) {
   return { won: wins(today), lost: today.length - wins(today) };
 }
 
-module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats };
+module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, wibDay, whenLabel, todayScore, formatTeamRecap, formatPlayerStats };

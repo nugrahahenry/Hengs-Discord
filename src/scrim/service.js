@@ -4,6 +4,7 @@
 // checks the lineup in a private preview, then Hengs posts the card in hasil-scrim and records the game.
 // /scrim rekap and /scrim statku read the games back: the team recap privately, per-player numbers only by DM.
 // /scrim hapus undoes the requester's own last log; deleting one Hengs card in hasil-scrim drops its game too.
+// Coach: a member mentioning Hengs in hasil-scrim, or asking /scrim tanya, gets the chat model with the notebook as data.
 const crypto = require('node:crypto');
 const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, MessageFlags, PermissionFlagsBits: P, UserSelectMenuBuilder,
@@ -11,6 +12,7 @@ const {
 } = require('discord.js');
 const { MAX_LINEUP } = require('./store');
 const { REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
+const { COACH_DAILY_LIMIT, coachSystem, guardReply, createCoachQuota } = require('./coach');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -48,6 +50,7 @@ const MESSAGES = Object.freeze({
   SCRIM_DELETE_STALE: 'Konfirmasi hapusnya udah basi atau berubah. Jalanin /scrim hapus lagi ya, belum ada yang kehapus.',
   SCRIM_BUSY: 'Kiriman sebelumnya masih diproses, sabar bentar ya.',
   SCRIM_LIMIT: 'Lagi banyak preview yang kebuka. Coba lagi bentar lagi.',
+  COACH_QUOTA: `Jatah ngobrol sama coach hari ini udah habis (${COACH_DAILY_LIMIT} pertanyaan). Lanjut besok ya.`,
 });
 const quiet = { allowedMentions: { parse: [] } };
 const normalize = name => String(name).toLowerCase().replace(/^[^a-z0-9]+/, '');
@@ -128,8 +131,9 @@ const answer = (i, content) => (i.deferred || i.replied
   ? i.editReply({ content, embeds: [], components: [], ...quiet })
   : i.reply({ content, flags: MessageFlags.Ephemeral, ...quiet }));
 
-function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger = console } = {}) {
+function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date.now, logger = console } = {}) {
   const drafts = new Map();
+  const quota = createCoachQuota({ now });
   const removals = new Map(); // pending /scrim hapus confirmations, same key and TTL as drafts
   const busy = new Set();
   const keyFor = i => `${i.guildId}:${i.user?.id}`;
@@ -206,6 +210,17 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
       await answer(i, MESSAGES[error.message] || 'Hapus game belum berhasil. Cek rekap dulu ya, Hengs nggak nyoba ulang otomatis.');
     } finally { busy.delete(key); }
     return true;
+  }
+
+  // One coach turn: data card from the notebook, one chat call, and the reply checked before anyone sees it.
+  // A personal turn (/scrim tanya) adds the asker's own stats and keeps no history.
+  async function coachReply({ guildId, userId, text, personal = false }) {
+    const system = coachSystem(store.list(guildId), { text, userId: personal ? userId : null, now: now() });
+    const reply = await agent.chat(text, agent.buildConversationKey(guildId, userId),
+      { kind: 'home', visibility: 'coach', system, ...(personal ? { stateless: true } : {}) });
+    const checked = guardReply(reply);
+    if (checked.blocked) logger.error('[scrim] COACH_REPLY_BLOCKED');
+    return checked.text;
   }
 
   async function download(image) {
@@ -378,6 +393,44 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
         logger.error('[scrim] REMOVE_PREVIEW_FAILED');
         removals.delete(key);
         await answer(i, MESSAGES[error.message] || 'Belum bisa nyiapin hapus game. Coba lagi bentar ya, belum ada yang kehapus.');
+      }
+    },
+
+    // A Hengs Family member mentioning Hengs in hasil-scrim talks to the coach. Anyone else, or anywhere else, gets the
+    // normal Hengs chat (false), which never sees the notebook.
+    async coach(msg, text) {
+      if (!agent || msg.author?.bot || !msg.guild || normalize(msg.channel?.name) !== CHANNEL_KEY) return false;
+      try { await teamMember({ guild: msg.guild, guildId: msg.guildId, user: msg.author }); } catch { return false; }
+      let content;
+      try {
+        // The recap is team data: never answer with it where every member can read.
+        if (msg.channel.permissionsFor(msg.guild.roles.everyone)?.has(P.ViewChannel)) content = MESSAGES.SCRIM_CHANNEL_PUBLIC;
+        else if (!quota.take(msg.author.id)) content = MESSAGES.COACH_QUOTA;
+        else {
+          msg.channel.sendTyping?.().catch(() => {});
+          content = await coachReply({ guildId: msg.guildId, userId: msg.author.id, text });
+        }
+      } catch {
+        logger.error('[scrim] COACH_FAILED');
+        content = 'Coach lagi error, coba lagi bentar ya.';
+      }
+      await msg.reply({ content, ...quiet }).catch(() => logger.error('[scrim] COACH_REPLY_FAILED'));
+      return true;
+    },
+
+    // /scrim tanya: one private question, team recap plus the asker's own stats, no history kept.
+    async ask(i, { guildAccess } = {}) {
+      if (!agent || !home(i, guildAccess)) return reply(i, 'SCRIM_ACCESS');
+      try {
+        await i.deferReply({ flags: MessageFlags.Ephemeral });
+        await teamMember(i);
+        const text = clean(i.options.getString('pertanyaan', true), 500);
+        if (!text) return await answer(i, 'Tulis pertanyaannya dulu ya.');
+        if (!quota.take(i.user.id)) return await answer(i, MESSAGES.COACH_QUOTA);
+        await answer(i, await coachReply({ guildId: i.guildId, userId: i.user.id, text, personal: true }));
+      } catch (error) {
+        logger.error('[scrim] COACH_ASK_FAILED');
+        await answer(i, MESSAGES[error.message] || 'Coach belum bisa jawab, coba lagi bentar ya.');
       }
     },
 

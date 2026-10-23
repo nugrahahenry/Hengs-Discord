@@ -165,3 +165,30 @@ test('shared cooldown cannot be bypassed by switching visibility and guilds rema
   await value.agent.chat('other guild', `523456789012345678:${USER}`, { visibility: 'private' });
   assert.deepEqual(turns(value.calls.at(-1)), ['other guild']);
 });
+
+test('coach chat keeps its own history apart from shared chat and adds the coach data to the system prompt', async () => {
+  const value = fixture();
+  await value.agent.chat('SHARED_1', KEY);
+  value.tick();
+  await value.agent.chat('COACH_1', KEY, { visibility: 'coach', system: 'COACH_DATA_FIXTURE' });
+  assert.deepEqual(turns(value.calls[1]), ['COACH_1']);
+  assert.ok(value.calls[1].messages[0].content.endsWith('\n\nCOACH_DATA_FIXTURE'));
+  value.tick();
+  await value.agent.chat('SHARED_2', KEY);
+  assert.deepEqual(turns(value.calls[2]), ['SHARED_1', 'Jawaban fixture', 'SHARED_2']);
+  assert.doesNotMatch(value.calls[2].messages[0].content, /COACH_DATA_FIXTURE/);
+  value.tick();
+  await value.agent.chat('COACH_2', KEY, { visibility: 'coach', system: 'COACH_DATA_FIXTURE' });
+  assert.deepEqual(turns(value.calls[3]), ['COACH_1', 'Jawaban fixture', 'COACH_2']);
+});
+
+test('a stateless coach turn neither reads nor writes history', async () => {
+  const value = fixture();
+  await value.agent.chat('COACH_1', KEY, { visibility: 'coach' });
+  value.tick();
+  await value.agent.chat('ONCE_WITH_PRIVATE_STATS', KEY, { visibility: 'coach', stateless: true, system: 'STAT KAMU' });
+  assert.deepEqual(turns(value.calls[1]), ['ONCE_WITH_PRIVATE_STATS']);
+  value.tick();
+  await value.agent.chat('COACH_2', KEY, { visibility: 'coach' });
+  assert.deepEqual(turns(value.calls[2]), ['COACH_1', 'Jawaban fixture', 'COACH_2']);
+});

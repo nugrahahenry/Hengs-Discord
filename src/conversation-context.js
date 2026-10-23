@@ -5,6 +5,8 @@ const ENTRY_LIMIT = 1200;
 const LIMITS = Object.freeze({
   private: Object.freeze({ entries: 64, chars: 48000, requestEntries: 24, recent: 16, requestChars: 16000 }),
   shared: Object.freeze({ entries: 24, chars: 24000, requestEntries: 16, recent: 12, requestChars: 10000 }),
+  // Coach chat in hasil-scrim: its own short memory, so team numbers never travel into other channels.
+  coach: Object.freeze({ entries: 12, chars: 8000, requestEntries: 8, recent: 6, requestChars: 4000 }),
 });
 const STOP_WORDS = new Set(('aku saya gw gue kamu yang itu ini tadi dong deh kok apa kenapa '
   + 'gimana bagaimana tolong coba jelaskan jelasin dengan buat untuk dan atau dari ke di '

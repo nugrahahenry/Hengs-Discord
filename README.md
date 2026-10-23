@@ -89,6 +89,15 @@ Salah catat: `/scrim hapus` menampilkan game terakhir yang kamu catat secara pri
 rekap dan menarik kartunya di hasil-scrim. Admin yang menghapus satu kartu Hengs di hasil-scrim juga ikut menghapus
 game-nya; purge massal tidak menyentuh data.
 
+Ngobrol sama coach: anggota Hengs Family yang mention Hengs (atau reply balasannya) di hasil-scrim ngobrol sama
+coach. Sebelum AI dipanggil, program menyiapkan kartu data dari buku catatan (rekap tim, rekap lawan yang disebut,
+waktu WIB); AI tidak pernah melihat ID Discord atau data mentah. Aturannya dari riset coaching: satu fokus per jawaban
+(target, posisi sekarang, satu langkah konkret), target proses yang dicatat di `/scrim hasil` berikutnya, pertanyaan
+refleksi, bahas keputusan main bukan orangnya, tanpa stat pemain lain. `/scrim tanya pertanyaan` menjawab privat,
+sekali tanya sekali jawab, ditambah stat penanya sendiri. Riwayat coach terpisah dari chat biasa (maks 12 pesan).
+Program mengecek tiap jawaban: kata kasar atau label nyalahin pemain diganti kalimat aman, dan penanda `[[BANTUAN]]`
+diganti teks tetap berisi SAPA 129 dan Healing119. Batas 15 pertanyaan coach per orang per hari.
+
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama
 `data/scrim-results.json` (per seri, v1.64) tidak dibaca lagi.
