@@ -2,10 +2,11 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.74.0 - Coach LLM for Hengs Family in hasil-scrim, on top of v1.73.0
-Gen Z coach voice and `/scrim hapus`, v1.72.3 honest game facts rule, and v1.72.0-v1.72.2 Hengs Analis with
-reaction buttons under every meme. Committed and pushed, not deployed: the deploy waits for Henry's GPT assets and
-his approval. Cloud-live is v1.71.0 (one-tap meme votes) since 2026-10-23 15:09 WIB (includes v1.70.0 memes that learn from members' reactions, v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news
+**Current checkpoint:** Hengs Discord v1.75.0 - chat mode phase 1 (Hengs chats in `tanya-hengs`, coaches in
+`hasil-scrim`, waves 👋 elsewhere, understands casual requests and points to the right feature), on top of v1.74.0
+Coach LLM, v1.73.0 Gen Z coach voice and `/scrim hapus`, v1.72.3 honest game facts rule, and v1.72.0-v1.72.2 Hengs
+Analis with reaction buttons under every meme. Committed and pushed, not deployed: the deploy waits for Henry's
+GPT assets and his approval. Cloud-live is v1.71.0 (one-tap meme votes) since 2026-10-23 15:09 WIB (includes v1.70.0 memes that learn from members' reactions, v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news
 and meme channels with `/kirim`, v1.66.1 WordPress feeds, v1.66.0 five memes a day, v1.65.0 trending news,
 v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 
@@ -15,6 +16,14 @@ situations first. Hengs adds 😂 😐 💀 as real reactions under every meme (
 is one tap; on Hengs memes 😐 counts against in the taste store. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
 game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
+
+Chat mode (home server, phase 1): mention Hengs in `tanya-hengs` (the renamed `bot-commands`; the old name still
+works) or `bot-settings` to chat. Keyword rules go first; otherwise a small Groq model (gpt-oss-20b, JSON, only the
+message text) picks an intent. Feature intents (news, memes, analis, scrim, kirim, lapor, caster, event, help) get
+a fixed guide with channel links and the slash command, never posted feature content, and team data stays in
+`hasil-scrim`. In `hasil-scrim` only the coach answers. Anywhere else a mention gets one 👋 and nothing more.
+`@everyone`, `@here` and role pings no longer wake Hengs. Each member gets 40 LLM chats per WIB day; the owner is
+exempt. No DM chat.
 
 Hengs Analis posts one card per finished MLBB pro series (MPL PH and MPL ID playoffs for now) in the read-only
 `📊・hengs-analis` channel, made with `/admin setup` > Analis MLBB, which also posts and pins a guide. Data comes

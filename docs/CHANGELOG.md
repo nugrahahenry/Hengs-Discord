@@ -5,6 +5,44 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.75.0] - 2026-10-24
+
+### Added
+
+- Chat mode phase 1 for the home server. Henry chose "semua fitur lewat chat". A council then settled where it
+  lives, and Henry approved: `tanya-hengs` (renamed `bot-commands`) plus `hasil-scrim`, no DM, 👋 in `ngobrol`,
+  and the provider chain like WA with one key per bot.
+  - `src/chat-mode.js` decides the placement from the channel name, threads included:
+    - chat in `tanya-hengs` (or `bot-commands` until the rename) and `bot-settings`;
+    - coach in `hasil-scrim`; a mention the coach does not take gets a pointer;
+    - silent in `hall-of-fame`;
+    - a single 👋 reaction everywhere else, with no text and no LLM call.
+  - When the keyword rules miss, an intent classifier runs: `agent.completeIntent`, Groq gpt-oss-20b in JSON mode
+    at temperature 0, reasoning effort low, 8 s timeout, no OpenRouter fallback. It gets only the message text.
+    Groq limits are per organisation and per model, so the chat model's quota is untouched.
+  - The feature intents are help, news, memes, analis, scrim, kirim, lapor, caster and event. Each gets a fixed
+    guide with channel links and the slash command to use; chat never posts feature content. Scrim requests
+    point to `hasil-scrim`, `/scrim statku` and `/scrim tanya`. Unknown or failed answers fall back to normal chat.
+  - Every member gets 40 home LLM messages per WIB day (classifier and chat count as one); the guild owner is
+    exempt.
+
+### Changed
+
+- `@everyone`, `@here` and role pings no longer count as mentioning Hengs. discord.js defaults made an admin's
+  `@everyone` wake Hengs in any channel. A reply to a Hengs message still counts.
+- The bot channel is `tanya-hengs`:
+  - `botCommands(guild)` prefers it and falls back to `bot-commands`;
+  - the `/kirim` intake accepts either name when `BOT_CHANNEL_ID` is unset;
+  - user-facing copy now says `tanya-hengs`.
+
+### Verification
+
+- Node 22 full suite 853/853 via PowerShell.
+- Live classifier probe on the local Discord key (gpt-oss-20b, 6 requests, 2026-10-24):
+  - "ada berita apa hari ini" → news; "hasil MPL semalem gimana bro" → analis; "rekap scrim tim kita dong" →
+    scrim; "mau kirim meme gimana caranya" → kirim; "jelasin fotosintesis singkat" → chat.
+  - One cold first call hit the old 6 s timeout, so the timeout is now 8 s.
+
 ## [1.74.0] - 2026-10-23
 
 ### Added

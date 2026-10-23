@@ -2,6 +2,26 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.75.0 chat mode phase 1 (committed, not deployed) - 2026-10-24
+
+- Henry: "Gw sih maunya bot gw jadi mode llm sih, silahkan kembangkan cuy". He then chose "Semua fitur lewat chat"
+  and asked for /council on placement. He approved the council's recommendation: "#tanya-hengs (rename
+  bot-commands) + #hasil-scrim, tanpa DM, #ngobrol cuma reaksi 👋, provider kayak WA dengan key per bot".
+- Spec: docs/superpowers/specs/2026-10-24-hengs-chat-mode-design.md (ignored).
+- Built:
+  - src/chat-mode.js: placement, intents, guides and the classifier factory.
+  - agent.completeIntent: gpt-oss-20b, JSON.
+  - index.js: mention guard ignores @everyone/@here/roles; 👋 outside chat channels; coach pointer; daily cap of
+    40 per member (owner exempt); classifier then guide or chat.
+  - The tanya-hengs name is accepted in community-help and the /kirim intake.
+- Henry's manual steps after the deploy:
+  1. Rename `🤖・bot-commands` to `🤖・tanya-hengs` (the channel ID stays, nothing breaks).
+  2. Set #ngobrol's topic to point to #tanya-hengs.
+- Next: phase 2 (actions by chat with requester-only confirm buttons: kirim meme/berita, scrim hasil/hapus, and
+  ephemeral "Lihat" buttons), then phase 3 (owner admin intents).
+- Deploy prep from v1.74.0 must be redone for the new HEAD. Rebuild the archive, rehearse, then derive the
+  helpers with `.cloud/automation/derive-dc-next.cjs` (version parameter).
+
 ## Coach branches merged into main as v1.72.3, v1.73.0 and v1.74.0 (not deployed) - 2026-10-24
 
 - Henry, in this session: "Ya, gabung honest-prompt, coach-gaul, lalu coach-llm ke main sebagai v1.72.3, v1.73.0,

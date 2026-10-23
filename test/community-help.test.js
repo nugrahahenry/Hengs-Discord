@@ -17,7 +17,14 @@ test('member help is short and truthful; managers/editors see only applicable co
   assert.match(admin, /Tag anggota atau Tanpa tag/);
   for (const text of [member, publicHelp, admin]) { assert.ok(text.length <= 2000); assert.doesNotMatch(text, /[\u2013\u2014]/); }
   assert.match(hallGuide(guild), /khusus galeri/);
-  assert.equal(botCommands({}), '`bot-commands`');
+  assert.equal(botCommands({}), '`tanya-hengs`');
+});
+
+test('the bot channel is tanya-hengs once renamed; the old bot-commands name still works', () => {
+  assert.equal(botCommands(guild), '<#123456789012345678>');
+  const renamed = { channels: { cache: new Map([['t', { type: 0, name: '🤖・tanya-hengs', id: '223456789012345678' }],
+    ['b', { type: 0, name: 'bot-commands', id: '323456789012345678' }]]) } };
+  assert.equal(botCommands(renamed), '<#223456789012345678>');
 });
 
 test('gallery recognition excludes threads and unrelated channels', () => {

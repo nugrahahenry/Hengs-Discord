@@ -249,3 +249,13 @@ test('the /kirim command answers privately with the sharing preview', async () =
   await command.execute(i, { communitySharing: { submit: async () => ({ content: 'PREVIEW' }) } });
   assert.deepEqual(calls, [['defer', { flags: MessageFlags.Ephemeral }], ['edit', { content: 'PREVIEW' }]]);
 });
+
+test('without BOT_CHANNEL_ID the share intake works from the renamed tanya-hengs channel, not from other channels', async t => {
+  const r = rig(t); delete process.env.BOT_CHANNEL_ID;
+  r.channels.get(C).name = '🤖・tanya-hengs';
+  await r.click(await r.prepare()); assert.equal(r.sent.length, 1);
+  const other = rig(t); delete process.env.BOT_CHANNEL_ID;
+  other.channels.get(C).name = '💬・ngobrol';
+  const refused = await other.prepare();
+  assert.equal((refused.components || []).length, 0); assert.equal(other.sent.length, 0);
+});

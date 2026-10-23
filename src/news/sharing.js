@@ -16,7 +16,7 @@ const MAX_IMAGE = 8 * 1024 * 1024;
 const safe = content => ({ content, components: [], allowedMentions: { parse: [], repliedUser: false }, flags: MessageFlags.SuppressEmbeds });
 const literal = text => String(text).replace(/[\u0000-\u0008\u000b-\u001f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '')
   .replace(/@/g, '@\u200b').replace(/([\\`*_~|>\[\]])/g, '\\$1');
-const GUIDE = 'Channel news dan memes cuma Hengs yang posting. Kirim meme lewat `/kirim meme` (lampirkan gambarnya) atau berita lewat `/kirim berita` di bot-commands, atau pakai `/hengs ask` → `bagikan joke: teksmu`. Hengs menampilkan preview; kamu sendiri yang konfirmasi. Gambar dicek otomatis; isi kiriman bukan verifikasi Hengs.';
+const GUIDE = 'Channel news dan memes cuma Hengs yang posting. Kirim meme lewat `/kirim meme` (lampirkan gambarnya) atau berita lewat `/kirim berita` di tanya-hengs, atau pakai `/hengs ask` → `bagikan joke: teksmu`. Hengs menampilkan preview; kamu sendiri yang konfirmasi. Gambar dicek otomatis; isi kiriman bukan verifikasi Hengs.';
 
 function parseShare(prompt) {
   const text = String(prompt || '').trim();
@@ -73,7 +73,7 @@ function createCommunitySharing({ getSettings, guildAccess, reviewImage = null, 
       i.guild.members.fetch({ user: i.user.id, force: true }), i.guild.members.fetchMe({ force: true }),
     ]);
     const homeCommand = process.env.BOT_CHANNEL_ID
-      ? source?.id === process.env.BOT_CHANNEL_ID : /(?:^|[・│|\s])bot-commands$/u.test(source?.name || '');
+      ? source?.id === process.env.BOT_CHANNEL_ID : /(?:^|[・│|\s])(?:tanya-hengs|bot-commands)$/u.test(source?.name || '');
     const intake = scope.kind === 'home' ? homeCommand : isPublicChannelAllowed(scope.config, i.channelId);
     if (!intake || source?.id !== i.channelId || target?.id !== destinationId || source?.id === target?.id
       || [source, target].some(c => !c || c.guildId !== i.guildId || c.type !== ChannelType.GuildText)

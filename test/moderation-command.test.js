@@ -100,7 +100,7 @@ test('Anti-Raid runtime wiring starts recovery and intercepts messages and contr
   const interactionStart = indexSource.indexOf('client.on(Events.InteractionCreate');
   const chatInputGuard = indexSource.indexOf('if (!interaction.isChatInputCommand()) return;', interactionStart);
   const modComponentRoute = indexSource.indexOf("interaction.customId.startsWith('mod:')", interactionStart);
-  const mentionGuard = indexSource.indexOf('if (!msg.mentions.has(client.user)) return;', messageStart);
+  const mentionGuard = indexSource.indexOf('if (!msg.mentions.has(client.user, { ignoreEveryone: true, ignoreRoles: true })) return;', messageStart);
   const moderationMessage = indexSource.indexOf('await moderationHub.handleMessage(msg)', messageStart);
 
   assert.ok(readyStart >= 0);

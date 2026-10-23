@@ -462,8 +462,18 @@ async function reviseAnnouncement(draft, kind) {
   });
 }
 
+// Home chat mode intent classifier: the small Groq model in JSON mode, so the chat model's quota stays free.
+// Groq limits are per organisation and per model; no OpenRouter fallback here, a failure just means plain chat.
+async function completeIntent({ messages, temperature = 0 }) {
+  if (!groq) throw new Error('INTENT_PROVIDER_MISSING');
+  const res = await callWithTimeout(groq, { model: process.env.GROQ_INTENT_MODEL || 'openai/gpt-oss-20b', messages, temperature,
+    max_completion_tokens: 300, reasoning_effort: 'low', response_format: { type: 'json_object' } }, 8000);
+  return res.choices[0]?.message?.content || '';
+}
+
 module.exports = {
   groq,
+  completeIntent,
   completeNews: createNewsCompletion({ client: groq || openrouter,
     model: groq ? GROQ_MODELS[0] : FREE_MODELS[0], provider: groq ? 'groq' : 'openrouter' }),
   completeMeme: createMemeCompletion({ client: groq || openrouter,

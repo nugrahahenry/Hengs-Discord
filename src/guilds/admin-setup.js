@@ -103,7 +103,7 @@ async function ensureCommunityChannels(guild, { newsId = null, memeId = null, ex
       const created = await guild.channels.create({ name, type: ChannelType.GuildText,
         ...(parent ? { parent } : {}),
         topic: name === NEWS_NAME ? 'Berita pilihan Hengs dan kiriman anggota lewat /kirim berita. Kiriman anggota bukan verifikasi fakta.'
-          : 'Meme dari Hengs dan anggota. Kirim punyamu lewat /kirim meme di bot-commands.',
+          : 'Meme dari Hengs dan anggota. Kirim punyamu lewat /kirim meme di tanya-hengs.',
         reason: 'Hengs setup: owner confirmed separate read-only news and meme channels',
         permissionOverwrites: [
           { id: guild.roles.everyone.id, allow: [P.ViewChannel, P.ReadMessageHistory, P.AddReactions],
@@ -190,7 +190,7 @@ async function ensureScrimSetup(guild, { roleId = null, channelId = null, expect
   const gaming = channels.filter(c => c.type === ChannelType.GuildCategory && normalize(c.name) === 'gaming');
   const channel = await guild.channels.create({ name: CHANNEL_NAME, type: ChannelType.GuildText,
     ...(gaming.length === 1 ? { parent: gaming[0].id } : {}),
-    topic: 'Hasil scrim tim, privat untuk Hengs Family. Kirim lewat /scrim hasil di bot-commands atau unggah langsung.',
+    topic: 'Hasil scrim tim, privat untuk Hengs Family. Kirim lewat /scrim hasil di tanya-hengs atau unggah langsung.',
     reason: 'Hengs setup: owner confirmed private scrim results channel',
     permissionOverwrites: [
       { id: guild.roles.everyone.id, allow: [], deny: [P.ViewChannel, P.ReadMessageHistory, P.SendMessages,
@@ -285,7 +285,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
             '**Preview news + memes**',
             `${news ? 'Pakai' : 'Buat'} hengs-news; ${meme ? 'pakai' : 'buat'} hengs-memes. Channel lama tidak dipindah/diubah namanya. Meme baru mengikuti kategori news; jika belum ada news, keduanya di luar kategori.`,
             'Cuma Hengs yang posting di kedua channel. @everyone boleh melihat, membaca riwayat dan kasih reaksi, tapi tidak mengirim atau membuat thread. Overwrite role/anggota lain tetap; admin tetap bisa posting.',
-            'Anggota kirim lewat /kirim meme (gambar, dicek otomatis) atau /kirim berita (link) di bot-commands, dengan preview dan konfirmasi sendiri. Hengs tidak menjamin kebenaran isi kiriman. Tidak mengubah channel lain, tidak menjalankan setup lengkap.',
+            'Anggota kirim lewat /kirim meme (gambar, dicek otomatis) atau /kirim berita (link) di tanya-hengs, dengan preview dan konfirmasi sendiri. Hengs tidak menjamin kebenaran isi kiriman. Tidak mengubah channel lain, tidak menjalankan setup lengkap.',
             'Routing/jadwal bot belum diubah. Setelah channel siap, pilih tujuan melalui atur berita, preview berita, lalu terapkan berita.',
           ].join('\n\n')), components: controls(id, [['split', 'Buat/buka kedua channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
           return true;
@@ -382,7 +382,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           const { role, channel } = await ensureScrimSetup(interaction.guild, {
             roleId: ticket.roleId, channelId: ticket.scrimId, expectedHash: ticket.hash, assertLease,
           });
-          await interaction.editReply(safe(`Siap: role <@&${role.id}> dan channel <#${channel.id}>. Tambahkan anggota tim ke role Hengs Family lewat Server Settings > Members. Anggota tim kirim hasil lewat /scrim hasil di bot-commands.`));
+          await interaction.editReply(safe(`Siap: role <@&${role.id}> dan channel <#${channel.id}>. Tambahkan anggota tim ke role Hengs Family lewat Server Settings > Members. Anggota tim kirim hasil lewat /scrim hasil di tanya-hengs.`));
         } else if (action === 'split') {
           const [news, meme] = await ensureCommunityChannels(interaction.guild, {
             newsId: ticket.existingId, memeId: ticket.memeId, expectedHash: ticket.hash, assertLease,

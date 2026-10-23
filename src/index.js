@@ -15,6 +15,8 @@ const {
 const fs   = require('node:fs');
 const path = require('node:path');
 const agent = require('./agent');
+const { chatPlacement, createIntentClassifier, guideFor } = require('./chat-mode');
+const { createCoachQuota } = require('./scrim/coach');
 const state = require('./state');
 const { generateCard } = require('./utils/welcome-card');
 const { AttachmentBuilder } = require('discord.js');
@@ -454,6 +456,11 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
   }
 });
 
+// Home chat mode helpers: the intent classifier and the per-member daily cap (WIB day).
+const HOME_CHAT_DAILY_LIMIT = 40;
+const classifyIntent = createIntentClassifier({ complete: agent.completeIntent });
+const homeChatQuota = createCoachQuota({ limit: HOME_CHAT_DAILY_LIMIT });
+
 // ── AI Chat via mention ──────────────────────────────────────────────────────
 client.on(Events.MessageCreate, async (msg) => {
   if (msg.author.bot) return;
@@ -467,9 +474,15 @@ client.on(Events.MessageCreate, async (msg) => {
     }
   }
   if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
-  // Keep the gallery quiet, including administrator mentions. Its pinned guide points to bot-commands.
+  // Keep the gallery quiet, including administrator mentions. Its pinned guide points to tanya-hengs.
   if (messageScope.kind === 'home' && require('./community-help').isHallGallery(msg.channel)) return;
-  if (!msg.mentions.has(client.user)) return;
+  // @everyone, @here and role pings are not a question to Hengs; a reply to Hengs still is.
+  if (!msg.mentions.has(client.user, { ignoreEveryone: true, ignoreRoles: true })) return;
+  // Home server: Hengs chats in tanya-hengs (or bot-commands) and bot-settings, coaches in hasil-scrim, and only waves
+  // elsewhere, so #ngobrol stays a place for people. Public servers keep their own channel policy.
+  const place = messageScope.kind === 'home' ? chatPlacement(msg.channel) : 'chat';
+  if (place === 'silent') return;
+  if (place === 'wave') { await msg.react('👋').catch(() => {}); return; }
   if (messageScope.kind === 'public' && !isPublicChannelAllowed(messageScope.config, msg.channelId)) {
     await msg.reply({
       content: 'Hengs hanya dapat menjawab di channel yang dipilih pengelola server.',
@@ -500,6 +513,11 @@ client.on(Events.MessageCreate, async (msg) => {
 
   // Hengs Family members talking to Hengs in hasil-scrim get the coach, which reads the team's scrim notebook.
   if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;
+  if (place === 'coach') {
+    await msg.reply({ content: `Di sini khusus coach buat Hengs Family. Ngobrol lainnya di ${require('./community-help').botCommands(msg.guild)} ya.`,
+      allowedMentions: { parse: [] } });
+    return;
+  }
 
   const promptRoute = resolvePrompt({
     prompt: text,
@@ -587,6 +605,23 @@ client.on(Events.MessageCreate, async (msg) => {
       allowedMentions: { parse: [] },
     });
     return;
+  }
+
+  // Home chat mode: a per-member daily cap (the owner is exempt), then the intent classifier. A feature intent gets a
+  // fixed guide (links, slash commands), never feature content; anything else goes on to the normal chat below.
+  if (messageScope.kind === 'home') {
+    const exempt = msg.author.id === msg.guild?.ownerId;
+    if (!exempt && !homeChatQuota.allows(msg.author.id)) {
+      await msg.reply({ content: `Jatah ngobrol sama Hengs hari ini udah habis (${HOME_CHAT_DAILY_LIMIT} pesan). Lanjut besok ya.`,
+        allowedMentions: { parse: [] } });
+      return;
+    }
+    if (!exempt) homeChatQuota.spend(msg.author.id);
+    const guide = guideFor(await classifyIntent(text), msg.guild);
+    if (guide) {
+      await msg.reply({ content: guide, allowedMentions: { parse: [] } });
+      return;
+    }
   }
 
   let lease = null;

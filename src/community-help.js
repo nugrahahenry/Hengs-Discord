@@ -1,9 +1,13 @@
 'use strict';
 
+// The bot channel: tanya-hengs since chat mode (v1.75.0), bot-commands until Henry renames it.
 function botCommands(guild) {
-  const channels = [...(guild?.channels?.cache?.values?.() || [])].filter(channel =>
-    channel.type === 0 && /(?:^|[・│|\s])bot-commands$/u.test(channel.name || ''));
-  return channels.length === 1 && /^\d{17,20}$/.test(channels[0].id) ? `<#${channels[0].id}>` : '`bot-commands`';
+  const all = [...(guild?.channels?.cache?.values?.() || [])];
+  for (const label of ['tanya-hengs', 'bot-commands']) {
+    const channels = all.filter(channel => channel.type === 0 && new RegExp(`(?:^|[・│|\\s])${label}$`, 'u').test(channel.name || ''));
+    if (channels.length === 1 && /^\d{17,20}$/.test(channels[0].id)) return `<#${channels[0].id}>`;
+  }
+  return '`tanya-hengs`';
 }
 
 function isHallGallery(channel) {
@@ -30,7 +34,7 @@ function buildCommunityHelp({ home = false, manager = false, editor = false, gui
     '• "Bantu cari ide kegiatan komunitas yang seru."',
     '• "Rapikan kalimat ini biar enak dibaca: ..."',
     '', '**News dan memes**',
-    'Posting langsung sesuai izin channel, atau `/hengs ask` di bot-commands: `bagikan berita: link HTTPS` / `bagikan joke: teks`. Preview dulu, kamu yang konfirmasi. Bukan verifikasi AI.',
+    'Posting langsung sesuai izin channel, atau `/hengs ask` di tanya-hengs: `bagikan berita: link HTTPS` / `bagikan joke: teks`. Preview dulu, kamu yang konfirmasi. Bukan verifikasi AI.',
     ...(home ? ['', '**Casterin**',
       `\`/caster\` di ${botCommands(guild)}: tulis momen + pilih persona, dengerin preview privat, baru Kirim. Suara AI, jangan tulis data pribadi.`] : []),
     ...(home ? ['', '**Catatan scrim**',
