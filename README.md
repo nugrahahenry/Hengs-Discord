@@ -21,7 +21,8 @@ URL, checks every 20 minutes while a series is live and every 3 hours otherwise)
 score, per game winner, side, length, objective, picks and bans, MVP and up to two notes counted from the
 games; no logos, hero art or screenshots, and no AI-written facts. Cards follow Liquipedia corrections for 72
 hours; a member's ⚠️ sends the server owner one DM. Henry's backgrounds go in `assets/esports/`
-(`series-bg.png` 1600x900, `guide-banner.png` 1600x500); without them the card uses the Aurora gradient.
+(`series-bg.png` square, at least 1600x1600, scaled to cover cards 900 to about 1600 px tall; `guide-banner.png`
+1600x500); without them the card uses the Aurora gradient.
 
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
