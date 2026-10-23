@@ -3,8 +3,8 @@
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
 **Current checkpoint:** Hengs Discord v1.71.0 - one-tap meme votes (Hengs adds 😂 😐 💀 under each Hengs
-meme, 😐 counts against), committed, not deployed yet. Cloud-live is v1.70.0 (memes learn from members' reactions)
-since 2026-10-21 20:41 WIB (includes v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news
+meme, 😐 counts against), cloud-live since 2026-10-23 15:09 WIB (includes v1.70.0 memes that learn from members'
+reactions, v1.69.0 livelier memes and Hengs Coach phase 1, v1.67.0 read-only news
 and meme channels with `/kirim`, v1.66.1 WordPress feeds, v1.66.0 five memes a day, v1.65.0 trending news,
 v1.64.2 private hasil-scrim, v1.63.0 Casterin)
 

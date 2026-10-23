@@ -1,6 +1,24 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-21
+Updated: 2026-10-23
+
+## Hengs Discord v1.71.0 deployed and accepted - 2026-10-23
+
+- Henry: "Deploy Discord v1.71.0 sekarang, di luar jam slot." Helpers .cloud/automation/deploy-v1710 derived from
+  deploy-v1700 (previous 1.70.0-39fac4d39bb1, WA 0.53.0, rehearsal counts unchanged at 779/776/3 skips).
+- Code e32090affdba3ab263d7bf6b876b458ca1bf6f06, archive hengs-discord-1.71.0-e32090affdba.tar.gz SHA-256
+  2189e57cfb314c13f3e820b3ea85d918c954ab2b94e030555d166e93b81ab74f.
+- Preflight PASS 14:36:51. Staging was blocked twice, with no cloud change either time:
+  - LOCAL_CONSUMER: a sibling session's textbook eval was running with the WhatsApp repo's node22 binary, whose path
+    matches the guard. It was left to finish (14:44).
+  - Seal step: stage.ps1 had been started under Windows PowerShell 5.1, which mangles the quoted ssh command
+    ("cut: the delimiter must be a single character"). The script cleaned up after itself.
+  - Run stage.ps1 under pwsh 7, as in earlier deploys.
+- Staged and sealed 14:47:06. The 14:45 minute guard pushed dispatch past the 15:00 slot: dispatched 15:05:36,
+  ACCEPTED 15:09:06.
+- Audit PASS: DC 1.71.0 and WA 0.53.0 fresh, restarts zero, staging absent, rollback to 1.70.0 available, 14 home
+  commands (no command change, nothing re-registered).
+- First seeded Hengs meme: the next Hengs-made meme slot.
 
 ## Hengs News + Memes 5x5 day-one observation (input for phase 2) - 2026-10-21
 
