@@ -2,6 +2,22 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.76.0 chat mode phase 2 (committed, not deployed) - 2026-10-24
+
+- Henry: "Lanjut tahap 2: kirim meme/berita dan catat/hapus scrim lewat chat, pakai tombol konfirmasi yang cuma bisa
+  dipencet yang minta." The spec addendum is in docs/superpowers/specs/2026-10-24-hengs-chat-mode-design.md.
+- src/chat-actions.js holds the tickets and the requester-only "Lanjut" button, which runs the slash flows through
+  an options proxy.
+- Classifier slots for scrim_catat are checked against RESULT_CHOICES.
+- QA: suite 859/859; live probe of 4 scrim phrases correct.
+- Not tried in Discord yet. After the deploy, try these:
+  1. In tanya-hengs: "@Hengs kirim meme ini" with an image.
+  2. In tanya-hengs: "@Hengs kirim berita https://...".
+  3. In hasil-scrim: "@Hengs catat scrim lawan X kalah draft".
+  4. In hasil-scrim: "@Hengs hapus scrim terakhir".
+  5. Press each button from a second account; it must be refused.
+- Next: phase 3 (owner admin intents) or the "Lihat" ephemeral buttons for private reads.
+
 ## Hengs Discord v1.75.0 chat mode phase 1 (committed, not deployed) - 2026-10-24
 
 - Henry: "Gw sih maunya bot gw jadi mode llm sih, silahkan kembangkan cuy". He then chose "Semua fitur lewat chat"

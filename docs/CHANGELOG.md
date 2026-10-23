@@ -5,6 +5,38 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.76.0] - 2026-10-24
+
+### Added
+
+- Chat mode phase 2. Henry: "Lanjut tahap 2: kirim meme/berita dan catat/hapus scrim lewat chat, pakai tombol
+  konfirmasi yang cuma bisa dipencet yang minta."
+  - `src/chat-actions.js`: a chat request gets one public line and a "Lanjut" button.
+    - The ticket lives 10 minutes, works once, and is bound to the guild, the channel and the requester. Anyone
+      else gets a private "Tombol ini bukan buat kamu".
+    - The click runs the existing slash flow on the button interaction with the chat values as its options:
+      `sharing.submit` for `/kirim`, `scrim.preview` for `/scrim hasil`, `scrim.remove` for `/scrim hapus`.
+    - The image review, intake checks, private preview and final confirm are unchanged.
+  - Kirim, in `tanya-hengs`, on intent `kirim`: the message's first PNG/JPG/WebP is a meme, otherwise its first
+    HTTPS link is news; with neither, Hengs sends the guide. Captions and notes stay on `/kirim`.
+  - Scrim, in `hasil-scrim`, before the coach: the classifier returns `scrim_catat` or `scrim_hapus`.
+    - `scrim_catat` comes with clean slots: `lawan` up to 60 characters, `hasil` from the six `/scrim hasil`
+      choices, `catatan` up to 300. The message's image becomes the SS.
+    - A missing opponent or result gets a question, never a guess.
+    - In `tanya-hengs` these intents point to `hasil-scrim`.
+  - The classifier now returns `{ intent, slots }`, and its prompt says never to guess an opponent or a result.
+    `index.js` routes `hengs-chat:` buttons, and one helper charges the daily cap for both chat channels and
+    `hasil-scrim`.
+
+### Verification
+
+- Node 22 full suite 859/859 via PowerShell.
+- Live classifier probe on the local Discord key (gpt-oss-20b, 4 requests, 2026-10-24):
+  - "catat scrim lawan RRQ, kita kalah gara-gara draft" → scrim_catat, RRQ, kalah-draft;
+  - "hapus scrim terakhir dong aku salah input" → scrim_hapus;
+  - "kita menang lawan EVOS tadi, catet ya" → scrim_catat, EVOS, menang;
+  - "tadi scrim kalah" → scrim_catat with no opponent, so Hengs asks.
+
 ## [1.75.0] - 2026-10-24
 
 ### Added

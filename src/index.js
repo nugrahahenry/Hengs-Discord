@@ -15,7 +15,8 @@ const {
 const fs   = require('node:fs');
 const path = require('node:path');
 const agent = require('./agent');
-const { chatPlacement, createIntentClassifier, guideFor } = require('./chat-mode');
+const { chatPlacement, createIntentClassifier, guideFor, askScrimSlots } = require('./chat-mode');
+const { createChatActions, firstImage, readKirim } = require('./chat-actions');
 const { createCoachQuota } = require('./scrim/coach');
 const state = require('./state');
 const { generateCard } = require('./utils/welcome-card');
@@ -460,6 +461,19 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
 const HOME_CHAT_DAILY_LIMIT = 40;
 const classifyIntent = createIntentClassifier({ complete: agent.completeIntent });
 const homeChatQuota = createCoachQuota({ limit: HOME_CHAT_DAILY_LIMIT });
+const chatActions = createChatActions({ sharing: communitySharing, scrim: scrimResults, guildAccess });
+
+// One home LLM message: the daily cap (owner exempt), then the intent classifier. Null means the cap answered already.
+async function homeRoute(msg, text) {
+  const exempt = msg.author.id === msg.guild?.ownerId;
+  if (!exempt && !homeChatQuota.allows(msg.author.id)) {
+    await msg.reply({ content: `Jatah ngobrol sama Hengs hari ini udah habis (${HOME_CHAT_DAILY_LIMIT} pesan). Lanjut besok ya.`,
+      allowedMentions: { parse: [] } });
+    return null;
+  }
+  if (!exempt) homeChatQuota.spend(msg.author.id);
+  return classifyIntent(text);
+}
 
 // ── AI Chat via mention ──────────────────────────────────────────────────────
 client.on(Events.MessageCreate, async (msg) => {
@@ -512,6 +526,18 @@ client.on(Events.MessageCreate, async (msg) => {
   }
 
   // Hengs Family members talking to Hengs in hasil-scrim get the coach, which reads the team's scrim notebook.
+  // hasil-scrim: logging or undoing a game by chat gets a requester-only button that opens /scrim hasil or /scrim hapus;
+  // any other message there is for the coach.
+  if (place === 'coach') {
+    const route = await homeRoute(msg, text);
+    if (!route) return;
+    if (route.intent === 'scrim_catat' || route.intent === 'scrim_hapus') {
+      const ready = route.intent === 'scrim_hapus' || (route.slots.lawan && route.slots.hasil);
+      await msg.reply(ready ? chatActions.offer(msg, { kind: route.intent, ...route.slots, attachment: firstImage(msg) })
+        : { content: askScrimSlots(), allowedMentions: { parse: [] } });
+      return;
+    }
+  }
   if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;
   if (place === 'coach') {
     await msg.reply({ content: `Di sini khusus coach buat Hengs Family. Ngobrol lainnya di ${require('./community-help').botCommands(msg.guild)} ya.`,
@@ -610,14 +636,15 @@ client.on(Events.MessageCreate, async (msg) => {
   // Home chat mode: a per-member daily cap (the owner is exempt), then the intent classifier. A feature intent gets a
   // fixed guide (links, slash commands), never feature content; anything else goes on to the normal chat below.
   if (messageScope.kind === 'home') {
-    const exempt = msg.author.id === msg.guild?.ownerId;
-    if (!exempt && !homeChatQuota.allows(msg.author.id)) {
-      await msg.reply({ content: `Jatah ngobrol sama Hengs hari ini udah habis (${HOME_CHAT_DAILY_LIMIT} pesan). Lanjut besok ya.`,
-        allowedMentions: { parse: [] } });
+    const route = await homeRoute(msg, text);
+    if (!route) return;
+    // Sending a meme (an attached image) or news (an HTTPS link) by chat: a requester-only button, then /kirim's flow.
+    const kirim = route.intent === 'kirim' ? readKirim(msg) : null;
+    if (kirim) {
+      await msg.reply(chatActions.offer(msg, kirim));
       return;
     }
-    if (!exempt) homeChatQuota.spend(msg.author.id);
-    const guide = guideFor(await classifyIntent(text), msg.guild);
+    const guide = guideFor(route.intent, msg.guild);
     if (guide) {
       await msg.reply({ content: guide, allowedMentions: { parse: [] } });
       return;
@@ -700,6 +727,11 @@ client.on(Events.MessageCreate, async (msg) => {
 
 // ── Slash command handler ─────────────────────────────────────────────────────
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-chat:')) {
+    try { await chatActions.handleButton(interaction); }
+    catch { console.error('[chat-actions] INTERACTION_FAILED'); }
+    return;
+  }
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-share:')) {
     try { await communitySharing.handleButton(interaction); }
     catch { console.error('[community-share] INTERACTION_FAILED'); }
