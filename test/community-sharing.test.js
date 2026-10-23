@@ -259,3 +259,13 @@ test('without BOT_CHANNEL_ID the share intake works from the renamed tanya-hengs
   const refused = await other.prepare();
   assert.equal((refused.components || []).length, 0); assert.equal(other.sent.length, 0);
 });
+
+test('with BOT_CHANNEL_ID pointing at the shared bot-commands, tanya-hengs still takes shares; other names do not', async t => {
+  const r = rig(t); process.env.BOT_CHANNEL_ID = '999999999999999999';
+  r.channels.get(C).name = '🤖・tanya-hengs';
+  await r.click(await r.prepare()); assert.equal(r.sent.length, 1);
+  const other = rig(t); process.env.BOT_CHANNEL_ID = '999999999999999999';
+  other.channels.get(C).name = '🤖・bot-commands';
+  const refused = await other.prepare();
+  assert.equal((refused.components || []).length, 0); assert.equal(other.sent.length, 0);
+});

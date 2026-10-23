@@ -5,6 +5,29 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.77.0] - 2026-10-24
+
+### Added
+
+- `/admin setup` > Tanya Hengs: preview, then create or reuse `🤖・tanya-hengs` in the `bot-commands` category.
+  Henry: "itu bot commands niatnya buat bot musik juga ... kalau khusus buat hengs bikin aja lagi tanya hengs".
+  - Members keep the server's own permissions there (chatting, attaching images). Hengs gets one overwrite: view,
+    history, send, embed, attach and react, plus Pin Messages when the server already granted it.
+  - When the channel is newly created, Hengs posts and pins a guide (`chatGuide`) with examples, the Lanjut button
+    rule, the hasil-scrim privacy note, the 40-a-day cap, a no-personal-data note and "AI bisa salah".
+
+### Changed
+
+- `bot-commands` stays shared with other bots (music and the like). Once a `tanya-hengs` channel exists, a mention
+  of Hengs in `bot-commands` only gets 👋. Before that, Hengs keeps chatting there. Hengs' slash commands are
+  unaffected.
+- The `/kirim` intake always accepts `tanya-hengs`, even when `BOT_CHANNEL_ID` points at `bot-commands`, so chat
+  shares from `tanya-hengs` work.
+
+### Verification
+
+- Node 22 full suite 863/863 via PowerShell.
+
 ## [1.76.0] - 2026-10-24
 
 ### Added

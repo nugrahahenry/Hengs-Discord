@@ -382,7 +382,7 @@ test('actual admin command and component route offer the optional question witho
   // Release archives come out of git archive with CRLF on Windows checkouts; compare with LF.
   const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8').replace(/\r\n/g, '\n');
   assert(source.includes("startsWith('hengs-admin-setup:')"));
-  assert(source.includes("client.commands.get('admin').handleSetupComponent(interaction, {\n        guildAccess, postAnalystGuide: channel => esportsService.ensureGuide(channel) })"));
+  assert(source.includes("client.commands.get('admin').handleSetupComponent(interaction, {\n        guildAccess, postAnalystGuide: channel => esportsService.ensureGuide(channel), postChatGuide })"));
 });
 
 test('actual full admin setup adds optional news in announcements without enabling a news scheduler', async () => {
@@ -432,4 +432,27 @@ test('analyst setup grants Hengs pinning only when the server already gave it, a
   assert.equal(r.created[0].parent, undefined);
   assert.match(i.edits.at(-1).content, /Panduan belum terkirim/);
   assert(!JSON.stringify([i.edits, r.logs]).includes('private-provider'));
+});
+
+test('Tanya Hengs setup previews, then makes 🤖・tanya-hengs beside bot-commands with members free to chat, and pins a guide', async () => {
+  const r = rig(); const category = r.channel('🤖 BOT CENTER', ChannelType.GuildCategory);
+  r.channel('🤖・bot-commands', ChannelType.GuildText, category.id);
+  const guides = []; r.deps.postChatGuide = async channel => { guides.push(channel.name); return { posted: true, pinned: true }; };
+  const question = await open(r);
+  const p = (await click(r, question, 'tanya')).edits.at(-1);
+  assert.match(p.content, /Preview channel Tanya Hengs/); assert.match(p.content, /bot-commands tetap buat bot lain/);
+  assert.equal(r.created.length, 0);
+  const i = await click(r, p, 'tanyaapply');
+  assert.equal(r.created.length, 1);
+  const options = r.created[0];
+  assert.equal(options.name, '🤖・tanya-hengs'); assert.equal(options.parent, category.id); assert.match(options.topic, /mention/i);
+  // Members keep the server's own chat permissions; only Hengs gets an overwrite.
+  assert.equal(options.permissionOverwrites.length, 1);
+  const [bot] = options.permissionOverwrites;
+  for (const bit of [P.SendMessages, P.AttachFiles, P.EmbedLinks, P.AddReactions, P.ReadMessageHistory]) assert(bot.allow.includes(bit));
+  assert.deepEqual(guides, ['🤖・tanya-hengs']);
+  assert.match(i.edits.at(-1).content, /Channel Tanya Hengs siap/); assert.match(i.edits.at(-1).content, /di-pin/);
+  const again = await click(r, (await click(r, await open(r), 'tanya')).edits.at(-1), 'tanyaapply');
+  assert.equal(r.created.length, 1); assert.equal(guides.length, 1);
+  assert.match(again.edits.at(-1).content, /sudah ada/);
 });

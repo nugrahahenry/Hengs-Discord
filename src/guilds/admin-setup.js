@@ -154,6 +154,30 @@ async function ensureAnalystChannel(guild, { channelId = null, expectedHash, ass
   return { channel, created: true };
 }
 
+const TANYA_NAME = '🤖・tanya-hengs';
+// Hengs' own chat channel. bot-commands stays shared with other bots. Members keep the server's own permissions here
+// (they chat and attach images); only Hengs gets an overwrite, with Pin Messages when the server already gave it.
+async function ensureTanyaChannel(guild, { channelId = null, expectedHash, assertLease = async () => {} } = {}) {
+  const { channels, hash } = await inventory(guild);
+  if (expectedHash && expectedHash !== hash) throw new Error('SETUP_PREVIEW_STALE');
+  const existing = findNews(guild, channels, 'tanya-hengs');
+  if ((existing?.id || null) !== channelId) throw new Error('SETUP_PREVIEW_STALE');
+  const me = await guild.members.fetchMe({ force: true });
+  if (!me.permissions.has([P.ManageChannels, P.ManageRoles])) throw new Error('COMMUNITY_SETUP_PERMISSIONS');
+  const pin = me.permissions.has(P.PinMessages) === true;
+  await assertLease();
+  const bot = [P.ViewChannel, P.ReadMessageHistory, P.SendMessages, P.EmbedLinks, P.AttachFiles, P.AddReactions, ...(pin ? [P.PinMessages] : [])];
+  if (existing) return { channel: existing, created: false };
+  const parent = findNews(guild, channels, 'bot-commands')?.parentId || null;
+  if (parent && !channels.some(c => c.id === parent && c.type === ChannelType.GuildCategory)) throw new Error('NEWS_PARENT_INVALID');
+  const channel = await guild.channels.create({ name: TANYA_NAME, type: ChannelType.GuildText, ...(parent ? { parent } : {}),
+    topic: 'Ngobrol sama Hengs: mention @Hengs + pertanyaanmu. Kirim meme atau berita juga bisa di sini. Panduan ada di pesan yang di-pin.',
+    reason: 'Hengs setup: owner confirmed the Tanya Hengs chat channel',
+    permissionOverwrites: [{ id: me.id, allow: bot }] });
+  if (channel?.guildId !== guild.id || channel.type !== ChannelType.GuildText) throw new Error('NEWS_CREATE_UNCERTAIN');
+  return { channel, created: true };
+}
+
 function guideCopy(guide) {
   if (guide?.pinned) return 'Panduan sudah dikirim dan di-pin.';
   if (guide?.posted) return 'Panduan sudah dikirim, tapi Hengs belum bisa mem-pin: kasih Hengs izin Pin Messages di channel itu, atau pin manual.';
@@ -230,7 +254,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
   function question(id, revision = 0) {
     return { ...safe('**Setup server Hengs**\nMau tambahkan Hengs News sekarang? Atau siapkan channel hasil scrim tim, atau channel Analis MLBB.\n\nPilih dulu, lalu tinjau preview. Belum ada channel yang diubah. Pilihan ini tidak menyalakan berita harian.'),
       components: controls(id, [['yes', 'News saja'], ['community', 'News + memes', ButtonStyle.Primary], ['scrim', 'Scrim tim'],
-        ['analis', 'Analis MLBB'], ['no', 'Belum sekarang'], ['cancel', 'Batal']], revision) };
+        ['analis', 'Analis MLBB'], ['tanya', 'Tanya Hengs'], ['no', 'Belum sekarang'], ['cancel', 'Batal']], revision) };
   }
   async function reject(interaction, content) {
     await interaction.reply({ ...safe(content), flags: MessageFlags.Ephemeral });
@@ -247,10 +271,10 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
         expires: now() + TTL, phase: 'question', revision: 0, busy: false });
       await interaction.reply({ ...question(id), flags: MessageFlags.Ephemeral });
     },
-    async handle(interaction, { guildAccess, postAnalystGuide } = {}) {
+    async handle(interaction, { guildAccess, postAnalystGuide, postChatGuide } = {}) {
       if (!interaction.isButton?.() || !String(interaction.customId).startsWith(PREFIX)) return false;
       sweep();
-      const match = /^hengs-admin-setup:([a-f0-9]{24}):(\d{1,4}):(yes|no|community|split|back|cancel|news|full|scrim|scrimapply|analis|analisapply)$/.exec(interaction.customId);
+      const match = /^hengs-admin-setup:([a-f0-9]{24}):(\d{1,4}):(yes|no|community|split|back|cancel|news|full|scrim|scrimapply|analis|analisapply|tanya|tanyaapply)$/.exec(interaction.customId);
       const ticket = match && tickets.get(match[1]);
       if (!ticket || ticket.revision !== Number(match[2]) || !canManage(interaction, guildAccess) || ticket.actor !== interaction.user.id
         || ticket.guild !== interaction.guildId || ticket.channel !== interaction.channelId) {
@@ -306,6 +330,23 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           ].join('\n\n')), components: controls(id, [['scrimapply', 'Buat/pakai role + channel', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
           return true;
         }
+        if (action === 'tanya') {
+          if (ticket.phase !== 'question') throw new Error('SETUP_PHASE_INVALID');
+          const snapshot = await inventory(interaction.guild);
+          const existing = findNews(interaction.guild, snapshot.channels, 'tanya-hengs');
+          const shared = findNews(interaction.guild, snapshot.channels, 'bot-commands');
+          ticket.tanyaId = existing?.id || null;
+          ticket.hash = snapshot.hash; ticket.phase = 'tanya-preview'; ticket.revision++;
+          await interaction.editReply({ ...safe([
+            '**Preview channel Tanya Hengs**',
+            existing ? 'Pakai channel tanya-hengs yang sudah ada, tanpa memindahkan atau mengganti namanya.'
+              : `Buat ${TANYA_NAME} ${shared?.parentId ? 'di kategori yang sama dengan bot-commands' : 'di luar kategori'}.`,
+            'Anggota ngobrol sama Hengs di sini: mention Hengs, minta berita atau meme, kirim meme atau berita lewat chat. Izin anggota ikut pengaturan server; cuma izin Hengs yang ditambah.',
+            'bot-commands tetap buat bot lain (musik dan lainnya). Slash command Hengs tetap jalan di sana, tapi mention Hengs di sana cuma dibalas 👋.',
+            'Hengs mengirim pesan panduan lalu mem-pin-nya. Tidak mengubah channel lain.',
+          ].join('\n\n')), components: controls(id, [['tanyaapply', 'Buat/pakai tanya-hengs', ButtonStyle.Primary], ['back', 'Ubah pilihan'], ['cancel', 'Batal']], ticket.revision) });
+          return true;
+        }
         if (action === 'analis') {
           if (ticket.phase !== 'question') throw new Error('SETUP_PHASE_INVALID');
           const snapshot = await inventory(interaction.guild);
@@ -348,7 +389,8 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           ], ticket.revision) });
           return true;
         }
-        const applyPhase = { split: 'community-preview', scrimapply: 'scrim-preview', analisapply: 'analis-preview' }[action] || 'preview';
+        const applyPhase = { split: 'community-preview', scrimapply: 'scrim-preview', analisapply: 'analis-preview',
+          tanyaapply: 'tanya-preview' }[action] || 'preview';
         if (ticket.phase !== applyPhase || (action === 'news' && !ticket.includeNews)) throw new Error('SETUP_PHASE_INVALID');
         if (applying.has(ticket.guild)) throw new Error('SETUP_BUSY');
         applying.add(ticket.guild); ownsLock = true;
@@ -357,7 +399,7 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           || !canManage(interaction, guildAccess) || now() >= ticket.expires) {
           throw new Error('SETUP_PREVIEW_STALE');
         }
-        const target = action === 'analisapply' ? ticket.analisId : ticket.existingId;
+        const target = action === 'analisapply' ? ticket.analisId : action === 'tanyaapply' ? ticket.tanyaId : ticket.existingId;
         if ((action === 'full' || !target) && !canCreate(interaction.guild)) throw new Error('SETUP_BOT_PERMISSIONS');
         if (ticket.includeNews) findNews(interaction.guild, snapshot.channels);
         // Consume before any external write; a timeout is uncertain, not a retry invitation.
@@ -371,7 +413,17 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
           }
           if (now() >= ticket.expires || !canManage(interaction, guildAccess)) throw new Error('SETUP_PREVIEW_STALE');
         };
-        if (action === 'analisapply') {
+        if (action === 'tanyaapply') {
+          const { channel, created } = await ensureTanyaChannel(interaction.guild, {
+            channelId: ticket.tanyaId, expectedHash: ticket.hash, assertLease,
+          });
+          let guide = null;
+          if (created) {
+            try { guide = await postChatGuide?.(channel); } catch { logger.error('[admin-setup] CHAT_GUIDE_FAILED'); }
+          }
+          await interaction.editReply(safe(`Channel Tanya Hengs siap: <#${channel.id}>. ${created ? guideCopy(guide)
+            : 'Channel-nya sudah ada, panduan tidak dikirim ulang.'}\nMention Hengs di sana buat ngobrol; bot-commands tetap buat bot lain.`));
+        } else if (action === 'analisapply') {
           const { channel } = await ensureAnalystChannel(interaction.guild, {
             channelId: ticket.analisId, expectedHash: ticket.hash, assertLease,
           });
@@ -419,5 +471,5 @@ function createAdminSetupFlow({ applyLegacy, now = Date.now, logger = console } 
   };
 }
 
-module.exports = { PREFIX, ANALYST_NAME, createAdminSetupFlow, ensureNewsChannel, ensureCommunityChannels, ensureScrimSetup,
-  ensureAnalystChannel, newsNextSteps };
+module.exports = { PREFIX, ANALYST_NAME, TANYA_NAME, createAdminSetupFlow, ensureNewsChannel, ensureCommunityChannels,
+  ensureScrimSetup, ensureAnalystChannel, ensureTanyaChannel, newsNextSteps };

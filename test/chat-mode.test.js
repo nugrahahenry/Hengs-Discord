@@ -20,6 +20,17 @@ test('Hengs chats only in tanya-hengs, the old bot-commands name and bot-setting
   assert.equal(isChatChannelName('🤖・tanya-hengs'), true); assert.equal(isChatChannelName('ngobrol'), false);
 });
 
+test('bot-commands is shared with other bots: Hengs chats there only until a tanya-hengs channel exists', () => {
+  const botCommands = text('🤖・bot-commands');
+  const before = { ...botCommands, guild: { channels: { cache: new Map([['b', botCommands]]) } } };
+  assert.equal(chatPlacement(before), 'chat');
+  const tanya = text('🤖・tanya-hengs', { id: '820000000000000001' });
+  const after = { ...botCommands, guild: { channels: { cache: new Map([['b', botCommands], ['t', tanya]]) } } };
+  assert.equal(chatPlacement(after), 'wave');
+  assert.equal(chatPlacement({ ...tanya, guild: after.guild }), 'chat');
+  assert.equal(chatPlacement(thread({ ...botCommands, guild: after.guild })), 'wave');
+});
+
 test('only known intents pass; anything odd is plain chat', () => {
   assert.deepEqual(INTENTS, ['chat', 'help', 'news', 'memes', 'analis', 'scrim', 'kirim', 'lapor', 'caster', 'event', 'scrim_catat', 'scrim_hapus']);
   assert.equal(parseIntent('{"intent":"news"}'), 'news');
@@ -81,4 +92,18 @@ test('in tanya-hengs, scrim logging points to hasil-scrim instead of collecting 
   for (const intent of ['scrim_catat', 'scrim_hapus']) {
     assert.match(guideFor(intent, guild), /<#333333333333333333>/); assert.match(guideFor(intent, guild), /\/scrim (hasil|hapus)/);
   }
+});
+
+test('the pinned Tanya Hengs guide shows examples, the button rule, privacy and the daily cap; posting pins it', async () => {
+  const { chatGuide, postChatGuide } = require('../src/chat-mode');
+  const guild = { channels: { cache: new Map([['n', text('📰・hengs-news', { id: '111111111111111111' })], ['s', text('📸・hasil-scrim', { id: '333333333333333333' })]]) } };
+  const guide = chatGuide(guild);
+  for (const part of [/Tanya Hengs/, /kirim meme ini/, /<#111111111111111111>/, /<#333333333333333333>/, /cuma bisa dipencet yang minta/,
+    /40 pesan/, /data pribadi/, /bisa salah/]) assert.match(guide.content, part);
+  assert.deepEqual(guide.allowedMentions, { parse: [] }); assert.ok(guide.content.length <= 2000);
+  assert.doesNotMatch(guide.content, /\u2014/);
+  const pins = []; const channel = { guild, async send(p) { return { async pin() { pins.push(p); } }; } };
+  assert.deepEqual(await postChatGuide(channel), { posted: true, pinned: true }); assert.equal(pins.length, 1);
+  const noPin = { guild, async send() { return { async pin() { throw new Error('Missing Permissions'); } }; } };
+  assert.deepEqual(await postChatGuide(noPin), { posted: true, pinned: false });
 });

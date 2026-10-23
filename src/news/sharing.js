@@ -72,8 +72,10 @@ function createCommunitySharing({ getSettings, guildAccess, reviewImage = null, 
       i.guild.channels.fetch(i.channelId), i.guild.channels.fetch(destinationId),
       i.guild.members.fetch({ user: i.user.id, force: true }), i.guild.members.fetchMe({ force: true }),
     ]);
-    const homeCommand = process.env.BOT_CHANNEL_ID
-      ? source?.id === process.env.BOT_CHANNEL_ID : /(?:^|[・│|\s])(?:tanya-hengs|bot-commands)$/u.test(source?.name || '');
+    // Hengs' own tanya-hengs always takes shares (chat mode sends them there); otherwise the configured bot channel, or
+    // bot-commands by name when none is configured.
+    const homeCommand = /(?:^|[・│|\s])tanya-hengs$/u.test(source?.name || '') || (process.env.BOT_CHANNEL_ID
+      ? source?.id === process.env.BOT_CHANNEL_ID : /(?:^|[・│|\s])bot-commands$/u.test(source?.name || ''));
     const intake = scope.kind === 'home' ? homeCommand : isPublicChannelAllowed(scope.config, i.channelId);
     if (!intake || source?.id !== i.channelId || target?.id !== destinationId || source?.id === target?.id
       || [source, target].some(c => !c || c.guildId !== i.guildId || c.type !== ChannelType.GuildText)

@@ -12,13 +12,18 @@ const RESULTS = new Set(RESULT_CHOICES.map(choice => choice.value));
 const named = (name, label) => new RegExp(`(?:^|[・│|\\s])${label}$`, 'u').test(String(name || ''));
 const isChatChannelName = name => ['tanya-hengs', 'bot-commands', 'bot-settings'].some(label => named(name, label));
 
+const hasTanyaHengs = guild => [...(guild?.channels?.cache?.values?.() || [])].some(c => c?.type === 0 && named(c.name, 'tanya-hengs'));
+
 // chat: full chat mode. coach: hasil-scrim (and its threads). silent: the gallery. wave: everywhere else gets 👋.
 function chatPlacement(channel) {
   const base = channel?.isThread?.() ? channel.parent : channel;
   const name = base?.name;
   if (named(name, 'hall-of-fame')) return 'silent';
   if (named(name, 'hasil-scrim')) return 'coach';
-  return isChatChannelName(name) ? 'chat' : 'wave';
+  if (named(name, 'tanya-hengs') || named(name, 'bot-settings')) return 'chat';
+  // bot-commands is shared with other bots (music and the like): Hengs chats there only until its own tanya-hengs exists.
+  if (named(name, 'bot-commands')) return hasTanyaHengs(base.guild) ? 'wave' : 'chat';
+  return 'wave';
 }
 
 const CLASSIFIER = [
@@ -98,5 +103,29 @@ function guideFor(intent, guild) {
   }
 }
 
+// The pinned guide in tanya-hengs. Plain text, no pings.
+function chatGuide(guild) {
+  const ref = label => channelRef(guild, label) || `\`${label}\``;
+  return { allowedMentions: { parse: [] }, content: [
+    '## 🤖 Tanya Hengs',
+    'Mention @Hengs + pertanyaanmu. Contoh:',
+    '• "@Hengs jelasin fotosintesis singkat"',
+    `• "@Hengs ada berita apa hari ini?" (Hengs kasih link ke ${ref('hengs-news')})`,
+    '• "@Hengs kirim meme ini" + lampirkan gambarnya',
+    '• "@Hengs kirim berita https://..."',
+    '**Aturan**',
+    '• Kirim meme atau berita lewat tombol **Lanjut**: cuma bisa dipencet yang minta, berlaku 10 menit, ada preview dulu.',
+    `• Data scrim tim cuma dibahas di ${ref('hasil-scrim')}.`,
+    '• Jatah ngobrol 40 pesan per orang per hari.',
+    '• Jangan tulis data pribadi (alamat, nomor HP, password).',
+    '-# Hengs itu AI dan bisa salah. Fakta penting tetap cek sumbernya.',
+  ].join('\n') };
+}
+
+async function postChatGuide(channel) {
+  const message = await channel.send(chatGuide(channel.guild));
+  try { await message.pin(); return { posted: true, pinned: true }; } catch { return { posted: true, pinned: false }; }
+}
+
 module.exports = { INTENTS, CLASSIFIER, chatPlacement, isChatChannelName, parseIntent, parseRoute, createIntentClassifier,
-  guideFor, askScrimSlots };
+  guideFor, askScrimSlots, chatGuide, postChatGuide };

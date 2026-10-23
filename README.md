@@ -2,8 +2,10 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.76.0 - chat mode phase 2 (send memes and news, log or undo a scrim by
-chat, each through a requester-only "Lanjut" button into the slash flow), on top of v1.75.0 chat mode phase 1
+**Current checkpoint:** Hengs Discord v1.77.0 - Hengs gets its own `🤖・tanya-hengs` channel through `/admin
+setup` > Tanya Hengs, and `bot-commands` stays shared with other bots. Builds on v1.76.0 chat mode phase 2 (send
+memes and news, log or undo a scrim by chat, each through a requester-only "Lanjut" button into the slash flow),
+v1.75.0 chat mode phase 1
 (Hengs chats in `tanya-hengs`, coaches in `hasil-scrim`, waves 👋 elsewhere), v1.74.0
 Coach LLM, v1.73.0 Gen Z coach voice and `/scrim hapus`, v1.72.3 honest game facts rule, and v1.72.0-v1.72.2 Hengs
 Analis with reaction buttons under every meme. Committed and pushed, not deployed: the deploy waits for Henry's
@@ -18,8 +20,10 @@ is one tap; on Hengs memes 😐 counts against in the taste store. Hengs Coach p
 game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
 
-Chat mode (home server, phase 1): mention Hengs in `tanya-hengs` (the renamed `bot-commands`; the old name still
-works) or `bot-settings` to chat. Keyword rules go first; otherwise a small Groq model (gpt-oss-20b, JSON, only the
+Chat mode (home server, phase 1): mention Hengs in its own `🤖・tanya-hengs` or in `bot-settings` to chat.
+`/admin setup` > Tanya Hengs creates the channel next to `bot-commands`, with members on the server's own
+permissions and a pinned guide. `bot-commands` stays shared with other bots: Hengs' slash commands work there, but
+once `tanya-hengs` exists a mention there only gets 👋. Until then Hengs still chats in `bot-commands`. Keyword rules go first; otherwise a small Groq model (gpt-oss-20b, JSON, only the
 message text) picks an intent. Feature intents (news, memes, analis, scrim, kirim, lapor, caster, event, help) get
 a fixed guide with channel links and the slash command, never posted feature content, and team data stays in
 `hasil-scrim`. In `hasil-scrim` only the coach answers. Anywhere else a mention gets one 👋 and nothing more.

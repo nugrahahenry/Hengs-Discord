@@ -2,6 +2,19 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.77.0 own tanya-hengs channel (committed, not deployed) - 2026-10-24
+
+- Henry: "lu bisa rename sendiri gak sih, terus itu bot commands niatnya buat bot musik juga yang bisa dipakai atau
+  bot bot lain gitu sih, kalau khsusus buat hengs bikin aja lagi tanya hengs kali ya". So bot-commands is not
+  renamed: `/admin setup` > Tanya Hengs creates `🤖・tanya-hengs` and pins its guide.
+- After the deploy:
+  1. Henry runs `/admin setup` > Tanya Hengs.
+  2. Optionally, he points #ngobrol's topic to #tanya-hengs.
+- Placement: tanya-hengs and bot-settings chat; hasil-scrim is the coach; bot-commands chats only while no
+  tanya-hengs exists, then waves; the gallery stays silent.
+- Test list: the same as v1.76.0, but run the chat tests in #tanya-hengs. Also check that a mention in
+  #bot-commands gets 👋 after setup.
+
 ## Hengs Discord v1.76.0 chat mode phase 2 (committed, not deployed) - 2026-10-24
 
 - Henry: "Lanjut tahap 2: kirim meme/berita dan catat/hapus scrim lewat chat, pakai tombol konfirmasi yang cuma bisa
