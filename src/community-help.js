@@ -34,7 +34,7 @@ function buildCommunityHelp({ home = false, manager = false, editor = false, gui
     ...(home ? ['', '**Casterin**',
       `\`/caster\` di ${botCommands(guild)}: tulis momen + pilih persona, dengerin preview privat, baru Kirim. Suara AI, jangan tulis data pribadi.`] : []),
     ...(home ? ['', '**Catatan scrim**',
-      `Khusus role Hengs Family, di ${botCommands(guild)}: \`/scrim hasil\` tiap game (lawan, menang atau alasan kalah, SS opsional), cek lineup, lalu Kirim. \`/scrim rekap\` buat rekap tim, \`/scrim statku\` kirim statistikmu lewat DM. Salah catat? \`/scrim hapus\`.`] : []),
+      `Khusus role Hengs Family, di ${botCommands(guild)}: \`/scrim hasil\` tiap game, cek lineup, lalu Kirim. \`/scrim rekap\` buat rekap tim, \`/scrim statku\` kirim statistikmu lewat DM. Salah catat? \`/scrim hapus\`. Ngobrol sama coach: mention Hengs di hasil-scrim, atau \`/scrim tanya\` buat pertanyaan pribadi.`] : []),
     ...(home ? ['', '**Punya pencapaian?**',
       `Ajukan kartu apresiasi di ${botCommands(guild)}, bukan di Hall of Fame. Siapkan tim/pemain, hasil, acara, tanggal, dan roster satu orang per baris. Owner/editor membantu review. Tag akun Discord opsional, bukan wajib.`] : []),
     '', '**Tombol bantuanmu**',

@@ -122,7 +122,7 @@ const caster = createCaster({
   apiKey: process.env.GEMINI_API_KEY,
   dailyLimit: process.env.CASTER_DAILY_LIMIT,
 });
-const scrimResults = createScrimResults({ store: createScrimStore() });
+const scrimResults = createScrimResults({ store: createScrimStore(), agent });
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
@@ -497,6 +497,9 @@ client.on(Events.MessageCreate, async (msg) => {
     });
     return;
   }
+
+  // Hengs Family members talking to Hengs in hasil-scrim get the coach, which reads the team's scrim notebook.
+  if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;
 
   const promptRoute = resolvePrompt({
     prompt: text,

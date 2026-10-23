@@ -118,15 +118,16 @@ async function execute(interaction, {
       '**Privasi Hengs**',
       'Pertanyaanmu dan konteks percakapan terbaru dikirim ke penyedia AI untuk membuat balasan.',
       'Cara penyedia menyimpan data mengikuti kebijakan layanan yang sedang dipakai. Jangan kirim kata sandi, token, atau data sensitif.',
-      'Riwayat chat tidak disimpan ke file. Konteks privat maksimal 64 dan publik 24 pesan per pengguna dan server, dengan batas ukuran dan kedaluwarsa enam jam. Hanya bagian terbaru/relevan dikirim ke AI.',
+      'Riwayat chat tidak disimpan ke file. Konteks privat maksimal 64 dan publik 24 pesan (coach 12) per pengguna dan server, dengan batas ukuran dan kedaluwarsa enam jam. Hanya bagian terbaru/relevan dikirim ke AI.',
       'Hasil fitur privat hanya memberi status minimal ke konteks AI, bukan isi catatan, pengingat, atau data privat lainnya.',
       'Untuk server publik, Hengs menyimpan angka penggunaan harian dan pilihan feedback tanpa isi chat, jawaban, atau identitas member.',
-      'Gunakan `/hengs reset` kapan saja untuk menghapus kedua konteks percakapanmu.',
+      'Gunakan `/hengs reset` kapan saja untuk menghapus semua konteks percakapanmu.',
       'Fitur ingatan Canox opsional hanya untuk owner privat, disimpan setelah konfirmasi. Reset percakapan tidak menghapus catatan/ingatan tersimpan atau backup.',
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
       'Hengs News menyimpan pengaturan serta receipt/hash URL berita, tanpa chat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari. `/setup disable` menghentikan jadwal news; pengaturan tetap tersimpan. Backup dapat menyimpan versi sebelumnya.',
       'Casterin (khusus server utama): teks momen dikirim ke Groq, lalu teriakannya ke Google Gemini free tier yang datanya bisa dipakai Google untuk mengembangkan layanan. Audio tidak disimpan ke file dan preview hangus 10 menit.',
       'Catatan scrim (khusus server utama): per game Hengs menyimpan lawan, menang atau kalah plus alasannya, lineup (ID Discord anggota Hengs Family), catatan, ID pencatat dan ID pesan. Statistik per pemain cuma dikirim ke pemain itu lewat DM. Pencatat bisa menghapus game terakhirnya lewat /scrim hapus. Gambar SS tetap di Discord, tidak disimpan di file Hengs.',
+      'Coach scrim: pertanyaan ke coach dikirim ke penyedia AI bersama rekap scrim tim, untuk /scrim tanya juga stat penanya sendiri.',
     ].join('\n'));
     return;
   }

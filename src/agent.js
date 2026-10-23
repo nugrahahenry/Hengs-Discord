@@ -89,7 +89,7 @@ let nextConversationId = 0;
 const lastChatAt = new Map();       // key: guildId:userId
 const CHAT_COOLDOWN_MS = 3000;      // jeda min antar-pesan per user
 const MAX_USERS = 300;              // cap memori histories (cegah numpuk selamanya)
-const CHAT_VISIBILITIES = new Set(['shared', 'private']);
+const CHAT_VISIBILITIES = new Set(['shared', 'private', 'coach']);
 
 // Textbook exam 2026-10-23: without this the model invented heroes, items, spells, objectives and patch numbers.
 const GAME_FACTS_RULE = 'Fakta game (nama hero, skill, item, battle spell, objective, patch, angka, jadwal atau juara turnamen): jawab hanya kalau kamu yakin. Kalau nggak yakin atau namanya nggak kamu kenal, bilang terus terang nggak tahu, jangan mengarang nama, angka, atau detail. Pengetahuanmu bisa ketinggalan patch terbaru, jadi untuk info terbaru sarankan cek patch notes atau sumber resmi. Kalau pertanyaannya berisi anggapan yang belum tentu benar, koreksi dulu.';
@@ -175,8 +175,8 @@ function ensureConversation(conversationKey) {
       histories.delete(oldest);
       lastChatAt.delete(oldest);
     }
-    histories.set(conversationKey, { shared: [], private: [], generation: 0, serial: ++nextConversationId,
-      updatedAt: { shared: Date.now(), private: Date.now() } });
+    histories.set(conversationKey, { shared: [], private: [], coach: [], generation: 0, serial: ++nextConversationId,
+      updatedAt: { shared: Date.now(), private: Date.now(), coach: Date.now() } });
   }
   return histories.get(conversationKey);
 }
@@ -218,19 +218,32 @@ async function chat(userMessage, conversationKey, context = {}) {
 
   const conversation = ensureConversation(conversationKey);
   freshSurface(conversation, visibility);
-  const history = conversation[visibility];
+  // Stateless turns (/scrim tanya with private stats) neither read nor leave any history.
+  const stateless = context?.stateless === true;
+  const history = stateless ? [] : conversation[visibility];
   const generation = conversation.generation;
 
   // user-turn baru masuk ke 'messages' tapi BELUM di-commit ke history agar kalau
   // semua model gagal, history nggak ketambahan user-turn yatim (bikin context rusak).
   const pendingUser = { role: 'user', content: cleanText(userMessage, 1800) };
-  const messages = [{ role: 'system', content: buildSystemPrompt(context) },
+  const base = buildSystemPrompt(context);
+  // Coach mode adds its rules after the normal persona and safety rules. Its data card goes in as a user message right
+  // before the question (never into history), so notes written by members carry no system authority.
+  const system = typeof context?.system === 'string' && context.system ? `${base}\n\n${context.system}` : base;
+  const data = typeof context?.data === 'string' && context.data ? [{ role: 'user', content: context.data }] : [];
+  const messages = [{ role: 'system', content: system },
     ...(visibility === 'private' && context.memory?.recall ? require('./selective-memory').memoryMessages(context.memory.recall) : []),
-    ...selectHistory(history, pendingUser.content, visibility), pendingUser];
+    ...selectHistory(history, pendingUser.content, visibility), ...data, pendingUser];
+  // A guard (coach mode) rewrites a real model reply before it is stored or returned; fixed replies below skip it.
+  const finish = typeof context?.guard === 'function' ? context.guard : reply => reply;
   // gpt-oss memakai sebagian budget untuk reasoning internal. 400 token bisa habis
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
-  const params = { messages, max_tokens: 700, temperature: 0.7 };
+  // Coach mode asks for a lower temperature so the model keeps to its rules.
+  const temperature = typeof context?.temperature === 'number' && context.temperature >= 0 && context.temperature <= 1
+    ? context.temperature : 0.7;
+  const params = { messages, max_tokens: 700, temperature };
   const commit = (reply) => {
+    if (stateless) return true;
     if (histories.get(conversationKey) !== conversation || conversation.generation !== generation
         || Date.now() < now || Date.now() - now >= HISTORY_TTL_MS) return false;
     appendExchange(history, pendingUser.content, reply, visibility);
@@ -245,9 +258,10 @@ async function chat(userMessage, conversationKey, context = {}) {
         const res = await callWithTimeout(groq, { ...params, model }, 8000);
         const reply = cleanText(res.choices[0]?.message?.content, 2000);
         if (reply) {
-          if (!commit(reply)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
+          const shown = finish(reply);
+          if (!commit(shown)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
           console.log(`  ✓ AI replied (groq/${model})`);
-          return reply;
+          return shown;
         }
       } catch (err) {
         console.log('AI_CHAT_PROVIDER_FAILED provider=groq');
@@ -262,9 +276,10 @@ async function chat(userMessage, conversationKey, context = {}) {
       const reply = cleanText(res.choices[0]?.message?.content, 2000);
       if (reply) {
         modelStats.set(model, { ...modelStats.get(model) || {}, lastSuccessAt: Date.now() });
-        if (!commit(reply)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
+        const shown = finish(reply);
+        if (!commit(shown)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
         console.log(`  ✓ AI replied (${model.split('/')[1]})`);
-        return reply;
+        return shown;
       }
     } catch (err) {
       modelStats.set(model, { ...modelStats.get(model) || {}, lastFailedAt: Date.now() });

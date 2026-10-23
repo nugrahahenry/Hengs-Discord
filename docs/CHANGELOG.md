@@ -5,6 +5,54 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.74.0] - 2026-10-23
+
+### Added
+
+- Coach chat for Hengs Family (Henry: "gw pengennya sih bisa jadi llm bukan cuman yang command gitu doang"). A team
+  member who mentions Hengs (or replies to it) in hasil-scrim reaches a coach mode of the normal Hengs chat. Before
+  the call, code builds a data card from the scrim notebook: the team recap, the recap against an opponent named in
+  the question, and the WIB time. Coach rules come from sourced coaching research: one focus per answer (target, where
+  the team is, one concrete next step), process goals written into the next `/scrim hasil` note, a reflection
+  question, decisions instead of people, wins reviewed too, no other player's stats, numbers only from the card. The
+  model never sees Discord IDs or raw rows.
+- `/scrim tanya pertanyaan` (Hengs Family, private): one question, answered with the team recap plus the asker's own
+  stats, with no history kept.
+- Code checks every coach reply before it is stored or shown: swearing and blame labels are masked (`n***`), with
+  leetspeak, repeated letters and common affixes caught, so advice and a crisis reply are never dropped over one quoted
+  word. The model's help marker (any common spelling), or a crisis word in the question, adds a fixed helpline text
+  checked on 2026-10-23 (SAPA 129 KemenPPPA, Healing119 Kemenkes, 110). 15 answered coach questions per person per WIB
+  day, counted in memory; cooldown and outage replies cost nothing.
+- The data card reaches the model as a user message, not system text, so notes written by members carry no authority.
+  Discord mentions and IDs in notes and questions are replaced before the model sees them.
+- The coach answers only in the real hasil-scrim (or a thread inside it), after the same checks as posting a card.
+  A Discord error answers with an error instead of falling back to shared chat.
+- Coach chat keeps its own short history (12 messages, 4000 characters per request), apart from shared and private
+  chat, so team numbers never travel into other channels. `/hengs reset` clears it too.
+- Coach rules tuned with a 20-scenario coach exam (local, `.cloud/evals/coach-2026-10-23`): the most-broken bans come
+  first, one reminder line closes the data card, temperature 0.3, code decides when it is late (22.00 to 05.00 WIB),
+  targets are habits rather than wins, no links. Code also hides a member note that contains an insult (the model spun a
+  masked one into praise) and rewrites made-up "N menit pertama" windows to "di awal game".
+
+### Changed
+
+- Help: the scrim paragraph names the coach and drops the option list (the command shows it). `/hengs privacy` says
+  coach questions go to the AI provider with the team recap (plus the asker's own stats for `/scrim tanya`) and lists
+  the coach context size.
+- `/scrim hasil` treats unknown @everyone permissions on hasil-scrim as public (it used to treat them as private).
+
+### Verification
+
+- An independent review found nine issues before release (helpline lost when a reply was blocked, Discord IDs in notes,
+  look-alike thread names, blocked replies kept in history, gaps in the word list, a strict help marker, quota spent on
+  failures, Discord errors falling back to shared chat, notes inside system text); all are fixed with tests.
+- Coach exam through the real chat path (gpt-oss-120b, Hengs Discord key), graded 2/1/0 against keys frozen before the
+  first run: plain Hengs chat 19/40; coach before tuning 17 to 20/40 (wards from other games, own percentages, made-up
+  minutes); after tuning 29/40 then 33/40 (average 1.65). No privacy leak and no shown forbidden word in any run. The
+  three scenarios the last two code fixes target re-ran at 2/2 each. One run per scenario, so a few points are noise.
+- Node 22 full suite in the worktree (PowerShell): 816 tests, 815 pass, 1 worktree-only skip. Not deployed; deploy
+  needs command re-registration for the new `tanya` subcommand (still 14 home commands).
+
 ## [1.73.0] - 2026-10-23
 
 ### Added

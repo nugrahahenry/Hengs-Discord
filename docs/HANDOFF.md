@@ -2,6 +2,38 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.74.0 Coach LLM on branch coach-llm (not deployed) - 2026-10-23
+
+- Merged into main as v1.74.0 on 2026-10-24 (branch release number was v1.73.0).
+- Henry: "gw pengennya sih bisa jadi llm bukan cuman yang command gitu doang". He approved the design (mention in
+  hasil-scrim plus /scrim tanya, data card instead of tool calling, 15 questions per person per day) and asked for
+  stage 1 on a new branch on top of coach-gaul, with tests and a coach exam, without deploying.
+- Research and design (ignored): docs/research/2026-10-23-coaching-practice.md and
+  docs/superpowers/specs/2026-10-23-hengs-coach-llm-design.md. Probe: a data card costs one call and about 2.0K tokens,
+  tool calling two calls and about 3.6K for the same question.
+- New src/scrim/coach.js (rules, data card, reply guard, helpline text, daily quota). service.js gets coach(msg, text)
+  and ask(i); agent.js gets a 'coach' visibility, an optional `system` extra and `stateless`; conversation-context.js
+  gets coach limits; index.js hands hasil-scrim mentions to the coach before prompt routes and passes `agent` to
+  createScrimResults; scrim.js gets the tanya subcommand. Help and /hengs privacy updated (both stay under 2000).
+- Version numbers: main is at v1.72.1 (news reaction buttons), so the main session renumbers at merge, for example
+  honest rule v1.72.2, coach voice + undo v1.73.0, coach LLM v1.74.0.
+- An independent review of 9738ec6 found nine issues (helpline lost on blocked replies, Discord IDs in notes and
+  questions, look-alike thread names, blocked replies kept in history, word-list gaps, strict help marker, quota spent
+  on failures, Discord errors falling back to shared chat, member notes inside system text). Second commit fixes all
+  nine with tests: masking instead of dropping, data card as a user message, `guard` hook in agent.chat before history,
+  destination() for the coach gate (unknown @everyone permissions now count as public for /scrim hasil too).
+- Third commit: coach rules tuned with the coach exam (bans first, reminder line at the end of the data card,
+  temperature 0.3 via a new optional `temperature` in agent.chat, code-decided bedtime line, habit targets, no links,
+  notes with insults hidden whole, "N menit pertama" rewritten to "di awal game"). Exam (ignored, in the main checkout):
+  .cloud/evals/coach-2026-10-23 (run.cjs, scenarios.json, grades.json, score.cjs, tanya.cjs) and
+  docs/research/2026-10-23-hengs-coach-exam.md. Plain chat 19/40, coach 17 to 20/40 before tuning, 33/40 after.
+- QA: Node 22 full suite from PowerShell 816 total, 815 pass, 1 worktree-only skip. From Git Bash five state-transfer
+  tests fail with TAR_FAILED (GNU tar on Windows paths), unrelated to this change.
+- Deploy (Henry's approval): after coach-gaul, fast-forward, register commands once (new `tanya`, still 14 home
+  commands). No env, secret or data change. Design flag for Henry before switching it on: parental consent for members
+  under 18 (UU PDP Art. 25).
+- Commit subject: feat(scrim): Hengs Discord v1.73.0 - coach chat that reads the scrim notebook
+
 ## Hengs Discord v1.73.0 Gen Z coach voice on branch coach-gaul (not deployed) - 2026-10-23
 
 - Merged into main as v1.73.0 on 2026-10-24 (branch release number was v1.72.0).

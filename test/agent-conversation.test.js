@@ -165,3 +165,67 @@ test('shared cooldown cannot be bypassed by switching visibility and guilds rema
   await value.agent.chat('other guild', `523456789012345678:${USER}`, { visibility: 'private' });
   assert.deepEqual(turns(value.calls.at(-1)), ['other guild']);
 });
+
+test('coach chat keeps its own history apart from shared chat and adds the coach data to the system prompt', async () => {
+  const value = fixture();
+  await value.agent.chat('SHARED_1', KEY);
+  value.tick();
+  await value.agent.chat('COACH_1', KEY, { visibility: 'coach', system: 'COACH_DATA_FIXTURE' });
+  assert.deepEqual(turns(value.calls[1]), ['COACH_1']);
+  assert.ok(value.calls[1].messages[0].content.endsWith('\n\nCOACH_DATA_FIXTURE'));
+  value.tick();
+  await value.agent.chat('SHARED_2', KEY);
+  assert.deepEqual(turns(value.calls[2]), ['SHARED_1', 'Jawaban fixture', 'SHARED_2']);
+  assert.doesNotMatch(value.calls[2].messages[0].content, /COACH_DATA_FIXTURE/);
+  value.tick();
+  await value.agent.chat('COACH_2', KEY, { visibility: 'coach', system: 'COACH_DATA_FIXTURE' });
+  assert.deepEqual(turns(value.calls[3]), ['COACH_1', 'Jawaban fixture', 'COACH_2']);
+});
+
+test('coach data goes in as its own user message right before the question and never into history', async () => {
+  const value = fixture();
+  await value.agent.chat('Q1', KEY, { visibility: 'coach', system: 'RULES_FIXTURE', data: 'DATA_1' });
+  assert.deepEqual(turns(value.calls[0]), ['DATA_1', 'Q1']);
+  assert.deepEqual(value.calls[0].messages.slice(-2).map(message => message.role), ['user', 'user']);
+  assert.doesNotMatch(value.calls[0].messages[0].content, /DATA_1/);
+  value.tick();
+  await value.agent.chat('Q2', KEY, { visibility: 'coach', system: 'RULES_FIXTURE', data: 'DATA_2' });
+  assert.deepEqual(turns(value.calls[1]), ['Q1', 'Jawaban fixture', 'DATA_2', 'Q2']);
+});
+
+test('a guard rewrites the model reply before it is stored or returned, and fixed replies skip it', async () => {
+  const value = fixture();
+  const seen = [];
+  const guard = text => { seen.push(text); return text.toUpperCase(); };
+  assert.equal(await value.agent.chat('Q1', KEY, { visibility: 'coach', guard }), 'JAWABAN FIXTURE');
+  assert.match(await value.agent.chat('too soon', KEY, { visibility: 'coach', guard }), /jangan spam/);
+  value.tick();
+  value.respondWith(async () => { throw new Error('PROVIDER_DOWN'); });
+  assert.match(await value.agent.chat('down', KEY, { visibility: 'coach', guard }), /semua model lagi sibuk/);
+  assert.deepEqual(seen, ['Jawaban fixture']);
+  value.tick();
+  value.respondWith(async () => ({ choices: [{ message: { content: 'next' } }] }));
+  await value.agent.chat('Q2', KEY, { visibility: 'coach', guard });
+  assert.deepEqual(turns(value.calls.at(-1)), ['Q1', 'JAWABAN FIXTURE', 'Q2']);
+});
+
+test('a turn may lower the temperature; anything else keeps the default', async () => {
+  const value = fixture();
+  await value.agent.chat('Q1', KEY, { visibility: 'coach', temperature: 0.3 });
+  value.tick();
+  await value.agent.chat('Q2', KEY, { visibility: 'coach', temperature: 'hot' });
+  value.tick();
+  await value.agent.chat('Q3', KEY);
+  assert.deepEqual(value.calls.map(call => call.temperature), [0.3, 0.7, 0.7]);
+});
+
+test('a stateless coach turn neither reads nor writes history', async () => {
+  const value = fixture();
+  await value.agent.chat('COACH_1', KEY, { visibility: 'coach' });
+  value.tick();
+  await value.agent.chat('ONCE_WITH_PRIVATE_STATS', KEY, { visibility: 'coach', stateless: true, system: 'STAT KAMU' });
+  assert.deepEqual(turns(value.calls[1]), ['ONCE_WITH_PRIVATE_STATS']);
+  value.tick();
+  await value.agent.chat('COACH_2', KEY, { visibility: 'coach' });
+  assert.deepEqual(turns(value.calls[2]), ['COACH_1', 'Jawaban fixture', 'COACH_2']);
+});
