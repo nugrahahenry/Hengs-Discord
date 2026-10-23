@@ -18,9 +18,15 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   model never sees Discord IDs or raw rows.
 - `/scrim tanya pertanyaan` (Hengs Family, private): one question, answered with the team recap plus the asker's own
   stats, with no history kept.
-- Code checks every coach reply: swearing or blame labels swap the answer for a safe line, and the model's
-  `[[BANTUAN]]` marker becomes a fixed helpline text checked on 2026-10-23 (SAPA 129 KemenPPPA, Healing119 Kemenkes,
-  110). 15 coach questions per person per WIB day, counted in memory.
+- Code checks every coach reply before it is stored or shown: swearing and blame labels are masked (`n***`), with
+  leetspeak, repeated letters and common affixes caught, so advice and a crisis reply are never dropped over one quoted
+  word. The model's help marker (any common spelling), or a crisis word in the question, adds a fixed helpline text
+  checked on 2026-10-23 (SAPA 129 KemenPPPA, Healing119 Kemenkes, 110). 15 answered coach questions per person per WIB
+  day, counted in memory; cooldown and outage replies cost nothing.
+- The data card reaches the model as a user message, not system text, so notes written by members carry no authority.
+  Discord mentions and IDs in notes and questions are replaced before the model sees them.
+- The coach answers only in the real hasil-scrim (or a thread inside it), after the same checks as posting a card.
+  A Discord error answers with an error instead of falling back to shared chat.
 - Coach chat keeps its own short history (12 messages, 4000 characters per request), apart from shared and private
   chat, so team numbers never travel into other channels. `/hengs reset` clears it too.
 
@@ -29,10 +35,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Help: the scrim paragraph names the coach and drops the option list (the command shows it). `/hengs privacy` says
   coach questions go to the AI provider with the team recap (plus the asker's own stats for `/scrim tanya`) and lists
   the coach context size.
+- `/scrim hasil` treats unknown @everyone permissions on hasil-scrim as public (it used to treat them as private).
 
 ### Verification
 
-- Node 22 full suite in the worktree (PowerShell): 805 tests, 804 pass, 1 worktree-only skip. Not deployed; deploy
+- An independent review found nine issues before release (helpline lost when a reply was blocked, Discord IDs in notes,
+  look-alike thread names, blocked replies kept in history, gaps in the word list, a strict help marker, quota spent on
+  failures, Discord errors falling back to shared chat, notes inside system text); all are fixed with tests.
+- Node 22 full suite in the worktree (PowerShell): 810 tests, 809 pass, 1 worktree-only skip. Not deployed; deploy
   needs command re-registration for the new `tanya` subcommand (still 14 home commands).
 
 ## [1.72.0] - 2026-10-23

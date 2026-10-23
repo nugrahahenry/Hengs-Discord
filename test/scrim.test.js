@@ -13,7 +13,7 @@ const scrimCommand = require('../src/commands/scrim');
 const hengsCommand = require('../src/commands/hengs');
 const { buildCommunityHelp } = require('../src/community-help');
 const { buildCommandPlan } = require('../src/deploy-commands');
-const { BLOCKED_REPLY } = require('../src/scrim/coach');
+const { COACH_RULES } = require('../src/scrim/coach');
 
 const G = '223456789012345678', U = '323456789012345678', BOT = '623456789012345678', SRC = '423456789012345678';
 const T2 = '523456789012345678', OUT = '923456789012345670'; // a second team member and someone outside the team
@@ -666,16 +666,20 @@ test('the team role is found with or without an emoji prefix, and two candidates
   await assert.rejects(findTeamRole(guildWith('Hengs Family', '\u{1FAC2} Hengs Family')), /SCRIM_ROLE_CONFLICT/);
 });
 
-function coachAgent(reply = 'Gas, satu fokus dulu: early game.') {
+// Stands in for agent.chat: a real model answer goes through context.guard; fixed replies (cooldown, outage) do not.
+function coachAgent(reply = 'Gas, satu fokus dulu: early game.', { answered = true } = {}) {
   const calls = [];
   return { calls, buildConversationKey: (guildId, userId) => `${guildId}:${userId}`,
-    async chat(text, key, context) { calls.push({ text, key, context }); return reply; } };
+    async chat(text, key, context) {
+      calls.push({ text, key, context });
+      return answered ? context.guard(reply) : 'Sabar bentar ya 😅 jangan spam, coba lagi beberapa detik lagi.';
+    } };
 }
 
 test('a team member mentioning Hengs in hasil-scrim gets the coach, which reads the team notebook', async () => {
   const agent = coachAgent('Gas, satu fokus dulu: early game. [[BANTUAN]]');
   const games = [game(1, { at: NOW - 3_600_000, lineup: [U, T2] }),
-    game(2, { at: NOW - 7_200_000, outcome: 'kalah', reason: 'early', lineup: [T2], note: 'gank awal' })];
+    game(2, { at: NOW - 7_200_000, outcome: 'kalah', reason: 'early', lineup: [T2], note: `gank awal, ${T2} telat` })];
   const r = rigService({ games, agent });
   const msg = r.message();
   assert.equal(await r.service.coach(msg, 'kita kalah mulu, latihan apa?'), true);
@@ -684,45 +688,69 @@ test('a team member mentioning Hengs in hasil-scrim gets the coach, which reads 
   assert.equal(text, 'kita kalah mulu, latihan apa?');
   assert.equal(key, `${G}:${U}`);
   assert.deepEqual([context.kind, context.visibility, Boolean(context.stateless)], ['home', 'coach', false]);
-  assert.match(context.system, /MODE COACH/);
-  assert.match(context.system, /Semua: W 1 dari 2 game/);
-  assert.match(context.system, /gank awal/);
-  assert.doesNotMatch(context.system.slice(context.system.indexOf('DATA dari buku catatan')), /STAT KAMU/);
-  assert.doesNotMatch(context.system, new RegExp(`${U}|${T2}`));
+  assert.equal(context.system, COACH_RULES);
+  assert.match(context.data, /Semua: W 1 dari 2 game/);
+  assert.match(context.data, /gank awal, \(anggota\) telat/);
+  assert.doesNotMatch(context.data, /STAT KAMU/);
+  assert.doesNotMatch(`${context.system}${context.data}`, /\d{17,20}/);
   assert.equal(msg.replies.length, 1);
   assert.match(msg.replies[0].content, /^Gas, satu fokus dulu: early game\.\n\nKamu nggak sendirian/);
   assert.deepEqual(msg.replies[0].allowedMentions, { parse: [] });
 });
 
-test('the coach stays out of other channels, leaves outsiders and bots to normal chat and refuses a public hasil-scrim', async () => {
+test('the coach answers only in the real hasil-scrim or its threads, for team members, and never where everyone can read', async () => {
   const agent = coachAgent();
   const r = rigService({ agent });
   assert.equal(await r.service.coach(r.message({ channel: { ...r.channel, name: 'general' } }), 'halo'), false);
   assert.equal(await r.service.coach(r.message({ author: { id: U, bot: true } }), 'halo'), false);
+  const thread = { id: '700000000000000009', name: 'review early', parentId: r.channel.id, parent: r.channel };
+  assert.equal(await r.service.coach(r.message({ channel: thread, channelId: thread.id }), 'review dong'), true);
+  assert.equal(agent.calls.length, 1);
+  // A thread named hasil-scrim somewhere else is not the team channel, whatever its parent's permissions say.
+  const fake = { id: '700000000000000010', name: 'hasil-scrim', parentId: '700000000000000099', parent: { name: 'mods' } };
+  assert.equal(await r.service.coach(r.message({ channel: fake, channelId: fake.id }), 'halo'), false);
   const outsider = rigService({ agent, teamMember: false });
   assert.equal(await outsider.service.coach(outsider.message(), 'halo'), false);
+  const noRole = rigService({ agent, roleExists: false });
+  assert.equal(await noRole.service.coach(noRole.message(), 'halo'), false);
   const open = rigService({ agent, everyoneCanView: true });
   const msg = open.message();
   assert.equal(await open.service.coach(msg, 'halo'), true);
   assert.equal(msg.replies[0].content, MESSAGES.SCRIM_CHANNEL_PUBLIC);
-  assert.equal(agent.calls.length, 0);
+  // Unknown permissions count as public.
+  const unknown = rigService({ agent });
+  unknown.channel.permissionsFor = target => (target?.id === G ? null : { has: () => true });
+  const unsure = unknown.message();
+  assert.equal(await unknown.service.coach(unsure, 'halo'), true);
+  assert.equal(unsure.replies[0].content, MESSAGES.SCRIM_CHANNEL_PUBLIC);
+  assert.equal(agent.calls.length, 1);
   const unwired = rigService();
   assert.equal(await unwired.service.coach(unwired.message(), 'halo'), false);
+});
+
+test('a Discord error during the team check answers with an error instead of falling back to shared chat', async () => {
+  const agent = coachAgent();
+  const r = rigService({ agent });
+  r.guild.roles.fetch = async () => { throw new Error('Discord 500'); };
+  const msg = r.message();
+  assert.equal(await r.service.coach(msg, 'halo'), true);
+  assert.match(msg.replies[0].content, /Coach lagi error/);
+  assert.equal(agent.calls.length, 0);
 });
 
 test('/scrim tanya answers privately, once, with the asker\'s own stats on top of the team recap', async () => {
   const agent = coachAgent('Fokus satu hal dulu ya.');
   const games = [game(1, { lineup: [U] }), game(2, { outcome: 'kalah', reason: 'teamfight', lineup: [T2] })];
   const r = rigService({ games, agent });
-  const i = r.interaction({ options: options({ pertanyaan: 'aku harus latihan apa? <@1>' }) });
+  const i = r.interaction({ options: options({ pertanyaan: `aku vs <@${T2}> siapa lebih jago?` }) });
   await r.service.ask(i, deps);
   assert.equal(i.deferred, true);
   const { text, context } = agent.calls[0];
-  assert.equal(text, 'aku harus latihan apa? 1');
+  assert.equal(text, 'aku vs (anggota) siapa lebih jago?');
   assert.deepEqual([context.visibility, context.stateless], ['coach', true]);
-  assert.match(context.system, /STAT KAMU \(cuma buat penanya\):\n📒 \*\*Stat scrim kamu, Hengs Family \(MLBB\)\*\*\nSemua: W 1 dari 1 game/);
-  assert.match(context.system, /Semua: W 1 dari 2 game/);
-  assert.doesNotMatch(context.system, new RegExp(`${U}|${T2}`));
+  assert.match(context.data, /STAT KAMU \(cuma buat penanya\):\n📒 \*\*Stat scrim kamu, Hengs Family \(MLBB\)\*\*\nSemua: W 1 dari 1 game/);
+  assert.match(context.data, /Semua: W 1 dari 2 game/);
+  assert.doesNotMatch(`${text}${context.data}`, /\d{17,20}/);
   assert.equal(i.edits.at(-1).content, 'Fokus satu hal dulu ya.');
   assert.deepEqual(i.edits.at(-1).allowedMentions, { parse: [] });
   const outsider = rigService({ games, agent, teamMember: false });
@@ -735,14 +763,14 @@ test('/scrim tanya answers privately, once, with the asker\'s own stats on top o
   assert.equal(agent.calls.length, 1);
 });
 
-test('coach replies with swearing or blame labels never reach the team', async () => {
+test('coach replies have swearing and blame labels masked before the team sees them', async () => {
   const r = rigService({ agent: coachAgent('Jangan main kayak noob ya') });
   const msg = r.message();
   await r.service.coach(msg, 'gimana?');
-  assert.equal(msg.replies[0].content, BLOCKED_REPLY);
+  assert.equal(msg.replies[0].content, 'Jangan main kayak n*** ya');
 });
 
-test('the coach allows 15 questions per person per day across mentions and /scrim tanya', async () => {
+test('the coach allows 15 answered questions per person per day across mentions and /scrim tanya', async () => {
   const agent = coachAgent();
   const r = rigService({ agent });
   for (let n = 0; n < 15; n++) assert.equal(await r.service.coach(r.message(), `tanya ${n}`), true);
@@ -753,6 +781,11 @@ test('the coach allows 15 questions per person per day across mentions and /scri
   await r.service.ask(i, deps);
   assert.equal(i.edits.at(-1).content, MESSAGES.COACH_QUOTA);
   assert.equal(agent.calls.length, 15);
+  // Cooldown or outage replies are not answers, so they cost nothing.
+  const idle = coachAgent('x', { answered: false });
+  const s = rigService({ agent: idle });
+  for (let n = 0; n < 16; n++) await s.service.coach(s.message(), `spam ${n}`);
+  assert.equal(idle.calls.length, 16);
 });
 
 test('/scrim tanya is registered with one required question and routed to the service', async () => {

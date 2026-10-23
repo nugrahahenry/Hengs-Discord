@@ -16,7 +16,12 @@ Updated: 2026-10-23
   createScrimResults; scrim.js gets the tanya subcommand. Help and /hengs privacy updated (both stay under 2000).
 - Version numbers: main is at v1.72.1 (news reaction buttons), so the main session renumbers at merge, for example
   honest rule v1.72.2, coach voice + undo v1.73.0, coach LLM v1.74.0.
-- QA: Node 22 full suite from PowerShell 805 total, 804 pass, 1 worktree-only skip. From Git Bash five state-transfer
+- An independent review of 9738ec6 found nine issues (helpline lost on blocked replies, Discord IDs in notes and
+  questions, look-alike thread names, blocked replies kept in history, word-list gaps, strict help marker, quota spent
+  on failures, Discord errors falling back to shared chat, member notes inside system text). Second commit fixes all
+  nine with tests: masking instead of dropping, data card as a user message, `guard` hook in agent.chat before history,
+  destination() for the coach gate (unknown @everyone permissions now count as public for /scrim hasil too).
+- QA: Node 22 full suite from PowerShell 810 total, 809 pass, 1 worktree-only skip. From Git Bash five state-transfer
   tests fail with TAR_FAILED (GNU tar on Windows paths), unrelated to this change.
 - Deploy (Henry's approval): after coach-gaul, fast-forward, register commands once (new `tanya`, still 14 home
   commands). No env, secret or data change. Design flag for Henry before switching it on: parental consent for members

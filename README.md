@@ -95,8 +95,10 @@ waktu WIB); AI tidak pernah melihat ID Discord atau data mentah. Aturannya dari 
 (target, posisi sekarang, satu langkah konkret), target proses yang dicatat di `/scrim hasil` berikutnya, pertanyaan
 refleksi, bahas keputusan main bukan orangnya, tanpa stat pemain lain. `/scrim tanya pertanyaan` menjawab privat,
 sekali tanya sekali jawab, ditambah stat penanya sendiri. Riwayat coach terpisah dari chat biasa (maks 12 pesan).
-Program mengecek tiap jawaban: kata kasar atau label nyalahin pemain diganti kalimat aman, dan penanda `[[BANTUAN]]`
-diganti teks tetap berisi SAPA 129 dan Healing119. Batas 15 pertanyaan coach per orang per hari.
+Program mengecek tiap jawaban sebelum disimpan atau dikirim: kata kasar atau label nyalahin pemain disensor (`n***`),
+dan kalau AI menulis penanda bantuan atau pertanyaannya menyebut tanda bahaya (dibully, bunuh diri), teks tetap berisi
+SAPA 129 dan Healing119 ikut dikirim. Coach cuma jawab di hasil-scrim asli (atau thread di dalamnya). Batas 15
+pertanyaan yang dijawab AI per orang per hari.
 
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama

@@ -227,11 +227,15 @@ async function chat(userMessage, conversationKey, context = {}) {
   // semua model gagal, history nggak ketambahan user-turn yatim (bikin context rusak).
   const pendingUser = { role: 'user', content: cleanText(userMessage, 1800) };
   const base = buildSystemPrompt(context);
-  // Coach mode adds its rules and the scrim data card after the normal persona and safety rules.
+  // Coach mode adds its rules after the normal persona and safety rules. Its data card goes in as a user message right
+  // before the question (never into history), so notes written by members carry no system authority.
   const system = typeof context?.system === 'string' && context.system ? `${base}\n\n${context.system}` : base;
+  const data = typeof context?.data === 'string' && context.data ? [{ role: 'user', content: context.data }] : [];
   const messages = [{ role: 'system', content: system },
     ...(visibility === 'private' && context.memory?.recall ? require('./selective-memory').memoryMessages(context.memory.recall) : []),
-    ...selectHistory(history, pendingUser.content, visibility), pendingUser];
+    ...selectHistory(history, pendingUser.content, visibility), ...data, pendingUser];
+  // A guard (coach mode) rewrites a real model reply before it is stored or returned; fixed replies below skip it.
+  const finish = typeof context?.guard === 'function' ? context.guard : reply => reply;
   // gpt-oss memakai sebagian budget untuk reasoning internal. 400 token bisa habis
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
   const params = { messages, max_tokens: 700, temperature: 0.7 };
@@ -251,9 +255,10 @@ async function chat(userMessage, conversationKey, context = {}) {
         const res = await callWithTimeout(groq, { ...params, model }, 8000);
         const reply = cleanText(res.choices[0]?.message?.content, 2000);
         if (reply) {
-          if (!commit(reply)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
+          const shown = finish(reply);
+          if (!commit(shown)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
           console.log(`  ✓ AI replied (groq/${model})`);
-          return reply;
+          return shown;
         }
       } catch (err) {
         console.log('AI_CHAT_PROVIDER_FAILED provider=groq');
@@ -268,9 +273,10 @@ async function chat(userMessage, conversationKey, context = {}) {
       const reply = cleanText(res.choices[0]?.message?.content, 2000);
       if (reply) {
         modelStats.set(model, { ...modelStats.get(model) || {}, lastSuccessAt: Date.now() });
-        if (!commit(reply)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
+        const shown = finish(reply);
+        if (!commit(shown)) return 'Percakapan baru saja direset. Kirim pertanyaan lagi ya.';
         console.log(`  ✓ AI replied (${model.split('/')[1]})`);
-        return reply;
+        return shown;
       }
     } catch (err) {
       modelStats.set(model, { ...modelStats.get(model) || {}, lastFailedAt: Date.now() });

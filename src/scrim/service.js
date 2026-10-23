@@ -12,7 +12,7 @@ const {
 } = require('discord.js');
 const { MAX_LINEUP } = require('./store');
 const { REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
-const { COACH_DAILY_LIMIT, coachSystem, guardReply, createCoachQuota } = require('./coach');
+const { COACH_DAILY_LIMIT, COACH_RULES, coachData, scrubIds, guardReply, createCoachQuota } = require('./coach');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -157,8 +157,9 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
     const role = await teamMember(i);
     const channel = findScrimChannel([...(await i.guild.channels.fetch()).values()]);
     if (!channel) throw new Error('SCRIM_CHANNEL_MISSING');
-    // Cards carry the lineup and team notes: never post them where every member can read.
-    if (channel.permissionsFor(i.guild.roles.everyone)?.has(P.ViewChannel)) throw new Error('SCRIM_CHANNEL_PUBLIC');
+    // Cards carry the lineup and team notes: never post them where every member can read. Unknown counts as public.
+    const everyone = channel.permissionsFor(i.guild.roles.everyone);
+    if (!everyone || everyone.has(P.ViewChannel)) throw new Error('SCRIM_CHANNEL_PUBLIC');
     if (!channel.permissionsFor(await i.guild.members.fetchMe({ force: true }))?.has(BOT_PERMISSIONS)) throw new Error('SCRIM_BOT_PERMISSIONS');
     return { role, channel };
   }
@@ -212,15 +213,24 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
     return true;
   }
 
-  // One coach turn: data card from the notebook, one chat call, and the reply checked before anyone sees it.
-  // A personal turn (/scrim tanya) adds the asker's own stats and keeps no history.
+  // One coach turn: data card from the notebook, one chat call, and the reply checked before it is stored or shown.
+  // A personal turn (/scrim tanya) adds the asker's own stats and keeps no history. Only a real model answer
+  // (the guard ran) costs a question; cooldown and outage replies are free.
   async function coachReply({ guildId, userId, text, personal = false }) {
-    const system = coachSystem(store.list(guildId), { text, userId: personal ? userId : null, now: now() });
-    const reply = await agent.chat(text, agent.buildConversationKey(guildId, userId),
-      { kind: 'home', visibility: 'coach', system, ...(personal ? { stateless: true } : {}) });
-    const checked = guardReply(reply);
-    if (checked.blocked) logger.error('[scrim] COACH_REPLY_BLOCKED');
-    return checked.text;
+    const question = scrubIds(text);
+    let answered = false;
+    const reply = await agent.chat(question, agent.buildConversationKey(guildId, userId), {
+      kind: 'home', visibility: 'coach', system: COACH_RULES, ...(personal ? { stateless: true } : {}),
+      data: coachData(store.list(guildId), { text: question, userId: personal ? userId : null, now: now() }),
+      guard(answer) {
+        answered = true;
+        const checked = guardReply(answer, { question });
+        if (checked.masked) logger.error('[scrim] COACH_REPLY_MASKED');
+        return checked.text;
+      },
+    });
+    if (answered) quota.spend(userId);
+    return reply;
   }
 
   async function download(image) {
@@ -399,20 +409,26 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
     // A Hengs Family member mentioning Hengs in hasil-scrim talks to the coach. Anyone else, or anywhere else, gets the
     // normal Hengs chat (false), which never sees the notebook.
     async coach(msg, text) {
-      if (!agent || msg.author?.bot || !msg.guild || normalize(msg.channel?.name) !== CHANNEL_KEY) return false;
-      try { await teamMember({ guild: msg.guild, guildId: msg.guildId, user: msg.author }); } catch { return false; }
+      const here = msg.channel;
+      const named = [here?.name, here?.parent?.name].some(name => normalize(name ?? '') === CHANNEL_KEY);
+      if (!agent || msg.author?.bot || !msg.guild || !named) return false;
       let content;
       try {
-        // The recap is team data: never answer with it where every member can read.
-        if (msg.channel.permissionsFor(msg.guild.roles.everyone)?.has(P.ViewChannel)) content = MESSAGES.SCRIM_CHANNEL_PUBLIC;
-        else if (!quota.take(msg.author.id)) content = MESSAGES.COACH_QUOTA;
+        // Same checks as posting a card: team role, the one real hasil-scrim, private, bot permissions. A thread inside
+        // it is fine; a look-alike name anywhere else is not.
+        const { channel } = await destination({ guild: msg.guild, guildId: msg.guildId, user: msg.author });
+        if (msg.channelId !== channel.id && here.parentId !== channel.id) return false;
+        if (!quota.allows(msg.author.id)) content = MESSAGES.COACH_QUOTA;
         else {
-          msg.channel.sendTyping?.().catch(() => {});
+          here.sendTyping?.().catch(() => {});
           content = await coachReply({ guildId: msg.guildId, userId: msg.author.id, text });
         }
-      } catch {
+      } catch (error) {
+        // Outside the team (or no team yet): normal Hengs chat, which never sees the notebook. Any other failure answers
+        // here, so a team question never falls back to shared chat.
+        if (error.message === 'SCRIM_NOT_TEAM' || error.message === 'SCRIM_ROLE_MISSING') return false;
         logger.error('[scrim] COACH_FAILED');
-        content = 'Coach lagi error, coba lagi bentar ya.';
+        content = MESSAGES[error.message] || 'Coach lagi error, coba lagi bentar ya.';
       }
       await msg.reply({ content, ...quiet }).catch(() => logger.error('[scrim] COACH_REPLY_FAILED'));
       return true;
@@ -426,7 +442,7 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
         await teamMember(i);
         const text = clean(i.options.getString('pertanyaan', true), 500);
         if (!text) return await answer(i, 'Tulis pertanyaannya dulu ya.');
-        if (!quota.take(i.user.id)) return await answer(i, MESSAGES.COACH_QUOTA);
+        if (!quota.allows(i.user.id)) return await answer(i, MESSAGES.COACH_QUOTA);
         await answer(i, await coachReply({ guildId: i.guildId, userId: i.user.id, text, personal: true }));
       } catch (error) {
         logger.error('[scrim] COACH_ASK_FAILED');
