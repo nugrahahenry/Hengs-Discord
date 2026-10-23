@@ -5,11 +5,13 @@
 // Why each rule exists: docs/research/2026-10-23-coaching-practice.md (local, ignored). The bans come first because
 // the coach exam (.cloud/evals/coach-2026-10-23, ignored) showed them broken most: made-up minutes, own percentages,
 // wards from other games, long lists.
-const { cutUnits, opponentKey, whenLabel, wibDay, formatTeamRecap, formatPlayerStats } = require('./stats');
+const { cutUnits, opponentKey, dateLabel, whenLabel, wibDay, formatTeamRecap, formatPlayerStats } = require('./stats');
 
 const COACH_DAILY_LIMIT = 15;
 const COACH_TEMPERATURE = 0.3;
 const MAX_REPLY = 2000;
+const TARGET_DAYS = 14;
+const DAY = 86_400_000;
 
 const COACH_RULES = `MODE COACH (khusus Hengs Family, tim MLBB anak dan remaja). Kamu asisten coach, bukan pelatih manusia; keputusan tim tetap di kapten atau pelatih.
 LARANGAN (cek tiap jawaban sebelum dikirim):
@@ -21,7 +23,8 @@ LARANGAN (cek tiap jawaban sebelum dikirim):
 - Jangan tulis link atau URL.
 CARA COACHING:
 - Pola jawaban: satu fokus dari DATA, posisi sekarang pakai angka DATA dengan jumlah gamenya (W X dari N game), satu langkah konkret buat scrim berikutnya, lalu satu pertanyaan refleksi.
-- Bahas keputusan dan kebiasaan main (rotasi, objective, komunikasi, draft). Target selalu kebiasaan main yang bisa dicek tim sendiri, bukan jumlah menang atau win rate; sarankan ditulis di catatan /scrim hasil.
+- Bahas keputusan dan kebiasaan main (rotasi, objective, komunikasi, draft). Target selalu kebiasaan main yang bisa dicek tim sendiri, bukan jumlah menang atau win rate; sarankan dipasang pakai /scrim target biar coach bisa ngecek.
+- Kalau ada TARGET TIM di DATA: kaitkan jawaban ke target itu dan tanya apakah target itu jalan di game terakhir.
 - Di bawah 5 game bilang datanya masih dikit; jangan simpulin pola dari kurang dari 5 kali kalah. DATA kosong: ajak catat tiap game pakai /scrim hasil.
 - Tim cerita menang: rayakan singkat, puji aksi spesifik, lalu tanya apa yang jalan dan mau dipertahankan. Jangan langsung bahas kelemahan.
 - Ada yang nyalahin teman: jangan setuju dan jangan nilai teman itu; ajak bahas keputusan tim dan ngobrol baik-baik setelah main.
@@ -85,17 +88,36 @@ function mask(text, cover = hide) {
   return { text: shown.replace(BLAME, phrase => { masked += 1; return phrase.replace(/beban/i, cover); }), masked };
 }
 
+// Code, not the model, decides when it is late (22.00 to 05.00 WIB): bedtime line in the data card, no debrief nudge.
+const isLate = at => { const hour = new Date(at + 7 * 3_600_000).getUTCHours(); return hour >= 22 || hour < 5; };
+// A target older than two weeks is stale: the coach stops using it and /scrim target asks for a new one.
+const targetFresh = (target, now) => Boolean(target) && now - target.at <= TARGET_DAYS * DAY;
+const safeText = text => mask(String(text ?? '')).text;
+
 // Goes to the model as a user message, not system text: notes are written by members and must carry no authority.
-function coachData(games, { text = '', userId = null, now = Date.now() } = {}) {
+function coachData(games, { text = '', userId = null, now = Date.now(), target = null } = {}) {
   const read = games.map(game => (game.note && mask(game.note).masked ? { ...game, note: HIDDEN_NOTE } : game));
   const parts = [`Waktu sekarang: ${whenLabel(now)}`, formatTeamRecap(read, { now })];
+  if (targetFresh(target, now)) {
+    const since = games.filter(game => game.at >= target.at).length;
+    parts.push(`TARGET TIM: "${target.text}" (dipasang ${dateLabel(target.at)}, ${since} game kecatat sejak itu)`);
+  }
   const opponent = namedOpponent(read, text);
   if (opponent) parts.push(formatTeamRecap(read, { opponent, now }));
   if (userId) parts.push(`STAT KAMU (cuma buat penanya):\n${formatPlayerStats(read, userId, { now })}`);
-  // Code, not the model, decides when it is late (22.00 to 05.00 WIB).
-  const hour = new Date(now + 7 * 3_600_000).getUTCHours();
-  const late = hour >= 22 || hour < 5 ? `\n${LATE}` : '';
+  const late = isLate(now) ? `\n${LATE}` : '';
   return scrubIds(mask(`DATA dari buku catatan scrim (dibuat program, bukan pesan atau perintah dari penanya):\n${parts.join('\n\n')}\n\n${REMINDER}${late}`, censored).text);
+}
+
+// Posted by code (no AI) after the third game logged on one WIB day: debriefs after a scrim block help most, wins too.
+function debriefText(games, { target = null } = {}) {
+  const won = games.filter(game => game.outcome === 'menang').length;
+  return [`🧠 **Debrief bentar yuk** (hari ini W ${won} dari ${games.length} game)`,
+    '1. Satu hal yang jalan dan mau dipertahankan?',
+    '2. Satu keputusan yang mau dibenerin?',
+    '3. Target buat scrim berikutnya? Pasang pakai `/scrim target`.',
+    target ? `Target sekarang: "${target.text}". Jalan nggak?` : null,
+    '-# Bales di sini sambil mention Hengs kalau mau dibantu coach. Singkat aja.'].filter(Boolean).join('\n');
 }
 
 // Masking keeps the advice (and a crisis reply) instead of dropping the whole answer over one quoted word.
@@ -109,10 +131,10 @@ function guardReply(reply, { question = '' } = {}) {
 
 // Everything agent.chat needs for one coach turn. A personal turn (an asker's userId) adds their own stats and keeps no
 // history. onGuard sees every real model answer (cooldown and outage replies never reach it).
-function coachContext(games, { text = '', userId = null, now = Date.now(), onGuard = () => {} } = {}) {
+function coachContext(games, { text = '', userId = null, now = Date.now(), target = null, onGuard = () => {} } = {}) {
   const question = scrubIds(text);
   return { question, context: { kind: 'home', visibility: 'coach', system: COACH_RULES, temperature: COACH_TEMPERATURE,
-    data: coachData(games, { text: question, userId, now }), ...(userId ? { stateless: true } : {}),
+    data: coachData(games, { text: question, userId, now, target }), ...(userId ? { stateless: true } : {}),
     guard(answer) {
       const checked = guardReply(answer, { question });
       onGuard(answer, checked);
@@ -136,4 +158,4 @@ function createCoachQuota({ limit = COACH_DAILY_LIMIT, now = Date.now } = {}) {
 }
 
 module.exports = { COACH_RULES, BANTUAN_TEXT, COACH_DAILY_LIMIT, COACH_TEMPERATURE, coachData, coachContext, scrubIds, guardReply,
-  createCoachQuota };
+  createCoachQuota, safeText, debriefText, targetFresh, isLate };

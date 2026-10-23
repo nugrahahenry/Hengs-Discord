@@ -2,6 +2,18 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.78.0 (provisional) coach target and debrief on branch coach-v2 (not deployed) - 2026-10-24
+
+- Henry asked the main session for a smarter coach ("biar makin pintar dan mantep"); the coach side session asked him what
+  that means and he picked all four paths: end-of-match screenshots read by vision, target + debrief, an MLBB
+  dictionary, and pro draft stats. This commit is the target + debrief path. Branch coach-v2 starts at main dce21b8.
+- New src/scrim/coach-store.js (data/scrim-coach.json: target text, setBy, at, last debrief WIB day). service.js gets
+  target(i) and a debrief() after a successful Kirim; coach.js gets TARGET TIM in the data card, debriefText, safeText,
+  targetFresh, isLate. index.js passes coachStore to createScrimResults. scrim.js gets the `target` subcommand.
+- Help and /hengs privacy updated; privacy is at about 1986 of 2000 characters, so later features need their own trims.
+- QA: Node 22 full suite from PowerShell 871 total, 870 pass, 1 worktree-only skip.
+- Deploy (Henry's approval only): register commands once (new `target`). New data file is created on first use.
+
 ## Hengs Discord v1.77.0 own tanya-hengs channel (committed, not deployed) - 2026-10-24
 
 - Henry: "lu bisa rename sendiri gak sih, terus itu bot commands niatnya buat bot musik juga yang bisa dipakai atau

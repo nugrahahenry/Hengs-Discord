@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { COACH_RULES, BANTUAN_TEXT, COACH_DAILY_LIMIT, COACH_TEMPERATURE, coachData, coachContext, scrubIds, guardReply,
-  createCoachQuota } = require('../src/scrim/coach');
+  createCoachQuota, safeText, debriefText } = require('../src/scrim/coach');
 const { LIMITS } = require('../src/conversation-context');
 
 const U = '323456789012345678', T2 = '523456789012345678';
@@ -63,6 +63,34 @@ test('the rules ask for habits as targets and forbid links', () => {
   assert.match(COACH_RULES, /bukan jumlah menang atau win rate/);
   assert.match(COACH_RULES, /Jangan tulis link/);
   assert.match(COACH_RULES, /minimap/);
+});
+
+test('a fresh team target joins the data card with the games logged since; a target older than 14 days stays out', () => {
+  const target = { text: 'semua kumpul sebelum objective pertama', setBy: U, at: NOW - 3 * HOUR };
+  assert.match(coachData(games, { now: NOW, target }),
+    /\n\nTARGET TIM: "semua kumpul sebelum objective pertama" \(dipasang 21 Okt, 3 game kecatat sejak itu\)\n/);
+  assert.doesNotMatch(coachData(games, { now: NOW, target: { ...target, at: NOW - 15 * 24 * HOUR } }), /TARGET TIM/);
+  assert.doesNotMatch(coachData(games, { now: NOW }), /TARGET TIM/);
+  assert.match(coachContext(games, { text: 'gimana?', now: NOW, target }).context.data, /TARGET TIM/);
+  assert.match(COACH_RULES, /TARGET TIM/);
+  assert.match(COACH_RULES, /\/scrim target/);
+});
+
+test('the debrief nudge asks three debrief questions with today\'s record and the target, without pings', () => {
+  const today = [game(1), game(2, { outcome: 'kalah', reason: 'early' }), game(3)];
+  const text = debriefText(today, { target: { text: 'call info pendek', setBy: U, at: NOW } });
+  assert.match(text, /^🧠 \*\*Debrief bentar yuk\*\* \(hari ini W 2 dari 3 game\)\n/);
+  for (const part of ['1. Satu hal yang jalan', '2. Satu keputusan yang mau dibenerin', '3. Target buat scrim berikutnya', '/scrim target',
+    'Target sekarang: "call info pendek". Jalan nggak?', 'mention Hengs']) {
+    assert.ok(text.includes(part), part);
+  }
+  assert.doesNotMatch(debriefText(today, {}), /Target sekarang/);
+  assert.doesNotMatch(text, /<@|\d{17,20}/);
+});
+
+test('member-written target text is masked like coach replies', () => {
+  assert.equal(safeText('jangan noob lagi'), 'jangan n*** lagi');
+  assert.equal(safeText('kumpul sebelum objective'), 'kumpul sebelum objective');
 });
 
 test('one coach turn context: rules, data, low temperature, guard; a personal turn adds own stats and keeps no history', () => {

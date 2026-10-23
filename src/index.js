@@ -65,6 +65,7 @@ const { createCommunitySharing } = require('./news/sharing');
 const { createCaster } = require('./caster/service');
 const { createScrimResults } = require('./scrim/service');
 const { createScrimStore } = require('./scrim/store');
+const { createCoachStore } = require('./scrim/coach-store');
 let newsService;
 let communitySharing;
 const { startTypingIndicator } = require('./assistant-ux');
@@ -125,7 +126,7 @@ const caster = createCaster({
   apiKey: process.env.GEMINI_API_KEY,
   dailyLimit: process.env.CASTER_DAILY_LIMIT,
 });
-const scrimResults = createScrimResults({ store: createScrimStore(), agent });
+const scrimResults = createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore() });
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────

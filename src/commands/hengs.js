@@ -126,8 +126,8 @@ async function execute(interaction, {
       'Pengaturan server disimpan terpisah dan dapat dihapus oleh pengelola lewat `/setup disable`.',
       'Hengs News menyimpan pengaturan serta receipt/hash URL berita, tanpa chat atau isi artikel. Receipt/hash dibersihkan pada perubahan state setelah 30 hari. `/setup disable` menghentikan jadwal news; pengaturan tetap tersimpan. Backup dapat menyimpan versi sebelumnya.',
       'Casterin (khusus server utama): teks momen dikirim ke Groq, lalu teriakannya ke Google Gemini free tier yang datanya bisa dipakai Google untuk mengembangkan layanan. Audio tidak disimpan ke file dan preview hangus 10 menit.',
-      'Catatan scrim (khusus server utama): per game Hengs menyimpan lawan, menang atau kalah plus alasannya, lineup (ID Discord anggota Hengs Family), catatan, ID pencatat dan ID pesan. Statistik per pemain cuma dikirim ke pemain itu lewat DM. Pencatat bisa menghapus game terakhirnya lewat /scrim hapus. Gambar SS tetap di Discord, tidak disimpan di file Hengs.',
-      'Coach scrim: pertanyaan ke coach dikirim ke penyedia AI bersama rekap scrim tim, untuk /scrim tanya juga stat penanya sendiri.',
+      'Catatan scrim (server utama): per game Hengs menyimpan lawan, W/L plus alasan, lineup (ID Discord anggota Hengs Family), catatan, ID pencatat dan pesan. Stat per pemain cuma dikirim ke pemain itu lewat DM. Pencatat bisa menghapus game terakhirnya lewat /scrim hapus. SS tidak disimpan Hengs.',
+      'Coach scrim: pertanyaan ke coach dikirim ke penyedia AI bersama rekap scrim tim dan target tim (/scrim target, disimpan sampai diganti), untuk /scrim tanya juga stat penanya sendiri.',
     ].join('\n'));
     return;
   }

@@ -11,8 +11,9 @@ const {
   escapeMarkdown,
 } = require('discord.js');
 const { MAX_LINEUP } = require('./store');
-const { REASON_LABEL, cutUnits, opponentKey, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
-const { COACH_DAILY_LIMIT, coachContext, createCoachQuota } = require('./coach');
+const { REASON_LABEL, cutUnits, opponentKey, wibDay, dateLabel, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
+const { COACH_DAILY_LIMIT, coachContext, createCoachQuota, safeText, debriefText, targetFresh, isLate } = require('./coach');
+const { MAX_TARGET } = require('./coach-store');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -131,7 +132,7 @@ const answer = (i, content) => (i.deferred || i.replied
   ? i.editReply({ content, embeds: [], components: [], ...quiet })
   : i.reply({ content, flags: MessageFlags.Ephemeral, ...quiet }));
 
-function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date.now, logger = console } = {}) {
+function createScrimResults({ store, agent = null, coachStore = null, fetchImpl = fetch, now = Date.now, logger = console } = {}) {
   const drafts = new Map();
   const quota = createCoachQuota({ now });
   const removals = new Map(); // pending /scrim hapus confirmations, same key and TTL as drafts
@@ -216,9 +217,31 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
   // One coach turn: data card from the notebook, one chat call, and the reply checked before it is stored or shown.
   // A personal turn (/scrim tanya) adds the asker's own stats and keeps no history. Only a real model answer
   // (the guard ran) costs a question; cooldown and outage replies are free.
+  // The team target, if any. A broken coach file must not silence the coach, so it reads as "no target".
+  function teamTarget(guildId) {
+    try { return coachStore?.get(guildId).target ?? null; } catch { logger.error('[scrim] COACH_STATE_FAILED'); return null; }
+  }
+
+  // After the third game logged on one WIB day (never late at night), one debrief nudge in hasil-scrim. The day is
+  // claimed before the send, so a slow or failed send never repeats.
+  async function debrief(guildId, channel) {
+    if (!coachStore) return;
+    try {
+      const at = now();
+      const day = wibDay(at);
+      const today = store.list(guildId).filter(game => wibDay(game.at) === day);
+      const memory = coachStore.get(guildId);
+      if (isLate(at) || today.length < 3 || memory.debriefDay === day) return;
+      coachStore.markDebrief(guildId, day);
+      const target = targetFresh(memory.target, at) ? { ...memory.target, text: shown(memory.target.text) } : null;
+      await channel.send({ content: debriefText(today, { target }), ...quiet });
+    } catch { logger.error('[scrim] DEBRIEF_FAILED'); }
+  }
+
   async function coachReply({ guildId, userId, text, personal = false }) {
     let answered = false;
     const { question, context } = coachContext(store.list(guildId), { text, userId: personal ? userId : null, now: now(),
+      target: teamTarget(guildId),
       onGuard(answer, checked) {
         answered = true;
         if (checked.masked) logger.error('[scrim] COACH_REPLY_MASKED');
@@ -319,6 +342,7 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
           return true;
         }
         await i.editReply({ content: `Beres, hasil game udah masuk <#${channel.id}> dan kecatat buat rekap tim.`, embeds: [], components: [], ...quiet });
+        await debrief(i.guildId, channel);
       } catch (error) {
         logger.error('[scrim] SEND_FAILED');
         await answer(i, dispatched ? 'Hasil kiriman belum bisa dipastiin. Cek hasil-scrim dulu ya, Hengs nggak nyoba ulang otomatis.'
@@ -427,6 +451,34 @@ function createScrimResults({ store, agent = null, fetchImpl = fetch, now = Date
       }
       await msg.reply({ content, ...quiet }).catch(() => logger.error('[scrim] COACH_REPLY_FAILED'));
       return true;
+    },
+
+    // /scrim target: the team's one practice target. With isi it is set (masked like coach replies) and announced in
+    // hasil-scrim, where the coach and the debrief nudge read it; without isi it is shown privately.
+    async target(i, { guildAccess } = {}) {
+      if (!coachStore || !home(i, guildAccess)) return reply(i, 'SCRIM_ACCESS');
+      try {
+        await i.deferReply({ flags: MessageFlags.Ephemeral });
+        const typed = clean(i.options.getString('isi') || '', MAX_TARGET);
+        if (!typed) {
+          await teamMember(i);
+          const { target } = coachStore.get(i.guildId);
+          if (!target) return await answer(i, 'Belum ada target tim. Pasang satu kebiasaan main yang mau dicek, misalnya `/scrim target isi: semua kumpul sebelum objective pertama`.');
+          const since = store.list(i.guildId).filter(game => game.at >= target.at).length;
+          const line = `🎯 Target tim: "${shown(target.text)}" (dipasang ${dateLabel(target.at)} sama <@${target.setBy}>, ${since} game kecatat sejak itu)`;
+          return await answer(i, targetFresh(target, now()) ? line : `${line}. Udah lewat 2 minggu, pasang target baru pakai /scrim target ya.`);
+        }
+        const { channel } = await destination(i);
+        const target = { text: safeText(typed), setBy: i.user.id, at: now() };
+        coachStore.setTarget(i.guildId, target);
+        try {
+          await channel.send({ content: `🎯 **Target tim baru**: "${shown(target.text)}"\nDipasang sama <@${i.user.id}>. Coach bakal ngecek ini tiap kalian ngobrol, dan debrief nanya jalan atau nggak.`, ...quiet });
+        } catch { logger.error('[scrim] TARGET_POST_FAILED'); }
+        await answer(i, `Target tim kepasang: "${shown(target.text)}". Ganti kapan aja pakai /scrim target.`);
+      } catch (error) {
+        logger.error('[scrim] TARGET_FAILED');
+        await answer(i, MESSAGES[error.message] || 'Target tim belum bisa diproses. Coba lagi bentar ya.');
+      }
     },
 
     // /scrim tanya: one private question, team recap plus the asker's own stats, no history kept.

@@ -135,6 +135,11 @@ dan kalau AI menulis penanda bantuan atau pertanyaannya menyebut tanda bahaya (d
 SAPA 129 dan Healing119 ikut dikirim. Coach cuma jawab di hasil-scrim asli (atau thread di dalamnya). Batas 15
 pertanyaan yang dijawab AI per orang per hari.
 
+Target dan debrief: `/scrim target isi: ...` memasang satu target latihan tim (kebiasaan main yang bisa dicek sendiri),
+diumumkan di hasil-scrim tanpa ping; `/scrim target` tanpa isi menampilkannya. Coach ikut membaca target itu. Setelah
+game ketiga yang dicatat di hari yang sama (bukan jam 22.00 sampai 05.00 WIB), Hengs mengirim satu ajakan debrief: satu
+hal yang jalan, satu keputusan yang mau dibenerin, dan target berikutnya. Data: `data/scrim-coach.json`.
+
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama
 `data/scrim-results.json` (per seri, v1.64) tidak dibaca lagi.

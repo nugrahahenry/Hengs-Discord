@@ -5,6 +5,31 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.78.0] - 2026-10-24 (provisional, branch coach-v2)
+
+### Added
+
+- `/scrim target [isi]` (Hengs Family): the team's one practice target, a habit the team can check itself (Henry asked for
+  a smarter coach: "biar makin pintar dan mantep"). With `isi` it is set, masked like coach replies, and announced in
+  hasil-scrim without pings; without `isi` it is shown privately with the games logged since. Stored in its own file
+  `data/scrim-coach.json` (target text, who set it, when); a target older than 14 days is treated as stale.
+- The coach reads a fresh target into its data card ("TARGET TIM", with the games logged since) and links its answer to
+  it; when asked for a target it points to `/scrim target`.
+- Debrief nudge without AI: the third game logged on one WIB day brings one message in hasil-scrim with three debrief
+  questions (what worked, one decision to fix, the next target) and the current target. Never between 22.00 and 05.00
+  WIB, at most once a day (the day is claimed before the send). Debriefs after a scrim block are the coaching habit with
+  the strongest evidence in the research (`docs/research/2026-10-23-coaching-practice.md`).
+
+### Changed
+
+- Help: the scrim paragraph is shorter and names `/scrim target`. `/hengs privacy` says the coach also reads the team
+  target and that it is kept until replaced; the scrim line is shorter so the page stays under 2000 characters.
+
+### Verification
+
+- Node 22 full suite in the worktree (PowerShell): 871 tests, 870 pass, 1 worktree-only skip. Not deployed; deploy needs
+  command re-registration for the new `target` subcommand.
+
 ## [1.77.0] - 2026-10-24
 
 ### Added
