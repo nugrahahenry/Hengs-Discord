@@ -241,6 +241,7 @@ test('meme cards attach the image, describe it and never mention anyone', () => 
   assert.match(card.components[1].content, /Meme buatan Hengs/);
   assert.match(card.components[1].content, /\[Galaxy S26 resmi meluncur\]\(https:\/\/www.cnnindonesia.com\/x\)/);
   assert.match(card.components[1].content, /memegen.link/);
+  assert.match(card.components[1].content, /😂 kalau lucu, 😐 kalau garing/);
   const lemmy = JSON.stringify(memePayload({ ...item, kind: 'lemmy', publisher: 'lemmy', title: 'Synthetic joke',
     url: 'https://programming.dev/post/7', score: 300, comments: 4, file: { name: 'lemmy-meme.jpg', data: JPG } }, NOW));
   assert.match(lemmy, /Lihat post aslinya\]\(https:\/\/programming.dev\/post\/7\)/); assert.match(lemmy, /Skor 300, 4 komentar/);

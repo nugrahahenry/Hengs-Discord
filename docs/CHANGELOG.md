@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.71.0] - 2026-10-23
+
+### Added
+
+- One-tap meme votes. Hengs adds 😂 😐 💀 under every Hengs-made meme (the ones the taste store learns from),
+  and the card says "Reaksi 😂 kalau lucu, 😐 kalau garing". On 2026-10-23 the taste store held 4 Hengs memes
+  with 0 reactions, so nobody was voting unprompted. Seeding is best effort: a failed reaction logs
+  `NEWS_MEME_REACT_FAILED` once and the meme stays posted.
+
+### Changed
+
+- Taste counts treat 😐 as a vote against: members' 😐 reactions subtract from the post's total, every other
+  emoji adds, Hengs' own seeded reactions never count, and a post never goes below zero.
+
+### Verification
+
+- Node 22 full suite 779/779 via PowerShell.
+
 ## [1.70.0] - 2026-10-21
 
 ### Added

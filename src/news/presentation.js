@@ -63,7 +63,8 @@ function memePayload(item, now, intro = '') {
   const topic = plain(item.topicTitle, 120);
   const lines = item.kind === 'hengs'
     ? ['-# 🤖 Meme buatan Hengs', safeLink(item.topicUrl) ? `Tema: [${topic}](${item.topicUrl})` : `Tema: ${topic}`,
-      '-# Template: memegen.link · Teks: AI Hengs · Hiburan, bukan berita faktual']
+      '-# Template: memegen.link · Teks: AI Hengs · Hiburan, bukan berita faktual',
+      '-# Reaksi 😂 kalau lucu, 😐 kalau garing. Hengs belajar dari reaksi kalian']
     : ['-# 😂 Dari Lemmy programmer_humor', `### ${plain(item.title, 150)}`,
       safeLink(item.url) ? `[Lihat post aslinya](${item.url})` : '',
       `-# Skor ${Number(item.score) || 0}, ${Number(item.comments) || 0} komentar · Hiburan, bukan berita faktual`];

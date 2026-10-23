@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createMemeTaste, memberReactions } = require('../src/news/meme-taste');
+const { createMemeTaste, memberReactions, MEME_REACTIONS } = require('../src/news/meme-taste');
 const { TEMPLATES, EVERGREEN, offerTemplates, pickTopic } = require('../src/news/memes');
 
 const HOUR = 3_600_000;
@@ -19,11 +19,17 @@ function store(t, clock) {
   return createMemeTaste({ filePath: path.join(dir, 'meme-taste.json'), now: () => clock.now });
 }
 
-test('member reactions count everyone but Hengs itself', () => {
+test('member reactions count everyone but Hengs itself, and a meh face counts against', () => {
   const reactions = new Map([['a', { count: 4, me: true }], ['b', { count: 2, me: false }]]);
   assert.equal(memberReactions({ reactions: { cache: reactions } }), 5);
   assert.equal(memberReactions(null), null);
   assert.equal(memberReactions({ reactions: { cache: new Map() } }), 0);
+  const seeded = (name, count, me = true) => [name, { emoji: { name }, count, me }];
+  // Hengs seeded all three; members added three laughs, one skull, one fire and two meh faces.
+  const voted = new Map([seeded('😂', 4), seeded('💀', 2), seeded('😐', 3), seeded('🔥', 1, false)]);
+  assert.deepEqual(MEME_REACTIONS, ['😂', '😐', '💀']);
+  assert.equal(memberReactions({ reactions: { cache: voted } }), 3 + 1 + 1 - 2);
+  assert.equal(memberReactions({ reactions: { cache: new Map([seeded('😐', 5)]) } }), 0);
 });
 
 test('reactions are read between 2 hours and 3 days after posting, then kept as totals', async t => {

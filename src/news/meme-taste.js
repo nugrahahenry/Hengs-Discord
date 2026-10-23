@@ -13,14 +13,20 @@ const SETTLE_MS = 2 * HOUR;
 const WINDOW_MS = 72 * HOUR;
 const MAX_PENDING = 50;
 const MAX_KEYS = 200;
+// Hengs adds these under every meme so members can vote with one tap; the meh face counts against.
+const MEME_REACTIONS = Object.freeze(['😂', '😐', '💀']);
+const MEH = '😐';
 
-// Every reaction except the one Hengs itself may have added.
+// Every reaction except the one Hengs itself added; meh faces subtract, never below zero.
 function memberReactions(message) {
   const cache = message?.reactions?.cache;
   if (!cache || typeof cache.values !== 'function') return null;
   let total = 0;
-  for (const reaction of cache.values()) total += Math.max(0, Number(reaction?.count || 0) - (reaction?.me ? 1 : 0));
-  return total;
+  for (const reaction of cache.values()) {
+    const members = Math.max(0, Number(reaction?.count || 0) - (reaction?.me ? 1 : 0));
+    total += reaction?.emoji?.name === MEH ? -members : members;
+  }
+  return Math.max(0, total);
 }
 
 const emptyGuild = () => ({ pending: [], templates: {}, situations: {} });
@@ -99,4 +105,4 @@ function createMemeTaste({ filePath = path.join(__dirname, '..', '..', 'data', '
   };
 }
 
-module.exports = { createMemeTaste, memberReactions, SETTLE_MS, WINDOW_MS };
+module.exports = { createMemeTaste, memberReactions, MEME_REACTIONS, SETTLE_MS, WINDOW_MS };

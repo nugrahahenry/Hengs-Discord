@@ -39,10 +39,11 @@ function rss(source = SOURCES[0], count = 5, now = BASE) {
 function rig(t, options = {}) {
   const f = fixture(t);
   let permission = true; let enabledScope = true; let sendError = false;
-  const sent = []; const logs = []; const destinations = [];
+  const sent = []; const logs = []; const destinations = []; const reactions = [];
   const channel = { id: CHANNEL, name: 'hengs-news', guildId: GUILD, type: ChannelType.GuildText,
     permissionsFor: () => ({ has: () => permission }),
-    async send(payload) { destinations.push(this.id); sent.push(payload); if (sendError) throw new Error('PRIVATE RAW ERROR'); return { id: 'synthetic' }; } };
+    async send(payload) { destinations.push(this.id); sent.push(payload); if (sendError) throw new Error('PRIVATE RAW ERROR');
+      return { id: 'synthetic', react: async emoji => reactions.push(emoji) }; } };
   const memeChannel = { ...channel, id: MEMES, name: 'hengs-memes' };
   const guild = { id: GUILD, ownerId: USER, channels: {
     cache: new Map([[CHANNEL, channel], [MEMES, memeChannel]]), async fetch(id) { return this.cache.get(id); },
@@ -56,7 +57,7 @@ function rig(t, options = {}) {
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
   const client = { guilds: { cache: new Map([[GUILD, guild]]) } };
   const handle = prompt => service.handle(interaction, prompt);
-  return { ...f, service, handle, interaction, channel, guild, sent, destinations, logs, client, guildAccess,
+  return { ...f, service, handle, interaction, channel, guild, sent, destinations, reactions, logs, client, guildAccess,
     deny: () => { permission = false; }, disable: () => { enabledScope = false; }, failSend: () => { sendError = true; } };
 }
 async function testedRow(r) {
@@ -715,7 +716,8 @@ test('meme slots use the meme maker, attach files to the meme channel and previe
   const receipt = r.store.get(GUILD).receipts.at(-1);
   assert.deepEqual([receipt.kind, receipt.slot, receipt.publisher, receipt.status], ['meme', 0, 'hengs-meme', 'sent']);
   assert(!fs.readFileSync(r.filePath, 'utf8').includes('Tema sintetis'));
-  // The posted Hengs meme is handed to the taste store so reactions can steer later memes.
+  // The meme gets tap-to-vote reactions (news never does), and the posted Hengs meme goes to the taste store.
+  assert.deepEqual(r.reactions, ['😂', '😐', '💀']);
   assert.deepEqual(calls, [['preview'], ['make', 0],
     ['remember', GUILD, { messageId: 'synthetic', channelId: MEMES, template: 'drake', situation: 'Tema sintetis' }]]);
   assert.equal(parsePrompt('preview meme').action, 'preview_meme');
