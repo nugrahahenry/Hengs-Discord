@@ -37,7 +37,10 @@ function proMetaCard(pages, { text = '' } = {}) {
     ...named.slice(0, 3).map(name => {
       const hero = heroes.get(name);
       return `${name}: dipick ${hero.picks} kali (W ${hero.wins} dari ${hero.picks}), diban ${hero.bans} kali.`;
-    })].join('\n');
+    }),
+    // The exam showed the model dropping these caveats when only the rules carried them.
+    `Catatan: ini pola tim pro dari ${games.length} game, belum tentu cocok buat tim sendiri${games.length < 20 ? '; sampelnya kecil, jangan disimpulin' : ''}.`,
+  ].join('\n');
 }
 
 module.exports = { LIQUIPEDIA_CREDIT, proMetaCard };

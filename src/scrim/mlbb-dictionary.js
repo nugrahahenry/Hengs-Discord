@@ -7,7 +7,9 @@ const { heroes, retrieved } = require('./mlbb-heroes.json');
 
 const LANE = Object.freeze({ Gold: 'Gold Lane', Exp: 'EXP Lane', Mid: 'Mid Lane', Jungle: 'Jungle', Roam: 'Roam' });
 const LANE_WORDS = /\b(lane|jungle|jungler|roam|roamer|role|tank|fighter|assassin|mage|marksman|support)\b/i;
-const GLOSSARY = 'Lane di MLBB: Gold Lane, EXP Lane, Mid Lane, Jungle, Roam. Role hero: Tank, Fighter, Assassin, Mage, Marksman, Support.';
+// The exam showed the lane names alone invited made-up lane mechanics, and "spesialis" came back as "skill".
+const GLOSSARY = 'Lane di MLBB: Gold Lane, EXP Lane, Mid Lane, Jungle, Roam. Role hero: Tank, Fighter, Assassin, Mage, Marksman, Support. '
+  + 'Kamus ini nggak punya detail mekanik lane, jadi kalau ditanya bilang nggak tahu detailnya.';
 const words = text => ` ${String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `;
 const MAX_HEROES = 3;
 
@@ -15,7 +17,7 @@ function heroCard(text = '') {
   const said = words(text);
   const lines = heroes.filter(hero => said.includes(words(hero.name))).slice(0, MAX_HEROES)
     .map(hero => `${hero.name} (${hero.title}): role ${hero.roles.join(' dan ')}, lane ${hero.lanes.map(lane => LANE[lane] || lane)
-      .join(' atau ')}, spesialis ${hero.specialties.join(' dan ')}.`);
+      .join(' atau ')}, keahlian (bukan nama skill) ${hero.specialties.join(' dan ')}.`);
   if (LANE_WORDS.test(text)) lines.push(GLOSSARY);
   return lines.length ? [`KAMUS MLBB (Liquipedia, dicek ${retrieved})`, ...lines].join('\n') : '';
 }

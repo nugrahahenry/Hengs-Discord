@@ -28,7 +28,11 @@ test('the coach data card carries the time and the team recap, labelled as data'
   assert.match(data, /gank awal masuk dari atas/);
   assert.doesNotMatch(data, /STAT KAMU|Rekap scrim vs|MODE COACH/);
   // The last thing the model reads before the question: the rules it breaks most.
-  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\.$/);
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\. Fokus atau target: satu saja, pasang pakai \/scrim target\.\nData tim masih di bawah 5 game: bilang datanya masih dikit dan jangan simpulin pola\.$/);
+  // Exam v7: with few games the coach still named two focuses, so code says it when the sample is small.
+  assert.doesNotMatch(coachData([...games, ...games.map((item, n) => ({ ...item, messageId: `9${n}`.padEnd(18, '0') }))], { now: NOW }),
+    /di bawah 5 game/);
+  assert.doesNotMatch(coachData([], { now: NOW }), /di bawah 5 game/);
   assert.match(coachData([], { now: NOW }), /Belum ada game yang kecatat/);
 });
 
@@ -76,7 +80,7 @@ test('the rules answer the three weak spots from the last exam', () => {
 test('a fresh team target joins the data card with the games logged since; a target older than 14 days stays out', () => {
   const target = { text: 'semua kumpul sebelum objective pertama', setBy: U, at: NOW - 3 * HOUR };
   assert.match(coachData(games, { now: NOW, target }),
-    /\n\nTARGET TIM: "semua kumpul sebelum objective pertama" \(dipasang 21 Okt, 3 game kecatat sejak itu\)\n/);
+    /\n\nTARGET TIM: "semua kumpul sebelum objective pertama" \(dipasang 21 Okt, 3 game kecatat sejak itu\)\. Buku catatan nggak nyatet target ini jalan atau nggak: tanya timnya, jangan ngarang\.\n/);
   assert.doesNotMatch(coachData(games, { now: NOW, target: { ...target, at: NOW - 15 * 24 * HOUR } }), /TARGET TIM/);
   assert.doesNotMatch(coachData(games, { now: NOW }), /TARGET TIM/);
   assert.match(coachContext(games, { text: 'gimana?', now: NOW, target }).context.data, /TARGET TIM/);
@@ -131,6 +135,8 @@ test('one coach turn context: rules, data, low temperature, guard; a personal tu
   assert.deepEqual([team.context.kind, team.context.visibility, team.context.system, team.context.temperature, team.context.stateless],
     ['home', 'coach', COACH_RULES, COACH_TEMPERATURE, undefined]);
   assert.equal(COACH_TEMPERATURE, 0.3);
+  // Exam v7: one answer was cut off at 700 tokens (reasoning counts too).
+  assert.equal(team.context.maxTokens, 900);
   assert.equal(team.context.data, coachData(games, { text: 'vs (anggota) gimana', now: NOW }));
   assert.equal(team.context.guard('dasar noob [[BANTUAN]]'), `dasar n***\n\n${BANTUAN_TEXT}`);
   assert.deepEqual(seen, [['dasar noob [[BANTUAN]]', 1]]);

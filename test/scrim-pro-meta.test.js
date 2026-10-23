@@ -29,6 +29,8 @@ test('pro meta joins the coach data only when the question is about meta, draft 
   // An undecided game and an incomplete draft are left out; a decided game of an unfinished series counts. Ties sort by name.
   assert.match(card, /\nPaling sering dipick: Chou 3, Claude 3, Fanny 3, Ling 3, Lolita 3 \(dari 3 game\)\./);
   assert.match(card, /\nPaling sering diban: Joy 3, Lancelot 3, Fredrinn 1, Nolan 1\./);
+  // Exam v7: the coach dropped both caveats, so the card carries them.
+  assert.match(card, /\nCatatan: ini pola tim pro dari 3 game, belum tentu cocok buat tim sendiri; sampelnya kecil, jangan disimpulin\.$/);
   assert.doesNotMatch(card, /Atlas|Yve|Moskov/);
 });
 

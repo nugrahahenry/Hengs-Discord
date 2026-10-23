@@ -241,7 +241,10 @@ async function chat(userMessage, conversationKey, context = {}) {
   // Coach mode asks for a lower temperature so the model keeps to its rules.
   const temperature = typeof context?.temperature === 'number' && context.temperature >= 0 && context.temperature <= 1
     ? context.temperature : 0.7;
-  const params = { messages, max_tokens: 700, temperature };
+  // Coach mode also asks for a little more room (reasoning counts against max_tokens), so answers are not cut.
+  const maxTokens = Number.isInteger(context?.maxTokens) && context.maxTokens >= 200 && context.maxTokens <= 1500
+    ? context.maxTokens : 700;
+  const params = { messages, max_tokens: maxTokens, temperature };
   const commit = (reply) => {
     if (stateless) return true;
     if (histories.get(conversationKey) !== conversation || conversation.generation !== generation

@@ -23,9 +23,10 @@ test('the hero dictionary is a dated Liquipedia snapshot with roles and lanes fo
 test('a named hero gets its role, lane and specialties; lane or role words get the lane list', () => {
   const card = heroCard('Fanny sama Lolita cocoknya lane apa?');
   assert.match(card, new RegExp(`^KAMUS MLBB \\(Liquipedia, dicek ${dictionary.retrieved}\\)`));
-  assert.match(card, /\nFanny \(Blade Dancer\): role Assassin, lane Jungle, spesialis Chase dan Finisher\./);
-  assert.match(card, /\nLolita \(Steel Elf\): role Support dan Tank, lane Roam, spesialis Guard dan Crowd Control\./);
-  assert.match(card, /\nLane di MLBB: Gold Lane, EXP Lane, Mid Lane, Jungle, Roam\. Role hero: Tank, Fighter, Assassin, Mage, Marksman, Support\./);
+  // Exam v7: "spesialis" came back as "skill", and the lane names invited invented lane mechanics.
+  assert.match(card, /\nFanny \(Blade Dancer\): role Assassin, lane Jungle, keahlian \(bukan nama skill\) Chase dan Finisher\./);
+  assert.match(card, /\nLolita \(Steel Elf\): role Support dan Tank, lane Roam, keahlian \(bukan nama skill\) Guard dan Crowd Control\./);
+  assert.match(card, /\nLane di MLBB: Gold Lane, EXP Lane, Mid Lane, Jungle, Roam\. Role hero: Tank, Fighter, Assassin, Mage, Marksman, Support\. Kamus ini nggak punya detail mekanik lane, jadi kalau ditanya bilang nggak tahu detailnya\./);
   assert.match(heroCard('obsidia main di mana sih'), /Obsidia \(Sovereign of Dark's End\): role Marksman, lane Gold Lane/);
   assert.equal(heroCard('kita kalah mulu, latihan apa?'), '');
   const many = heroCard('Fanny Ling Lolita Chou Claude');
