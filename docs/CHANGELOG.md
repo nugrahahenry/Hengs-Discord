@@ -5,6 +5,29 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.79.0] - 2026-10-24 (provisional, branch coach-v2)
+
+### Added
+
+- Pro draft numbers for the coach: a meta, pick, ban or draft question (or one naming a hero) adds a "META PRO" card
+  counted from the Liquipedia pages Hengs Analis already keeps (decided games with full 5v5 drafts only): the five most
+  picked and banned heroes with the game count, plus pick, win and ban lines for a named hero. The coach must say it is a
+  pro pattern that may not suit the team. An unreadable esports file just leaves the card out.
+- MLBB hero dictionary: `src/scrim/mlbb-heroes.json`, a dated Liquipedia snapshot of all 133 heroes (title, roles,
+  lanes, specialties), built by `scripts/build-mlbb-heroes.js` through the MediaWiki API under its terms (two requests).
+  A question naming a hero adds its facts ("KAMUS MLBB"); a question about lanes or roles adds the lane and role names.
+  The official mobilelegends.com data API is not used (MLBB ToS section 11 bans automated collection).
+- Any coach reply built on either card ends with "-# Data: Liquipedia (CC-BY-SA 3.0)".
+
+### Changed
+
+- Coach rules for the three weak spots of the last exam: a ward question must get one alternative tip, a blamed teammate
+  gets an answer ("nggak setuju pakai label buat teman"), and an opponent question uses that opponent's recap.
+
+### Verification
+
+- Node 22 full suite in the worktree (PowerShell): 879 tests, 878 pass, 1 worktree-only skip. Not deployed.
+
 ## [1.78.0] - 2026-10-24 (provisional, branch coach-v2)
 
 ### Added

@@ -65,6 +65,14 @@ test('the rules ask for habits as targets and forbid links', () => {
   assert.match(COACH_RULES, /minimap/);
 });
 
+// Exam v4 weak spots: a ward question got no alternative, a blamed teammate got no answer, an opponent question used the
+// team-wide focus.
+test('the rules answer the three weak spots from the last exam', () => {
+  assert.match(COACH_RULES, /wajib kasih satu saran pengganti/);
+  assert.match(COACH_RULES, /nggak setuju pakai label buat teman/);
+  assert.match(COACH_RULES, /Pertanyaan soal lawan tertentu: pakai bagian Rekap scrim vs/);
+});
+
 test('a fresh team target joins the data card with the games logged since; a target older than 14 days stays out', () => {
   const target = { text: 'semua kumpul sebelum objective pertama', setBy: U, at: NOW - 3 * HOUR };
   assert.match(coachData(games, { now: NOW, target }),
@@ -86,6 +94,15 @@ test('the debrief nudge asks three debrief questions with today\'s record and th
   }
   assert.doesNotMatch(debriefText(today, {}), /Target sekarang/);
   assert.doesNotMatch(text, /<@|\d{17,20}/);
+});
+
+test('a pro meta card joins the data card as given, and the rules say how to use it', () => {
+  const meta = 'META PRO (data draft Liquipedia: MPL PH S18 Playoffs; 3 game dengan draft lengkap)\nPaling sering dipick: Ling 3 (dari 3 game).';
+  assert.match(coachData(games, { now: NOW, extras: [meta] }), new RegExp(`\\n\\n${meta.replace(/[()]/g, '\\$&')}\\n`));
+  assert.doesNotMatch(coachData(games, { now: NOW }), /META PRO/);
+  assert.match(coachContext(games, { text: 'meta?', now: NOW, extras: [meta] }).context.data, /META PRO/);
+  assert.match(COACH_RULES, /KAMUS MLBB di DATA itu fakta hero dari Liquipedia/);
+  assert.match(COACH_RULES, /META PRO di DATA itu data draft pro/);
 });
 
 test('member-written target text is masked like coach replies', () => {

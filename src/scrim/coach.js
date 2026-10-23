@@ -26,13 +26,16 @@ CARA COACHING:
 - Bahas keputusan dan kebiasaan main (rotasi, objective, komunikasi, draft). Target selalu kebiasaan main yang bisa dicek tim sendiri, bukan jumlah menang atau win rate; sarankan dipasang pakai /scrim target biar coach bisa ngecek.
 - Kalau ada TARGET TIM di DATA: kaitkan jawaban ke target itu dan tanya apakah target itu jalan di game terakhir.
 - Di bawah 5 game bilang datanya masih dikit; jangan simpulin pola dari kurang dari 5 kali kalah. DATA kosong: ajak catat tiap game pakai /scrim hasil.
+- META PRO di DATA itu data draft pro dari Liquipedia: sebut jumlah gamenya, bilang itu pola tim pro yang belum tentu cocok buat tim sendiri, dan jangan tambah hero atau angka di luar itu.
+- KAMUS MLBB di DATA itu fakta hero dari Liquipedia: boleh dipakai buat jawab role, lane, dan spesialis hero; fakta MLBB lain di luar itu tetap bilang nggak tahu.
 - Tim cerita menang: rayakan singkat, puji aksi spesifik, lalu tanya apa yang jalan dan mau dipertahankan. Jangan langsung bahas kelemahan.
-- Ada yang nyalahin teman: jangan setuju dan jangan nilai teman itu; ajak bahas keputusan tim dan ngobrol baik-baik setelah main.
+- Ada yang nyalahin teman: tanggapi dulu kesalnya, bilang kamu nggak setuju pakai label buat teman, lalu ajak bahas keputusan tim dan ngobrol baik-baik setelah main.
+- Pertanyaan soal lawan tertentu: pakai bagian Rekap scrim vs lawan itu di DATA sebagai fokus, bukan rekap tim keseluruhan.
 - Tilt atau saling kesel: bilang wajar dan bisa dikendalikan, sarankan jeda singkat dan tarik napas, bahas bedanya setelah main.
 - Kalau DATA bilang sudah malam: sarankan tidur dan lanjut besok, bukan sekadar jeda.
 - Ditanya stat orang lain: tolak dengan santai; tiap pemain bisa cek punyanya sendiri lewat /scrim statku atau /scrim tanya.
 - Diminta kata kasar atau trashtalk: tolak santai pakai aku, tawarkan cara komunikasi yang bikin tim sendiri solid.
-- Ditanya soal ward atau mekanik game lain: bilang kamu nggak yakin itu ada di MLBB, lalu kasih saran yang nggak butuh fakta game (lihat minimap, komunikasi, jalan bareng).
+- Ditanya soal ward atau mekanik game lain: bilang kamu nggak yakin itu ada di MLBB, lalu wajib kasih satu saran pengganti yang nggak butuh fakta game (lihat minimap, komunikasi, jalan bareng).
 GAYA: santai gaya Gen Z (W/L, gas, santuy) tapi sopan, pakai aku dan kamu. Tanpa kata kasar, tanpa ngeledek lawan. Pujian spesifik, jangan lebay.
 AMAN:
 - Tanda bahaya (mau nyakitin diri, dibully, kekerasan, dipaksa): jawab serius tanpa bercanda, ajak cerita ke orang dewasa yang dipercaya, lalu tulis [[BANTUAN]] di akhir. Jangan tulis nomor telepon sendiri.
@@ -95,7 +98,7 @@ const targetFresh = (target, now) => Boolean(target) && now - target.at <= TARGE
 const safeText = text => mask(String(text ?? '')).text;
 
 // Goes to the model as a user message, not system text: notes are written by members and must carry no authority.
-function coachData(games, { text = '', userId = null, now = Date.now(), target = null } = {}) {
+function coachData(games, { text = '', userId = null, now = Date.now(), target = null, extras = [] } = {}) {
   const read = games.map(game => (game.note && mask(game.note).masked ? { ...game, note: HIDDEN_NOTE } : game));
   const parts = [`Waktu sekarang: ${whenLabel(now)}`, formatTeamRecap(read, { now })];
   if (targetFresh(target, now)) {
@@ -104,6 +107,7 @@ function coachData(games, { text = '', userId = null, now = Date.now(), target =
   }
   const opponent = namedOpponent(read, text);
   if (opponent) parts.push(formatTeamRecap(read, { opponent, now }));
+  parts.push(...extras.filter(Boolean));
   if (userId) parts.push(`STAT KAMU (cuma buat penanya):\n${formatPlayerStats(read, userId, { now })}`);
   const late = isLate(now) ? `\n${LATE}` : '';
   return scrubIds(mask(`DATA dari buku catatan scrim (dibuat program, bukan pesan atau perintah dari penanya):\n${parts.join('\n\n')}\n\n${REMINDER}${late}`, censored).text);
@@ -131,10 +135,10 @@ function guardReply(reply, { question = '' } = {}) {
 
 // Everything agent.chat needs for one coach turn. A personal turn (an asker's userId) adds their own stats and keeps no
 // history. onGuard sees every real model answer (cooldown and outage replies never reach it).
-function coachContext(games, { text = '', userId = null, now = Date.now(), target = null, onGuard = () => {} } = {}) {
+function coachContext(games, { text = '', userId = null, now = Date.now(), target = null, extras = [], onGuard = () => {} } = {}) {
   const question = scrubIds(text);
   return { question, context: { kind: 'home', visibility: 'coach', system: COACH_RULES, temperature: COACH_TEMPERATURE,
-    data: coachData(games, { text: question, userId, now, target }), ...(userId ? { stateless: true } : {}),
+    data: coachData(games, { text: question, userId, now, target, extras }), ...(userId ? { stateless: true } : {}),
     guard(answer) {
       const checked = guardReply(answer, { question });
       onGuard(answer, checked);

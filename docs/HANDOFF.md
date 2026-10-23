@@ -2,6 +2,15 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.79.0 (provisional) coach pro drafts and hero dictionary on branch coach-v2 (not deployed) - 2026-10-24
+
+- Two more of Henry's four coach paths. New src/scrim/pro-meta.js (META PRO card from esports-state.json pages, read
+  through a second createEsportsStore() in index.js; esports code untouched) and src/scrim/mlbb-dictionary.js with
+  src/scrim/mlbb-heroes.json (Liquipedia snapshot 2026-10-24, 133 heroes; rebuild with scripts/build-mlbb-heroes.js).
+- coachData takes `extras` (knowledge cards); coachReply adds the Liquipedia credit when a card was used.
+- Finding: Obsidia is a real hero (Marksman, Gold), so the 2026-10-23 textbook exam wrongly counted it as invented.
+- QA: Node 22 full suite from PowerShell 879 total, 878 pass, 1 worktree-only skip.
+
 ## Hengs Discord v1.78.0 (provisional) coach target and debrief on branch coach-v2 (not deployed) - 2026-10-24
 
 - Henry asked the main session for a smarter coach ("biar makin pintar dan mantep"); the coach side session asked him what

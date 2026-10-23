@@ -140,6 +140,11 @@ diumumkan di hasil-scrim tanpa ping; `/scrim target` tanpa isi menampilkannya. C
 game ketiga yang dicatat di hari yang sama (bukan jam 22.00 sampai 05.00 WIB), Hengs mengirim satu ajakan debrief: satu
 hal yang jalan, satu keputusan yang mau dibenerin, dan target berikutnya. Data: `data/scrim-coach.json`.
 
+Pengetahuan coach dari Liquipedia (CC-BY-SA, dikredit di bawah jawaban): pertanyaan soal meta, pick, ban, atau draft
+menambah statistik draft pro dari halaman MPL yang sudah dibaca Hengs Analis (selalu dengan jumlah game), dan pertanyaan
+yang menyebut hero menambah role, lane, dan spesialis hero itu dari `src/scrim/mlbb-heroes.json` (dibangun ulang dengan
+`node scripts/build-mlbb-heroes.js` kalau ada hero baru).
+
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama
 `data/scrim-results.json` (per seri, v1.64) tidak dibaca lagi.

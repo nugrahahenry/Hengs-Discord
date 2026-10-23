@@ -36,7 +36,7 @@ function options(over = {}) {
 }
 
 function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, everyoneCanView = false,
-  store, games = [], agent = null, coachStore = null, clock = () => NOW } = {}) {
+  store, games = [], agent = null, coachStore = null, proPages = null, clock = () => NOW } = {}) {
   const role = { id: '700000000000000001', name: 'Hengs Family' };
   const sends = []; const records = []; const downloads = []; const dms = []; const removals = []; const cardDeletes = [];
   const team = new Set(teamMember ? [U, T2] : [T2]);
@@ -63,7 +63,7 @@ function rigService({ teamMember = true, roleExists = true, channelExists = true
       saved.splice(at, 1);
       return true;
     } },
-  agent, coachStore, logger: { error() {} }, now: clock,
+  agent, coachStore, proPages, logger: { error() {} }, now: clock,
   fetchImpl: async (url, init) => { downloads.push([url, init]); return { ok: true,
     headers: { get: key => ({ 'content-type': 'image/png', 'content-length': '4' })[key] },
     arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; } });
@@ -866,6 +866,35 @@ test('the coach reads the team target into its data card', async () => {
   assert.match(agent.calls[0].context.data, /TARGET TIM: "call info pendek"/);
 });
 
+test('a meta question brings the pro draft card into the coach data and the Liquipedia credit under the reply', async () => {
+  const draft = { winner: 1, picks: [['Fanny', 'Lolita', 'Valentina', 'Claude', 'Chou'], ['Ling', 'Tigreal', 'Pharsa', 'Beatrix', 'Paquito']],
+    bans: [['Joy'], ['Lancelot']] };
+  const proPages = () => ({ 'MPL/Indonesia/Season 18/Playoffs': { revid: 1, matches: [{ games: [draft] }] } });
+  const agent = coachAgent('Fanny lagi sering dipick di pro, tapi cek dulu cocok nggak buat tim kita.');
+  const r = rigService({ agent, proPages });
+  const msg = r.message();
+  await r.service.coach(msg, 'hero meta pro sekarang apa?');
+  assert.match(agent.calls[0].context.data, /META PRO \(data draft Liquipedia: MPL ID S18 Playoffs; 1 game dengan draft lengkap\)/);
+  assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0)'));
+  const plain = r.message();
+  await r.service.coach(plain, 'kita kalah mulu, latihan apa?');
+  assert.doesNotMatch(agent.calls[1].context.data, /META PRO/);
+  assert.doesNotMatch(plain.replies[0].content, /Liquipedia/);
+  const broken = rigService({ agent: coachAgent(), proPages: () => { throw new Error('ESPORTS_READ_FAILED'); } });
+  const still = broken.message();
+  assert.equal(await broken.service.coach(still, 'meta apa?'), true);
+  assert.doesNotMatch(still.replies[0].content, /Liquipedia/);
+});
+
+test('a question naming a hero brings the Liquipedia hero facts into the coach data, with the credit', async () => {
+  const agent = coachAgent('Fanny itu Assassin di Jungle, cocok buat yang suka chase.');
+  const r = rigService({ agent });
+  const msg = r.message();
+  await r.service.coach(msg, 'Fanny cocoknya buat siapa?');
+  assert.match(agent.calls[0].context.data, /KAMUS MLBB \(Liquipedia, dicek \d{4}-\d{2}-\d{2}\)\nFanny \(Blade Dancer\): role Assassin, lane Jungle/);
+  assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0)'));
+});
+
 test('/scrim target is registered with one optional text and routed to the service', async () => {
   const json = scrimCommand.data.toJSON();
   const target = json.options.find(option => option.name === 'target');
@@ -878,7 +907,8 @@ test('/scrim target is registered with one optional text and routed to the servi
 
 test('runtime hands mentions in hasil-scrim to the coach before any other prompt route', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
-  assert.ok(source.includes('createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore() })'));
+  assert.ok(source.includes('createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore(),\n  proPages: esportsPages.pages })')
+    || source.includes('createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore(),\r\n  proPages: esportsPages.pages })'));
   const coachAt = source.indexOf("if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;");
   assert.ok(coachAt > source.indexOf('if (text.length > MAX_PROMPT_LENGTH)'));
   assert.ok(coachAt < source.indexOf('const promptRoute = resolvePrompt({'));

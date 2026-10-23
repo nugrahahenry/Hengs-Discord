@@ -14,6 +14,8 @@ const { MAX_LINEUP } = require('./store');
 const { REASON_LABEL, cutUnits, opponentKey, wibDay, dateLabel, whenLabel, todayScore, formatTeamRecap, formatPlayerStats } = require('./stats');
 const { COACH_DAILY_LIMIT, coachContext, createCoachQuota, safeText, debriefText, targetFresh, isLate } = require('./coach');
 const { MAX_TARGET } = require('./coach-store');
+const { LIQUIPEDIA_CREDIT, proMetaCard } = require('./pro-meta');
+const { heroCard } = require('./mlbb-dictionary');
 
 const PREFIX = 'hengs-scrim:';
 const ROLE_NAME = 'Hengs Family';
@@ -132,7 +134,8 @@ const answer = (i, content) => (i.deferred || i.replied
   ? i.editReply({ content, embeds: [], components: [], ...quiet })
   : i.reply({ content, flags: MessageFlags.Ephemeral, ...quiet }));
 
-function createScrimResults({ store, agent = null, coachStore = null, fetchImpl = fetch, now = Date.now, logger = console } = {}) {
+function createScrimResults({ store, agent = null, coachStore = null, proPages = null, fetchImpl = fetch, now = Date.now,
+  logger = console } = {}) {
   const drafts = new Map();
   const quota = createCoachQuota({ now });
   const removals = new Map(); // pending /scrim hapus confirmations, same key and TTL as drafts
@@ -238,17 +241,25 @@ function createScrimResults({ store, agent = null, coachStore = null, fetchImpl 
     } catch { logger.error('[scrim] DEBRIEF_FAILED'); }
   }
 
+  // Pro draft numbers only for meta or pro-hero questions; an unreadable esports file just leaves them out.
+  function proMeta(text) {
+    try { return proPages ? proMetaCard(proPages(), { text }) : ''; } catch { logger.error('[scrim] PRO_META_FAILED'); return ''; }
+  }
+
   async function coachReply({ guildId, userId, text, personal = false }) {
     let answered = false;
+    const extras = [proMeta(text), heroCard(text)].filter(Boolean);
     const { question, context } = coachContext(store.list(guildId), { text, userId: personal ? userId : null, now: now(),
-      target: teamTarget(guildId),
+      target: teamTarget(guildId), extras,
       onGuard(answer, checked) {
         answered = true;
         if (checked.masked) logger.error('[scrim] COACH_REPLY_MASKED');
       } });
     const reply = await agent.chat(question, agent.buildConversationKey(guildId, userId), context);
-    if (answered) quota.spend(userId);
-    return reply;
+    if (!answered) return reply;
+    quota.spend(userId);
+    // Liquipedia is CC-BY-SA: a reply built on its pro drafts or hero facts carries the credit.
+    return extras.length ? `${cutUnits(reply, 2000 - LIQUIPEDIA_CREDIT.length - 1)}\n${LIQUIPEDIA_CREDIT}` : reply;
   }
 
   async function download(image) {

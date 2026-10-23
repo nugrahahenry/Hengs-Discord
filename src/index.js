@@ -58,6 +58,7 @@ const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createEsportsService } = require('./esports/service');
+const { createEsportsStore } = require('./esports/store');
 const { createNewsEditor } = require('./news/editor');
 const { createMemeMaker } = require('./news/memes');
 const { createMemeTaste, memberReactions } = require('./news/meme-taste');
@@ -126,7 +127,10 @@ const caster = createCaster({
   apiKey: process.env.GEMINI_API_KEY,
   dailyLimit: process.env.CASTER_DAILY_LIMIT,
 });
-const scrimResults = createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore() });
+// The coach reads the pro drafts Hengs Analis already keeps (read-only; esportsService writes them).
+const esportsPages = createEsportsStore();
+const scrimResults = createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore(),
+  proPages: esportsPages.pages });
 const PUBLIC_COMMANDS = new Set(['hengs', 'setup']);
 
 // ── Client setup ────────────────────────────────────────────────────────────
