@@ -2,6 +2,22 @@
 
 Updated: 2026-10-23
 
+## Hengs Discord v1.72.0 Gen Z coach voice on branch coach-gaul (not deployed) - 2026-10-23
+
+- Henry: "gw mau coach ini coach gaul dah, soalnya kan yang pakai juga bakal bocah bocah, jadi enak kalau bahasanya
+  gen z dan gen alpha". From three previews he picked Gen Z santai (not full Gen Alpha, not calm data plus one
+  comment) and asked for every coach text. Voice guide (ignored spec): docs/superpowers/specs/2026-10-20-hengs-coach-design.md,
+  section "Suara coach".
+- Branch coach-gaul is stacked on honest-prompt (v1.71.1), so main can fast-forward through both in order.
+- Changed: src/scrim/stats.js (W/L lines, hype phrase only on the total from 5 games, loss reason and footer copy),
+  src/scrim/service.js (W/L dropdown names with the same stored values, card, preview, replies, errors),
+  src/commands/scrim.js (descriptions), README coach section, tests. Help and /hengs privacy unchanged.
+- Kid-safe guard: tests fail on swearing (anjay included), blaming words (beban, noob, feeder) or mocking opponents.
+- QA: Node 22 full suite 783 total, 782 pass, 1 worktree-only skip.
+- Deploy needs Henry's approval: fast-forward main to coach-gaul (includes v1.71.1), helpers from deploy-v1710 with
+  version 1.72.0, then register commands once (choice names and descriptions changed; still 14 home commands).
+- Commit subject: feat(scrim): Hengs Discord v1.72.0 - Gen Z coach voice for the scrim notebook
+
 ## Hengs Discord v1.71.1 honest game facts on branch honest-prompt (not deployed) - 2026-10-23
 
 - Henry asked to test Hengs' "text book" knowledge, then: "tambah aturan jujur ke system prompt Hengs ..., jalankan ulang

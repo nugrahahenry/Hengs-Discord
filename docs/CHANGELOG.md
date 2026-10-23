@@ -5,6 +5,25 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.72.0] - 2026-10-23
+
+### Changed
+
+- Coach voice is now Gen Z santai, for the kids who use it (Henry: "coach gaul ... yang pakai juga bakal bocah
+  bocah"). Every coach text changed: the `/scrim hasil` dropdown (W, or L with the reason), preview and card
+  ("MLBB vs X: W", "Skor hari ini vs mereka", "Dicatat sama"), recap and statku DM ("W 3 dari 5 game (60%), lumayan
+  gacor 🔥", form "W W L W L", "datanya masih dikit, belum bisa dinilai"), error and permission replies, and the
+  `/scrim` descriptions.
+- The hype phrase sits only on the total line and only from 5 games; a losing run gets "lagi seret, santuy, gas
+  latihan 💪". No swearing (anjay included), no blaming players, no mocking opponents; a test guards the words.
+- Number rules unchanged (n on every line, percent from 5 games, "paling sering" from 5 losses). Stored values
+  (`menang`, `kalah-*`) are unchanged, so older games keep reading. Help and `/hengs privacy` are unchanged.
+
+### Verification
+
+- Node 22 full suite in the worktree: 783 tests, 782 pass, 1 worktree-only skip. Not deployed; deploy needs command
+  re-registration because choice names and descriptions changed (still 14 home commands).
+
 ## [1.71.1] - 2026-10-23
 
 ### Fixed

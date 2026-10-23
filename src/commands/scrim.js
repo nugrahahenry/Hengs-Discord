@@ -21,21 +21,21 @@ module.exports = {
     )
     .addSubcommand(sub => sub
       .setName('hasil')
-      .setDescription('Catat satu game scrim MLBB ke hasil-scrim (khusus Hengs Family)')
+      .setDescription('Catat 1 game scrim MLBB ke hasil-scrim (khusus Hengs Family)')
       .addStringOption(opt => opt.setName('lawan').setDescription('Nama tim lawan').setRequired(true).setMaxLength(60).setAutocomplete(true))
-      .addStringOption(opt => opt.setName('hasil').setDescription('Menang, atau kalah plus alasan utamanya').setRequired(true)
+      .addStringOption(opt => opt.setName('hasil').setDescription('W, atau L plus alasan utamanya').setRequired(true)
         .addChoices(...RESULT_CHOICES))
-      .addAttachmentOption(opt => opt.setName('ss').setDescription('Opsional: screenshot hasil game (PNG/JPG/WebP, maks 8 MB)').setRequired(false))
-      .addStringOption(opt => opt.setName('catatan').setDescription('Opsional: hal yang perlu dievaluasi, atau link video + menitnya').setRequired(false).setMaxLength(300))
+      .addAttachmentOption(opt => opt.setName('ss').setDescription('Opsional: SS hasil game (PNG/JPG/WebP, maks 8 MB)').setRequired(false))
+      .addStringOption(opt => opt.setName('catatan').setDescription('Opsional: yang perlu dievaluasi, atau link video + menitnya').setRequired(false).setMaxLength(300))
     )
     .addSubcommand(sub => sub
       .setName('rekap')
       .setDescription('Rekap scrim tim, cuma kamu yang lihat (khusus Hengs Family)')
-      .addStringOption(opt => opt.setName('lawan').setDescription('Opsional: rekap vs satu lawan').setRequired(false).setMaxLength(60).setAutocomplete(true))
+      .addStringOption(opt => opt.setName('lawan').setDescription('Opsional: rekap vs satu tim').setRequired(false).setMaxLength(60).setAutocomplete(true))
     )
     .addSubcommand(sub => sub
       .setName('statku')
-      .setDescription('Statistik scrim kamu, dikirim lewat DM (khusus Hengs Family)')
+      .setDescription('Stat scrim kamu, dikirim lewat DM (khusus Hengs Family)')
     ),
 
   async autocomplete(interaction, { scrimResults }) {

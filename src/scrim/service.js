@@ -22,29 +22,30 @@ const IMAGE_TYPES = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['imag
 const IMAGE_HOSTS = new Set(['cdn.discordapp.com', 'media.discordapp.net']);
 const BOT_PERMISSIONS = [P.ViewChannel, P.ReadMessageHistory, P.SendMessages, P.AttachFiles, P.EmbedLinks];
 // One dropdown carries the result and, for a loss, the team's main reason: no extra step and no loss without a reason.
+// Coach voice is Gen Z santai (W/L); the stored values stay the same, so older games keep reading.
 const RESULT_CHOICES = Object.freeze([
-  { name: 'Menang', value: 'menang' },
-  { name: 'Kalah: early game (lane, gank awal)', value: 'kalah-early' },
-  { name: 'Kalah: objective (turtle, lord, turret)', value: 'kalah-objective' },
-  { name: 'Kalah: teamfight (war, rotasi)', value: 'kalah-teamfight' },
-  { name: 'Kalah: draft (komposisi hero)', value: 'kalah-draft' },
-  { name: 'Kalah: lainnya (DC, lag, dll.)', value: 'kalah-lainnya' },
+  { name: 'W (menang)', value: 'menang' },
+  { name: 'L: early game (lane, gank awal)', value: 'kalah-early' },
+  { name: 'L: objective (turtle, lord, turret)', value: 'kalah-objective' },
+  { name: 'L: teamfight (war, rotasi)', value: 'kalah-teamfight' },
+  { name: 'L: draft (komposisi hero)', value: 'kalah-draft' },
+  { name: 'L: lainnya (DC, lag, dll.)', value: 'kalah-lainnya' },
 ]);
 const RESULTS = new Map(RESULT_CHOICES.map(({ value }) => [value, value === 'menang' ? ['menang', null] : ['kalah', value.slice(6)]]));
 const MESSAGES = Object.freeze({
-  SCRIM_ACCESS: 'Fitur scrim cuma tersedia di server utama Hengs.',
-  SCRIM_ROLE_MISSING: 'Role Hengs Family belum ada. Minta admin jalankan /admin setup lalu pilih Scrim tim.',
-  SCRIM_CHANNEL_MISSING: 'Channel hasil-scrim belum ada. Minta admin jalankan /admin setup lalu pilih Scrim tim.',
-  SCRIM_ROLE_CONFLICT: 'Ada lebih dari satu role bernama Hengs Family. Rapikan dulu supaya Hengs tidak menebak.',
-  SCRIM_CHANNEL_CONFLICT: 'Ada lebih dari satu channel hasil-scrim, atau namanya dipakai jenis channel lain. Rapikan dulu.',
-  SCRIM_CHANNEL_PUBLIC: 'Channel hasil-scrim masih bisa dilihat semua member. Minta admin jalankan /admin setup lalu pilih Scrim tim supaya privat lagi.',
-  SCRIM_NOT_TEAM: 'Fitur scrim khusus anggota role Hengs Family. Minta admin menambahkan role-nya.',
-  SCRIM_FIELDS_INVALID: 'Lawan wajib diisi dan hasil dipilih dari daftar.',
+  SCRIM_ACCESS: 'Fitur scrim cuma ada di server utama Hengs.',
+  SCRIM_ROLE_MISSING: 'Role Hengs Family belum ada. Minta admin jalanin /admin setup terus pilih Scrim tim.',
+  SCRIM_CHANNEL_MISSING: 'Channel hasil-scrim belum ada. Minta admin jalanin /admin setup terus pilih Scrim tim.',
+  SCRIM_ROLE_CONFLICT: 'Ada lebih dari satu role Hengs Family. Rapihin dulu biar Hengs nggak salah tebak.',
+  SCRIM_CHANNEL_CONFLICT: 'Ada lebih dari satu channel hasil-scrim, atau namanya kepake jenis channel lain. Rapihin dulu ya.',
+  SCRIM_CHANNEL_PUBLIC: 'Channel hasil-scrim masih bisa dilihat semua member. Minta admin jalanin /admin setup terus pilih Scrim tim biar privat lagi.',
+  SCRIM_NOT_TEAM: 'Fitur scrim khusus anggota role Hengs Family. Minta admin kasih role-nya dulu ya.',
+  SCRIM_FIELDS_INVALID: 'Lawan wajib diisi dan hasilnya dipilih dari daftar ya.',
   SCRIM_IMAGE_INVALID: 'SS harus gambar PNG, JPG atau WebP, maksimal 8 MB.',
-  SCRIM_BOT_PERMISSIONS: 'Hengs perlu izin lihat, baca riwayat, kirim, lampirkan file dan embed di hasil-scrim.',
-  SCRIM_STALE: 'Preview sudah kedaluwarsa atau berubah. Jalankan /scrim hasil lagi; belum ada yang dikirim.',
-  SCRIM_BUSY: 'Masih ada kiriman yang diproses. Tunggu sebentar ya.',
-  SCRIM_LIMIT: 'Lagi banyak preview yang terbuka. Coba lagi sebentar lagi.',
+  SCRIM_BOT_PERMISSIONS: 'Hengs butuh izin lihat, baca riwayat, kirim, lampirkan file dan embed di hasil-scrim.',
+  SCRIM_STALE: 'Preview-nya udah basi atau berubah. Jalanin /scrim hasil lagi ya, belum ada yang kekirim.',
+  SCRIM_BUSY: 'Kiriman sebelumnya masih diproses, sabar bentar ya.',
+  SCRIM_LIMIT: 'Lagi banyak preview yang kebuka. Coba lagi bentar lagi.',
 });
 const quiet = { allowedMentions: { parse: [] } };
 const normalize = name => String(name).toLowerCase().replace(/^[^a-z0-9]+/, '');
@@ -90,10 +91,10 @@ function readSubmission(options) {
 }
 
 function card(draft, userId, score) {
-  const result = draft.outcome === 'menang' ? 'Menang' : `Kalah (${REASON_LABEL[draft.reason]})`;
-  return [`🎮 **MLBB vs ${shown(draft.opponent)}: ${result}**`, `Skor hari ini vs lawan ini: ${score.won}-${score.lost}`,
+  const result = draft.outcome === 'menang' ? 'W' : `L (${REASON_LABEL[draft.reason]})`;
+  return [`🎮 **MLBB vs ${shown(draft.opponent)}: ${result}**`, `Skor hari ini vs mereka: ${score.won}-${score.lost}`,
     `Lineup: ${draft.lineup.length ? draft.lineup.map(id => `<@${id}>`).join(' ') : 'belum dipilih'}`,
-    `Dicatat oleh <@${userId}>`, draft.note ? `Catatan: ${shown(draft.note)}` : null].filter(Boolean).join('\n');
+    `Dicatat sama <@${userId}>`, draft.note ? `Catatan: ${shown(draft.note)}` : null].filter(Boolean).join('\n');
 }
 
 function previewPayload(draft, userId, notice = null) {
@@ -101,7 +102,7 @@ function previewPayload(draft, userId, notice = null) {
     .setPlaceholder('Lineup game ini (maks 5, anggota Hengs Family)').setMinValues(0).setMaxValues(MAX_LINEUP);
   if (draft.lineup.length) lineup.setDefaultUsers(draft.lineup);
   return { content: [card(draft, userId, draft.score), `Tujuan: <#${draft.target}>`, notice,
-    '-# Cuma kamu yang lihat. Cek lineup, lalu Kirim. Hangus 10 menit. Belum dikirim.'].filter(Boolean).join('\n'),
+    '-# Cuma kamu yang lihat. Cek lineup, terus Kirim. Hangus 10 menit, belum kekirim apa-apa.'].filter(Boolean).join('\n'),
   embeds: draft.image ? [{ image: { url: draft.image.url } }] : [],
   components: [new ActionRowBuilder().addComponents(lineup), new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`${PREFIX}${draft.id}:send`).setLabel('Kirim ke hasil-scrim').setStyle(ButtonStyle.Success),
@@ -181,7 +182,7 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
       } catch (error) {
         logger.error('[scrim] PREVIEW_FAILED');
         drafts.delete(key);
-        await answer(i, MESSAGES[error.message] || 'Preview hasil scrim belum bisa dibuat. Belum ada yang dikirim.');
+        await answer(i, MESSAGES[error.message] || 'Preview belum bisa dibuat, coba lagi bentar. Belum ada yang kekirim.');
       }
     },
 
@@ -206,7 +207,7 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
         const picked = [...new Set(i.values)];
         draft.lineup = picked.filter(id => hasRole(i.members?.get(id), draft.roleId)).slice(0, MAX_LINEUP);
         const ignored = picked.length - draft.lineup.length;
-        try { await i.update(previewPayload(draft, i.user.id, ignored ? `${ignored} pilihan diabaikan karena bukan Hengs Family.` : null)); }
+        try { await i.update(previewPayload(draft, i.user.id, ignored ? `${ignored} pilihan di-skip karena bukan Hengs Family.` : null)); }
         catch { logger.error('[scrim] LINEUP_FAILED'); }
         return true;
       }
@@ -217,7 +218,7 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
       try {
         await i.deferUpdate();
         if (match[2] === 'cancel') {
-          await i.editReply({ content: 'Dibatalkan. Tidak ada yang dikirim.', embeds: [], components: [], ...quiet });
+          await i.editReply({ content: 'Oke, dibatalin. Nggak ada yang kekirim.', embeds: [], components: [], ...quiet });
           return true;
         }
         const { channel } = await destination(i);
@@ -236,14 +237,14 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
             outcome: draft.outcome, reason: draft.reason, lineup: draft.lineup, note: draft.note });
         } catch {
           logger.error('[scrim] RECORD_FAILED');
-          await i.editReply({ content: `Hasil game terkirim ke <#${channel.id}>, tapi belum tersimpan untuk rekap. Kabari admin; tidak dicoba ulang otomatis.`, embeds: [], components: [], ...quiet });
+          await i.editReply({ content: `Hasil game udah kekirim ke <#${channel.id}>, tapi belum kesimpan buat rekap. Kabarin admin ya, Hengs nggak nyoba ulang otomatis.`, embeds: [], components: [], ...quiet });
           return true;
         }
-        await i.editReply({ content: `Hasil game terkirim ke <#${channel.id}> dan tercatat untuk rekap tim.`, embeds: [], components: [], ...quiet });
+        await i.editReply({ content: `Beres, hasil game udah masuk <#${channel.id}> dan kecatat buat rekap tim.`, embeds: [], components: [], ...quiet });
       } catch (error) {
         logger.error('[scrim] SEND_FAILED');
-        await answer(i, dispatched ? 'Hasil kiriman belum bisa dipastikan. Cek hasil-scrim dulu; Hengs tidak mencoba ulang otomatis.'
-          : MESSAGES[error.message] || 'Hasil scrim belum terkirim. Cek channel hasil-scrim; Hengs tidak mencoba ulang otomatis.');
+        await answer(i, dispatched ? 'Hasil kiriman belum bisa dipastiin. Cek hasil-scrim dulu ya, Hengs nggak nyoba ulang otomatis.'
+          : MESSAGES[error.message] || 'Hasil scrim belum kekirim. Cek channel hasil-scrim dulu ya, Hengs nggak nyoba ulang otomatis.');
       } finally { busy.delete(key); }
       return true;
     },
@@ -257,7 +258,7 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
         await i.editReply({ content: formatTeamRecap(store.list(i.guildId), { opponent, now: now() }), ...quiet });
       } catch (error) {
         logger.error('[scrim] RECAP_FAILED');
-        await answer(i, MESSAGES[error.message] || 'Rekap scrim belum bisa dibuat. Coba lagi nanti.');
+        await answer(i, MESSAGES[error.message] || 'Rekap scrim belum bisa dibuat. Coba lagi nanti ya.');
       }
     },
 
@@ -271,13 +272,13 @@ function createScrimResults({ store, fetchImpl = fetch, now = Date.now, logger =
         content = formatPlayerStats(store.list(i.guildId), i.user.id, { now: now() });
       } catch (error) {
         logger.error('[scrim] STATS_FAILED');
-        return answer(i, MESSAGES[error.message] || 'Statistik scrim belum bisa dibuat. Coba lagi nanti.');
+        return answer(i, MESSAGES[error.message] || 'Stat scrim belum bisa dibuat. Coba lagi nanti ya.');
       }
       try { await i.user.send({ content, ...quiet }); } catch {
         logger.error('[scrim] DM_FAILED');
-        return answer(i, 'Hengs belum bisa DM kamu. Izinkan DM dari member server ini di pengaturan privasi server, lalu jalankan /scrim statku lagi.');
+        return answer(i, 'Hengs belum bisa DM kamu. Izinin DM dari member server ini di pengaturan privasi server, terus jalanin /scrim statku lagi.');
       }
-      return answer(i, 'Statistik scrim kamu sudah dikirim lewat DM. Cuma kamu yang bisa lihat.');
+      return answer(i, 'Stat scrim kamu udah dikirim lewat DM. Cuma kamu yang bisa lihat.');
     },
 
     // Opponent names are team data too: only Hengs Family members get suggestions. The cached role keeps this
