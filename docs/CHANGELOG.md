@@ -23,10 +23,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Coach rules for the three weak spots of the last exam: a ward question must get one alternative tip, a blamed teammate
   gets an answer ("nggak setuju pakai label buat teman"), and an opponent question uses that opponent's recap.
+- The cards now carry their own caveats, because exam v7 showed the model dropping them: the target line says the
+  notebook does not track whether the target worked, the pro card ends with "pola tim pro dari N game, belum tentu cocok"
+  (and "sampelnya kecil" under 20 games), hero specialties read "keahlian (bukan nama skill)", the lane list says it has
+  no lane mechanics, a team under 5 games gets a small-sample line, and the reminder asks for one focus set with
+  `/scrim target`. `agent.chat` takes an optional `maxTokens` (200 to 1500); coach turns use 900 so answers are not cut.
 
 ### Verification
 
-- Node 22 full suite in the worktree (PowerShell): 879 tests, 878 pass, 1 worktree-only skip. Not deployed.
+- Coach exam (local, `.cloud/evals/coach-2026-10-23`): v7 with 26 scenarios scored the 20 old ones 36/40 (v4: 33/40)
+  but the 6 new ones (target, pro meta, hero dictionary) 3/12, with an invented target result and invented lane
+  mechanics. After the card fixes the 10 weakest re-ran at 15/20 (they had 7/20), with nothing invented.
+- Node 22 full suite in the worktree (PowerShell): 881 tests, 880 pass, 1 worktree-only skip. Not deployed.
 
 ## [1.78.0] - 2026-10-24 (provisional, branch coach-v2)
 

@@ -11,6 +11,11 @@ Updated: 2026-10-24
 - The dictionary agrees with the 2026-10-23 textbook exam key: Obsidia is a real new hero (Marksman, Gold Lane), which
   the model had answered as a mid-lane Mage; with the dictionary the coach now gets it from data.
 - QA: Node 22 full suite from PowerShell 879 total, 878 pass, 1 worktree-only skip.
+- Later commits: 05a7454 (coachContext picks the knowledge cards and the credit, so bot and exam share it), a7b8a13
+  (cards carry their own caveats after exam v7; agent.chat maxTokens, coach uses 900). Exam v7: old 20 scenarios 36/40,
+  new 6 only 3/12; after a7b8a13 the 10 weakest re-ran at 15/20 with nothing invented. Full suite 881, 880 pass.
+- Still open: the screenshot path waits for Henry's 10 end-of-match screenshots in discord-bot/.cloud/evals/ss-test
+  (harness .cloud/evals/ss-vision-2026-10-24/read.cjs; qwen/qwen3.8-27b is on the Discord key).
 
 ## Hengs Discord v1.78.0 (provisional) coach target and debrief on branch coach-v2 (not deployed) - 2026-10-24
 
