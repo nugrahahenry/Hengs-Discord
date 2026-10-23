@@ -14,6 +14,9 @@ Updated: 2026-10-24
 - Later commits: 05a7454 (coachContext picks the knowledge cards and the credit, so bot and exam share it), a7b8a13
   (cards carry their own caveats after exam v7; agent.chat maxTokens, coach uses 900). Exam v7: old 20 scenarios 36/40,
   new 6 only 3/12; after a7b8a13 the 10 weakest re-ran at 15/20 with nothing invented. Full suite 881, 880 pass.
+- Henry then asked to tidy the remaining weak spots before the screenshots ("SS nanti dulu"): f80b491 (no-target line,
+  opponent hint, pro caveat next to the credit) and dbbd500 (one-focus push only on training questions). Exam on 12
+  scenarios: v9 18/24, v10 21/24. Full suite 884, 883 pass.
 - Still open: the screenshot path waits for Henry's 10 end-of-match screenshots in discord-bot/.cloud/evals/ss-test
   (harness .cloud/evals/ss-vision-2026-10-24/read.cjs; qwen/qwen3.8-27b is on the Discord key).
 

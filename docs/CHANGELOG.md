@@ -28,13 +28,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   (and "sampelnya kecil" under 20 games), hero specialties read "keahlian (bukan nama skill)", the lane list says it has
   no lane mechanics, a team under 5 games gets a small-sample line, and the reminder asks for one focus set with
   `/scrim target`. `agent.chat` takes an optional `maxTokens` (200 to 1500); coach turns use 900 so answers are not cut.
+- After exam v8 and v9 (Henry: "Rapihin sisa kelemahan coach yang lain dulu"): the card says "TARGET TIM: belum ada" when
+  no target is set, an opponent question gets a line pointing at that opponent's recap, the one-focus push to
+  `/scrim target` comes only on questions about training, a focus or setting a target (on every question it turned into
+  advice to track results and pro heroes with it), and code adds "Pola draft pro belum tentu cocok buat tim sendiri"
+  next to the Liquipedia credit whenever the pro card was used.
 
 ### Verification
 
 - Coach exam (local, `.cloud/evals/coach-2026-10-23`): v7 with 26 scenarios scored the 20 old ones 36/40 (v4: 33/40)
   but the 6 new ones (target, pro meta, hero dictionary) 3/12, with an invented target result and invented lane
-  mechanics. After the card fixes the 10 weakest re-ran at 15/20 (they had 7/20), with nothing invented.
-- Node 22 full suite in the worktree (PowerShell): 881 tests, 880 pass, 1 worktree-only skip. Not deployed.
+  mechanics. After the card fixes the 10 weakest re-ran at 15/20 (they had 7/20), with nothing invented. Twelve
+  scenarios (weak ones plus controls) went 18/24 (v9) and then 21/24 (v10) after the last two fixes. Still variable
+  between runs: the gold vs EXP lane question sometimes gets invented lane mechanics, and the ward question sometimes
+  gets no alternative tip.
+- Node 22 full suite in the worktree (PowerShell): 884 tests, 883 pass, 1 worktree-only skip. Not deployed.
 
 ## [1.78.0] - 2026-10-24 (provisional, branch coach-v2)
 
