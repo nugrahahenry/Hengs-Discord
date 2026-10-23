@@ -379,7 +379,8 @@ test('actual admin command and component route offer the optional question witho
   const p = (await click(r, q, 'yes', {}, admin)).edits.at(-1);
   await click(r, p, 'news', {}, admin);
   assert.equal(r.created.length, 1);
-  const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
+  // Release archives come out of git archive with CRLF on Windows checkouts; compare with LF.
+  const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8').replace(/\r\n/g, '\n');
   assert(source.includes("startsWith('hengs-admin-setup:')"));
   assert(source.includes("client.commands.get('admin').handleSetupComponent(interaction, {\n        guildAccess, postAnalystGuide: channel => esportsService.ensureGuide(channel) })"));
 });
