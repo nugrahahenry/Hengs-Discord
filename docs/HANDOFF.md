@@ -8,7 +8,8 @@ Updated: 2026-10-24
   through a second createEsportsStore() in index.js; esports code untouched) and src/scrim/mlbb-dictionary.js with
   src/scrim/mlbb-heroes.json (Liquipedia snapshot 2026-10-24, 133 heroes; rebuild with scripts/build-mlbb-heroes.js).
 - coachData takes `extras` (knowledge cards); coachReply adds the Liquipedia credit when a card was used.
-- Finding: Obsidia is a real hero (Marksman, Gold), so the 2026-10-23 textbook exam wrongly counted it as invented.
+- The dictionary agrees with the 2026-10-23 textbook exam key: Obsidia is a real new hero (Marksman, Gold Lane), which
+  the model had answered as a mid-lane Mage; with the dictionary the coach now gets it from data.
 - QA: Node 22 full suite from PowerShell 879 total, 878 pass, 1 worktree-only skip.
 
 ## Hengs Discord v1.78.0 (provisional) coach target and debrief on branch coach-v2 (not deployed) - 2026-10-24
