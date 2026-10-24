@@ -1,17 +1,20 @@
 'use strict';
 
-// The bot channel: tanya-hengs since chat mode (v1.75.0), bot-commands until Henry renames it.
+const { slugOf } = require('./guilds/channel-style');
+
+// The bot channel: Hengs' own tanya-hengs when it exists (v1.77.0), else the shared bot-commands. Names in any theme
+// match by slug.
 function botCommands(guild) {
   const all = [...(guild?.channels?.cache?.values?.() || [])];
   for (const label of ['tanya-hengs', 'bot-commands']) {
-    const channels = all.filter(channel => channel.type === 0 && new RegExp(`(?:^|[・│|\\s])${label}$`, 'u').test(channel.name || ''));
+    const channels = all.filter(channel => channel.type === 0 && slugOf(channel.name) === label);
     if (channels.length === 1 && /^\d{17,20}$/.test(channels[0].id)) return `<#${channels[0].id}>`;
   }
   return '`tanya-hengs`';
 }
 
 function isHallGallery(channel) {
-  return channel?.type === 0 && /(?:^|[・│|\s])hall-of-fame$/u.test(channel.name || '');
+  return channel?.type === 0 && slugOf(channel.name) === 'hall-of-fame';
 }
 
 function hallGuide(guild) {

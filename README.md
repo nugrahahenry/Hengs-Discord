@@ -2,8 +2,10 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.77.0 - Hengs gets its own `🤖・tanya-hengs` channel through `/admin
-setup` > Tanya Hengs, and `bot-commands` stays shared with other bots. Builds on v1.76.0 chat mode phase 2 (send
+**Current checkpoint:** Hengs Discord v1.78.0 - `/admin setup` v2: a guided community setup (packages, News +
+Memes, a theme picked from an image board or written as a custom pattern, a sidebar preview image, optional rename
+of old channels) replaces the old menu and the legacy full setup. Builds on v1.77.0 (own `🤖・tanya-hengs` channel,
+`bot-commands` stays shared with other bots), v1.76.0 chat mode phase 2 (send
 memes and news, log or undo a scrim by chat, each through a requester-only "Lanjut" button into the slash flow),
 v1.75.0 chat mode phase 1
 (Hengs chats in `tanya-hengs`, coaches in `hasil-scrim`, waves 👋 elsewhere), v1.74.0
@@ -21,8 +23,8 @@ game (one dropdown for the result and loss reason, lineup prefilled), `/scrim re
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
 
 Chat mode (home server, phase 1): mention Hengs in its own `🤖・tanya-hengs` or in `bot-settings` to chat.
-`/admin setup` > Tanya Hengs creates the channel next to `bot-commands`, with members on the server's own
-permissions and a pinned guide. `bot-commands` stays shared with other bots: Hengs' slash commands work there, but
+`/admin setup` with the Hengs package creates the channel in the Hengs category (an existing `BOT CENTER` counts),
+with members on the server's own permissions and a pinned guide. `bot-commands` stays shared with other bots: Hengs' slash commands work there, but
 once `tanya-hengs` exists a mention there only gets 👋. Until then Hengs still chats in `bot-commands`. Keyword rules go first; otherwise a small Groq model (gpt-oss-20b, JSON, only the
 message text) picks an intent. Feature intents (news, memes, analis, scrim, kirim, lapor, caster, event, help) get
 a fixed guide with channel links and the slash command, never posted feature content, and team data stays in
@@ -40,7 +42,7 @@ Chat actions (phase 2):
   image review, private preview and final confirm are unchanged.
 
 Hengs Analis posts one card per finished MLBB pro series (MPL PH and MPL ID playoffs for now) in the read-only
-`📊・hengs-analis` channel, made with `/admin setup` > Analis MLBB, which also posts and pins a guide. Data comes
+`📊・hengs-analis` channel, made by `/admin setup` with the Hengs package, which also posts and pins a guide. Data comes
 from the Liquipedia API (query only, gzip, one request per 2 seconds at most, a User-Agent with the public repo
 URL, checks every 20 minutes while a series is live and every 3 hours otherwise). Hengs draws the card itself:
 score, per game winner, side, length, objective, picks and bans, MVP and up to two notes counted from the
@@ -100,12 +102,35 @@ get the role manually. The public bot invite is also included in Hengs' applicat
 **Development status:** local feature work continues in bounded checkpoints. Cloud is the single
 Discord token consumer; local Discord remains stopped as rollback only.
 
+## Setup komunitas (`/admin setup` v2)
+
+Sejak v1.78.0, pemilik server atau Administrator di server utama menjalankan `/admin setup`, lalu:
+
+1. **Paket**, boleh lebih dari satu: Lobby (welcome, rules, ambil-role), Komunitas (ngobrol, media), Gaming
+   (mabar, info-scrim), Hengs (tanya-hengs, hengs-analis), Tim scrim (hasil-scrim privat), Creator (live-stream,
+   showcase), Voice (Lounge, AFK).
+2. **News + Memes**: tambah `hengs-news` dan/atau `hengs-memes` ke kategori Hengs. Jadwal berita tidak ikut nyala.
+3. **Tema** dari gambar contoh: Emoji + titik (`🤖・tanya-hengs`), Garis tegak (`🤖︱tanya-hengs`), Panah pohon
+   (`╰┈➤tanya-hengs🤖`), Kurung neon (`ˌ🤖ˈtanya-hengs`), Polos, atau **Tema custom** dengan pola `{emoji}` dan
+   `{nama}`.
+4. **Preview** berupa gambar sidebar: BARU = dibuat, GANTI = ganti nama. Tombol **Samakan nama lama** (mati secara
+   bawaan) menamai ulang channel dan kategori lama yang berikon ke tema yang sama; ID, izin dan isinya tetap.
+5. **Bikin sekarang**. Hengs mengecek dulu server belum berubah sejak preview, lalu membuat kategori, channel dan
+   izin, mem-pin panduan tanya-hengs dan hengs-analis, dan melaporkan yang gagal tanpa mencoba ulang.
+
+Channel yang slug-nya sudah ada (nama tanpa hiasan depan dan belakang) dipakai lagi, tidak dobel. Tanpa ganti
+nama, setup tidak mengganti nama, memindah atau menghapus apa pun. Izin: welcome, rules dan ambil-role cuma dibaca
+anggota; hengs-analis, hengs-news dan hengs-memes cuma Hengs yang posting (yang sudah ada ikut dirapikan);
+hasil-scrim privat untuk role Hengs Family; ngobrol, media dan voice ikut pengaturan server. Setup lengkap versi
+lama (channel statistik, webhook GSA, template Henzzz) sudah dihapus. Gambar preview memakai Twemoji (CC-BY 4.0)
+dan DejaVu Sans, lihat `assets/setup/README.md`.
+
 ## Catatan scrim (Hengs Coach fase 1)
 
-Admin/owner: `/admin setup` -> **Scrim tim** -> preview -> konfirmasi. Hengs membuat role `Hengs Family`
-(tanpa izin server tambahan) dan channel privat `📸・hasil-scrim` di kategori Gaming kalau ada, atau memakai yang
-sudah ada. Cuma Hengs Family dan Hengs yang bisa melihat dan kirim. Anggota tim ditambahkan ke role secara manual
-lewat Server Settings > Members.
+Admin/owner: `/admin setup` -> paket **Tim scrim** -> tema -> preview -> **Bikin sekarang**. Hengs membuat role
+`Hengs Family` (tanpa izin server tambahan) dan channel privat `hasil-scrim` di kategori Hengs, atau memakai yang
+sudah ada dan merapikan izinnya jadi privat. Cuma Hengs Family dan Hengs yang bisa melihat dan kirim. Anggota tim
+ditambahkan ke role secara manual lewat Server Settings > Members.
 
 Anggota Hengs Family di bot-commands, satu perintah per game (target di bawah 30 detik):
 `/scrim hasil lawan hasil [ss] [catatan]`. `lawan` punya autocomplete dari lawan yang pernah dicatat; `hasil`
@@ -156,7 +181,8 @@ project Google khusus Hengs; tanpa key, `/caster` menjawab "Casterin belum aktif
 
 ### Pisahkan news dan memes, kontribusi anggota
 
-Mulai v1.62.0, `/admin setup` di server utama memiliki pilihan **News + memes**.
+Dari v1.62.0 sampai v1.77.0, `/admin setup` di server utama memiliki pilihan **News + memes**; sejak v1.78.0
+pilihan itu jadi langkah 2 wizard (lihat Setup komunitas).
 Preview menjelaskan pembuatan/pemakaian dua channel dan pembukaan izin kirim/file/link bagi anggota.
 Konfirmasi hanya menyentuh kedua channel itu, bukan setup server lengkap. Nama/kategori channel
 lama dan overwrite role/anggota lain tetap; channel meme baru mengikuti kategori news.
@@ -254,6 +280,7 @@ dipertahankan. Channel ganda/jenis yang salah atau izin kurang akan menghentikan
 **Setup lengkap + news** tetap menjalankan seluruh template lama dan baru dilakukan setelah
 konfirmasi preview. Melewati news tidak menghapus channel atau mematikan konfigurasi news lama.
 Pembuatan channel tidak otomatis mengaktifkan jadwal, mengambil feed, atau mengirim berita.
+Sejak v1.78.0 menu ini diganti wizard setup v2, dan setup lengkap lama dihapus.
 
 Pemilik server atau Administrator bisa menyiapkan bacaan harian lewat `/hengs ask`.
 Fitur tidak aktif otomatis saat update. Pilih channel teks yang sudah ada di server yang sama.
@@ -402,7 +429,7 @@ Tidak perlu mendaftarkan slash command baru.
 - **Incident Report Hub** — semua member dapat memakai `/report`; laporan opsional anonim masuk ke panel moderator privat dengan Claim, Resolve, Dismiss, Reopen, dan Purge
 - **Moderation Queue** - `/reports` memberi owner/moderator antrean privat metadata-only dan panduan tindakan yang jelas; owner dapat membuka contoh sintetis saat antrean kosong
 - **Deterministic Anti-Raid** - `/mod` memantau atau menangani pola raid berkeyakinan tinggi tanpa klasifikasi AI; detail operator ada di [`docs/ANTI-RAID.md`](docs/ANTI-RAID.md)
-- **Auto-setup server** — `/admin setup` bikin struktur channel otomatis (fuzzy emoji matching, skip yang udah ada)
+- **Setup komunitas** - `/admin setup`: pilih paket dan tema, lihat preview gambar sidebar, baru channel dibuat; yang sudah ada dipakai lagi
 - **Reaction roles** — `/admin rolereact` (persist ke `data/`)
 - **Layered welcome / leave cards:** background aurora hasil ImageGen dipadukan dengan glass layer,
   avatar glow, member count, umur akun, tanggal join/keluar, dan durasi member berpresisi menit
@@ -492,7 +519,7 @@ berhenti dan Hengs WA cloud tetap aktif tanpa restart atau perubahan auth.
 | `/report category details [member] [message_link] [evidence] [anonymous]` | Kirim laporan insiden privat kepada owner/moderator |
 | `/reports` | Buka antrean laporan aktif privat untuk owner/moderator |
 | `/mod status` · `/mod incidents` · `/mod preview` · `/mod allow ...` | Lihat status/insiden, buka pratinjau owner-only, atau kelola pengecualian Anti-Raid |
-| `/admin setup` | Auto-bikin struktur server |
+| `/admin setup` | Setup komunitas: paket, tema, preview gambar, lalu bikin |
 | `/admin rolereact` | Pasang reaction roles |
 | `/admin ids` | Scan channel ID buat .env |
 

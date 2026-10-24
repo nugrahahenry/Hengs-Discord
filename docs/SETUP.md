@@ -92,7 +92,7 @@ npm run verify:server
 server; alat ini memvalidasi ID channel, permission, hierarchy role Member/reaction
 roles, owner, dan pesan reaction-role yang tersimpan.
 
-> Auto-setup struktur server: jalanin `/admin setup` di server (bikin channel & kategori otomatis).
+> Setup komunitas: jalanin `/admin setup` di server (pilih paket dan tema, lihat preview gambar, baru channel dibuat).
 
 Setelah menambahkan atau memperbarui Event Hub, jalankan `npm run deploy` dengan izin
 owner agar Discord mendaftarkan `/event draft` dan `/event status`. Event memakai

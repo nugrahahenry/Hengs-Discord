@@ -22,7 +22,7 @@ const LIVE_EVERY = 20 * MIN; const IDLE_EVERY = 3 * HOUR;
 const POST_WINDOW = 36 * HOUR; const KEEP_IN_STEP = 72 * HOUR; const LIVE_WINDOW = 12 * HOUR;
 const MAX_POSTS_PER_TICK = 3;
 const BANNER = path.join(__dirname, '../../assets/esports/guide-banner.png');
-const normalize = name => String(name).toLowerCase().replace(/^[^a-z0-9]+/, '');
+const { slugOf: normalize } = require('../guilds/channel-style');
 
 async function defaultBanner() {
   try { return fs.statSync(BANNER).isFile() ? fs.readFileSync(BANNER) : null; } catch { return null; }

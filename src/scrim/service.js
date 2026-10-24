@@ -53,7 +53,7 @@ const MESSAGES = Object.freeze({
   COACH_QUOTA: `Jatah ngobrol sama coach hari ini udah habis (${COACH_DAILY_LIMIT} pertanyaan). Lanjut besok ya.`,
 });
 const quiet = { allowedMentions: { parse: [] } };
-const normalize = name => String(name).toLowerCase().replace(/^[^a-z0-9]+/, '');
+const { slugOf: normalize } = require('../guilds/channel-style');
 // Control and format characters (zero-width, bidi), angle brackets and @ never reach a post.
 const clean = (value, max) => cutUnits(String(value ?? '').replace(/[\p{Cc}\p{Cf}<>@]/gu, ' ').replace(/\s+/g, ' ').trim(), max);
 const shown = value => escapeMarkdown(value);

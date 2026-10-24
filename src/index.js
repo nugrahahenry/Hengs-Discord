@@ -835,7 +835,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 
-  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-admin-setup:')) {
+  if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit())
+    && String(interaction.customId || '').startsWith('hengs-admin-setup:')) {
     try {
       await client.commands.get('admin').handleSetupComponent(interaction, {
         guildAccess, postAnalystGuide: channel => esportsService.ensureGuide(channel), postChatGuide });

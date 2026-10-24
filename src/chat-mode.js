@@ -9,7 +9,9 @@ const { RESULT_CHOICES } = require('./scrim/service');
 const INTENTS = Object.freeze(['chat', 'help', 'news', 'memes', 'analis', 'scrim', 'kirim', 'lapor', 'caster', 'event',
   'scrim_catat', 'scrim_hapus']);
 const RESULTS = new Set(RESULT_CHOICES.map(choice => choice.value));
-const named = (name, label) => new RegExp(`(?:^|[・│|\\s])${label}$`, 'u').test(String(name || ''));
+const { slugOf } = require('./guilds/channel-style');
+// Names in any theme match by slug: "🤖┃tanya-hengs" and "╰┈➤tanya-hengs🤖" are both "tanya-hengs".
+const named = (name, label) => slugOf(name) === label;
 const isChatChannelName = name => ['tanya-hengs', 'bot-commands', 'bot-settings'].some(label => named(name, label));
 
 const hasTanyaHengs = guild => [...(guild?.channels?.cache?.values?.() || [])].some(c => c?.type === 0 && named(c.name, 'tanya-hengs'));

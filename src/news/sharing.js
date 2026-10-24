@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const net = require('node:net');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, MessageFlags, PermissionFlagsBits: P } = require('discord.js');
 const { isPublicChannelAllowed } = require('../guilds/public-channel-policy');
+const { slugOf } = require('../guilds/channel-style');
 const { safeVerdict, imageKind } = require('./memes');
 
 const PREFIX = 'hengs-share:';
@@ -74,8 +75,8 @@ function createCommunitySharing({ getSettings, guildAccess, reviewImage = null, 
     ]);
     // Hengs' own tanya-hengs always takes shares (chat mode sends them there); otherwise the configured bot channel, or
     // bot-commands by name when none is configured.
-    const homeCommand = /(?:^|[・│|\s])tanya-hengs$/u.test(source?.name || '') || (process.env.BOT_CHANNEL_ID
-      ? source?.id === process.env.BOT_CHANNEL_ID : /(?:^|[・│|\s])bot-commands$/u.test(source?.name || ''));
+    const homeCommand = slugOf(source?.name) === 'tanya-hengs' || (process.env.BOT_CHANNEL_ID
+      ? source?.id === process.env.BOT_CHANNEL_ID : slugOf(source?.name) === 'bot-commands');
     const intake = scope.kind === 'home' ? homeCommand : isPublicChannelAllowed(scope.config, i.channelId);
     if (!intake || source?.id !== i.channelId || target?.id !== destinationId || source?.id === target?.id
       || [source, target].some(c => !c || c.guildId !== i.guildId || c.type !== ChannelType.GuildText)

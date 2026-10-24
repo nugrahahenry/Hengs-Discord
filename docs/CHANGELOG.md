@@ -5,6 +5,48 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.78.0] - 2026-10-24
+
+### Added
+
+- `/admin setup` v2, a guided community setup. Henry: "Tampilannya oke, lanjut bangun wizard setup v2 (paket, tema,
+  preview, rename opsional, tema custom)."
+  - Step 1 picks packages in a multi-select: Lobby, Komunitas, Gaming, Hengs, Tim scrim, Creator, Voice.
+  - Step 2 asks News + Memes (both, one or none) for the Hengs category.
+  - Step 3 shows a theme board image (Emoji + titik, Garis tegak, Panah pohon, Kurung neon, Polos) and a
+    "Tema custom" modal with `{emoji}` and `{nama}` patterns, previewed the way Discord stores names.
+  - Step 4 shows the planned sidebar as an image (BARU and GANTI pills) with a "Samakan nama lama" toggle, off by
+    default, that renames decorated existing channels and categories to the theme.
+  - "Bikin sekarang" re-checks the inventory hash, then creates categories first and channels inside them with
+    permissions by kind, gives reused Hengs channels the same permissions as new ones (news, memes, analis
+    read-only; hasil-scrim private to Hengs Family), pins the tanya-hengs and analyst guides, renames, and reports
+    failures by name without retry.
+- `src/guilds/channel-style.js` (themes, custom theme, slug), `src/guilds/community-setup.js` (packages, pure plan
+  builder, apply), `src/guilds/setup-preview.js` (sidebar and theme board renderer).
+- Bundled assets, since the VM has no emoji or symbol font: 40 Twemoji 72x72 PNGs (jdecked/twemoji v15.1.0,
+  CC-BY 4.0) and DejaVu Sans 2.37, credited in `assets/setup/README.md`. A test checks that every package emoji
+  has its picture.
+
+### Changed
+
+- Every channel lookup matches by slug (`slugOf`: lower case, decoration removed front and back), so themed names
+  such as `╰┈➤tanya-hengs🤖` still count as `tanya-hengs`: chat placement, community help, the /kirim intake,
+  scrim and analyst.
+- `/admin getroles` also finds `ambil-role`.
+- The setup subcommand description now reads "Setup komunitas: pilih paket, tema dan lihat preview sebelum channel
+  dibuat", so commands must be registered again at deploy.
+
+### Removed
+
+- The old setup menu (News saja, News + memes, Scrim tim, Analis MLBB, Tanya Hengs) and the legacy "Setup lengkap"
+  template (stats channels, GSA webhook, Henzzz categories), with their helpers `ensureNewsChannel`,
+  `ensureCommunityChannels`, `ensureScrimSetup`, `ensureAnalystChannel` and `ensureTanyaChannel`. The wizard covers
+  each path.
+
+### Verification
+
+- Node 22 full suite 864/864 via PowerShell. Sample theme board and sidebar previews rendered from a mock server.
+
 ## [1.77.0] - 2026-10-24
 
 ### Added

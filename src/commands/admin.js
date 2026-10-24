@@ -3,12 +3,8 @@ const {
   SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType,
 } = require('discord.js');
 const roleStore = require('../utils/role-store');
-const { createAdminSetupFlow, ensureNewsChannel, newsNextSteps } = require('../guilds/admin-setup');
-const setupFlow = createAdminSetupFlow({
-  applyLegacy: (interaction, choices) => executeAdmin(interaction, {
-    ...choices, subcommand: 'setup', alreadyDeferred: true,
-  }),
-});
+const { createAdminSetupFlow } = require('../guilds/admin-setup');
+const setupFlow = createAdminSetupFlow();
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,7 +14,7 @@ module.exports = {
 
     .addSubcommand(sub => sub
       .setName('setup')
-      .setDescription('Auto-create server channels with emoji icons (English, organized)')
+      .setDescription('Setup komunitas: pilih paket, tema dan lihat preview sebelum channel dibuat')
     )
 
     .addSubcommand(sub => sub
@@ -77,320 +73,17 @@ module.exports = {
 
   async execute(interaction, dependencies) {
     if (interaction.options.getSubcommand() === 'setup') return setupFlow.open(interaction, dependencies);
-    return executeAdmin(interaction, dependencies);
+    return executeAdmin(interaction);
   },
   handleSetupComponent: (interaction, dependencies) => setupFlow.handle(interaction, dependencies),
 };
 
-async function executeAdmin(interaction, {
-  state, subcommand = null, alreadyDeferred = false, includeNews = false, newsChannelId = null,
-} = {}) {
-    const sub = subcommand || interaction.options.getSubcommand();
-    if (!alreadyDeferred) await interaction.deferReply({ ephemeral: true });
-
-    // ── /admin setup ───────────────────────────────────────────────────────
-    if (sub === 'setup') {
-      const guild = interaction.guild;
-      const everyone = guild.roles.everyone;
-      const created = [];
-      const skipped = [];
-      let newsChannel = null;
-
-      async function ensureCat(name) {
-        // 1. Exact match
-        const ex = guild.channels.cache.find(c => c.name === name && c.type === ChannelType.GuildCategory);
-        if (ex) { skipped.push(`[${name}]`); return ex; }
-
-        // 2. Fuzzy: strip emoji prefix, match by keyword
-        // "🔒 PRIVATE" → keyword "private", cocok dengan "PRIVATE", "🔐 PRIVATE", dll
-        const normCat = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-        const keyword = normCat(name);
-        const fuzzy = guild.channels.cache.find(c =>
-          c.type === ChannelType.GuildCategory &&
-          normCat(c.name).includes(keyword.split(' ').filter(w => w.length > 2).join(' '))
-        );
-        if (fuzzy) {
-          if (fuzzy.name !== name) await fuzzy.setName(name).catch(() => {});
-          skipped.push(`[${name}] ✏️`);
-          return fuzzy;
-        }
-
-        const c = await guild.channels.create({ name, type: ChannelType.GuildCategory });
-        created.push(`[${name}]`);
-        return c;
-      }
-
-      async function ensureCh(name, type, parentId, overrides = [], extra = {}) {
-        // 1. Exact match di kategori yang benar
-        let ex = guild.channels.cache.find(c => c.name === name && c.parentId === parentId);
-        if (ex) { skipped.push(`#${name}`); return ex; }
-
-        // 2. Fuzzy keyword match untuk menangani semua format emoji prefix
-        // "📌・welcome", "⚓welcome", "⚓ welcome", "welcome" → keyword = "welcome"
-        const keyword = name.includes('・')
-          ? name.split('・').pop().toLowerCase()
-          : name.toLowerCase().replace(/^[^a-z0-9]+/, '');
-        const norm = s => s.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        const normKeyword = norm(keyword);
-
-        // Cari di kategori yang sama dulu (Henry punya emoji beda tapi keyword sama)
-        const inCat = guild.channels.cache.find(c =>
-          c.parentId === parentId && c.type === type &&
-          norm(c.name).includes(normKeyword)
-        );
-        if (inCat) {
-          if (inCat.name !== name) await inCat.setName(name).catch(() => {});
-          skipped.push(`#${name} ✏️`);
-          return inCat;
-        }
-
-        // Cari di seluruh server (Henry bikin di luar kategori)
-        const anywhere = guild.channels.cache.find(c =>
-          c.type === type && norm(c.name).includes(normKeyword)
-        );
-        if (anywhere) {
-          if (anywhere.name !== name) await anywhere.setName(name).catch(() => {});
-          await anywhere.setParent(parentId, { lockPermissions: false }).catch(() => {});
-          created.push(`#${name} ↪️`);
-          return anywhere;
-        }
-
-        // Buat baru
-        const ch = await guild.channels.create({
-          name, type, parent: parentId,
-          permissionOverwrites: overrides,
-          ...extra,
-        });
-        created.push(`#${name}`);
-        return ch;
-      }
-
-      // Stats channels memakai VOICE channel supaya nama bisa memakai spasi, huruf besar, dan kolon.
-      // Connect: false → orang tidak bisa join, tapi bisa lihat nama (= stat display)
-      // Ini cara standar semua stat bot (MEE6, Statbot, dll)
-      const statOverrides = [{ id: everyone, deny: ['Connect'] }];
-
-      // alsoMatch: prefix lama untuk migrasi (rename otomatis)
-      async function ensureStatCh(prefix, fullName, parentId, alsoMatch = []) {
-        const allPrefixes = [prefix, ...alsoMatch];
-        const existing = guild.channels.cache.find(c =>
-          allPrefixes.some(p => c.name.startsWith(p))
-        );
-        if (existing) {
-          if (existing.type === ChannelType.GuildText) {
-            // Text channel lama → delete, buat ulang sebagai voice
-            await existing.delete().catch(() => {});
-          } else {
-            // Voice channel → rename dan pindah ke kategori yang benar
-            if (existing.name !== fullName) await existing.setName(fullName).catch(() => {});
-            if (existing.parentId !== parentId) await existing.setParent(parentId, { lockPermissions: false }).catch(() => {});
-            skipped.push(`${prefix} ✏️`);
-            return existing;
-          }
-        }
-        const ch = await guild.channels.create({
-          name: fullName, type: ChannelType.GuildVoice, parent: parentId,
-          permissionOverwrites: statOverrides,
-          userLimit: 0,
-        });
-        created.push(fullName);
-        return ch;
-      }
-
-      // Permission templates
-      const readOnly  = [{ id: everyone, deny: ['SendMessages', 'AddReactions', 'CreatePublicThreads'] }];
-      const adminOnly = [{ id: everyone, deny: ['ViewChannel'] }];
-
-      try {
-        // ══════════════════════════════════════════════════════════════════
-        // 📊 SERVER STATS: gembok (locked text), posisi paling atas
-        // Format: "All Members: X" / "Members: X" / "Bots: X"
-        // updateServerStats di index.js juga pakai prefix yang sama
-        // ══════════════════════════════════════════════════════════════════
-        const catStats = await ensureCat('📊 SERVER STATS');
-        await guild.channels.cache.get(catStats.id)?.setPosition(0).catch(() => {});
-        const memberCount = guild.memberCount;
-        const botCount    = guild.members.cache.filter(m => m.user.bot).size;
-        const humanCount  = memberCount - botCount;
-        // alsoMatch: migrate nama lama kalau ada ('Humans:' → 'Members:', 'Members:' → 'All Members:')
-        await ensureStatCh('👥・All Members:', `👥・All Members: ${memberCount}`, catStats.id, ['👥・Members:']);
-        await ensureStatCh('👤・Members:',     `👤・Members: ${humanCount}`,      catStats.id, ['👤・Humans:']);
-        await ensureStatCh('🤖・Bots:',        `🤖・Bots: ${botCount}`,           catStats.id);
-
-        // ══════════════════════════════════════════════════════════════════
-        // 🌟 WELCOME: read-only, welcome card landing + rules + get-roles
-        // Icons: 🌊 welcome (wave), 📜 rules (scroll), 📌 server-info, 🎭 get-roles
-        // ══════════════════════════════════════════════════════════════════
-        const catWelcome = await ensureCat('🌟 WELCOME');
-        await guild.channels.cache.get(catWelcome.id)?.setPosition(1).catch(() => {});
-        const chWelcome = await ensureCh('🌊・welcome', ChannelType.GuildText, catWelcome.id, readOnly,
-          { topic: 'Selamat datang! Welcome card muncul di sini 👋' });
-        await ensureCh('📜・rules',       ChannelType.GuildText, catWelcome.id, readOnly,
-          { topic: 'Baca rules sebelum ngobrol ya!' });
-        await ensureCh('📌・server-info', ChannelType.GuildText, catWelcome.id, readOnly,
-          { topic: 'Info penting tentang server ini' });
-        await ensureCh('🎭・get-roles',   ChannelType.GuildText, catWelcome.id, readOnly,
-          { topic: 'React di sini untuk dapetin role kamu!' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 📢 ANNOUNCEMENTS: read-only
-        // ══════════════════════════════════════════════════════════════════
-        const catAnn = await ensureCat('📢 ANNOUNCEMENTS');
-        if (includeNews) {
-          const result = await ensureNewsChannel(guild, { expectedId: newsChannelId, parent: catAnn.id });
-          newsChannel = result.channel;
-          (result.created ? created : skipped).push('#hengs-news');
-        }
-        const chAnn  = await ensureCh('📢・announcements',    ChannelType.GuildText, catAnn.id, readOnly,
-          { topic: 'Pengumuman resmi server' });
-        await ensureCh('🎉・events',          ChannelType.GuildText, catAnn.id, readOnly,
-          { topic: 'Event dan aktivitas mendatang' });
-        await ensureCh('📡・gsa-feed',        ChannelType.GuildText, catAnn.id, readOnly,
-          { topic: 'Google Student Ambassador feed' });
-        const chGsa  = await ensureCh('🏆・gsa-announcements', ChannelType.GuildText, catAnn.id, readOnly,
-          { topic: 'Pengumuman Google Student Ambassador' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 💬 COMMUNITY: free chat
-        // "ngobrol" bukan "general", nama khas server Henzzz
-        // ══════════════════════════════════════════════════════════════════
-        const catChat = await ensureCat('💬 COMMUNITY');
-        await ensureCh('💬・ngobrol',       ChannelType.GuildText, catChat.id,
-          [], { topic: 'Ngobrol bebas, boleh bahas apa aja!' });
-        await ensureCh('👋・introductions', ChannelType.GuildText, catChat.id,
-          [], { topic: 'Kenalin diri kamu ke server!' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 🎮 GAMING: main, LFG, highlights
-        // ══════════════════════════════════════════════════════════════════
-        const catGame = await ensureCat('🎮 GAMING');
-        await ensureCh('🎮・game-chat',  ChannelType.GuildText, catGame.id,
-          [], { topic: 'Obrolan gaming umum' });
-        await ensureCh('👥・lfg',        ChannelType.GuildText, catGame.id,
-          [], { topic: 'Looking for group, cari teman main di sini!' });
-        await ensureCh('🎬・highlights', ChannelType.GuildText, catGame.id,
-          [], { topic: 'Share clip dan momen terbaikmu!' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 💻 TECH & CODE
-        // ══════════════════════════════════════════════════════════════════
-        const catTech = await ensureCat('💻 TECH & CODE');
-        await ensureCh('💻・tech-chat',   ChannelType.GuildText, catTech.id,
-          [], { topic: 'Obrolan teknologi dan IT' });
-        await ensureCh('🔧・coding-help', ChannelType.GuildText, catTech.id,
-          [], { topic: 'Tanya jawab coding, debugging, dll' });
-        await ensureCh('📚・resources',   ChannelType.GuildText, catTech.id,
-          [], { topic: 'Link, tutorial, dan resource berguna' });
-        await ensureCh('🚀・projects',    ChannelType.GuildText, catTech.id,
-          [], { topic: 'Pamerkan project dan build kamu!' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 🤖 BOT CENTER: Henzzz Bot + bot lain
-        // ══════════════════════════════════════════════════════════════════
-        const catBot = await ensureCat('🤖 BOT CENTER');
-        const chBot  = await ensureCh('🤖・bot-commands', ChannelType.GuildText, catBot.id,
-          [], { topic: 'Henzzz Bot: /study /scrim /voice /fun /admin' });
-        await ensureCh('🐾・owo-bot',      ChannelType.GuildText, catBot.id,
-          [], { topic: 'OwO Bot: hunt, battle, dan lainnya!' });
-        await ensureCh('✨・lumina-bot',   ChannelType.GuildText, catBot.id,
-          [], { topic: 'Lumina Bot commands' });
-        await ensureCh('🔧・carl-bot',     ChannelType.GuildText, catBot.id,
-          [], { topic: 'Carl-bot commands' });
-        await ensureCh('📋・bot-logs',     ChannelType.GuildText, catBot.id,
-          readOnly, { topic: 'Log aktivitas bot otomatis' });
-        await ensureCh('⚙️・bot-status',  ChannelType.GuildText, catBot.id,
-          readOnly, { topic: 'Status bot dan uptime' });
-        await ensureCh('🎛️・bot-settings',ChannelType.GuildText, catBot.id,
-          adminOnly, { topic: 'Konfigurasi bot, admin only' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 🔒 PRIVATE: hidden dari @everyone, hanya admin/owner
-        // photo, admin-chat, mod-logs
-        // ══════════════════════════════════════════════════════════════════
-        const catPrivate = await ensureCat('🔒 PRIVATE');
-        // Set kategori private agar semua channel di dalamnya otomatis hidden.
-        await guild.channels.cache.get(catPrivate.id)?.permissionOverwrites
-          .edit(everyone, { ViewChannel: false }).catch(() => {});
-        await ensureCh('📷・photo',       ChannelType.GuildText, catPrivate.id, adminOnly,
-          { topic: 'Foto-foto pribadi' });
-        await ensureCh('🔒・admin-chat',  ChannelType.GuildText, catPrivate.id, adminOnly,
-          { topic: 'Admin discussion' });
-        await ensureCh('📊・mod-logs',    ChannelType.GuildText, catPrivate.id, adminOnly,
-          { topic: 'Log moderasi server' });
-
-        // ══════════════════════════════════════════════════════════════════
-        // 🔊 VOICE: channel suara
-        // ══════════════════════════════════════════════════════════════════
-        const catVoice = await ensureCat('🔊 VOICE');
-        await ensureCh('⭐・Hengs',   ChannelType.GuildVoice, catVoice.id);
-        await ensureCh('🔊・General', ChannelType.GuildVoice, catVoice.id);
-        await ensureCh('🎮・Gaming',  ChannelType.GuildVoice, catVoice.id);
-        await ensureCh('🎵・Music',   ChannelType.GuildVoice, catVoice.id);
-        await ensureCh('📚・Study',   ChannelType.GuildVoice, catVoice.id);
-
-        // ── Create GSA webhook (sekali, skip kalau sudah ada) ──────────────
-        let gsaWebhookUrl = null;
-        try {
-          const gch = guild.channels.cache.find(c => c.name === '🏆・gsa-announcements');
-          if (gch) {
-            const existing = await gch.fetchWebhooks().catch(() => null);
-            if (!existing?.size) {
-              const wh = await gch.createWebhook({ name: 'GSA Feed' });
-              gsaWebhookUrl = wh.url;
-            }
-          }
-        } catch { console.error('[setup] GSA_WEBHOOK_FAILED'); }
-
-        // ── Build .env hints ───────────────────────────────────────────────
-        const envLines = [
-          `WELCOME_CHANNEL_ID=${chWelcome.id}`,
-          `ANNOUNCE_CHANNEL_ID=${chAnn.id}`,
-          `GSA_CHANNEL_ID=${chGsa.id}`,
-          `BOT_CHANNEL_ID=${chBot.id}`,
-        ].join('\n');
-
-        const embed = new EmbedBuilder()
-          .setColor(0x43B581)
-          .setTitle('✅ Setup server Henzzz selesai!')
-          .addFields(
-            { name: '✨ Dibuat / Direname', value: created.join('\n') || '-', inline: true },
-            { name: '⏩ Sudah ada', value: skipped.slice(0, 15).join('\n') || '-', inline: true },
-          )
-          .addFields({ name: '📋 Tambah ke .env:', value: `\`\`\`\n${envLines}\n\`\`\`` });
-
-        if (gsaWebhookUrl) {
-          embed.addFields({
-            name: '🔗 GSA Webhook URL',
-            value: `\`\`\`\n${gsaWebhookUrl}\n\`\`\``,
-          });
-        }
-
-        if (newsChannel) embed.addFields({ name: '📰 Hengs News', value: newsNextSteps(newsChannel) });
-        else embed.addFields({ name: '📰 Hengs News', value: 'Penambahan news dilewati. Channel dan pengaturan news yang sudah ada tidak diubah.' });
-
-        embed.addFields({
-          name: '⚠️ Next steps',
-          value:
-            '1. Copy 4 IDs di atas → paste ke `.env` → restart bot\n' +
-            '2. Grant bot role Administrator di Server Settings → Roles\n' +
-            '3. Jalankan `/admin rolereact` di 🎭・get-roles\n' +
-            '4. Tulis rules di 📜・rules\n' +
-            '5. Invite OwO, Carl-bot, Lumina ke channel masing-masing',
-        });
-
-        await interaction.editReply({ content: '', components: [], embeds: [embed], allowedMentions: { parse: [] } });
-
-      } catch {
-        console.error('[setup] SETUP_APPLY_FAILED');
-        await interaction.editReply({
-          content: 'Setup belum selesai; sebagian perubahan mungkin sudah terjadi. Cek channel dan izin bot sebelum membuka setup lagi. Tidak dicoba ulang otomatis. Jadwal berita tidak diaktifkan.',
-          components: [], embeds: [], allowedMentions: { parse: [] },
-        });
-      }
-    }
+async function executeAdmin(interaction) {
+    const sub = interaction.options.getSubcommand();
+    await interaction.deferReply({ ephemeral: true });
 
     // ── /admin webhook ─────────────────────────────────────────────────────
-    else if (sub === 'webhook') {
+    if (sub === 'webhook') {
       const name = interaction.options.getString('name') || interaction.channel.name;
       try {
         const wh = await interaction.channel.createWebhook({ name });
@@ -654,7 +347,7 @@ async function executeAdmin(interaction, {
 
       const target = guild.channels.cache.find(c =>
         c.type === ChannelType.GuildText &&
-        (c.name.toLowerCase().includes('get-roles') || c.name.toLowerCase().includes('roles'))
+        (c.name.toLowerCase().includes('get-roles') || c.name.toLowerCase().includes('ambil-role') || c.name.toLowerCase().includes('roles'))
       ) || interaction.channel;
 
       // Hapus pesan reaction-role lama di channel ini (anti-numpuk tiap re-run)

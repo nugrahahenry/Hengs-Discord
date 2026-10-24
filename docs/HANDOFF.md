@@ -2,6 +2,24 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.78.0 /admin setup v2 (committed, not deployed) - 2026-10-24
+
+- Henry: "Tampilannya oke, lanjut bangun wizard setup v2 (paket, tema, preview, rename opsional, tema custom)."
+  Spec: docs/superpowers/specs/2026-10-24-hengs-setup-v2-design.md (ignored).
+- Flow: packages (select), News + Memes, theme board image or custom modal, sidebar preview image with the rename
+  toggle (off by default), Bikin sekarang. The legacy full setup and the old per-channel menu are gone.
+- Code: src/guilds/channel-style.js, community-setup.js (buildPlan, applyPlan), setup-preview.js, admin-setup.js
+  (wizard). index.js routes buttons, the select and the modal submit with the `hengs-admin-setup:` prefix.
+- Reused Hengs channels get the permissions of new ones (news, memes, analis read-only; hasil-scrim private). Other
+  reused channels stay as they are unless the rename toggle is on.
+- After the deploy (register commands too, the setup description changed):
+  1. Henry runs `/admin setup` on the home server: Hengs (plus Tim scrim if wanted), News + Memes, a theme.
+  2. Check the preview image: BOT CENTER, bot-commands and an existing hengs-news are reused; new channels say BARU.
+  3. Try the rename toggle once to see GANTI, then choose and press Bikin sekarang.
+  4. Check the pinned guides in tanya-hengs and hengs-analis.
+- Deploy prep must be redone for the new HEAD (archive, rehearsal, derive-dc-next.cjs). The deploy still waits for
+  Henry's GPT assets and his approval.
+
 ## Hengs Discord v1.77.0 own tanya-hengs channel (committed, not deployed) - 2026-10-24
 
 - Henry: "lu bisa rename sendiri gak sih, terus itu bot commands niatnya buat bot musik juga yang bisa dipakai atau

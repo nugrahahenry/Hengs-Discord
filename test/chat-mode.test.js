@@ -20,6 +20,12 @@ test('Hengs chats only in tanya-hengs, the old bot-commands name and bot-setting
   assert.equal(isChatChannelName('🤖・tanya-hengs'), true); assert.equal(isChatChannelName('ngobrol'), false);
 });
 
+test('placement reads names in any theme: decoration before or after the slug does not matter', () => {
+  for (const name of ['╰┈➤tanya-hengs🤖', 'ˌ🤖ˈtanya-hengs', '🤖︱tanya-hengs', '【🤖】tanya-hengs']) assert.equal(chatPlacement(text(name)), 'chat', name);
+  for (const name of ['╰┈➤hasil-scrim📸', 'ˌ📸ˈhasil-scrim']) assert.equal(chatPlacement(text(name)), 'coach', name);
+  assert.equal(chatPlacement(text('──hall-of-fame──')), 'silent');
+});
+
 test('bot-commands is shared with other bots: Hengs chats there only until a tanya-hengs channel exists', () => {
   const botCommands = text('🤖・bot-commands');
   const before = { ...botCommands, guild: { channels: { cache: new Map([['b', botCommands]]) } } };
