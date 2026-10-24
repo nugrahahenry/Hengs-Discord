@@ -5,6 +5,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.82.1] - 2026-10-24
+
+### Changed
+
+- The draft card takes Henry's GPT image as a backdrop of any landscape size (scaled to cover, a light dark overlay
+  for readable text) and Hengs always draws the panels and slots on top. GPT images here come out at sizes like
+  1672x941 or 1536x1024, so a template with exact slot positions would never line up with the text. Checked with a
+  stand-in 1672x941 backdrop.
+
+### Verification
+
+- Node 22 full suite 932/932 via PowerShell (the tree also held another agent's uncommitted welcome-card test).
+
 ## [1.82.0] - 2026-10-24
 
 ### Added

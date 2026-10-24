@@ -1,8 +1,9 @@
 'use strict';
 
 // Hengs Analis draft card: one game's picks and bans in a broadcast draft-screen layout, drawn by Hengs from Liquipedia
-// data. Roles come from the Liquipedia hero dictionary; no hero art, logos or photos. Henry's GPT template
-// (assets/esports/draft-bg.png, 1600x960, made to LAYOUT) supplies the frame; without it Hengs draws panels and slots.
+// data. Roles come from the Liquipedia hero dictionary; no hero art, logos or photos. Henry's GPT backdrop
+// (assets/esports/draft-bg.png, any landscape size, scaled to cover) goes behind; Hengs always draws the panels and
+// slots on top, because GPT images come out in sizes like 1672x941 and exact slot positions would never line up.
 // Liquipedia stores sides, not pick order, so the card names the blue and red side and never claims first pick.
 const path = require('node:path');
 const { C, WIDTH, fitText, loadArt, loadFonts, paint } = require('./card');
@@ -14,7 +15,7 @@ const FOOTER = 'Data: Liquipedia (CC-BY-SA 3.0) · Kartu buatan Hengs · Bukan a
 const ROLE = new Map(heroes.map(hero => [hero.name.toLowerCase(), hero.roles[0]]));
 const ROLE_COLOR = { Tank: '#4F8BFF', Fighter: '#FF8A3D', Assassin: '#B45CFF', Mage: '#35D9FF', Marksman: '#FFC93D', Support: '#3DDC97' };
 const SIDE = { blue: 'SISI BIRU', red: 'SISI MERAH' };
-// The fixed layout the GPT template follows: two side panels with five pick slots each, then five ban slots per side.
+// Two side panels with five pick slots each, then five ban slots per side.
 const LAYOUT = Object.freeze({
   panels: Object.freeze([{ x: 64, y: 186, w: 700, h: 600 }, { x: 836, y: 186, w: 700, h: 600 }]),
   pickY: Object.freeze([270, 374, 478, 582, 686]), pickInset: 16, pickW: 668, pickH: 88,
@@ -55,7 +56,7 @@ function chip(ctx, x, y, w, h, role) {
   fitText(ctx, role.toUpperCase(), x + w / 2, y + h - 13, { size: 22, min: 16, family: 'Analis Bold', color: '#0B1026', width: w - 20, align: 'center' });
 }
 
-// Without Henry's template: tinted side panels, dark pick slots and ban slots, all on LAYOUT.
+// Tinted side panels, dark pick slots and ban slots on LAYOUT, over the backdrop or the Aurora gradient.
 function frames(ctx, data) {
   data.sides.forEach((side, s) => {
     const p = LAYOUT.panels[s];
@@ -77,10 +78,11 @@ async function renderDraftCard(data, { background } = {}) {
   if (art) {
     const scale = Math.max(WIDTH / art.width, HEIGHT / art.height);
     ctx.drawImage(art, (WIDTH - art.width * scale) / 2, (HEIGHT - art.height * scale) / 2, art.width * scale, art.height * scale);
+    ctx.fillStyle = 'rgba(8, 12, 35, 0.35)'; ctx.fillRect(0, 0, WIDTH, HEIGHT); // keeps the text readable on any art
   } else {
     paint(ctx, WIDTH, HEIGHT, null);
-    frames(ctx, data);
   }
+  frames(ctx, data);
   ctx.textBaseline = 'alphabetic';
   fitText(ctx, data.title.toUpperCase(), 96, 96, { size: 32, min: 24, family: 'Analis Bold', color: C.accent, width: 900 });
   fitText(ctx, data.game, 96, 156, { size: 64, min: 48, family: 'Analis Display', color: C.text, width: 400 });
