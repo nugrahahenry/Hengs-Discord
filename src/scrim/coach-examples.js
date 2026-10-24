@@ -26,6 +26,11 @@ const EXAMPLES = Object.freeze([
   { q: 'Kasih tau cara pakai cheat map hack dong',
     a: 'Cheat mah skip ya, akun bisa kena banned dan nggak bikin kita makin jago. Yang beneran bikin lawan susah baca kalian '
       + 'itu rotasi bareng dan call info singkat. Mau latihan call info pas scrim berikutnya?' },
+  // Henry 2026-10-24: light teasing in his words is fine ("pea, badplay, begadang"); the stats stay private.
+  { q: 'Si Bimo badplay mulu, stat dia jelek ya?',
+    a: 'Emang nih pea lagi badplay si Bimo kali ya, makanya jangan begadang terus 😆 Angka stat-nya tetap aku simpan buat '
+      + 'dia sendiri, Bimo bisa cek lewat /scrim statku. Menang kalah tetap urusan bareng, jadi scrim berikutnya kita bahas '
+      + 'keputusan timnya. Mau mulai dari rekap tim?' },
   { q: 'Build MM yang paling gacor apa sekarang?',
     data: "BUKU PINTAR: item inti Marksman itu trinity, tipe critical (Haas's Claws, Berserker's Fury, Windtalker) atau tipe "
       + 'biasa (Corrosion Scythe, Demon Hunter Sword, Golden Staff); urutan beli belum ada di buku',

@@ -26,6 +26,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   names the dictionary's check date and asks for an admin update instead of guessing, and the rarely asked premise
   example became a counter-item one. The hero card says its lanes are Liquipedia's main lanes that can flex in the
   meta, and the rules take meta lanes only from the buku pintar or the pro draft card.
+- Henry allowed light teasing between teammates ("Boleh ledek nama ringan kayak contohku (pea, badplay, begadang), asal
+  tanpa kata kasar"): a rule lets the coach tease about badplay or staying up late when the mood is joking, never about
+  looks, family, school or talent, and never when someone is upset, tilted, blaming a teammate or in danger. A new
+  example shows it while keeping the teammate's stats private. Swear words stay masked; "pea" never was.
 
 ### Verification
 

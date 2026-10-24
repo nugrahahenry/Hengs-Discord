@@ -191,6 +191,16 @@ test('a textbook entry joins the data card without the Liquipedia credit, and th
   assert.match(COACH_RULES, /sebut tanggal cek KAMUS atau BUKU PINTAR/);
 });
 
+// Henry 2026-10-24: "Boleh ledek nama ringan kayak contohku (pea, badplay, begadang), asal tanpa kata kasar."
+test('light teasing between teammates is allowed within limits, swear words stay masked', () => {
+  assert.match(COACH_RULES, /Ledekan ringan ke teman boleh kalau suasananya bercanda/);
+  assert.match(COACH_RULES, /Nggak boleh soal fisik, keluarga, sekolah, atau bakat/);
+  assert.match(COACH_RULES, /jangan ledek pas ada yang kesel, tilt, nyalahin teman, atau ada tanda bahaya/);
+  assert.equal(guardReply('Emang nih pea lagi badplay si Bimo kali ya, makanya jangan begadang terus').text,
+    'Emang nih pea lagi badplay si Bimo kali ya, makanya jangan begadang terus');
+  assert.equal(guardReply('dasar goblok').text, 'dasar g*****');
+});
+
 test('member-written target text is masked like coach replies', () => {
   assert.equal(safeText('jangan noob lagi'), 'jangan n*** lagi');
   assert.equal(safeText('kumpul sebelum objective'), 'kumpul sebelum objective');

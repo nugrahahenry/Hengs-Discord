@@ -19,7 +19,18 @@ test('each question gets its three closest examples, distinct, hero-free ones wh
     assert.equal(picked.length, 3, question);
     assert.equal(new Set(picked).size, 3, question);
   }
-  for (const example of pickExamples('xyz qwerty')) assert.deepEqual(named(`${example.q} ${example.a}`), [], example.q);
+  for (const example of pickExamples('xyz qwerty')) {
+    assert.deepEqual(named(`${example.q} ${example.a}`), [], example.q);
+    assert.doesNotMatch(example.a, /\bpea\b|badplay/, example.q);
+  }
+});
+
+// Henry 2026-10-24: light teasing in his own words, while the numbers stay private.
+test('the teammate-stats example teases lightly in Henry\'s style and keeps the stats private', () => {
+  const tease = pickExamples('si Kevin badplay mulu, stat dia jelek ya?')[0];
+  assert.match(tease.a, /pea lagi badplay/);
+  assert.match(tease.a, /jangan begadang/);
+  assert.match(tease.a, /\/scrim statku/);
 });
 
 // Research (Anthropic prompting guide, OpenAI accuracy guide): examples steer tone best, but the model copies what is in

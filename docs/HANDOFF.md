@@ -9,8 +9,10 @@ Updated: 2026-10-24
   alone barely moved the style.
 - Henry reviewed the eight examples point by point and added his own knowledge (MM trinity, counter items, buff
   rotation, Chou flex, emblems by hero). That knowledge is src/scrim/mlbb-textbook.js ("buku pintar", dated, patch
-  not recorded yet); examples 1, 2, 3 and 8 were rewritten. Example 6 (others' stats) waits for his call on playful
-  teasing, a kid-safety question.
+  not recorded yet); examples 1, 2, 3 and 8 were rewritten.
+- Teasing: after the kid-safety trade-off was laid out, Henry chose "Boleh ledek nama ringan kayak contohku (pea,
+  badplay, begadang), asal tanpa kata kasar". Rule plus one example (stats stay private); limits: no looks, family,
+  school or talent, and none when someone is upset, tilted, blaming or in danger. Exam N5 and N6 test both sides.
 - Next: coach exam on 2026-10-25 (Discord key quota), the 12 v11 scenarios plus four new unseen ones (N1-N4).
 
 ## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24
