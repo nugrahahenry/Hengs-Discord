@@ -2,6 +2,19 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.80.0 Analis match days (committed, not deployed) - 2026-10-24
+
+- Previews at 08:00 WIB with guess buttons, night recaps, event recap after the grand final; template captions. The
+  LLM caster and Analis answers in #tanya-hengs are v1.81.0 (same spec).
+- Must be deployed by 3 Nov to cover the MPL ID S18 playoffs (4 to 8 Nov). First real checks:
+  1. 4 Nov 08:00 WIB: one preview per known match in #hengs-analis, buttons answer privately.
+  2. After the day's last match: the night recap with vote shares.
+  3. 8 Nov after the grand final: the event recap.
+- Assets wanted from Henry's GPT: `assets/esports/preview-bg.png` (1600x900) and `assets/esports/recap-bg.png`
+  (square, at least 1600x1600). Without them the Aurora gradient is used.
+- Another agent (likely Henry's GPT/Codex) had uncommitted welcome-card v2 work in this checkout
+  (`src/utils/welcome-card.js`, `assets/_originals/welcome-card-v2-preview.png`); v1.80.0 left those files alone.
+
 ## Hengs Discord v1.79.3 welcome logo integration (local, not deployed) - 2026-10-24
 
 - Welcome and leave card rendering now prefers `assets/brand/hengs-bot-icon-v2.png`.

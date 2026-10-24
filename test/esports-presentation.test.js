@@ -50,3 +50,16 @@ test('reaction seeds and the warning check ignore the emoji variation selector',
   assert.equal(isWarning('⚠️'), true); assert.equal(isWarning('⚠'), true); assert.equal(isWarning('🔥'), false);
   assert.equal(pageUrl('MPL/Indonesia/Season 18/Playoffs'), 'https://liquipedia.net/mobilelegends/MPL/Indonesia/Season_18/Playoffs');
 });
+
+test('a preview carries the card, the caption, the Liquipedia credit and two vote buttons keyed to the match', () => {
+  const { previewPayload, listPayload, VOTE_PREFIX } = require('../src/esports/presentation');
+  const match = { page: 'MPL/Indonesia/Season 18/Playoffs', teams: [{ name: 'ONIC', ticker: 'ONIC' }, { name: 'RRQ Hoshi', ticker: 'RRQ' }] };
+  const payload = previewPayload(match, PNG, { key: 'abc123def456', caption: '**ONIC vs RRQ Hoshi** · 15:00 WIB · Bo5' });
+  const json = JSON.stringify(payload.components);
+  assert.equal(payload.files[0].name, 'hengs-preview.png');
+  assert.match(json, /hengs-analis:vote:abc123def456:1/); assert.match(json, /hengs-analis:vote:abc123def456:2/);
+  assert.match(json, /Tebak ONIC/); assert.match(json, /Tebak RRQ/); assert.match(json, /Liquipedia/);
+  assert.equal(VOTE_PREFIX, 'hengs-analis:vote:');
+  const list = listPayload(PNG, 'Rekap 4 Nov', '**Rekap Rabu, 4 Nov 2026**: ONIC menang 2-0.');
+  assert.equal(list.files[0].name, 'hengs-rekap.png'); assert.deepEqual(list.allowedMentions, { parse: [] });
+});

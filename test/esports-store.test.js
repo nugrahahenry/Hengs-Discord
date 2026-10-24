@@ -49,3 +49,26 @@ test('page cache and last check survive restarts; a broken file reads as empty',
   fs.writeFileSync(s.filePath, '{broken');
   assert.deepEqual(createEsportsStore({ filePath: s.filePath }).pages(), {});
 });
+
+test('daily claims are written once, votes keep the latest choice, and both are pruned on schedule', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-esports-daily-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  let time = Date.UTC(2026, 10, 4);
+  const store = createEsportsStore({ filePath: path.join(dir, 'state.json'), now: () => time });
+  store.claimDaily('g', 'preview:m1', { hash: 'h1' });
+  assert.throws(() => store.claimDaily('g', 'preview:m1'), /ESPORTS_ALREADY_CLAIMED/);
+  store.updateDaily('g', 'preview:m1', { messageIds: ['99'] });
+  assert.deepEqual(store.daily('g', 'preview:m1'), { at: time, messageIds: ['99'], hash: 'h1' });
+  store.vote('g', 'm1', 'u1', 1, 'E'); store.vote('g', 'm1', 'u1', 2, 'E'); store.vote('g', 'm2', 'u2', 1, null);
+  assert.deepEqual(store.votes('g', 'm1'), { u1: 2 });
+  assert.deepEqual(store.allVotes('g'), { m1: { u1: 2 }, m2: { u2: 1 } });
+  store.claimDaily('g', 'event:E');
+  time += 8 * 86_400_000; store.vote('g', 'm3', 'u3', 1, 'F');
+  assert.deepEqual(Object.keys(store.allVotes('g')), ['m2', 'm3']); // E's votes go 7 days after its event recap
+  time += 31 * 86_400_000; store.vote('g', 'm4', 'u4', 1, 'F');
+  assert.deepEqual(Object.keys(store.allVotes('g')), ['m4']); // anything older than 30 days goes
+  assert.equal(store.daily('g', 'preview:m1'), null);
+  store.saveDiscovered([{ title: 'M8 World Championship/Wildcard' }], time);
+  assert.deepEqual(store.discovered().map(w => w.title), ['M8 World Championship/Wildcard']);
+  assert.equal(store.lastDiscovery(), time);
+});

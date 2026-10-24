@@ -752,6 +752,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     catch { console.error('[chat-actions] INTERACTION_FAILED'); }
     return;
   }
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-analis:')) {
+    try { await esportsService.handleVote(interaction); }
+    catch { console.error('[esports] VOTE_FAILED'); }
+    return;
+  }
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-share:')) {
     try { await communitySharing.handleButton(interaction); }
     catch { console.error('[community-share] INTERACTION_FAILED'); }

@@ -5,6 +5,43 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.80.0] - 2026-10-24
+
+### Added
+
+- Hengs Analis match days. Henry chose "Per hari tanding", "jadwal dan rekor musim, kalau bisa kasih tebak juara dan
+  rekap malam yang berapa yang bener", and asked for previews that look like broadcast screens from his GPT assets.
+  Spec: docs/superpowers/specs/2026-10-24-hengs-analis-harian-design.md.
+  - Preview at 08:00 WIB on match days: one card per match with the WIB time, best-of, head-to-head this season and
+    each team's three most picked heroes, plus two buttons to guess the winner. The latest choice counts until the
+    match starts; the reply is private. A changed schedule edits the posted preview. Busy days (more than 4 matches)
+    get one schedule card plus up to 4 featured previews, Indonesian or Philippine teams first.
+  - Night recap after the day's last match (at the latest 23:30 WIB): results, most picked and most banned hero, the
+    best win rate from three picks, blue versus red, MVPs, and the share of voters who guessed right per match.
+  - Event recap once after the grand final: champion, runner-up, finals MVP, top 5 picks and bans, longest and
+    shortest game, blue versus red and the three best guessers (names without pings).
+  - Watchlist: MPL ID S18 Regular Season (season records) and Playoffs, Esports Nations Cup 2026 Group Stage and
+    Playoffs, M8 World Championship, plus a daily prefix search that adds new M8 stage pages. Titles VERIFIED with the
+    Liquipedia API on 2026-10-24; still one revisions request per check, and one fresh check from 07:30 WIB.
+  - Cards drawn by Hengs (no logos or hero art); optional backgrounds from Henry's GPT assets:
+    `assets/esports/preview-bg.png` (1600x900) and `assets/esports/recap-bg.png` (square). Captions are templates; the
+    LLM caster with a fact check is v1.81.0.
+- Modules: `src/esports/watch.js`, `schedule.js`, `predictions.js`, `daily.js`, `daily-cards.js`; the store keeps
+  daily claims (claim before send, no resend), votes (deleted 7 days after the event recap, 30 days at most) and
+  discovered pages. Failed sends go to bot-settings through the v1.79.2 reporter.
+
+### Changed
+
+- Series cards and their 72-hour upkeep still follow a fresh Liquipedia check; match-day posts run every tick from the
+  cache. `index.js` routes `hengs-analis:` buttons to the vote handler. The pinned guide explains previews and guesses.
+- Release pins: v1.79.3 bumped the package to 1.79.3 but left `test/cloud-release.test.js` at 1.79.2; both are 1.80.0
+  now.
+
+### Verification
+
+- Node 22 full suite 920/920 via PowerShell. Sample preview, night recap and event recap cards rendered from mock
+  matches.
+
 ## [1.79.3] - 2026-10-24
 
 ### Changed

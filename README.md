@@ -2,9 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.79.3 - welcome and leave cards use the new Hengs bot logo with a safe legacy
-fallback. v1.79.2 reports failed sends (welcome, leave, boost, news, memes, analyst cards) in bot-settings with the missing permissions named,
-reported in bot-settings with the missing permissions named, once per 6 hours per failure. Builds on v1.79.1: Hengs
+**Current checkpoint:** Hengs Discord v1.80.0 - Hengs Analis match days: at 08:00 WIB a broadcast-style preview card
+per match (season record, go-to heroes) with buttons to guess the winner, a night recap card (results, hero numbers,
+how many guessed right) and an event recap card after the grand final; the watchlist adds MPL ID S18, the Esports
+Nations Cup 2026 and M8. Builds on v1.79.3 (welcome and leave cards use the new Hengs bot logo with a safe legacy
+fallback), v1.79.2 (failed sends reported in bot-settings with the missing permissions named, once per 6 hours per
+failure), v1.79.1: Hengs
 chat no longer opens an unsure answer with "maaf" (code drops
 the apology; the honest game facts prompt stays). Builds on v1.79.0 Hengs Coach v2: one team practice target with
 `/scrim target` and a

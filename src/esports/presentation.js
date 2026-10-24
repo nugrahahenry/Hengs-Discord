@@ -1,6 +1,7 @@
 'use strict';
 
-const { ContainerBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder,
+  TextDisplayBuilder, MessageFlags } = require('discord.js');
 const { wibDate } = require('./card');
 
 const REACTIONS = Object.freeze(['🔥', '🤔', '⚠️']);
@@ -31,11 +32,35 @@ function seriesPayload(match, { league = '' } = {}, png, { updatedAt = null } = 
     flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
+const VOTE_PREFIX = 'hengs-analis:vote:';
+
+function cardPayload(png, name, description, lines, rows = []) {
+  const card = new ContainerBuilder().setAccentColor(0x8b5cff).addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+    new MediaGalleryItemBuilder().setURL(`attachment://${name}`).setDescription(description.slice(0, 1000))));
+  card.addTextDisplayComponents(text(lines.filter(Boolean).join('\n')));
+  if (rows.length) card.addActionRowComponents(...rows);
+  return { components: [card.toJSON()], files: [{ attachment: png, name }], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+}
+
+// The morning preview of one match: card, caption, credit and the two prediction buttons.
+function previewPayload(match, png, { key, caption }) {
+  const [a, b] = match.teams;
+  const row = new ActionRowBuilder().addComponents([a, b].map((team, i) => new ButtonBuilder()
+    .setCustomId(`${VOTE_PREFIX}${key}:${i + 1}`).setLabel(`Tebak ${String(team.ticker || team.name).slice(0, 60)}`)
+    .setStyle(i ? ButtonStyle.Danger : ButtonStyle.Primary)));
+  return cardPayload(png, 'hengs-preview.png', `Preview: ${a.name} vs ${b.name}`,
+    [caption, `-# Data: [Liquipedia](${pageUrl(match.page)}) (CC-BY-SA 3.0)`], [row]);
+}
+
+// A busy day's schedule, the night recap or the event recap.
+const listPayload = (png, description, caption) => cardPayload(png, 'hengs-rekap.png', description, [caption, '-# Data: Liquipedia (CC-BY-SA 3.0)']);
+
 const GUIDE = [
   '## 📊 Hengs Analis',
   'Rekap MLBB pro dari Hengs: hasil series, draft hero, dan catatan dari angka.',
   '**Yang diliput**\nMPL PH dan MPL ID, plus turnamen internasional (M-series, MSC, Esports Nations Cup) begitu jadwalnya ada di Liquipedia.',
   '**Kapan posting**\nSetelah series selesai dan hasilnya masuk Liquipedia, biasanya 20 sampai 60 menit kemudian. Kalau datanya dikoreksi (misalnya MVP baru diisi), kartunya ikut diperbarui.',
+  '**Preview dan tebakan**\nDi hari tanding, jam 08:00 WIB Hengs kirim preview tiap laga: rekor musim ini dan hero andalan kedua tim, plus tombol buat nebak pemenang (dikunci pas laga mulai, cuma buat seru-seruan). Malamnya ada rekap hari itu, termasuk berapa persen yang nebak bener, dan setelah grand final ada rekap event.',
   '**Cara baca kartu**\nSkor besar di atas. Tiap game: durasi, pemenang, sisi biru atau merah, objektif yang dipilih, 5 pick tiap tim, lalu ban (tulisan redup).',
   '**Reaksi**\n🔥 keren · 🤔 bingung bacanya · ⚠️ datanya salah (Hengs cek ulang dan kabarin admin)',
   '**Kenapa nggak ada screenshot?**\nAturan Moonton melarang repost logo, foto dan siaran mereka. Jadi Hengs bikin kartu sendiri dari data teks.',
@@ -53,4 +78,4 @@ function guidePayload({ banner = null } = {}) {
     flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
-module.exports = { seriesPayload, guidePayload, pageUrl, REACTIONS, isWarning, GUIDE };
+module.exports = { seriesPayload, guidePayload, previewPayload, listPayload, pageUrl, REACTIONS, isWarning, GUIDE, VOTE_PREFIX };

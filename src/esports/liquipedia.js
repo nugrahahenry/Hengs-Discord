@@ -15,7 +15,7 @@ function createLiquipedia({ fetch = fetchBounded, now = Date.now, sleep = ms => 
   let last = -Infinity;
   let queue = Promise.resolve();
   // One request at a time, spaced, whoever calls.
-  function get(params) {
+  function get(params, pick = query => query?.pages) {
     const run = queue.then(async () => {
       const wait = last + SPACING_MS - now();
       if (wait > 0) await sleep(wait);
@@ -26,8 +26,9 @@ function createLiquipedia({ fetch = fetchBounded, now = Date.now, sleep = ms => 
         data = JSON.parse((await fetch(url, { hosts: ['liquipedia.net'], types: ['application/json'], maxBytes: 4 * 1024 * 1024,
           timeoutMs: 15_000, userAgent: USER_AGENT, gzip: true })).toString('utf8'));
       } catch { throw fail(); }
-      if (data?.error || !Array.isArray(data?.query?.pages)) throw fail();
-      return data.query.pages;
+      const list = pick(data?.query);
+      if (data?.error || !Array.isArray(list)) throw fail();
+      return list;
     });
     queue = run.catch(() => {});
     return run;
@@ -47,6 +48,8 @@ function createLiquipedia({ fetch = fetchBounded, now = Date.now, sleep = ms => 
   return {
     revisions: titles => read(titles, 'ids|timestamp'),
     contents: titles => read(titles, 'ids|timestamp|content'),
+    prefixSearch: async prefix => (await get({ list: 'prefixsearch', pssearch: prefix, pslimit: '50' }, query => query?.prefixsearch))
+      .map(page => page?.title).filter(title => typeof title === 'string'),
   };
 }
 

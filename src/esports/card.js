@@ -94,13 +94,31 @@ function loadFonts() {
   }
 }
 
-// The bundled background, if Henry has added it. A missing or broken file falls back to the gradient.
-async function defaultBackground() {
+// A bundled background, if Henry has added it. A missing or broken file falls back to the gradient.
+async function loadArt(file) {
   try {
-    if (!fs.statSync(BACKGROUND).isFile()) return null;
-    const image = await require('@napi-rs/canvas').loadImage(BACKGROUND);
+    if (!fs.statSync(file).isFile()) return null;
+    const image = await require('@napi-rs/canvas').loadImage(file);
     return image.width && image.height ? image : null;
   } catch { return null; }
+}
+
+// Henry's art scaled to cover, or the Aurora gradient, under the dark panel every Analis card sits on.
+function paint(ctx, width, height, art) {
+  if (art) {
+    const scale = Math.max(width / art.width, height / art.height);
+    ctx.drawImage(art, (width - art.width * scale) / 2, (height - art.height * scale) / 2, art.width * scale, art.height * scale);
+  } else {
+    const base = ctx.createLinearGradient(0, 0, width, height);
+    base.addColorStop(0, '#120B35'); base.addColorStop(0.5, '#10183A'); base.addColorStop(1, '#062D48');
+    ctx.fillStyle = base; ctx.fillRect(0, 0, width, height);
+    for (const [x, y, r, color] of [[220, 120, 520, 'rgba(139,92,255,0.35)'], [width - 180, height - 120, 620, 'rgba(53,217,255,0.22)']]) {
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+      glow.addColorStop(0, color); glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, width, height);
+    }
+  }
+  ctx.fillStyle = C.panel; ctx.fillRect(48, 40, width - 96, height - 80);
 }
 
 function fitText(ctx, value, x, y, { size, min = size, family, color, width, align = 'left' }) {
@@ -115,26 +133,13 @@ const GAME_HEIGHT = 196;
 async function renderSeriesCard(match, meta, { background } = {}) {
   loadFonts();
   const content = cardContent(match, meta);
-  const art = background === undefined ? await defaultBackground() : background;
+  const art = background === undefined ? await loadArt(BACKGROUND) : background;
   const { createCanvas } = require('@napi-rs/canvas');
   // Games, MVP and notes, then room for the footer line so it never touches the last note.
   const height = Math.max(900, 330 + content.games.length * GAME_HEIGHT + 60 + content.notes.length * 44 + 120);
   const canvas = createCanvas(WIDTH, height);
   const ctx = canvas.getContext('2d');
-  if (art) {
-    const scale = Math.max(WIDTH / art.width, height / art.height);
-    ctx.drawImage(art, (WIDTH - art.width * scale) / 2, (height - art.height * scale) / 2, art.width * scale, art.height * scale);
-  } else {
-    const base = ctx.createLinearGradient(0, 0, WIDTH, height);
-    base.addColorStop(0, '#120B35'); base.addColorStop(0.5, '#10183A'); base.addColorStop(1, '#062D48');
-    ctx.fillStyle = base; ctx.fillRect(0, 0, WIDTH, height);
-    for (const [x, y, r, color] of [[220, 120, 520, 'rgba(139,92,255,0.35)'], [1420, height - 120, 620, 'rgba(53,217,255,0.22)']]) {
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
-      glow.addColorStop(0, color); glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glow; ctx.fillRect(0, 0, WIDTH, height);
-    }
-  }
-  ctx.fillStyle = C.panel; ctx.fillRect(48, 40, WIDTH - 96, height - 80);
+  paint(ctx, WIDTH, height, art);
   ctx.textBaseline = 'alphabetic';
   fitText(ctx, content.title.toUpperCase(), 96, 112, { size: 40, min: 28, family: 'Analis Bold', color: C.accent, width: 1000 });
   if (content.date) fitText(ctx, content.date, WIDTH - 96, 112, { size: 32, min: 24, family: 'Analis Text', color: C.muted, width: 420, align: 'right' });
@@ -162,4 +167,4 @@ async function renderSeriesCard(match, meta, { background } = {}) {
   return canvas.toBuffer('image/png');
 }
 
-module.exports = { cardContent, notesFor, renderSeriesCard, wibDate, WIDTH };
+module.exports = { C, cardContent, fitText, loadArt, loadFonts, notesFor, paint, renderSeriesCard, wibDate, WIDTH };
