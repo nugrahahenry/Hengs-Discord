@@ -94,6 +94,15 @@ const CHAT_VISIBILITIES = new Set(['shared', 'private', 'coach']);
 // Textbook exam 2026-10-23: without this the model invented heroes, items, spells, objectives and patch numbers.
 const GAME_FACTS_RULE = 'Fakta game (nama hero, skill, item, battle spell, objective, patch, angka, jadwal atau juara turnamen): jawab hanya kalau kamu yakin. Kalau nggak yakin atau namanya nggak kamu kenal, bilang terus terang nggak tahu, jangan mengarang nama, angka, atau detail. Pengetahuanmu bisa ketinggalan patch terbaru, jadi untuk info terbaru sarankan cek patch notes atau sumber resmi. Kalau pertanyaannya berisi anggapan yang belum tentu benar, koreksi dulu.';
 
+// Henry 2026-10-24: unsure answers should not open with "maaf", like the coach's. Telling the model so in the prompt
+// cost honesty (an A/B probe: a fake item got invented stats 3 of 4 times, 0 of 3 with the rule above), so code drops
+// an apology that only introduces not knowing. Condolences and polite refusals keep theirs.
+const SORRY_OPENER = /^\s*(?:mohon\s+)?maaf(?:\s+ya)?[\s,!.]*(?=(?:aku|saya)\s+(?:belum|nggak|ngga|gak|ga|tidak|kurang)\s+(?:tahu|yakin|punya|menemukan|nemu|kenal|dapat|dapet)\b)/i;
+function dropSorryOpener(reply) {
+  const rest = String(reply).replace(SORRY_OPENER, '');
+  return rest === reply ? reply : rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
 const SYSTEM_PROMPT = `Kamu adalah bot AI Hengs di server Discord milik Henry.
 Kepribadian kamu:
 - Pakai aku/kamu, bukan saya/Anda. Ikuti tingkat santai percakapan terbaru tanpa meniru typo.
@@ -235,7 +244,8 @@ async function chat(userMessage, conversationKey, context = {}) {
     ...(visibility === 'private' && context.memory?.recall ? require('./selective-memory').memoryMessages(context.memory.recall) : []),
     ...selectHistory(history, pendingUser.content, visibility), ...data, pendingUser];
   // A guard (coach mode) rewrites a real model reply before it is stored or returned; fixed replies below skip it.
-  const finish = typeof context?.guard === 'function' ? context.guard : reply => reply;
+  const guard = typeof context?.guard === 'function' ? context.guard : reply => reply;
+  const finish = reply => guard(dropSorryOpener(reply));
   // gpt-oss memakai sebagian budget untuk reasoning internal. 400 token bisa habis
   // sebelum jawaban terlihat, jadi sisakan ruang yang cukup untuk balasan Discord.
   // Coach mode asks for a lower temperature so the model keeps to its rules.
@@ -486,6 +496,7 @@ module.exports = {
   // Vision safety check for outside memes. Groq only; without it outside Lemmy memes are skipped.
   reviewMemeImage: groq ? createVisionReview({ client: groq, model: process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b' }) : null,
   buildConversationKey,
+  dropSorryOpener,
   buildSystemPrompt,
   createConversationLease,
   chat,

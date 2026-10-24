@@ -2,6 +2,20 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.79.1 no maaf opener in Hengs chat (committed, not deployed) - 2026-10-24
+
+- Henry: "Boleh disamain, kasih aja ke chatt hengs", about the coach's rule for unsure answers.
+- Shipped: code drops a "Maaf, aku belum tahu / punya / yakin ..." opener from every model reply (`dropSorryOpener`,
+  src/agent.js). The honest game facts prompt is unchanged; the coach keeps its own rule.
+- Not shipped, with evidence in .cloud/evals/textbook-2026-10-23:
+  - Two drafts that copied the coach's "start from what you know" invented a fake hero's ultimate, a fake item's
+    passive, a "latest" MPL ID champion and Ling skill names (answers-fun, answers-fun2).
+  - A draft that only banned the maaf opener in the prompt: the fake item got invented stats 3 of 4 times, against 1
+    of 4 with the old prompt (answers-fun3, answers-abnew1-3, answers-abold1-3, answers-final).
+- Known limit, unchanged: fake spells and objectives (Phantom Step, Naga Emas) and the "Lord removed" premise still
+  get wrong answers under both prompts, and the fake item sometimes too. Chat has no data card. Follow-up idea: give
+  general chat the coach's Liquipedia hero dictionary card when a hero is named.
+
 ## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24
 
 - Henry: "Ya, gabung coach-v2 ke main sebagai versi berikutnya. Beresin dulu 1 test yang gagal, push main, jangan

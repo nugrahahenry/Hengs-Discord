@@ -105,6 +105,23 @@ test('both chat prompts make Hengs admit unknown game facts instead of inventing
   }
 });
 
+// Henry 2026-10-24: unsure answers should not open with "maaf" (like the coach). In an A/B probe a prompt rule against
+// it made the model invent a fake item's stats 3 of 4 times (old wording 0 of 3), so the prompt stays and code drops
+// an apology that only introduces not knowing.
+test('chat drops a "maaf" opener that introduces not knowing, and keeps condolences and polite refusals', () => {
+  const { dropSorryOpener } = require('../src/agent');
+  assert.equal(dropSorryOpener('Maaf, aku belum tahu pasti efek pasif Mahkota Sangkala. Coba cek patch notes.'),
+    'Aku belum tahu pasti efek pasif Mahkota Sangkala. Coba cek patch notes.');
+  assert.equal(dropSorryOpener('Maaf ya, aku nggak punya data win-rate resmi Fanny.'), 'Aku nggak punya data win-rate resmi Fanny.');
+  assert.equal(dropSorryOpener('Mohon maaf, saya tidak yakin juara terbarunya.'), 'Saya tidak yakin juara terbarunya.');
+  assert.equal(dropSorryOpener('maaf aku belum menemukan hero itu'), 'Aku belum menemukan hero itu');
+  for (const kept of ['Maaf banget dengar itu, semoga kamu kuat ya.', 'Maaf, aku nggak bisa bantu yang itu.',
+    'Aku belum tahu, cek patch notes ya.', 'Hai! Maaf, aku belum tahu.']) assert.equal(dropSorryOpener(kept), kept);
+  // Every model reply goes through it before the coach guard and before it is stored.
+  const source = fs.readFileSync(path.join(ROOT, 'src', 'agent.js'), 'utf8');
+  assert.match(source, /const finish = reply => guard\(dropSorryOpener\(reply\)\);/);
+});
+
 test('AI module can load during secretless immutable release acceptance', () => {
   const env = { ...process.env };
   delete env.GROQ_API_KEY;

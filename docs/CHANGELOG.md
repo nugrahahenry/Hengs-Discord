@@ -5,6 +5,32 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.79.1] - 2026-10-24
+
+### Added
+
+- Mascot banners and a sticker set from Henry's GPT assets (commit b7ad9e9): `assets/brand/` (bot character sheet,
+  coach poses, Hengs Family crest and profile set, server, general, news and memes banners) and `assets/stickers/`
+  (8 stickers with a README). No feature uses them yet.
+
+### Changed
+
+- Hengs chat no longer opens an unsure answer with "maaf", like the coach. Henry: "Boleh disamain, kasih aja ke chatt
+  hengs". Code (`dropSorryOpener` in src/agent.js, run before the coach guard and before history) drops a "Maaf, aku
+  belum tahu / punya / yakin ..." opener and keeps the rest. Condolences ("Maaf banget dengar itu") and polite
+  refusals ("Maaf, aku nggak bisa ...") keep theirs. The prompt's honest game facts rule is unchanged.
+- Why not the coach's whole rule: chat has no data card. Live probes on 2026-10-24 where chat had to start from what
+  it knows invented a fake hero's ultimate, a fake item's passive, a "latest" MPL ID champion and Ling skill names.
+  A prompt line that only banned the maaf opener still hurt honesty: in an A/B the fake item got invented stats 3 of 4
+  times with it and 1 of 4 without it. So the tone moved into code, where it cannot change what the model claims.
+
+### Verification
+
+- Node 22 full suite 889 total, 888 pass, 1 skip in an isolated worktree with only this change (the skip is the
+  folder-name check in wa-recovery-alerts). Live: the unsure answers to textbook exam C5, C6 and C7 now start with
+  "Aku belum ..." and stay honest. Answers in .cloud/evals/textbook-2026-10-23 (answers-fun*, answers-ab*,
+  answers-final).
+
 ## [1.79.0] - 2026-10-24
 
 Hengs Coach v2, merged from branch `coach-v2` (its provisional v1.78.0 and v1.79.0).
