@@ -601,7 +601,8 @@ client.on(Events.MessageCreate, async (msg) => {
             content: result.created
               ? (promptRoute.kind === 'project_draft'
                 ? 'Rencana tugas proyek privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang menentukan langkah berikutnya.'
-                : 'Draft pengumuman privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang memutuskan publish atau jadwal.')
+                : `Draft pengumuman privat sudah masuk ke \`bot-settings\`. Review di sana, lalu owner yang memutuskan publish atau jadwal.${
+                  promptRoute.preparedDraft ? ` ${require('./ops/appreciation').TAG_TIP}` : ''}`)
               : 'Draft dari prompt ini sudah pernah dibuat.',
             allowedMentions: { parse: [] },
           });
@@ -649,8 +650,7 @@ client.on(Events.MessageCreate, async (msg) => {
         : promptRoute.content;
     await msg.reply({
       content,
-      components: promptRoute.kind === 'operation_questions' && promptRoute.operation === 'appreciation'
-        ? require('./ops/appreciation-form').appreciationFormRow(msg.author.id) : [],
+      components: require('./ops/appreciation-form').appreciationRows(promptRoute, msg.author.id),
       allowedMentions: { parse: [] },
     });
     return;

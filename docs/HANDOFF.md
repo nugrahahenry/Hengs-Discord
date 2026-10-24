@@ -2,6 +2,20 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 appreciation follow-up questions (committed locally, not pushed, not deployed) - 2026-10-25
+
+- Henry: when he only says who won ("bikin apresiasi Hengs Family karena juara 1"), Hengs should ask for the
+  tournament, the date and the players, and mention that players can be tagged on the draft later.
+- `parseAppreciationPrompt` now returns `appreciation_missing` (with `data`, `missing`, `content`) for a competition
+  result missing any of those; `appreciationRows` in `src/ops/appreciation-form.js` puts **Lengkapi detail** and
+  **Bikin sekarang** under the reply on both the mention route and `/hengs ask`. The hub handles
+  `ops:appreciationfill|appreciationnow:<requester>:<key>`; the pending details live in memory for 15 minutes.
+- `TAG_TIP` (Tag anggota, up to 8, pinged only on publish) is shown in the follow-up, the form confirmation, the
+  prompt-draft confirmation and the appreciation help text.
+- QA: full offline suite 936/936 on Node 22.23.3, 0 skipped; focused checks 66/66.
+- Push held: `main` also carries the two unpushed v1.82.2 welcome commits, whose checkpoint says push is on hold at
+  Henry's request. Push them together on Henry's word.
+
 ## Hengs Discord v1.82.2 welcome and leave galaxy cards (committed locally, not deployed) - 2026-10-25
 
 - Welcome and leave cards now select separate production backgrounds, each with a restrained galaxy haze overlay.

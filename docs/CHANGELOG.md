@@ -5,6 +5,30 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.83.0] - 2026-10-25
+
+### Added
+
+- An appreciation request for a competition result (juara, menang, MVP, runner-up, finalis, peringkat) that leaves out
+  the tournament, the date or the players now gets a short follow-up instead of a thin card. Hengs lists only what is
+  missing and offers two buttons: **Lengkapi detail** opens the appreciation form with the recipient and achievement
+  already filled in, and **Bikin sekarang** drafts the card with what is known. A tournament named inside the
+  achievement ("juara 1 turnamen kampus", "MPL", "Cup") counts as known. Other appreciations ("membantu komunitas")
+  still draft at once.
+- The follow-up, the form confirmation, the confirmation for appreciations drafted from a prompt and the appreciation
+  help text all say that players can be tagged on the draft with **Tag anggota** (up to 8, pinged only when published).
+
+### Notes
+
+- The known details wait in memory for 15 minutes, bound to the requester (`src/ops/appreciation-pending.js`). After a
+  restart, **Lengkapi detail** opens an empty form and **Bikin sekarang** says the session expired. Both buttons check
+  the requester, the home guild and editor access, and a double press drafts once.
+
+### Verification
+
+- Full offline suite passed 936/936 on Node 22.23.3 (0 skipped). Focused appreciation, `/hengs`, release and docs
+  checks passed 66/66. `git diff --check` passed.
+
 ## [1.82.2] - 2026-10-25
 
 ### Changed

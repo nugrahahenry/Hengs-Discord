@@ -69,6 +69,28 @@ function readAppreciationDraft(draft) {
   }
 }
 
+// Henry, 2026-10-25: a win announced without its tournament, date or players should make Hengs ask, not draft a thin
+// card. Only competition results; a tournament named inside the achievement ("juara 1 turnamen kampus") counts.
+const COMPETITION = /\b(juara|menang|champion|runner[\s-]?up|mvp|finalis|peringkat)\b/i;
+const NAMED_EVENT = /\b(turnamen|tournament|cup|piala|liga|league|kejuaraan|championship|series|mpl|mdl|msc)\b/i;
+const ASK = Object.freeze({ occasion: 'Nama turnamen atau acaranya apa?', date: 'Tanggalnya kapan?',
+  players: 'Siapa aja pemainnya? Cukup nama biasa (maksimal 8, contoh: Raka (Sky))' });
+const TAG_TIP = 'Pemain bisa ditag di draft lewat tombol **Tag anggota** (maksimal 8 orang, baru ke-ping pas dipublish).';
+
+function missingDetails(data) {
+  if (!COMPETITION.test(data.achievement)) return [];
+  return [!data.occasion && !NAMED_EVENT.test(data.achievement) && 'occasion', !data.date && 'date', !data.players && 'players']
+    .filter(Boolean);
+}
+
+function missingQuestion(data, missing) {
+  const { escapeMarkdown } = require('discord.js');
+  return [`🏆 Siap bikin kartu apresiasi buat **${escapeMarkdown(data.recipient)}** (${escapeMarkdown(data.achievement)})!`,
+    'Biar kartunya lengkap, ini yang belum kamu sebut:', ...missing.map(key => `• ${ASK[key]}`),
+    'Pencet **Lengkapi detail** buat isi sisanya (nama dan pencapaian udah keisi), atau **Bikin sekarang** kalau memang belum ada.',
+    TAG_TIP].join('\n');
+}
+
 function parseAppreciationPrompt(prompt) {
   const match = prompt.match(/^(?:tolong\s+)?(?:buat(?:kan)?|bikin(?:in|kan)?|siapkan|susun)\s+(?:(?:draft|kartu|pengumuman)\s+)?(?:apresiasi|achievement|hall\s+of\s+fame)\b\s*(.*)$/i);
   if (!match) return null;
@@ -86,14 +108,20 @@ function parseAppreciationPrompt(prompt) {
     data[key] = field[2];
   }
   try {
+    const valid = validateAppreciation(data);
+    const missing = missingDetails(valid);
+    if (missing.length) {
+      return { kind: 'appreciation_missing', operation: 'appreciation', data: valid, missing, content: missingQuestion(valid, missing) };
+    }
     return {
       kind: 'ops_draft', operation: 'announcement',
       brief: prompt, titleOverride: null,
-      preparedDraft: buildAppreciationDraft(data),
+      preparedDraft: buildAppreciationDraft(valid),
     };
   } catch {
     return question;
   }
 }
 
-module.exports = { formatAppreciation, buildAppreciationDraft, isAppreciationDraft, parseAppreciationPrompt, readAppreciationDraft, validateAppreciation };
+module.exports = { formatAppreciation, buildAppreciationDraft, isAppreciationDraft, parseAppreciationPrompt, readAppreciationDraft,
+  validateAppreciation, missingDetails, TAG_TIP };

@@ -6,7 +6,8 @@ const { resolveLanguage, resolveReplyStyle } = require('../guilds/config-store')
 const { parseScheduleInput } = require('../ops/time');
 const { applyFocusAction, resolvePrompt, isGuildManager } = require('../prompt-assistant');
 const { formatOperationStatus } = require('../prompt-operations');
-const { appreciationFormRow } = require('../ops/appreciation-form');
+const { appreciationRows } = require('../ops/appreciation-form');
+const { TAG_TIP } = require('../ops/appreciation');
 const { isEditor } = require('../ops/permissions');
 const { buildCommunityHelp, isHallGallery, botCommands } = require('../community-help');
 const { issueReview, getDraftForRequester } = require('../prompt-review');
@@ -324,7 +325,8 @@ async function execute(interaction, {
             content: result.created
               ? (promptRoute.kind === 'project_draft'
                 ? `🧭 Rencana tugas **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner menentukan langkah berikutnya.`
-                : `📋 Draft **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner yang memutuskan publish atau jadwal.`)
+                : `📋 Draft **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner yang memutuskan publish atau jadwal.${
+                  promptRoute.preparedDraft ? ` ${TAG_TIP}` : ''}`)
               : 'ℹ️ Draft dari prompt ini sudah pernah dibuat.',
             allowedMentions: { parse: [] },
           });
@@ -367,9 +369,7 @@ async function execute(interaction, {
       return;
     }
     if (promptRoute.kind !== 'community_plan') {
-      await replyPrivate(interaction, promptRoute.content,
-        promptRoute.kind === 'operation_questions' && promptRoute.operation === 'appreciation'
-          ? appreciationFormRow(interaction.user.id) : []);
+      await replyPrivate(interaction, promptRoute.content, appreciationRows(promptRoute, interaction.user.id));
       return;
     }
     const review = issueReview({

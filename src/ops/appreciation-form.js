@@ -2,6 +2,7 @@
 
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { createHash } = require('node:crypto');
+const pending = require('./appreciation-pending');
 
 function appreciationRevision(draft) {
   return createHash('sha256').update(JSON.stringify([draft.title, draft.body, draft.lastRevisedAt || '', draft.appreciationTags || null])).digest('hex').slice(0, 16);
@@ -12,6 +13,20 @@ function appreciationFormRow(requesterId) {
   return [new ActionRowBuilder().addComponents(new ButtonBuilder()
     .setCustomId(`ops:appreciationnew:${requesterId}`)
     .setLabel('Isi kartu apresiasi').setStyle(ButtonStyle.Primary))];
+}
+
+// Asked when a competition result comes without its tournament, date or players: fill them in, or draft as it is.
+function appreciationAskRow(requesterId, key) {
+  if (!/^\d{15,22}$/.test(requesterId || '') || !/^[a-f0-9]{8}$/.test(key || '')) return [];
+  return [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`ops:appreciationfill:${requesterId}:${key}`).setLabel('Lengkapi detail').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`ops:appreciationnow:${requesterId}:${key}`).setLabel('Bikin sekarang').setStyle(ButtonStyle.Secondary))];
+}
+
+// Components under a prompt reply: the ask buttons when details are missing, the form button for a bare request.
+function appreciationRows(route, requesterId) {
+  if (route?.kind === 'appreciation_missing') return appreciationAskRow(requesterId, pending.remember(requesterId, route.data));
+  return route?.kind === 'operation_questions' && route.operation === 'appreciation' ? appreciationFormRow(requesterId) : [];
 }
 
 function appreciationModal(requesterId, { data = {}, draft } = {}) {
@@ -33,4 +48,4 @@ function appreciationModal(requesterId, { data = {}, draft } = {}) {
         .setValue(id === 'players' ? (data[id] || '').replaceAll('; ', '\n') : data[id] || ''))));
 }
 
-module.exports = { appreciationFormRow, appreciationModal, appreciationRevision };
+module.exports = { appreciationAskRow, appreciationFormRow, appreciationModal, appreciationRevision, appreciationRows };

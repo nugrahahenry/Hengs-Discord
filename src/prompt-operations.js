@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseAppreciationPrompt } = require('./ops/appreciation');
+const { parseAppreciationPrompt, TAG_TIP } = require('./ops/appreciation');
 
 // Adapter prompt-first untuk Ops Hub dan Event Hub.
 // Modul ini hanya mem-parsing input bounded. Penyimpanan, scheduler, dan
@@ -89,6 +89,7 @@ function buildOperationQuestions(kind = 'operation') {
       '`Bikin apresiasi buat Tim Orion karena juara 1 turnamen kampus`',
       'Kalau ada, tambahkan `; momen Campus Cup; tanggal 16 Oktober 2026`.',
       'Pakai nama biasa, tanpa mention/link. Aku tidak menebak tanggal atau hasil lomba.',
+      TAG_TIP,
       'Draft masuk ke `bot-settings`. Belum diumumkan, tidak memberi role atau poin otomatis.',
     ].join('\n');
   }

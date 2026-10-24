@@ -417,3 +417,49 @@ test('scheduled publication retains graphic and exactly-once claims', async t =>
   assert.deepEqual(sent[0].payload.files[0].attachment, await renderAppreciationCard(data));
   assert.equal(store.getDraft(draft.id).status, 'published');
 });
+
+test('a competition result without tournament, date or players asks first with the tag tip; other appreciations draft at once', () => {
+  const ask = parseOperationPrompt('bikin apresiasi Hengs Family karena juara 1');
+  assert.equal(ask.kind, 'appreciation_missing'); assert.equal(ask.operation, 'appreciation');
+  assert.deepEqual(ask.missing, ['occasion', 'date', 'players']);
+  assert.deepEqual(ask.data, { recipient: 'Hengs Family', achievement: 'juara 1' });
+  for (const line of ['Nama turnamen atau acaranya apa?', 'Tanggalnya kapan?', 'Siapa aja pemainnya?', 'Tag anggota']) assert.ok(ask.content.includes(line), line);
+  assert.deepEqual(parseOperationPrompt('bikin apresiasi Tim Orion karena juara 1 turnamen kampus; tanggal 25 Oktober 2026').missing, ['players']);
+  assert.equal(parseOperationPrompt('bikin apresiasi buat Tim Orion karena membantu komunitas').kind, 'ops_draft');
+  assert.equal(parseOperationPrompt('bikin apresiasi Raka karena jadi MVP; momen Campus Cup; tanggal 1 Nov 2026; pemain Raka').kind, 'ops_draft');
+});
+
+test('pending appreciation details expire after 15 minutes and belong to one requester', () => {
+  const pending = require('../src/ops/appreciation-pending');
+  const key = pending.remember(OWNER, { recipient: 'A', achievement: 'juara 2' }, 1000);
+  assert.match(key, /^[a-f0-9]{8}$/);
+  assert.deepEqual(pending.recall(key, OWNER, 1000 + 60_000), { recipient: 'A', achievement: 'juara 2' });
+  assert.equal(pending.recall(key, OTHER, 1000 + 60_000), null);
+  assert.equal(pending.recall(key, OWNER, 1000 + 15 * 60_000), null);
+});
+
+test('Lengkapi opens the form with what Hengs already has; Bikin sekarang drafts once; both stay with the requester', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, BOT_SETTINGS_CHANNEL_ID: 'settings' });
+  const pending = require('../src/ops/appreciation-pending');
+  const { appreciationAskRow } = require('../src/ops/appreciation-form');
+  const key = pending.remember(OWNER, { recipient: 'Hengs Family', achievement: 'juara 1' });
+  const ids = appreciationAskRow(OWNER, key)[0].toJSON().components.map(c => c.custom_id);
+  assert.deepEqual(ids, [`ops:appreciationfill:${OWNER}:${key}`, `ops:appreciationnow:${OWNER}:${key}`]);
+  assert.deepEqual(appreciationAskRow(OWNER, 'nothex'), []);
+  const { interaction, sent } = fixture();
+  interaction.customId = ids[0];
+  await handleButton(interaction);
+  const form = interaction.modal.toJSON();
+  assert.equal(form.custom_id, `ops:appreciationform:${OWNER}`);
+  assert.equal(form.components[0].components[0].value, 'Hengs Family');
+  assert.equal(form.components[1].components[0].value, 'juara 1');
+  const stranger = fixture().interaction;
+  stranger.user = { id: OTHER }; stranger.customId = ids[1];
+  await handleButton(stranger);
+  assert.match(stranger.replyPayload.content, /khusus peminta/);
+  interaction.customId = ids[1];
+  await handleButton(interaction);
+  assert.equal(sent.length, 1); assert.match(interaction.editPayload.content, /Tag anggota/);
+  await handleButton(interaction);
+  assert.match(interaction.replyPayload.content, /kedaluwarsa/); assert.equal(sent.length, 1);
+});

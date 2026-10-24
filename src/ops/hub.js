@@ -14,7 +14,8 @@ const {
 const store = require('./store');
 const { formatWib, parseScheduleInput } = require('./time');
 const { isOwner, isEditor } = require('./permissions');
-const { buildAppreciationDraft, isAppreciationDraft, readAppreciationDraft, formatAppreciation } = require('./appreciation');
+const { buildAppreciationDraft, isAppreciationDraft, readAppreciationDraft, formatAppreciation, TAG_TIP } = require('./appreciation');
+const pending = require('./appreciation-pending');
 const { selectedTags, validateMembers } = require('./appreciation-tags');
 const { appreciationModal, appreciationRevision } = require('./appreciation-form');
 const { renderAppreciationCard } = require('../utils/appreciation-card');
@@ -495,6 +496,8 @@ async function handleButton(interaction, { agent } = {}) {
     await interaction.showModal(appreciationModal(interaction.user.id));
     return true;
   }
+  const ask = interaction.customId.match(/^ops:(appreciationfill|appreciationnow):(\d{15,22}):([a-f0-9]{8})$/);
+  if (ask) return handleAppreciationAsk(interaction, ask[1], ask[2], ask[3]);
 
   const [, action, draftId] = interaction.customId.split(':');
   // Draft dari Ops Hub awal memakai 12 hex; draft baru memakai 16 hex.
@@ -744,9 +747,41 @@ async function handleAppreciationForm(interaction) {
       externalId: `appreciation:${interaction.id}`,
     });
     await interaction.editReply({
-      content: result.created ? 'Kartu apresiasi siap direview di `bot-settings`. Belum diumumkan. Owner bisa mengedit, publish, atau menjadwalkannya.'
+      content: result.created ? `Kartu apresiasi siap direview di \`bot-settings\`. Belum diumumkan. Owner bisa mengedit, publish, atau menjadwalkannya. ${TAG_TIP}`
         : 'Draft dari form ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] },
     });
+  } catch {
+    console.warn('[ops] APPRECIATION_DRAFT_FAILED');
+    await interaction.editReply({ content: 'Draft belum bisa dibuat. Pastikan channel privat `bot-settings` tersedia, lalu coba lagi.', allowedMentions: { parse: [] } });
+  }
+  return true;
+}
+
+// Buttons under Hengs' follow-up questions: the form prefilled with what Hengs has, or a draft from that as it is.
+async function handleAppreciationAsk(interaction, action, requester, key) {
+  if (requester !== interaction.user?.id || !process.env.DISCORD_GUILD_ID
+    || interaction.guildId !== process.env.DISCORD_GUILD_ID || !isEditor(interaction)) {
+    await interaction.reply({ content: 'Tombol ini khusus peminta yang punya akses editor di server utama.', ephemeral: true });
+    return true;
+  }
+  const data = pending.recall(key, requester);
+  if (action === 'appreciationfill') {
+    await interaction.showModal(appreciationModal(requester, { data: data || {} }));
+    return true;
+  }
+  if (!data) {
+    await interaction.reply({ content: 'Sesi ini udah kedaluwarsa. Tulis lagi permintaan apresiasinya ya.', ephemeral: true });
+    return true;
+  }
+  pending.forget(key); // Before any await, so a double press drafts once.
+  await interaction.deferReply({ ephemeral: true });
+  try {
+    const result = await createDraftPanel(interaction.guild, {
+      ...buildAppreciationDraft(data), kind: 'announcement', source: 'discord', createdBy: requester,
+      externalId: `appreciation-now:${key}`,
+    });
+    await interaction.editReply({ content: result.created ? `Kartu apresiasi siap direview di \`bot-settings\`. Belum diumumkan. ${TAG_TIP}`
+      : 'Draft ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] } });
   } catch {
     console.warn('[ops] APPRECIATION_DRAFT_FAILED');
     await interaction.editReply({ content: 'Draft belum bisa dibuat. Pastikan channel privat `bot-settings` tersedia, lalu coba lagi.', allowedMentions: { parse: [] } });

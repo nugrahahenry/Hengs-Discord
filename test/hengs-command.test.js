@@ -101,12 +101,22 @@ test('/hengs appreciation asks via form and creates a prepared draft without inv
   await hengs.execute(question, deps);
   assertPrivate(question.replyPayload);
   assert.equal(question.replyPayload.components[0].toJSON().components[0].custom_id, `ops:appreciationnew:${USER}`);
-  const value = interaction({ subcommand: 'ask', prompt: 'Bikin apresiasi Tim Orion karena juara 1 turnamen kampus' });
+  // A competition result without date and players: Hengs asks first (Lengkapi detail, Bikin sekarang).
+  const partial = interaction({ subcommand: 'ask', prompt: 'Bikin apresiasi Tim Orion karena juara 1 turnamen kampus' });
+  partial.guild = { ownerId: USER };
+  await hengs.execute(partial, deps);
+  assertPrivate(partial.replyPayload);
+  assert.deepEqual(partial.replyPayload.components[0].toJSON().components.map(c => c.custom_id.split(':').slice(0, 2).join(':')),
+    ['ops:appreciationfill', 'ops:appreciationnow']);
+  assert.match(partial.replyPayload.content, /Tanggalnya kapan\?/); assert.match(partial.replyPayload.content, /Tag anggota/);
+  assert.equal(deps.calls.filter(call => call.draft).length, 0);
+  const value = interaction({ subcommand: 'ask', prompt: 'Bikin apresiasi Tim Orion karena juara 1 turnamen kampus; tanggal 25 Oktober 2026; pemain Raka (Sky), Dara' });
   value.guild = { ownerId: USER };
   await hengs.execute(value, deps);
   assert.equal(value.deferPayload.flags, MessageFlags.Ephemeral);
   assert.equal(deps.calls.filter(call => call.draft).length, 1);
   assert.match(deps.calls.find(call => call.draft).draft.body, /Penerima: Tim Orion/);
+  assert.match(value.editPayload.content, /Tag anggota/);
   assert.equal(deps.calls.some(call => call.chat), false);
 });
 

@@ -2,7 +2,11 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.82.0 - every finished pro series also gets a broadcast-style draft card per
+**Current checkpoint:** Hengs Discord v1.83.0 - an appreciation for a win that leaves out the tournament, the date or
+the players makes Hengs ask for just those, with **Lengkapi detail** (the form, name and achievement filled in) and
+**Bikin sekarang**, plus a note that players can be tagged on the draft with **Tag anggota**. Builds on v1.82.2
+(welcome and leave galaxy cards with an optional 3D mascot) and v1.82.0: every finished pro series also gets a
+broadcast-style draft card per
 game (blue and red side, hero roles, bans) in the same gallery, ready for Henry's GPT frame. Builds on v1.81.0: the
 Analis caster: an LLM writes caster-style lines for the match-day
 cards and answers Analis questions in #tanya-hengs, only from Hengs' own Liquipedia numbers (every number, hero and
