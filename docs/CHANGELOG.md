@@ -5,6 +5,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+### Developer tooling
+
+- Added an offline esports video lab for URL validation, metadata-state fixtures, bounded clip plans and candidate
+  scoreboard consistency checks. It performs no network requests and is not connected to the bot or Coach knowledge.
+  See `scripts/ESPORTS-VIDEO-LAB.md` for limitations and the supervised provider-evaluation gate.
+- Full offline suite passed 947/947 on Node 22.23.3 with zero skips, including 11 lab tests. Product version remains
+  1.83.0; this is experimental tooling, not an activated video extraction feature.
+
 ## [1.83.0] - 2026-10-25
 
 ### Added

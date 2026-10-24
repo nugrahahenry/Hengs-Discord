@@ -2,6 +2,28 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 offline esports video lab (not pushed, not deployed) - 2026-10-25
+
+- Henry requested autonomous observations from public MLBB broadcasts for all teams. This checkpoint is an isolated
+  experiment, not a live watcher or an automatic video extractor. No bot module imports it.
+- `scripts/esports-video-lab.js` validates public video URLs, fixture metadata, bounded archive clip plans and
+  scoreboard arithmetic. Every observation remains untrusted for Coach, including consistent numeric candidates.
+- The supplied YouTube page is an archived MPL PH S18 Playoffs Day 3 broadcast, dated 23 October, duration 7:50:25.
+  Browser inspection verified metadata only. No frames, video/audio, chat, cookies or credentials were exported.
+- No project-scoped Gemini/YouTube API key was available. No model request, paid call, scheduler, bot startup,
+  cloud deployment or production state change occurred. Existing private scrim analysis is unchanged.
+- QA: full offline suite 947/947 on Node 22.23.3, zero skips/failures, including 11 lab regression tests.
+  Test-only workspace temp files and host symlink support were used; no ACL changes were needed.
+- Manual transcription of the supplied scoreboard passes numeric consistency but has no verified video offset.
+  It remains review-required and is explicitly not an automatic extraction or model-accuracy measurement.
+- Public usage/limitations: `scripts/ESPORTS-VIDEO-LAB.md`. Internal sources, architecture gate and next steps:
+  `docs/research/2026-10-25-youtube-observer.md` (ignored).
+- Product metadata stays 1.83.0 because runtime behavior is unchanged. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add offline video observation lab`.
+- Next gate: choose provider/model and capped trial budget, securely configure a project key, then verify one known
+  short archived segment against the source screen. Live detection and live gameplay ingestion are separate gates.
+- Push remains on hold with the existing batched work until Henry requests it. No deploy authorization is implied.
+
 ## Hengs Discord v1.83.0 appreciation follow-up questions (committed locally, not pushed, not deployed) - 2026-10-25
 
 - Henry: when he only says who won ("bikin apresiasi Hengs Family karena juara 1"), Hengs should ask for the
