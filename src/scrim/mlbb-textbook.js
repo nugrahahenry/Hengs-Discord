@@ -12,6 +12,8 @@ const PATCH = 'patch 2.2.16a rilis 14 Okt 2026, season 42';
 const MM = 'mm|marksman|irithel|miya|obsidia|layla|bruno|moskov|hanabi|karrie|wanwan|melissa|claude';
 const MM_BUILD = new RegExp(`\\btrinity\\b|\\bsky piercer\\b|\\bcrit(ical)?\\b|\\b(build|item|core|inti)\\b[^.?!]*\\b(${MM})\\b`
   + `|\\b(${MM})\\b[^.?!]*\\b(build|item)\\b`, 'i');
+// Questions about where the enemy jungler starts or rotates (an anti-gank question counts too).
+const JUNGLE_START = /\bbuff\b|\brotasi\b|\bgank\b|\bjungler?\b.*\b(mulai|start|awal)\b/i;
 // Item names checked against Liquipedia page titles on 2026-10-24.
 const ENTRIES = Object.freeze([
   { match: MM_BUILD,
@@ -30,10 +32,19 @@ const ENTRIES = Object.freeze([
       + 'critical).' },
   { match: /\bcounter\b|\bblade armor\b|\bchastise\b/i,
     text: 'Counter trinity critical: Blade Armor. Counter trinity biasa: Chastise Pauldron.' },
-  { match: /\bbuff\b|\brotasi\b|\bgank\b|\bjungler?\b.*\b(mulai|start|awal)\b/i,
+  { match: JUNGLE_START,
     text: 'Buff awal jungler nentuin rotasinya: mulai dari buff biru biasanya rotasi ke bawah (buff biru dekat lane atas), '
       + 'mulai dari buff merah biasanya rotasi ke atas. Ini pola umum, sekitar 80% kebaca begitu, bukan pasti. Angka yang '
-      + 'penting buat baca rotasi: kapan buff selesai dan mulai dari buff mana; angka waktu buff belum ada di buku.' },
+      + 'penting buat baca rotasi: kapan buff selesai dan mulai dari buff mana.' },
+  // Henry checked these gold numbers with a friend in game.
+  { match: JUNGLE_START,
+    text: 'Cara baca start jungler lawan dari gold-nya di awal game (semua mulai 300): 380 berarti mulai buff merah, 379 buff '
+      + 'biru, 430 kumbang yang beranak di bawah, 407-413 kadal (lizard) di atas. Di patch ini nggak semua start dari buff, '
+      + 'kadang ada yang start ijo; kondisinya ada di pola jungle yang belum dicatat, tapi start ijo bisa mencegah EXP Laner '
+      + 'atau Gold Laner buat cut lane.' },
+  { match: /\bbuff\b|\bturtle\b|\brespawn\b|\bspawn\b|\bjungle\b|\bcamp\b/i,
+    text: 'Waktu jungle (patch 2.2.16a): Buff biru dan buff merah pertama muncul di 00:25; buff dan monster jungle respawn 75 '
+      + 'detik setelah diambil. Turtle pertama muncul di 02:00 dan respawn 180 detik. Waktu Lord belum ada di buku.' },
   { match: /\bchou\b|\b(dua|2|double)\s+fighter\b/i,
     text: 'Chou di kamus Liquipedia tercatat EXP Lane, tapi di meta sekarang lebih sering dipakai Roam dan bisa flex ke Gold '
       + 'Lane, apalagi di meta dua Fighter yang kuncinya assassin cepat seperti Nolan atau Hirara, atau bawa Yi Sun-shin '

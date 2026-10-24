@@ -29,7 +29,7 @@ test('the coach data card carries the time and the team recap, labelled as data'
   assert.match(data, /gank awal masuk dari atas/);
   assert.doesNotMatch(data, /STAT KAMU|Rekap scrim vs|MODE COACH/);
   // The last thing the model reads before the question: the rules it breaks most.
-  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\. Fokus atau target: satu saja, pasang pakai \/scrim target\.\nData tim masih di bawah 5 game: bilang datanya masih dikit dan jangan simpulin pola\.$/);
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, angka menit atau detik cuma dari BUKU PINTAR, tanpa persen hitungan sendiri, tanpa ward\. Fokus atau target: satu saja, pasang pakai \/scrim target\.\nData tim masih di bawah 5 game: bilang datanya masih dikit dan jangan simpulin pola\.$/);
   // Exam v7: with few games the coach still named two focuses, so code says it when the sample is small.
   assert.doesNotMatch(coachData([...games, ...games.map((item, n) => ({ ...item, messageId: `9${n}`.padEnd(18, '0') }))], { now: NOW }),
     /di bawah 5 game/);
@@ -60,7 +60,7 @@ test('only a training, focus or target question gets the one-focus push, and the
 test('a knowledge question does not get the push to set a team target', () => {
   // Exam v8: a hero question ended with "pasang /scrim target buat pantau Ling".
   const data = coachData(games, { now: NOW, extras: ['KAMUS MLBB (Liquipedia, dicek 2026-10-24)\nLing (x): role Assassin.'] });
-  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\.\n/);
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, angka menit atau detik cuma dari BUKU PINTAR, tanpa persen hitungan sendiri, tanpa ward\.\n/);
   assert.doesNotMatch(data, /Fokus atau target: satu saja/);
 });
 
@@ -189,6 +189,8 @@ test('a textbook entry joins the data card without the Liquipedia credit, and th
   assert.match(COACH_RULES, /BUKU PINTAR di DATA itu ilmu MLBB dari Henry/);
   assert.match(COACH_RULES, /lane meta cuma dari BUKU PINTAR atau META PRO/);
   assert.match(COACH_RULES, /sebut patch atau tanggal cek dari BUKU PINTAR atau KAMUS/);
+  // Henry 2026-10-24 gave jungle timers for patch 2.2.16a: those numbers may be quoted, no others.
+  assert.match(COACH_RULES, /Angka menit atau detik cuma boleh kalau angka itu tertulis di BUKU PINTAR, dan sebut patch-nya/);
 });
 
 // Henry 2026-10-24: "Boleh ledek nama ringan kayak contohku (pea, badplay, begadang), asal tanpa kata kasar."

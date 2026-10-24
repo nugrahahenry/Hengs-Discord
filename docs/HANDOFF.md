@@ -16,7 +16,9 @@ Updated: 2026-10-24
 - Textbook interview with Henry, answer 1 of 5 (trinity buy order and users) is in mlbb-textbook.js; exam N7 and N8
   check it. Patch 2.2.16a (Liquipedia, released 2026-10-14; Henry: season 42) is in both cards; Henry rightly noted it
   was researchable, so remaining questions are checked first. Liquipedia has no jungle timers ("Land of Dawn" is a
-  441-byte stub), so buff timings still come from Henry; then macro habits and other counters.
+  441-byte stub), so buff timings came from Henry (answer 3: timers plus the gold trick for the enemy jungler's start;
+  "muncul 75 detik" read as the respawn time, to confirm with him). Rules now allow minutes or seconds from the buku
+  pintar only; exam E1 rekeyed to expect 02:00, N9 added. Still to ask: macro habits, other counters.
 - Next: coach exam on 2026-10-25 (Discord key quota), the 12 v11 scenarios plus four new unseen ones (N1-N4).
 
 ## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24

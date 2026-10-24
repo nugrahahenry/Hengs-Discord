@@ -23,6 +23,19 @@ test('the textbook adds the entries a question needs, with source and date, and 
   assert.equal(textbookCard(''), '');
 });
 
+// Henry 2026-10-24, answer 3: jungle timers for patch 2.2.16a, and reading the enemy jungler's start from its gold.
+test('jungle questions get the timers and the gold trick for reading the enemy jungler start', () => {
+  const timers = textbookCard('buff merah respawn berapa lama?');
+  assert.match(timers, /Buff biru dan buff merah pertama muncul di 00:25; buff dan monster jungle respawn 75 detik/);
+  assert.doesNotMatch(timers, /angka waktu buff belum ada/);
+  assert.match(textbookCard('Turtle pertama muncul menit berapa sih?'), /Turtle pertama muncul di 02:00 dan respawn 180 detik/);
+  const start = textbookCard('gimana cara tau jungler lawan start dari mana?');
+  assert.match(start, /semua mulai 300/);
+  assert.match(start, /380 berarti mulai buff merah, 379 buff biru, 430 kumbang yang beranak di bawah, 407-413 kadal \(lizard\) di atas/);
+  assert.match(start, /start ijo bisa mencegah EXP Laner atau Gold Laner buat cut lane/);
+  assert.doesNotMatch(textbookCard('hero apa yang sering muncul di MPL?'), /Turtle/);
+});
+
 // Henry 2026-10-24, answer 1: buy order per trinity, Sky Piercer timing, and which Marksmen use which trinity.
 test('build questions get the buy order for both trinity types and who uses which', () => {
   const crit = textbookCard('urutan build trinity critical gimana?');

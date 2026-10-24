@@ -38,6 +38,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   patch page, released 2026-10-14; `scripts/build-mlbb-heroes.js` now takes the live patch as its argument) and the buku
   pintar header says "patch 2.2.16a rilis 14 Okt 2026, season 42". A missing number is answered with that patch and the
   check date.
+- Henry's third textbook answer: jungle timers for patch 2.2.16a (red and blue buff first spawn 00:25, camps respawn 75
+  seconds, Turtle 02:00 and 180 seconds) and reading the enemy jungler's start from its gold (from 300: 380 red buff,
+  379 blue buff, 430 beetles, 407-413 lizard), with green starts that stop a cut lane. Liquipedia has no jungle timers.
+  The coach may now quote minutes or seconds written in the buku pintar, with its patch, and still no others.
 
 ### Verification
 
