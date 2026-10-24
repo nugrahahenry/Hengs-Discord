@@ -5,6 +5,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.80.1] - 2026-10-24
+
+### Changed
+
+- Welcome and leave cards now use a compact hero pill, stronger member-name focus, and a clearer Hengs logo watermark.
+- Added the v2 visual preview at `assets/_originals/welcome-card-v2-preview.png` for review before deployment.
+- Verification: `node --test test/member-onboarding.test.js` passed 11/11.
+
 ## [1.80.0] - 2026-10-24
 
 ### Added

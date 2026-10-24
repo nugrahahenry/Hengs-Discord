@@ -668,13 +668,13 @@ function drawCornerDetails(ctx, theme) {
 
 function drawLogoWatermark(ctx, logoImage, theme) {
   ctx.save();
-  ctx.globalAlpha = 0.075;
+  ctx.globalAlpha = 0.105;
   ctx.shadowColor = hexToRgba(theme.primary, 0.45);
   ctx.shadowBlur = 20;
 
   if (logoImage) {
-    const size = 116;
-    ctx.drawImage(logoImage, 596, 82, size, size);
+    const size = 128;
+    ctx.drawImage(logoImage, 590, 76, size, size);
   } else {
     ctx.strokeStyle = theme.primary;
     ctx.lineWidth = 8;
@@ -1015,11 +1015,14 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  // Small server label above the member identity.
-  ctx.fillStyle = hexToRgba(theme.secondary, 0.95);
-  ctx.font = fontSpec(700, 11);
-  const heading = `${data.brandName.toUpperCase()} / ${data.isLeave ? 'SAMPAI JUMPA LAGI' : 'SELAMAT DATANG'}`;
-  ctx.fillText(truncateToWidth(ctx, heading, maxTextWidth), x, 40);
+  // A compact hero pill makes the card read like a welcome poster at a glance.
+  const heading = data.isLeave ? 'SAMPAI JUMPA LAGI' : 'WELCOME TO HENGS';
+  ctx.font = fontSpec(800, 10);
+  const headingWidth = Math.min(176, Math.max(128, ctx.measureText(heading).width + 24));
+  fillRoundedRect(ctx, x, 21, headingWidth, 19, 9, hexToRgba(theme.primary, 0.34));
+  strokeRoundedRect(ctx, x, 21, headingWidth, 19, 9, hexToRgba(theme.secondary, 0.58), 1);
+  ctx.fillStyle = theme.secondary;
+  ctx.fillText(truncateToWidth(ctx, heading, headingWidth - 20), x + 10, 34.5);
 
   // The member, not the brand, is the hero. The actual username stays below.
   const brand = safeString(data.displayName, data.username);
@@ -1034,6 +1037,13 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.shadowBlur = 14;
   ctx.fillText(truncateToWidth(ctx, brand, maxTextWidth), x, 86);
   ctx.shadowBlur = 0;
+
+  const heroLine = ctx.createLinearGradient(x, 0, x + Math.min(brandWidth, maxTextWidth), 0);
+  heroLine.addColorStop(0, hexToRgba(theme.secondary, 0.9));
+  heroLine.addColorStop(0.5, hexToRgba(theme.tertiary, 0.56));
+  heroLine.addColorStop(1, hexToRgba(theme.primary, 0));
+  ctx.fillStyle = heroLine;
+  ctx.fillRect(x, 96, Math.min(brandWidth, maxTextWidth), 2);
 
   // A stable @username distinguishes members with the same display name.
   const username = safeString(data.username, 'New Member');

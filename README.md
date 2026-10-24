@@ -2,7 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.80.0 - Hengs Analis match days: at 08:00 WIB a broadcast-style preview card
+**Current checkpoint:** Hengs Discord v1.80.1 - welcome and leave cards now have a compact hero pill, stronger member
+focus, and a clearer Hengs logo watermark. Preview: `assets/_originals/welcome-card-v2-preview.png`. Builds on
+v1.80.0 Hengs Analis match days: at 08:00 WIB a broadcast-style preview card
 per match (season record, go-to heroes) with buttons to guess the winner, a night recap card (results, hero numbers,
 how many guessed right) and an event recap card after the grand final; the watchlist adds MPL ID S18, the Esports
 Nations Cup 2026 and M8. Builds on v1.79.3 (welcome and leave cards use the new Hengs bot logo with a safe legacy

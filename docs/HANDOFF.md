@@ -2,6 +2,13 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.80.1 welcome card visual polish (committed, not deployed) - 2026-10-24
+
+- Welcome and leave cards use a compact hero pill, stronger member-name underline, and a clearer v2 logo watermark.
+- Preview: `assets/_originals/welcome-card-v2-preview.png`.
+- Verification: `node --test test/member-onboarding.test.js` passed 11/11.
+- No runtime state, command schema, or deployment changed.
+
 ## Hengs Discord v1.80.0 Analis match days (committed, not deployed) - 2026-10-24
 
 - Previews at 08:00 WIB with guess buttons, night recaps, event recap after the grand final; template captions. The
