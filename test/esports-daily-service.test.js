@@ -47,6 +47,7 @@ function rig(t, matches, { now = at(8, 0) } = {}) {
     async contents() { throw new Error('unexpected'); } };
   const service = createEsportsService({ guildAccess: { classify: () => ({ kind: 'home' }) }, store, liquipedia, watch: WATCH,
     render: async () => Buffer.from('png'), renderPreview: async () => Buffer.from('png'), renderList: async () => Buffer.from('png'),
+    renderDraft: async () => Buffer.from('png'),
     now: () => clock.now, logger: { error() {} }, reportFailure: async (g2, details) => { reports.push(details); } });
   service.attach({ guilds: { cache: new Map([[GUILD, guild]]) } });
   const set = list => store.savePages({ [PAGE]: { revid: 1, matches: list } }, clock.now);
@@ -145,4 +146,12 @@ test('index.js builds the caster from the Groq client and answers the analis int
   assert.match(source, /createCommentator\(\{ complete: createCasterCompletion\(\{ client: agent\.groq/);
   const route = source.slice(source.indexOf("if (route.intent === 'analis')"), source.indexOf('const guide = guideFor(route.intent'));
   assert.match(route, /await esportsService\.answer\(text\)/);
+});
+
+test('a finished series posts its card with one draft image per complete game', async t => {
+  const r = rig(t, [match('s', [ONIC, RRQ], at(15), [1, 1])], { now: at(17) });
+  r.store.savePages({ [PAGE]: { revid: 1, matches: [match('s', [ONIC, RRQ], at(15), [1, 1])] } }, at(17) - 4 * HOUR); // a check is due
+  await r.service.tick();
+  const card = r.sent.find(p => p.files[0].name === 'hengs-analis.png');
+  assert.deepEqual(card.files.map(f => f.name), ['hengs-analis.png', 'hengs-draft-1.png', 'hengs-draft-2.png']);
 });

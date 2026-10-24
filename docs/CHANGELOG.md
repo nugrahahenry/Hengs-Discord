@@ -5,6 +5,28 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.82.0] - 2026-10-24
+
+### Added
+
+- Broadcast-style draft card per game for pro series. Henry: "laga pro itu bisa dikembangin sama gpt gak buat template
+  draft broadcast nya?" and "Bangun v1.82.0 kartu draft broadcast per game ... versi gambar kode dulu sambil gw bikin
+  template di GPT".
+  - `src/esports/draft-card.js`: 1600x960, blue side left and red side right, five pick slots per side with the
+    hero's role (Liquipedia hero dictionary) as a coloured chip, five dimmed bans per side, the series score after the
+    game, length, objective, and the winner marked MENANG. Only decided games with five picks a side get a card.
+  - Fixed `LAYOUT` shared with Henry's GPT template: `assets/esports/draft-bg.png` (1600x960). With the file Hengs
+    draws only text and chips on it; without it Hengs draws the panels and slots itself.
+  - The series card message carries the draft cards in the same gallery (result card first, then game 1 to n);
+    Liquipedia corrections re-render them with the card.
+  - No first-pick label: Liquipedia stores sides, not pick order, and blue = first pick is only inferred.
+- Item, emblem and KDA stay out of pro cards (no legal source); scrim stat cards from member screenshots are on the
+  Coach session's path.
+
+### Verification
+
+- Node 22 full suite 931/931 via PowerShell. Sample draft card rendered from mock data.
+
 ## [1.81.0] - 2026-10-24
 
 ### Added

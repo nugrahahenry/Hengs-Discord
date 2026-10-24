@@ -11,6 +11,7 @@ const { createLiquipedia } = require('./liquipedia');
 const { parseMatches, matchHash } = require('./wikitext');
 const { renderSeriesCard } = require('./card');
 const { renderPreviewCard, renderListCard } = require('./daily-cards');
+const { draftData, draftable, renderDraftCard } = require('./draft-card');
 const { seriesPayload, guidePayload, previewPayload, listPayload, pageUrl, REACTIONS, isWarning, VOTE_PREFIX } = require('./presentation');
 const { WATCH, DISCOVER, discoveredEntries } = require('./watch');
 const { wibDay, wibMinutes, previousDay, matchesOf, dayMatches, featured, eventState } = require('./schedule');
@@ -32,7 +33,8 @@ async function defaultBanner() {
 }
 
 function createEsportsService({ guildAccess, store = createEsportsStore(), liquipedia = createLiquipedia(),
-  render = renderSeriesCard, renderPreview = renderPreviewCard, renderList = renderListCard, now = Date.now, logger = console,
+  render = renderSeriesCard, renderPreview = renderPreviewCard, renderList = renderListCard, renderDraft = renderDraftCard,
+  now = Date.now, logger = console,
   watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {}, commentator = null } = {}) {
   let client = null; let running = false; let timer = null;
   const watchlist = () => (discover ? [...watch, ...store.discovered()] : watch);
@@ -92,12 +94,26 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     return matches.length === 1 ? matches[0] : null;
   }
 
+  // One broadcast-style draft card per game with a complete draft; a failed render only drops that image.
+  async function draftsFor(match, league) {
+    const out = [];
+    for (const index of draftable(match)) {
+      try {
+        const data = draftData(match, index, { league });
+        out.push({ name: `hengs-draft-${data.number}.png`, png: await renderDraft(data),
+          description: `Draft ${data.game}: ${data.sides.map(s => `${s.ticker} ${s.picks.map(p => p.name).join(', ')}`).join(' vs ')}` });
+      } catch { logger.error('[esports] ESPORTS_DRAFT_RENDER_FAILED'); }
+    }
+    return out;
+  }
+
   async function post(guild, channel, match) {
     const hash = matchHash(match);
     store.claim(guild.id, match.id, { hash });
     let message;
     try {
-      message = await channel.send(seriesPayload(match, { league: leagueOf(match.page) }, await render(match, { league: leagueOf(match.page) })));
+      const league = leagueOf(match.page);
+      message = await channel.send(seriesPayload(match, { league }, await render(match, { league }), { drafts: await draftsFor(match, league) }));
     } catch (error) {
       store.finish(guild.id, match.id, { status: 'failed' });
       logger.error('[esports] ESPORTS_SEND_FAILED');
@@ -120,7 +136,8 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
       if (match?.finished && match.valid && matchHash(match) !== sent.hash) {
         try {
           const league = leagueOf(match.page);
-          await message.edit(seriesPayload(match, { league }, await render(match, { league }), { updatedAt: now() }));
+          await message.edit(seriesPayload(match, { league }, await render(match, { league }),
+            { updatedAt: now(), drafts: await draftsFor(match, league) }));
           store.update(guild.id, sent.id, { hash: matchHash(match) });
         } catch { logger.error('[esports] ESPORTS_EDIT_FAILED'); }
       }

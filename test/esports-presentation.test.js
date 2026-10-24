@@ -63,3 +63,11 @@ test('a preview carries the card, the caption, the Liquipedia credit and two vot
   const list = listPayload(PNG, 'Rekap 4 Nov', '**Rekap Rabu, 4 Nov 2026**: ONIC menang 2-0.');
   assert.equal(list.files[0].name, 'hengs-rekap.png'); assert.deepEqual(list.allowedMentions, { parse: [] });
 });
+
+test('a series card can carry one draft image per game in the same gallery', () => {
+  const drafts = [{ name: 'hengs-draft-1.png', png: PNG, description: 'Draft GAME 1' }, { name: 'hengs-draft-2.png', png: PNG, description: 'Draft GAME 2' }];
+  const payload = seriesPayload(MATCH, { league: 'MPL PH S18 Playoffs' }, PNG, { drafts });
+  assert.deepEqual(payload.files.map(f => f.name), ['hengs-analis.png', 'hengs-draft-1.png', 'hengs-draft-2.png']);
+  assert.match(JSON.stringify(payload.components), /attachment:\/\/hengs-draft-2\.png/);
+  assert.deepEqual(seriesPayload(MATCH, { league: 'MPL' }, PNG).files.map(f => f.name), ['hengs-analis.png']);
+});

@@ -2,6 +2,14 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.82.0 broadcast draft cards (committed, not deployed) - 2026-10-24
+
+- Each finished pro series now posts its result card plus one draft card per game in the same gallery
+  (src/esports/draft-card.js). Henry is making the frame in GPT: `assets/esports/draft-bg.png`, 1600x960, drawn to
+  `LAYOUT` (panels x 64..764 and 836..1536, y 186..786; pick slots 668x88 at y 270, 374, 478, 582, 686, inset 16;
+  ban slots 124x56 at y 812, every 136 px from each panel's x). Drop the PNG in and redeploy; no code change.
+- Assets still wanted: draft-bg.png, preview-bg.png (1600x900), recap-bg.png (square).
+
 ## Hengs Discord v1.81.0 Analis caster (committed, not deployed) - 2026-10-24
 
 - LLM captions on the preview, night recap and event recap, and Analis answers in #tanya-hengs, all from Hengs' own
