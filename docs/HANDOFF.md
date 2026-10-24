@@ -17,6 +17,10 @@ Updated: 2026-10-24
 - Henry then asked to tidy the remaining weak spots before the screenshots ("SS nanti dulu"): f80b491 (no-target line,
   opponent hint, pro caveat next to the credit) and dbbd500 (one-focus push only on training questions). Exam on 12
   scenarios: v9 18/24, v10 21/24. Full suite 884, 883 pass.
+- Henry: unsure answers should stay fun, not "gatau". In coach mode a rule replaces the general nggak-tahu rule (data
+  first, one light hedge, one way to find out, no maaf opener); the lane card counts who fills each lane. Exam keys A2,
+  C4, D1, E1-E4 and K2 got the style requirement before run v11 (noted in scenarios.json `changes`); run.cjs flags
+  "buka pakai ragu" and "penutup generik".
 - Still open: the screenshot path waits for Henry's 10 end-of-match screenshots in discord-bot/.cloud/evals/ss-test
   (harness .cloud/evals/ss-vision-2026-10-24/read.cjs; qwen/qwen3.8-27b is on the Discord key).
 

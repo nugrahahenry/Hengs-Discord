@@ -33,6 +33,12 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   `/scrim target` comes only on questions about training, a focus or setting a target (on every question it turned into
   advice to track results and pro heroes with it), and code adds "Pola draft pro belum tentu cocok buat tim sendiri"
   next to the Liquipedia credit whenever the pro card was used.
+- Henry asked that unsure answers stay fun instead of a bare "gatau" (exam v7: 6 of 26 answers opened with maaf or
+  nggak yakin). In coach mode a rule replaces the general "bilang nggak tahu" rule: start from what the data or the
+  dictionary does say, hedge once ("masih susah dipastiin"), give one way to find out together, never open with maaf
+  or close with "kalau ada hal lain tanya aja". A ward question gets the alternative tip in its first sentence. The
+  lane card counts who fills each lane from the snapshot (Gold Lane 18 Marksman of 19 heroes, and so on) and says lane
+  positions and mechanics are not in it.
 
 ### Verification
 

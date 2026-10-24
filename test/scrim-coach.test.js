@@ -104,6 +104,17 @@ test('the rules answer the three weak spots from the last exam', () => {
   assert.match(COACH_RULES, /Pertanyaan soal lawan tertentu: pakai bagian Rekap scrim vs/);
 });
 
+// Henry 2026-10-24: "gatau" answers make the coach look dumb. Exam v7: 6 of 26 answers opened with maaf or nggak yakin.
+// Unsure answers stay honest but start from what the data does say and end with one way to find out.
+test('the rules turn unsure answers into a useful start, one light hedge and a way to find out', () => {
+  assert.match(COACH_RULES, /pengganti aturan umum soal bilang nggak tahu/);
+  assert.match(COACH_RULES, /jangan jawab maaf, nggak tahu, atau nggak yakin doang/);
+  assert.match(COACH_RULES, /masih susah dipastiin/);
+  assert.match(COACH_RULES, /satu cara cari tahu bareng/);
+  assert.match(COACH_RULES, /Jangan buka jawaban pakai maaf/);
+  assert.doesNotMatch(COACH_RULES, /kalau nggak yakin, bilang nggak tahu|tetap bilang nggak tahu/);
+});
+
 test('a fresh team target joins the data card with the games logged since; a target older than 14 days stays out', () => {
   const target = { text: 'semua kumpul sebelum objective pertama', setBy: U, at: NOW - 3 * HOUR };
   assert.match(coachData(games, { now: NOW, target }),

@@ -7,9 +7,18 @@ const { heroes, retrieved } = require('./mlbb-heroes.json');
 
 const LANE = Object.freeze({ Gold: 'Gold Lane', Exp: 'EXP Lane', Mid: 'Mid Lane', Jungle: 'Jungle', Roam: 'Roam' });
 const LANE_WORDS = /\b(lane|jungle|jungler|roam|roamer|role|tank|fighter|assassin|mage|marksman|support)\b/i;
-// The exam showed the lane names alone invited made-up lane mechanics, and "spesialis" came back as "skill".
+// The exams showed the lane names alone invited made-up lane positions and mechanics, so the card also counts who fills
+// each lane (primary role, at least a quarter of the lane's heroes). "spesialis" came back as "skill".
+function laneFill(lane) {
+  const inLane = heroes.filter(hero => hero.lanes.includes(lane));
+  const roles = new Map();
+  for (const hero of inLane) roles.set(hero.roles[0], (roles.get(hero.roles[0]) || 0) + 1);
+  const main = [...roles].filter(([, count]) => count * 4 >= inLane.length).sort((a, b) => b[1] - a[1]);
+  return `${LANE[lane]} ${main.map(([role, count]) => `${count} ${role}`).join(' dan ')} dari ${inLane.length} hero`;
+}
 const GLOSSARY = 'Lane di MLBB: Gold Lane, EXP Lane, Mid Lane, Jungle, Roam. Role hero: Tank, Fighter, Assassin, Mage, Marksman, Support. '
-  + 'Kamus ini nggak punya detail mekanik lane, jadi kalau ditanya bilang nggak tahu detailnya.';
+  + `Isi lane di kamus (role utama hero): ${Object.keys(LANE).map(laneFill).join('; ')}. `
+  + 'Posisi lane di map dan mekanik lane nggak ada di kamus: jangan ditebak.';
 const words = text => ` ${String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `;
 const MAX_HEROES = 3;
 
