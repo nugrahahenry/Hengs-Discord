@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { COACH_RULES, BANTUAN_TEXT, COACH_DAILY_LIMIT, COACH_TEMPERATURE, coachData, coachContext, scrubIds, guardReply,
-  createCoachQuota } = require('../src/scrim/coach');
+  createCoachQuota, safeText, debriefText } = require('../src/scrim/coach');
 const { LIMITS } = require('../src/conversation-context');
 
 const U = '323456789012345678', T2 = '523456789012345678';
@@ -28,8 +28,39 @@ test('the coach data card carries the time and the team recap, labelled as data'
   assert.match(data, /gank awal masuk dari atas/);
   assert.doesNotMatch(data, /STAT KAMU|Rekap scrim vs|MODE COACH/);
   // The last thing the model reads before the question: the rules it breaks most.
-  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\.$/);
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\. Fokus atau target: satu saja, pasang pakai \/scrim target\.\nData tim masih di bawah 5 game: bilang datanya masih dikit dan jangan simpulin pola\.$/);
+  // Exam v7: with few games the coach still named two focuses, so code says it when the sample is small.
+  assert.doesNotMatch(coachData([...games, ...games.map((item, n) => ({ ...item, messageId: `9${n}`.padEnd(18, '0') }))], { now: NOW }),
+    /di bawah 5 game/);
+  assert.doesNotMatch(coachData([], { now: NOW }), /di bawah 5 game/);
   assert.match(coachData([], { now: NOW }), /Belum ada game yang kecatat/);
+  // Exam v8: without a target the coach still talked about "target early-game safety", so the card says there is none.
+  assert.match(data, /\n\nTARGET TIM: belum ada\. Jangan sebut target lain\.\n/);
+});
+
+test('a question about one opponent says to answer from that opponent\'s recap', () => {
+  const data = coachData(games, { text: 'gimana lawan TIM GARUDA muda besok?', now: NOW });
+  assert.match(data, /Rekap scrim vs Tim Garuda Muda[\s\S]*\nPertanyaan ini soal Tim Garuda Muda: jawab dari rekap vs Tim Garuda Muda di atas, bukan rekap tim keseluruhan\.\n/);
+  assert.doesNotMatch(coachData(games, { text: 'kita latihan apa?', now: NOW }), /Pertanyaan ini soal/);
+});
+
+test('only a training, focus or target question gets the one-focus push, and the empty-target line does not push', () => {
+  // Exam v9: the push on every question made the coach suggest /scrim target for tracking results and for win rates.
+  for (const text of ['kita harus latihan apa?', 'bikinin target dong', 'fokus minggu ini apa?']) {
+    assert.match(coachData(games, { text, now: NOW }), /Fokus atau target: satu saja, pasang pakai \/scrim target\./, text);
+  }
+  for (const text of ['vs Tim Garuda gimana rekor kita?', 'barusan menang 2-0!', 'target kita jalan nggak?']) {
+    assert.doesNotMatch(coachData(games, { text, now: NOW }), /Fokus atau target/, text);
+  }
+  assert.match(coachData(games, { now: NOW }), /\nTARGET TIM: belum ada\. Jangan sebut target lain\.\n/);
+  assert.match(COACH_RULES, /\/scrim target cuma buat satu kebiasaan main tim, bukan buat nyatet hasil atau mantau hero/);
+});
+
+test('a knowledge question does not get the push to set a team target', () => {
+  // Exam v8: a hero question ended with "pasang /scrim target buat pantau Ling".
+  const data = coachData(games, { now: NOW, extras: ['KAMUS MLBB (Liquipedia, dicek 2026-10-24)\nLing (x): role Assassin.'] });
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, tanpa angka menit atau detik, tanpa persen hitungan sendiri, tanpa ward\.\n/);
+  assert.doesNotMatch(data, /Fokus atau target: satu saja/);
 });
 
 test('only a late question gets the bedtime line, decided by the clock in code', () => {
@@ -59,10 +90,95 @@ test('made-up "first N minutes" windows become "di awal game"; plain practice du
   }
 });
 
+// Exam v11: once the rules named the generic closer, three answers ended with it; code drops it instead.
+test('a closing "anything else" sentence is dropped from coach replies, other questions stay', () => {
+  assert.equal(guardReply('Coba cek patch notes resmi. Kalau ada hal lain yang mau dibahas, tinggal tanya aja! 😊').text,
+    'Coba cek patch notes resmi.');
+  assert.equal(guardReply('Lolita main di Roam. Ada hal lain yang mau kamu tanyain soal build atau playstyle?').text,
+    'Lolita main di Roam.');
+  assert.equal(guardReply('Gas latihan call 🚀 Kalau ada pertanyaan lain, kabarin aku ya').text, 'Gas latihan call 🚀');
+  const kept = 'Kalau ada hal lain yang bikin kesel, ceritain aja. Menurut kamu, apa yang paling bikin tilt?';
+  assert.equal(guardReply(kept).text, kept);
+  assert.equal(guardReply('Ada yang lain ngerasain hal sama?').text, 'Ada yang lain ngerasain hal sama?');
+  assert.equal(guardReply('Kalau ada pertanyaan lain, tanya aja ya').text, 'Kalau ada pertanyaan lain, tanya aja ya');
+  assert.doesNotMatch(COACH_RULES, /hal lain|pertanyaan lain/);
+});
+
 test('the rules ask for habits as targets and forbid links', () => {
   assert.match(COACH_RULES, /bukan jumlah menang atau win rate/);
   assert.match(COACH_RULES, /Jangan tulis link/);
   assert.match(COACH_RULES, /minimap/);
+});
+
+// Exam v4 weak spots: a ward question got no alternative, a blamed teammate got no answer, an opponent question used the
+// team-wide focus.
+test('the rules answer the three weak spots from the last exam', () => {
+  assert.match(COACH_RULES, /wajib kasih satu saran pengganti/);
+  assert.match(COACH_RULES, /nggak setuju pakai label buat teman/);
+  assert.match(COACH_RULES, /Pertanyaan soal lawan tertentu: pakai bagian Rekap scrim vs/);
+});
+
+// Henry 2026-10-24: "gatau" answers make the coach look dumb. Exam v7: 6 of 26 answers opened with maaf or nggak yakin.
+// Unsure answers stay honest but start from what the data does say and end with one way to find out.
+test('the rules turn unsure answers into a useful start, one light hedge and a way to find out', () => {
+  assert.match(COACH_RULES, /pengganti aturan umum soal bilang nggak tahu/);
+  assert.match(COACH_RULES, /jangan jawab maaf, nggak tahu, atau nggak yakin doang/);
+  assert.match(COACH_RULES, /masih susah dipastiin/);
+  assert.match(COACH_RULES, /satu cara cari tahu bareng/);
+  assert.match(COACH_RULES, /Jangan buka jawaban pakai maaf/);
+  assert.doesNotMatch(COACH_RULES, /kalau nggak yakin, bilang nggak tahu|tetap bilang nggak tahu/);
+});
+
+test('a fresh team target joins the data card with the games logged since; a target older than 14 days stays out', () => {
+  const target = { text: 'semua kumpul sebelum objective pertama', setBy: U, at: NOW - 3 * HOUR };
+  assert.match(coachData(games, { now: NOW, target }),
+    /\n\nTARGET TIM: "semua kumpul sebelum objective pertama" \(dipasang 21 Okt, 3 game kecatat sejak itu\)\. Buku catatan nggak nyatet target ini jalan atau nggak: tanya timnya, jangan ngarang\.\n/);
+  assert.match(coachData(games, { now: NOW, target: { ...target, at: NOW - 15 * 24 * HOUR } }), /TARGET TIM: belum ada\./);
+  assert.match(coachData(games, { now: NOW }), /TARGET TIM: belum ada\./);
+  assert.match(coachContext(games, { text: 'gimana?', now: NOW, target }).context.data, /TARGET TIM/);
+  assert.match(COACH_RULES, /TARGET TIM/);
+  assert.match(COACH_RULES, /\/scrim target/);
+});
+
+test('the debrief nudge asks three debrief questions with today\'s record and the target, without pings', () => {
+  const today = [game(1), game(2, { outcome: 'kalah', reason: 'early' }), game(3)];
+  const text = debriefText(today, { target: { text: 'call info pendek', setBy: U, at: NOW } });
+  assert.match(text, /^🧠 \*\*Debrief bentar yuk\*\* \(hari ini W 2 dari 3 game\)\n/);
+  for (const part of ['1. Satu hal yang jalan', '2. Satu keputusan yang mau dibenerin', '3. Target buat scrim berikutnya', '/scrim target',
+    'Target sekarang: "call info pendek". Jalan nggak?', 'mention Hengs']) {
+    assert.ok(text.includes(part), part);
+  }
+  assert.doesNotMatch(debriefText(today, {}), /Target sekarang/);
+  assert.doesNotMatch(text, /<@|\d{17,20}/);
+});
+
+test('a pro meta card joins the data card as given, and the rules say how to use it', () => {
+  const meta = 'META PRO (data draft Liquipedia: MPL PH S18 Playoffs; 3 game dengan draft lengkap)\nPaling sering dipick: Ling 3 (dari 3 game).';
+  assert.match(coachData(games, { now: NOW, extras: [meta] }), new RegExp(`\\n\\n${meta.replace(/[()]/g, '\\$&')}\\n`));
+  assert.doesNotMatch(coachData(games, { now: NOW }), /META PRO/);
+  assert.match(COACH_RULES, /KAMUS MLBB di DATA itu fakta hero dari Liquipedia/);
+});
+
+test('one coach turn adds the pro draft card and hero facts it needs, and says when the Liquipedia credit is due', () => {
+  const draft = { winner: 1, picks: [['Fanny', 'Lolita', 'Valentina', 'Claude', 'Chou'], ['Ling', 'Tigreal', 'Pharsa', 'Beatrix', 'Paquito']],
+    bans: [['Joy'], ['Lancelot']] };
+  const pages = { 'MPL/Indonesia/Season 18/Playoffs': { revid: 1, matches: [{ games: [draft] }] } };
+  const meta = coachContext(games, { text: 'hero meta pro apa?', now: NOW, pages });
+  assert.match(meta.context.data, /META PRO \(data draft Liquipedia: MPL ID S18 Playoffs; 1 game dengan draft lengkap\)/);
+  // Exam v8: the model kept dropping the pro-pattern caveat, so code puts it under the reply with the credit.
+  assert.equal(meta.credit, '-# Data: Liquipedia (CC-BY-SA 3.0). Pola draft pro belum tentu cocok buat tim sendiri.');
+  const hero = coachContext(games, { text: 'Fanny main di lane apa?', now: NOW });
+  assert.match(hero.context.data, /KAMUS MLBB \(Liquipedia/);
+  assert.equal(hero.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');
+  const plain = coachContext(games, { text: 'kita kalah mulu, latihan apa?', now: NOW, pages });
+  assert.doesNotMatch(plain.context.data, /META PRO|KAMUS MLBB/);
+  assert.equal(plain.credit, '');
+  assert.match(COACH_RULES, /META PRO di DATA itu data draft pro/);
+});
+
+test('member-written target text is masked like coach replies', () => {
+  assert.equal(safeText('jangan noob lagi'), 'jangan n*** lagi');
+  assert.equal(safeText('kumpul sebelum objective'), 'kumpul sebelum objective');
 });
 
 test('one coach turn context: rules, data, low temperature, guard; a personal turn adds own stats and keeps no history', () => {
@@ -72,6 +188,8 @@ test('one coach turn context: rules, data, low temperature, guard; a personal tu
   assert.deepEqual([team.context.kind, team.context.visibility, team.context.system, team.context.temperature, team.context.stateless],
     ['home', 'coach', COACH_RULES, COACH_TEMPERATURE, undefined]);
   assert.equal(COACH_TEMPERATURE, 0.3);
+  // Exam v7: one answer was cut off at 700 tokens (reasoning counts too).
+  assert.equal(team.context.maxTokens, 900);
   assert.equal(team.context.data, coachData(games, { text: 'vs (anggota) gimana', now: NOW }));
   assert.equal(team.context.guard('dasar noob [[BANTUAN]]'), `dasar n***\n\n${BANTUAN_TEXT}`);
   assert.deepEqual(seen, [['dasar noob [[BANTUAN]]', 1]]);

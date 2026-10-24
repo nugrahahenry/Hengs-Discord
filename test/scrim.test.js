@@ -35,7 +35,7 @@ function options(over = {}) {
 }
 
 function rigService({ teamMember = true, roleExists = true, channelExists = true, botAllowed = true, everyoneCanView = false,
-  store, games = [], agent = null } = {}) {
+  store, games = [], agent = null, coachStore = null, proPages = null, clock = () => NOW } = {}) {
   const role = { id: '700000000000000001', name: 'Hengs Family' };
   const sends = []; const records = []; const downloads = []; const dms = []; const removals = []; const cardDeletes = [];
   const team = new Set(teamMember ? [U, T2] : [T2]);
@@ -62,7 +62,7 @@ function rigService({ teamMember = true, roleExists = true, channelExists = true
       saved.splice(at, 1);
       return true;
     } },
-  agent, logger: { error() {} }, now: () => NOW,
+  agent, coachStore, proPages, logger: { error() {} }, now: clock,
   fetchImpl: async (url, init) => { downloads.push([url, init]); return { ok: true,
     headers: { get: key => ({ 'content-type': 'image/png', 'content-length': '4' })[key] },
     arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer }; } });
@@ -545,7 +545,7 @@ test('help and privacy describe the per-game notebook, the private recap and DM-
   assert.match(help, /`\/scrim rekap` buat rekap tim/);
   assert.match(help, /`\/scrim statku` kirim statistikmu lewat DM/);
   assert.match(help, /Salah catat\? `\/scrim hapus`/);
-  assert.match(help, /Ngobrol sama coach: mention Hengs di hasil-scrim, atau `\/scrim tanya` buat pertanyaan pribadi/);
+  assert.match(help, /Ngobrol sama coach: mention Hengs di hasil-scrim, atau `\/scrim tanya` \(privat\)\. Target tim: `\/scrim target`/);
   const privacy = { guildId: G, channelId: SRC, user: { id: U }, inGuild: () => true,
     options: { getSubcommand: () => 'privacy', getString: () => null }, async reply(payload) { this.payload = payload; } };
   await hengsCommand.execute(privacy, deps);
@@ -554,6 +554,7 @@ test('help and privacy describe the per-game notebook, the private recap and DM-
   assert.match(privacy.payload.content, /Pencatat bisa menghapus game terakhirnya lewat \/scrim hapus/);
   assert.match(privacy.payload.content, /pertanyaan ke coach dikirim ke penyedia AI bersama rekap scrim tim/);
   assert.match(privacy.payload.content, /untuk \/scrim tanya juga stat penanya sendiri/);
+  assert.match(privacy.payload.content, /target tim \(\/scrim target, disimpan sampai diganti\)/);
   assert.doesNotMatch(privacy.payload.content, /skor, hasil, game/);
   assert.ok(privacy.payload.content.length <= 2000);
 });
@@ -712,9 +713,114 @@ test('/scrim tanya is registered with one required question and routed to the se
   assert.deepEqual(buildCommandPlan([{ name: 'hengs' }, { name: 'setup' }, json]).home.map(command => command.name), ['scrim']);
 });
 
+// In-memory stand-in for src/scrim/coach-store.js.
+function coachMemory(initial = {}) {
+  const state = { target: null, debriefDay: null, ...initial };
+  return { state, get: () => ({ ...state }), setTarget: (guildId, target) => { state.target = target; },
+    markDebrief: (guildId, day) => { state.debriefDay = day; } };
+}
+
+test('/scrim target sets the team target, announces it in hasil-scrim and shows it back', async () => {
+  const memory = coachMemory();
+  const r = rigService({ coachStore: memory, games: [game(1, { at: NOW - 3_600_000 })] });
+  const set = r.interaction({ options: options({ isi: 'semua kumpul sebelum objective, jangan noob' }) });
+  await r.service.target(set, deps);
+  assert.deepEqual(memory.state.target, { text: 'semua kumpul sebelum objective, jangan n***', setBy: U, at: NOW });
+  // Member text is markdown-escaped on display, so the masked word shows as n*** in Discord.
+  assert.ok(r.sends.at(-1).content.startsWith(
+    '🎯 **Target tim baru**: "semua kumpul sebelum objective, jangan n\\*\\*\\*"\nDipasang sama <@323456789012345678>'));
+  assert.deepEqual(r.sends.at(-1).allowedMentions, { parse: [] });
+  assert.match(set.edits.at(-1).content, /Target tim kepasang/);
+  const show = r.interaction({ options: options({ isi: null }) });
+  await r.service.target(show, deps);
+  assert.ok(show.edits.at(-1).content.startsWith('🎯 Target tim: "semua kumpul sebelum objective, jangan n\\*\\*\\*" '
+    + '(dipasang 21 Okt sama <@323456789012345678>, 0 game kecatat sejak itu)'));
+  const old = rigService({ coachStore: coachMemory({ target: { text: 'call info', setBy: U, at: NOW - 15 * 86_400_000 } }) });
+  const stale = old.interaction({ options: options({ isi: null }) });
+  await old.service.target(stale, deps);
+  assert.match(stale.edits.at(-1).content, /udah lewat 2 minggu/i);
+  const outsider = rigService({ coachStore: coachMemory(), teamMember: false });
+  const denied = outsider.interaction({ options: options({ isi: 'apa aja' }) });
+  await outsider.service.target(denied, deps);
+  assert.match(denied.edits.at(-1).content, /khusus anggota role Hengs Family/);
+  const empty = rigService({ coachStore: coachMemory() });
+  const none = empty.interaction({ options: options({ isi: null }) });
+  await empty.service.target(none, deps);
+  assert.match(none.edits.at(-1).content, /Belum ada target tim/);
+});
+
+test('the third game logged on one WIB day brings one debrief nudge in hasil-scrim, never late at night', async () => {
+  const today = [game(1, { at: NOW - 3_600_000 }), game(2, { at: NOW - 7_200_000, outcome: 'kalah', reason: 'early' })];
+  const memory = coachMemory({ target: { text: 'call info pendek', setBy: U, at: NOW - 86_400_000 } });
+  const r = rigService({ games: today, coachStore: memory });
+  const preview = await previewed(r);
+  await r.service.handleComponent(r.interaction({ customId: buttonId(preview, 0), isButton: () => true }));
+  assert.equal(r.sends.length, 2);
+  assert.match(r.sends[1].content, /^🧠 \*\*Debrief bentar yuk\*\* \(hari ini W 2 dari 3 game\)/);
+  assert.match(r.sends[1].content, /Target sekarang: "call info pendek"/);
+  assert.deepEqual(r.sends[1].allowedMentions, { parse: [] });
+  assert.equal(memory.state.debriefDay, Math.floor((NOW + 7 * 3_600_000) / 86_400_000));
+  const again = await previewed(r);
+  await r.service.handleComponent(r.interaction({ customId: buttonId(again, 0), isButton: () => true }));
+  assert.equal(r.sends.length, 3);
+  const late = Date.UTC(2026, 9, 21, 15, 30); // 22:30 WIB
+  const night = rigService({ games: [game(1, { at: late - 3_600_000 }), game(2, { at: late - 7_200_000 })],
+    coachStore: coachMemory(), clock: () => late });
+  const nightPreview = await previewed(night);
+  await night.service.handleComponent(night.interaction({ customId: buttonId(nightPreview, 0), isButton: () => true }));
+  assert.equal(night.sends.length, 1);
+});
+
+test('the coach reads the team target into its data card', async () => {
+  const agent = coachAgent();
+  const r = rigService({ agent, coachStore: coachMemory({ target: { text: 'call info pendek', setBy: U, at: NOW - 3_600_000 } }) });
+  await r.service.coach(r.message(), 'target kita jalan nggak?');
+  assert.match(agent.calls[0].context.data, /TARGET TIM: "call info pendek"/);
+});
+
+test('a meta question brings the pro draft card into the coach data and the Liquipedia credit under the reply', async () => {
+  const draft = { winner: 1, picks: [['Fanny', 'Lolita', 'Valentina', 'Claude', 'Chou'], ['Ling', 'Tigreal', 'Pharsa', 'Beatrix', 'Paquito']],
+    bans: [['Joy'], ['Lancelot']] };
+  const proPages = () => ({ 'MPL/Indonesia/Season 18/Playoffs': { revid: 1, matches: [{ games: [draft] }] } });
+  const agent = coachAgent('Fanny lagi sering dipick di pro, tapi cek dulu cocok nggak buat tim kita.');
+  const r = rigService({ agent, proPages });
+  const msg = r.message();
+  await r.service.coach(msg, 'hero meta pro sekarang apa?');
+  assert.match(agent.calls[0].context.data, /META PRO \(data draft Liquipedia: MPL ID S18 Playoffs; 1 game dengan draft lengkap\)/);
+  assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0). Pola draft pro belum tentu cocok buat tim sendiri.'));
+  const plain = r.message();
+  await r.service.coach(plain, 'kita kalah mulu, latihan apa?');
+  assert.doesNotMatch(agent.calls[1].context.data, /META PRO/);
+  assert.doesNotMatch(plain.replies[0].content, /Liquipedia/);
+  const broken = rigService({ agent: coachAgent(), proPages: () => { throw new Error('ESPORTS_READ_FAILED'); } });
+  const still = broken.message();
+  assert.equal(await broken.service.coach(still, 'meta apa?'), true);
+  assert.doesNotMatch(still.replies[0].content, /Liquipedia/);
+});
+
+test('a question naming a hero brings the Liquipedia hero facts into the coach data, with the credit', async () => {
+  const agent = coachAgent('Fanny itu Assassin di Jungle, cocok buat yang suka chase.');
+  const r = rigService({ agent });
+  const msg = r.message();
+  await r.service.coach(msg, 'Fanny cocoknya buat siapa?');
+  assert.match(agent.calls[0].context.data, /KAMUS MLBB \(Liquipedia, dicek \d{4}-\d{2}-\d{2}\)\nFanny \(Blade Dancer\): role Assassin, lane Jungle/);
+  assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0)'));
+});
+
+test('/scrim target is registered with one optional text and routed to the service', async () => {
+  const json = scrimCommand.data.toJSON();
+  const target = json.options.find(option => option.name === 'target');
+  assert.deepEqual(target.options.map(option => [option.name, Boolean(option.required), option.max_length]), [['isi', false, 120]]);
+  const calls = [];
+  await scrimCommand.execute({ options: { getSubcommand: () => 'target' } },
+    { scrimResults: { target: async () => calls.push('target') }, guildAccess: deps.guildAccess });
+  assert.deepEqual(calls, ['target']);
+});
+
 test('runtime hands mentions in hasil-scrim to the coach before any other prompt route', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
-  assert.ok(source.includes('createScrimResults({ store: createScrimStore(), agent })'));
+  assert.ok(source.includes('createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore(),\n  proPages: esportsPages.pages })')
+    || source.includes('createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore(),\r\n  proPages: esportsPages.pages })'));
   const coachAt = source.indexOf("if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;");
   assert.ok(coachAt > source.indexOf('if (text.length > MAX_PROMPT_LENGTH)'));
   assert.ok(coachAt < source.indexOf('const promptRoute = resolvePrompt({'));

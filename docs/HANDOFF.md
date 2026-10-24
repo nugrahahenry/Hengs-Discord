@@ -2,6 +2,54 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24
+
+- Henry: "Ya, gabung coach-v2 ke main sebagai versi berikutnya. Beresin dulu 1 test yang gagal, push main, jangan
+  deploy." The "1 test" was not a failure: in the coach worktree `test/wa-recovery-alerts.test.js` skips because the
+  folder is not named `discord-bot`. In main it runs and passes.
+- Merged `coach-v2` (tip 8b00457) with --no-ff on top of v1.78.0 setup v2. Only version bookkeeping conflicted.
+  Full suite 888/888 on Node 22 via PowerShell.
+- Deploy gates: Henry's approval, his GPT assets, the coach under-18 consent and age-13 decisions, command
+  re-registration (`/scrim target` and the new `/admin setup` description). The screenshot test still waits for
+  10 end-of-match screenshots in `.cloud/evals/ss-test`.
+
+### Branch v1.79.0: coach pro drafts and hero dictionary
+
+- Two more of Henry's four coach paths. New src/scrim/pro-meta.js (META PRO card from esports-state.json pages, read
+  through a second createEsportsStore() in index.js; esports code untouched) and src/scrim/mlbb-dictionary.js with
+  src/scrim/mlbb-heroes.json (Liquipedia snapshot 2026-10-24, 133 heroes; rebuild with scripts/build-mlbb-heroes.js).
+- coachData takes `extras` (knowledge cards); coachReply adds the Liquipedia credit when a card was used.
+- The dictionary agrees with the 2026-10-23 textbook exam key: Obsidia is a real new hero (Marksman, Gold Lane), which
+  the model had answered as a mid-lane Mage; with the dictionary the coach now gets it from data.
+- QA: Node 22 full suite from PowerShell 879 total, 878 pass, 1 worktree-only skip.
+- Later commits: 05a7454 (coachContext picks the knowledge cards and the credit, so bot and exam share it), a7b8a13
+  (cards carry their own caveats after exam v7; agent.chat maxTokens, coach uses 900). Exam v7: old 20 scenarios 36/40,
+  new 6 only 3/12; after a7b8a13 the 10 weakest re-ran at 15/20 with nothing invented. Full suite 881, 880 pass.
+- Henry then asked to tidy the remaining weak spots before the screenshots ("SS nanti dulu"): f80b491 (no-target line,
+  opponent hint, pro caveat next to the credit) and dbbd500 (one-focus push only on training questions). Exam on 12
+  scenarios: v9 18/24, v10 21/24. Full suite 884, 883 pass.
+- Henry: unsure answers should stay fun, not "gatau". In coach mode a rule replaces the general nggak-tahu rule (data
+  first, one light hedge, one way to find out, no maaf opener); the lane card counts who fills each lane. Exam keys A2,
+  C4, D1, E1-E4 and K2 got the style requirement before run v11 (noted in scenarios.json `changes`); run.cjs flags
+  "buka pakai ragu" and "penutup generik".
+- Exam v11 (12 scenarios, stricter keys): 16/24, H 0. Dodge openers 6 to 5, generic closers 0 to 3 because the rule
+  named the closer; the next commit drops it in code (replayed offline on v11: only E2, E4, K1 change). Next lever:
+  few-shot examples Henry approves; rerun the exam tomorrow (36 requests on the Discord key today).
+- Still open: the screenshot path waits for Henry's 10 end-of-match screenshots in discord-bot/.cloud/evals/ss-test
+  (harness .cloud/evals/ss-vision-2026-10-24/read.cjs; qwen/qwen3.8-27b is on the Discord key).
+
+### Branch v1.78.0: coach target and debrief
+
+- Henry asked the main session for a smarter coach ("biar makin pintar dan mantep"); the coach side session asked him what
+  that means and he picked all four paths: end-of-match screenshots read by vision, target + debrief, an MLBB
+  dictionary, and pro draft stats. This commit is the target + debrief path. Branch coach-v2 starts at main dce21b8.
+- New src/scrim/coach-store.js (data/scrim-coach.json: target text, setBy, at, last debrief WIB day). service.js gets
+  target(i) and a debrief() after a successful Kirim; coach.js gets TARGET TIM in the data card, debriefText, safeText,
+  targetFresh, isLate. index.js passes coachStore to createScrimResults. scrim.js gets the `target` subcommand.
+- Help and /hengs privacy updated; privacy is at about 1986 of 2000 characters, so later features need their own trims.
+- QA: Node 22 full suite from PowerShell 871 total, 870 pass, 1 worktree-only skip.
+- Deploy (Henry's approval only): register commands once (new `target`). New data file is created on first use.
+
 ## Hengs Discord v1.78.0 /admin setup v2 (committed, not deployed) - 2026-10-24
 
 - Henry: "Tampilannya oke, lanjut bangun wizard setup v2 (paket, tema, preview, rename opsional, tema custom)."

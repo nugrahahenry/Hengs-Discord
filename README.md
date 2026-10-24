@@ -2,9 +2,11 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.78.0 - `/admin setup` v2: a guided community setup (packages, News +
-Memes, a theme picked from an image board or written as a custom pattern, a sidebar preview image, optional rename
-of old channels) replaces the old menu and the legacy full setup. Builds on v1.77.0 (own `🤖・tanya-hengs` channel,
+**Current checkpoint:** Hengs Discord v1.79.0 - Hengs Coach v2: one team practice target with `/scrim target` and a
+debrief nudge after the third game of a day, pro draft stats and a Liquipedia hero dictionary in the coach's data
+card, and unsure answers that start from the data instead of "gatau". Builds on v1.78.0 `/admin setup` v2 (a guided
+community setup: packages, News + Memes, a theme picked from an image board or written as a custom pattern, a
+sidebar preview image, optional rename of old channels; the old menu and the legacy full setup are gone), v1.77.0 (own `🤖・tanya-hengs` channel,
 `bot-commands` stays shared with other bots), v1.76.0 chat mode phase 2 (send
 memes and news, log or undo a scrim by chat, each through a requester-only "Lanjut" button into the slash flow),
 v1.75.0 chat mode phase 1
@@ -159,6 +161,16 @@ Program mengecek tiap jawaban sebelum disimpan atau dikirim: kata kasar atau lab
 dan kalau AI menulis penanda bantuan atau pertanyaannya menyebut tanda bahaya (dibully, bunuh diri), teks tetap berisi
 SAPA 129 dan Healing119 ikut dikirim. Coach cuma jawab di hasil-scrim asli (atau thread di dalamnya). Batas 15
 pertanyaan yang dijawab AI per orang per hari.
+
+Target dan debrief: `/scrim target isi: ...` memasang satu target latihan tim (kebiasaan main yang bisa dicek sendiri),
+diumumkan di hasil-scrim tanpa ping; `/scrim target` tanpa isi menampilkannya. Coach ikut membaca target itu. Setelah
+game ketiga yang dicatat di hari yang sama (bukan jam 22.00 sampai 05.00 WIB), Hengs mengirim satu ajakan debrief: satu
+hal yang jalan, satu keputusan yang mau dibenerin, dan target berikutnya. Data: `data/scrim-coach.json`.
+
+Pengetahuan coach dari Liquipedia (CC-BY-SA, dikredit di bawah jawaban): pertanyaan soal meta, pick, ban, atau draft
+menambah statistik draft pro dari halaman MPL yang sudah dibaca Hengs Analis (selalu dengan jumlah game), dan pertanyaan
+yang menyebut hero menambah role, lane, dan spesialis hero itu dari `src/scrim/mlbb-heroes.json` (dibangun ulang dengan
+`node scripts/build-mlbb-heroes.js` kalau ada hero baru).
 
 Data: `data/scrim-games.json`, satu baris per game (ID pesan, waktu, ID pencatat, lawan, menang/kalah, alasan,
 lineup berupa ID Discord, catatan), maksimal 500 game terbaru per server. Gambar tetap di Discord. File lama

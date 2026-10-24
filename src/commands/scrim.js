@@ -45,6 +45,12 @@ module.exports = {
       .setName('tanya')
       .setDescription('Tanya coach Hengs, dijawab pakai data scrim tim, cuma kamu yang lihat (khusus Hengs Family)')
       .addStringOption(opt => opt.setName('pertanyaan').setDescription('Mau nanya apa ke coach?').setRequired(true).setMaxLength(500))
+    )
+    .addSubcommand(sub => sub
+      .setName('target')
+      .setDescription('Target latihan tim: pasang satu kebiasaan main, atau lihat yang sekarang (khusus Hengs Family)')
+      .addStringOption(opt => opt.setName('isi').setDescription('Opsional: target baru, misalnya semua kumpul sebelum objective pertama')
+        .setRequired(false).setMaxLength(120))
     ),
 
   async autocomplete(interaction, { scrimResults }) {
@@ -59,6 +65,7 @@ module.exports = {
     if (sub === 'statku') return scrimResults.stats(interaction, { guildAccess });
     if (sub === 'hapus') return scrimResults.remove(interaction, { guildAccess });
     if (sub === 'tanya') return scrimResults.ask(interaction, { guildAccess });
+    if (sub === 'target') return scrimResults.target(interaction, { guildAccess });
 
     if (sub === 'on') {
       const game = interaction.options.getString('game');

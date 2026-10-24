@@ -1,0 +1,1898 @@
+{
+ "source": "Liquipedia Mobile Legends wiki (liquipedia.net/mobilelegends), CC-BY-SA 3.0",
+ "retrieved": "2026-10-24",
+ "heroes": [
+  {
+   "name": "Aamon",
+   "title": "Duke of Shards",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Akai",
+   "title": "Panda Warrior",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Guard",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Aldous",
+   "title": "Soul Contractor",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Burst",
+    "Support"
+   ]
+  },
+  {
+   "name": "Alice",
+   "title": "Queen of Blood",
+   "roles": [
+    "Tank",
+    "Mage"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Charge",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Alpha",
+   "title": "Blade of Enmity",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Charge",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Alucard",
+   "title": "Demon Hunter",
+   "roles": [
+    "Fighter",
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Angela",
+   "title": "Bunnylove",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Guard",
+    "Support"
+   ]
+  },
+  {
+   "name": "Argus",
+   "title": "Dark Angel",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Charge",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Arlott",
+   "title": "Lone Lancer",
+   "roles": [
+    "Fighter",
+    "Assassin"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Charge",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Atlas",
+   "title": "Ocean Gladiator",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Initiator"
+   ]
+  },
+  {
+   "name": "Aulus",
+   "title": "Warrior of Ferocity",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Damage",
+    "Charge"
+   ]
+  },
+  {
+   "name": "Aurora",
+   "title": "Maiden of the Glacier",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Poke"
+   ]
+  },
+  {
+   "name": "Badang",
+   "title": "Tribal Warrior",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Charge",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Balmond",
+   "title": "Bloody Beast",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Damage",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Bane",
+   "title": "Frozen King",
+   "roles": [
+    "Fighter",
+    "Mage"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Push",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Barats",
+   "title": "Dino Rider",
+   "roles": [
+    "Tank",
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Damage",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Baxia",
+   "title": "Mystic Tortoise",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Support",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Beatrix",
+   "title": "Dawnbreak Soldier",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Belerick",
+   "title": "Guard of Nature",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Benedetta",
+   "title": "Shadow Ranger",
+   "roles": [
+    "Assassin",
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Brody",
+   "title": "The Lone Star",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Burst",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Bruno",
+   "title": "The Protector",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Carmilla",
+   "title": "Shadow of Twilight",
+   "roles": [
+    "Support",
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Cecilion",
+   "title": "Embrace of Night",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Chang'e",
+   "title": "Moon Palace Immortal",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Chip",
+   "title": "Phase Technician",
+   "roles": [
+    "Support",
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Support",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Chou",
+   "title": "Kung Fu Boy",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Control"
+   ]
+  },
+  {
+   "name": "Cici",
+   "title": "Buoyant Performer",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Damage",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Claude",
+   "title": "Partners in Crime",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Burst",
+    "Chase"
+   ]
+  },
+  {
+   "name": "Clint",
+   "title": "Wild Wanderer",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Cyclops",
+   "title": "Starsoul Magician",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Damage",
+    "Control"
+   ]
+  },
+  {
+   "name": "Diggie",
+   "title": "Timekeeper",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Guard",
+    "Poke"
+   ]
+  },
+  {
+   "name": "Dyrroth",
+   "title": "Prince of the Abyss",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Charge",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Edith",
+   "title": "Ancient Guard",
+   "roles": [
+    "Tank",
+    "Marksman"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Control",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Esmeralda",
+   "title": "Astrologer",
+   "roles": [
+    "Tank",
+    "Mage"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Regen",
+    "Mixed Damage"
+   ]
+  },
+  {
+   "name": "Estes",
+   "title": "Moon Elf King",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Regen",
+    "Guard"
+   ]
+  },
+  {
+   "name": "Eudora",
+   "title": "Lightning Weaver",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Control",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Fanny",
+   "title": "Blade Dancer",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Faramis",
+   "title": "Soul Binder",
+   "roles": [
+    "Support",
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Guard",
+    "Charge"
+   ]
+  },
+  {
+   "name": "Floryn",
+   "title": "The Budding Hope",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Poke",
+    "Guard"
+   ]
+  },
+  {
+   "name": "Franco",
+   "title": "Frozen Warrior",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Initiator",
+    "Control"
+   ]
+  },
+  {
+   "name": "Fredrinn",
+   "title": "Rogue Appraiser",
+   "roles": [
+    "Fighter",
+    "Tank"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Damage",
+    "Chase"
+   ]
+  },
+  {
+   "name": "Freya",
+   "title": "Valkyrie",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Gatotkaca",
+   "title": "Iron Steel",
+   "roles": [
+    "Tank",
+    "Fighter"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Gloo",
+   "title": "Swamp Spirits",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Regen",
+    "Control"
+   ]
+  },
+  {
+   "name": "Gord",
+   "title": "Professor of the Mystic",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Granger",
+   "title": "Death Chanter",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Burst",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Grock",
+   "title": "Fortress Titan",
+   "roles": [
+    "Tank",
+    "Fighter"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Initiator"
+   ]
+  },
+  {
+   "name": "Guinevere",
+   "title": "Ms. Violet",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Burst",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Gusion",
+   "title": "Holy Blade",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Burst",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Hanabi",
+   "title": "The Scarlet Flower",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Hanzo",
+   "title": "Akuma Ninja",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Poke",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Harith",
+   "title": "Time Traveler",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Harley",
+   "title": "Mage Genius",
+   "roles": [
+    "Assassin",
+    "Mage"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Burst",
+    "Poke"
+   ]
+  },
+  {
+   "name": "Hayabusa",
+   "title": "Crimson Shadow",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Helcurt",
+   "title": "Shadowbringer",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Push",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Hilda",
+   "title": "Power of Megalith",
+   "roles": [
+    "Fighter",
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Damage",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Hirara",
+   "title": "Fallen Scarlet",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Hylos",
+   "title": "Grand Warden",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Guard",
+    "Initiator"
+   ]
+  },
+  {
+   "name": "Irithel",
+   "title": "Jungle Heart",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Ixia",
+   "title": "Arclight Outlaw",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Jawhead",
+   "title": "Steel Sweetheart",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Charge",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Johnson",
+   "title": "Wild Engine",
+   "roles": [
+    "Tank",
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Support",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Joy",
+   "title": "Flash of Miracle",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Julian",
+   "title": "Scarlet Raven",
+   "roles": [
+    "Assassin",
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Kadita",
+   "title": "Ocean Goddess",
+   "roles": [
+    "Mage",
+    "Assassin"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Charge"
+   ]
+  },
+  {
+   "name": "Kagura",
+   "title": "Onmyouji Master",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Kaja",
+   "title": "Nazar King",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Initiator",
+    "Charge"
+   ]
+  },
+  {
+   "name": "Kalea",
+   "title": "Surging Wave",
+   "roles": [
+    "Support",
+    "Fighter"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Control",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Karina",
+   "title": "Shadow Blade",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Finisher",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Karrie",
+   "title": "Lost Star",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Khaleed",
+   "title": "Desert Scimitar",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Damage",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Khufra",
+   "title": "Desert Tyrant",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Initiator",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Kimmy",
+   "title": "Hoverjet Outrider",
+   "roles": [
+    "Marksman",
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Damage",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Lancelot",
+   "title": "Blade of Roses",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Lapu-Lapu",
+   "title": "Courageous Blade",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Layla",
+   "title": "Energy Gunner",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Leomord",
+   "title": "Sworn Sword",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Lesley",
+   "title": "Deadly Sniper",
+   "roles": [
+    "Marksman",
+    "Assassin"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Ling",
+   "title": "Cyan Finch",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Lolita",
+   "title": "Steel Elf",
+   "roles": [
+    "Support",
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Guard",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Lukas",
+   "title": "Beast of Light",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Regen",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Lunox",
+   "title": "Twilight Goddess",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Luo Yi",
+   "title": "Yin-yang Geomancer",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Support",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Lylia",
+   "title": "Little Witch",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Push",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Marcel",
+   "title": "Soul Photographer",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Support"
+   ]
+  },
+  {
+   "name": "Martis",
+   "title": "Asura King",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Finisher",
+    "Charge"
+   ]
+  },
+  {
+   "name": "Masha",
+   "title": "Wild-oats Fist",
+   "roles": [
+    "Fighter",
+    "Tank"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Push",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Mathilda",
+   "title": "Swift Plume",
+   "roles": [
+    "Support",
+    "Assassin"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Initiator",
+    "Guard"
+   ]
+  },
+  {
+   "name": "Melissa",
+   "title": "Cursed Needle",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Minotaur",
+   "title": "Son of Minos",
+   "roles": [
+    "Tank",
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Minsitthar",
+   "title": "Courageous Warrior",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Initiator",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Miya",
+   "title": "Moonlight Archer",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Moskov",
+   "title": "Spear of Quiescence",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Chase"
+   ]
+  },
+  {
+   "name": "Nana",
+   "title": "Sweet Leonin",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Natalia",
+   "title": "Bright Claw",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Natan",
+   "title": "Spacetime Walker",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Burst",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Nolan",
+   "title": "Cosmic Wayfinder",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Novaria",
+   "title": "Star Rebel",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Poke"
+   ]
+  },
+  {
+   "name": "Obsidia",
+   "title": "Sovereign of Dark's End",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Odette",
+   "title": "Swan Princess",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Poke"
+   ]
+  },
+  {
+   "name": "Paquito",
+   "title": "The Heavenly Fist",
+   "roles": [
+    "Fighter",
+    "Assassin"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Pharsa",
+   "title": "Wings of Vengeance",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Poke"
+   ]
+  },
+  {
+   "name": "Phoveus",
+   "title": "Chains of Sin",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Regen",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Popol and Kupa",
+   "title": "Icefield Companions",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Push",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Rafaela",
+   "title": "Wings of Holiness",
+   "roles": [
+    "Support"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": [
+    "Regen",
+    "Guard"
+   ]
+  },
+  {
+   "name": "Roger",
+   "title": "Dire Wolf Hunter",
+   "roles": [
+    "Fighter",
+    "Marksman"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Finisher",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Ruby",
+   "title": "Little Red Hood",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Crowd Control",
+    "Regen"
+   ]
+  },
+  {
+   "name": "Saber",
+   "title": "Wandering Sword",
+   "roles": [
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Charge",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Selena",
+   "title": "Abyssal Witch",
+   "roles": [
+    "Assassin",
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Initiator",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Silvanna",
+   "title": "Imperial Knightess",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Initiator",
+    "Magic Damage"
+   ]
+  },
+  {
+   "name": "Sora",
+   "title": "Shifting Cloud",
+   "roles": [
+    "Fighter",
+    "Assassin"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Charge",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Sun",
+   "title": "Monkey King",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Push",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Suyou",
+   "title": "Mask of the Immortal",
+   "roles": [
+    "Assassin",
+    "Fighter"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Chase",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Terizla",
+   "title": "Executioner",
+   "roles": [
+    "Fighter",
+    "Tank"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Burst",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Thamuz",
+   "title": "Lord Lava",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Tigreal",
+   "title": "Warrior of Dawn",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Roam"
+   ],
+   "specialties": []
+  },
+  {
+   "name": "Uranus",
+   "title": "Aethereal Defender",
+   "roles": [
+    "Tank"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Regen"
+   ]
+  },
+  {
+   "name": "Vale",
+   "title": "Windtalker",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Valentina",
+   "title": "Prophetess of the Night",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Burst",
+    "Finisher"
+   ]
+  },
+  {
+   "name": "Valir",
+   "title": "Son of Flames",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Damage",
+    "Guard"
+   ]
+  },
+  {
+   "name": "Vexana",
+   "title": "Shimmer of Hope",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Control"
+   ]
+  },
+  {
+   "name": "Wanwan",
+   "title": "Agile Tiger",
+   "roles": [
+    "Marksman"
+   ],
+   "lanes": [
+    "Gold"
+   ],
+   "specialties": [
+    "Finisher",
+    "Burst"
+   ]
+  },
+  {
+   "name": "X.Borg",
+   "title": "Firaga Armor",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Regen",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Xavier",
+   "title": "Defier of Light",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Damage",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Yi Sun-shin",
+   "title": "Paenlong Legend",
+   "roles": [
+    "Assassin",
+    "Marksman"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Finisher",
+    "Chase"
+   ]
+  },
+  {
+   "name": "Yin",
+   "title": "Martial Genius",
+   "roles": [
+    "Fighter",
+    "Assassin"
+   ],
+   "lanes": [
+    "Jungle"
+   ],
+   "specialties": [
+    "Burst",
+    "Control"
+   ]
+  },
+  {
+   "name": "Yu Zhong",
+   "title": "Black Dragon",
+   "roles": [
+    "Fighter"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Regen",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Yve",
+   "title": "Astrowarden",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Poke",
+    "Burst"
+   ]
+  },
+  {
+   "name": "Zetian",
+   "title": "Celestial Empress",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Damage",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Zhask",
+   "title": "Planes Dominator",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  },
+  {
+   "name": "Zhuxin",
+   "title": "Beacon of Spirits",
+   "roles": [
+    "Mage"
+   ],
+   "lanes": [
+    "Mid"
+   ],
+   "specialties": [
+    "Damage",
+    "Crowd Control"
+   ]
+  },
+  {
+   "name": "Zilong",
+   "title": "Spear of Dragon",
+   "roles": [
+    "Fighter",
+    "Assassin"
+   ],
+   "lanes": [
+    "Exp"
+   ],
+   "specialties": [
+    "Chase",
+    "Damage"
+   ]
+  }
+ ]
+}

@@ -219,6 +219,16 @@ test('a turn may lower the temperature; anything else keeps the default', async 
   assert.deepEqual(value.calls.map(call => call.temperature), [0.3, 0.7, 0.7]);
 });
 
+test('a turn may raise the answer budget within bounds; anything else keeps 700 tokens', async () => {
+  const value = fixture();
+  await value.agent.chat('Q1', KEY, { visibility: 'coach', maxTokens: 900 });
+  value.tick();
+  await value.agent.chat('Q2', KEY, { visibility: 'coach', maxTokens: 99_999 });
+  value.tick();
+  await value.agent.chat('Q3', KEY);
+  assert.deepEqual(value.calls.map(call => call.max_tokens), [900, 700, 700]);
+});
+
 test('a stateless coach turn neither reads nor writes history', async () => {
   const value = fixture();
   await value.agent.chat('COACH_1', KEY, { visibility: 'coach' });

@@ -5,6 +5,73 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.79.0] - 2026-10-24
+
+Hengs Coach v2, merged from branch `coach-v2` (its provisional v1.78.0 and v1.79.0).
+
+### Added
+
+- Pro draft numbers for the coach: a meta, pick, ban or draft question (or one naming a hero) adds a "META PRO" card
+  counted from the Liquipedia pages Hengs Analis already keeps (decided games with full 5v5 drafts only): the five most
+  picked and banned heroes with the game count, plus pick, win and ban lines for a named hero. The coach must say it is a
+  pro pattern that may not suit the team. An unreadable esports file just leaves the card out.
+- MLBB hero dictionary: `src/scrim/mlbb-heroes.json`, a dated Liquipedia snapshot of all 133 heroes (title, roles,
+  lanes, specialties), built by `scripts/build-mlbb-heroes.js` through the MediaWiki API under its terms (two requests).
+  A question naming a hero adds its facts ("KAMUS MLBB"); a question about lanes or roles adds the lane and role names.
+  The official mobilelegends.com data API is not used (MLBB ToS section 11 bans automated collection).
+- Any coach reply built on either card ends with "-# Data: Liquipedia (CC-BY-SA 3.0)".
+- `/scrim target [isi]` (Hengs Family): the team's one practice target, a habit the team can check itself (Henry asked for
+  a smarter coach: "biar makin pintar dan mantep"). With `isi` it is set, masked like coach replies, and announced in
+  hasil-scrim without pings; without `isi` it is shown privately with the games logged since. Stored in its own file
+  `data/scrim-coach.json` (target text, who set it, when); a target older than 14 days is treated as stale.
+- The coach reads a fresh target into its data card ("TARGET TIM", with the games logged since) and links its answer to
+  it; when asked for a target it points to `/scrim target`.
+- Debrief nudge without AI: the third game logged on one WIB day brings one message in hasil-scrim with three debrief
+  questions (what worked, one decision to fix, the next target) and the current target. Never between 22.00 and 05.00
+  WIB, at most once a day (the day is claimed before the send). Debriefs after a scrim block are the coaching habit with
+  the strongest evidence in the research (`docs/research/2026-10-23-coaching-practice.md`).
+
+### Changed
+
+- Coach rules for the three weak spots of the last exam: a ward question must get one alternative tip, a blamed teammate
+  gets an answer ("nggak setuju pakai label buat teman"), and an opponent question uses that opponent's recap.
+- The cards now carry their own caveats, because exam v7 showed the model dropping them: the target line says the
+  notebook does not track whether the target worked, the pro card ends with "pola tim pro dari N game, belum tentu cocok"
+  (and "sampelnya kecil" under 20 games), hero specialties read "keahlian (bukan nama skill)", the lane list says it has
+  no lane mechanics, a team under 5 games gets a small-sample line, and the reminder asks for one focus set with
+  `/scrim target`. `agent.chat` takes an optional `maxTokens` (200 to 1500); coach turns use 900 so answers are not cut.
+- After exam v8 and v9 (Henry: "Rapihin sisa kelemahan coach yang lain dulu"): the card says "TARGET TIM: belum ada" when
+  no target is set, an opponent question gets a line pointing at that opponent's recap, the one-focus push to
+  `/scrim target` comes only on questions about training, a focus or setting a target (on every question it turned into
+  advice to track results and pro heroes with it), and code adds "Pola draft pro belum tentu cocok buat tim sendiri"
+  next to the Liquipedia credit whenever the pro card was used.
+- Henry asked that unsure answers stay fun instead of a bare "gatau" (exam v7: 6 of 26 answers opened with maaf or
+  nggak yakin). In coach mode a rule replaces the general "bilang nggak tahu" rule: start from what the data or the
+  dictionary does say, hedge once ("masih susah dipastiin"), give one way to find out together, never open with maaf
+  or close with "kalau ada hal lain tanya aja". A ward question gets the alternative tip in its first sentence. The
+  lane card counts who fills each lane from the snapshot (Gold Lane 18 Marksman of 19 heroes, and so on) and says lane
+  positions and mechanics are not in it.
+- Exam v11 showed that naming the generic closer in the rules primed it (3 of 12 answers ended with it, none before),
+  so the rules no longer name it and the reply guard drops a last sentence about "hal lain" or "pertanyaan lain"
+  (kept when it is the whole reply).
+- Help: the scrim paragraph is shorter and names `/scrim target`. `/hengs privacy` says the coach also reads the team
+  target and that it is kept until replaced; the scrim line is shorter so the page stays under 2000 characters.
+
+### Verification
+
+- Coach exam (local, `.cloud/evals/coach-2026-10-23`): v7 with 26 scenarios scored the 20 old ones 36/40 (v4: 33/40)
+  but the 6 new ones (target, pro meta, hero dictionary) 3/12, with an invented target result and invented lane
+  mechanics. After the card fixes the 10 weakest re-ran at 15/20 (they had 7/20), with nothing invented. Twelve
+  scenarios (weak ones plus controls) went 18/24 (v9) and then 21/24 (v10) after the last two fixes. Still variable
+  between runs: the gold vs EXP lane question sometimes gets invented lane mechanics, and the ward question sometimes
+  gets no alternative tip.
+- Node 22 full suite in the worktree (PowerShell): 884 tests, 883 pass, 1 worktree-only skip. Not deployed.
+- Node 22 full suite in the worktree (PowerShell): 871 tests, 870 pass, 1 worktree-only skip. Not deployed; deploy needs
+  command re-registration for the new `target` subcommand.
+- Merged into main on top of v1.78.0 (setup v2): Node 22 full suite 888/888 via PowerShell. The worktree's
+  one skip was the workspace-path check in `test/wa-recovery-alerts.test.js`, which runs in main. Not deployed;
+  the deploy needs command re-registration for `/scrim target`.
+
 ## [1.78.0] - 2026-10-24
 
 ### Added
