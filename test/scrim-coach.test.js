@@ -188,7 +188,7 @@ test('a textbook entry joins the data card without the Liquipedia credit, and th
   assert.equal(both.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');
   assert.match(COACH_RULES, /BUKU PINTAR di DATA itu ilmu MLBB dari Henry/);
   assert.match(COACH_RULES, /lane meta cuma dari BUKU PINTAR atau META PRO/);
-  assert.match(COACH_RULES, /sebut tanggal cek KAMUS atau BUKU PINTAR/);
+  assert.match(COACH_RULES, /sebut patch atau tanggal cek dari BUKU PINTAR atau KAMUS/);
 });
 
 // Henry 2026-10-24: "Boleh ledek nama ringan kayak contohku (pea, badplay, begadang), asal tanpa kata kasar."

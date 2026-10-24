@@ -803,7 +803,7 @@ test('a question naming a hero brings the Liquipedia hero facts into the coach d
   const r = rigService({ agent });
   const msg = r.message();
   await r.service.coach(msg, 'Fanny cocoknya buat siapa?');
-  assert.match(agent.calls[0].context.data, /KAMUS MLBB \(Liquipedia, dicek \d{4}-\d{2}-\d{2}\)\nFanny \(Blade Dancer\): role Assassin, lane versi Liquipedia Jungle/);
+  assert.match(agent.calls[0].context.data, /KAMUS MLBB \(Liquipedia, dicek \d{4}-\d{2}-\d{2}, patch [\w.]+\)\nFanny \(Blade Dancer\): role Assassin, lane versi Liquipedia Jungle/);
   assert.ok(msg.replies[0].content.endsWith('\n-# Data: Liquipedia (CC-BY-SA 3.0)'));
 });
 

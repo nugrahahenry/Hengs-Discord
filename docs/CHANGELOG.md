@@ -34,6 +34,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   except Sky Piercer users like Obsidia; Bruno starts with Haas's Claws; regular: Corrosion Scythe, then Golden Staff or
   Demon Hunter Sword, Demon Hunter Sword first against thick tanks, Sky Piercer early when winning), and which Marksmen
   use which trinity. Item names were checked against Liquipedia page titles. The build example now uses the order.
+- Both knowledge cards name their patch: the hero dictionary JSON has a `patch` field (2.2.16a, Liquipedia's newest
+  patch page, released 2026-10-14; `scripts/build-mlbb-heroes.js` now takes the live patch as its argument) and the buku
+  pintar header says "patch 2.2.16a rilis 14 Okt 2026, season 42". A missing number is answered with that patch and the
+  check date.
 
 ### Verification
 

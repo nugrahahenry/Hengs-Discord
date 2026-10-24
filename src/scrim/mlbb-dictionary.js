@@ -3,7 +3,7 @@
 // The coach's MLBB dictionary: role, lane and specialties for heroes named in a question, plus the lane and role names
 // when the question is about lanes or roles (the textbook exam showed the model mixing them up). Data is a dated
 // Liquipedia snapshot (CC-BY-SA), rebuilt with scripts/build-mlbb-heroes.js when a new hero comes out.
-const { heroes, retrieved } = require('./mlbb-heroes.json');
+const { heroes, retrieved, patch } = require('./mlbb-heroes.json');
 
 const LANE = Object.freeze({ Gold: 'Gold Lane', Exp: 'EXP Lane', Mid: 'Mid Lane', Jungle: 'Jungle', Roam: 'Roam' });
 const LANE_WORDS = /\b(lane|jungle|jungler|roam|roamer|role|tank|fighter|assassin|mage|marksman|support)\b/i;
@@ -32,7 +32,8 @@ function heroCard(text = '') {
       .map(lane => LANE[lane] || lane).join(' atau ')}, keahlian (bukan nama skill) ${hero.specialties.join(' dan ')}.`);
   if (lines.length) lines.push(FLEX);
   if (LANE_WORDS.test(text)) lines.push(GLOSSARY);
-  return lines.length ? [`KAMUS MLBB (Liquipedia, dicek ${retrieved})`, ...lines].join('\n') : '';
+  // Henry 2026-10-24: a missing number should come with the patch the data is from.
+  return lines.length ? [`KAMUS MLBB (Liquipedia, dicek ${retrieved}, patch ${patch})`, ...lines].join('\n') : '';
 }
 
 module.exports = { heroCard };

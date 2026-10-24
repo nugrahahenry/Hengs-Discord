@@ -9,6 +9,7 @@ test('the hero dictionary is a dated Liquipedia snapshot with roles and lanes fo
   assert.match(dictionary.source, /Liquipedia/);
   assert.match(dictionary.source, /CC-BY-SA/);
   assert.match(dictionary.retrieved, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(dictionary.patch, /^\d+\.\d+\.\d+[a-z]?$/);
   assert.ok(dictionary.heroes.length >= 130);
   const lanes = new Set(['Gold', 'Exp', 'Mid', 'Jungle', 'Roam']);
   const roles = new Set(['Tank', 'Fighter', 'Assassin', 'Mage', 'Marksman', 'Support']);
@@ -22,7 +23,8 @@ test('the hero dictionary is a dated Liquipedia snapshot with roles and lanes fo
 
 test('a named hero gets its role, lane and specialties; lane or role words get the lane list', () => {
   const card = heroCard('Fanny sama Lolita cocoknya lane apa?');
-  assert.match(card, new RegExp(`^KAMUS MLBB \\(Liquipedia, dicek ${dictionary.retrieved}\\)`));
+  // Henry 2026-10-24: an answer without the number should say which patch the data is from.
+  assert.ok(card.startsWith(`KAMUS MLBB (Liquipedia, dicek ${dictionary.retrieved}, patch ${dictionary.patch})\n`), card);
   // Exam v7: "spesialis" came back as "skill", and the lane names invited invented lane mechanics.
   assert.match(card, /\nFanny \(Blade Dancer\): role Assassin, lane versi Liquipedia Jungle, keahlian \(bukan nama skill\) Chase dan Finisher\./);
   assert.match(card, /\nLolita \(Steel Elf\): role Support dan Tank, lane versi Liquipedia Roam, keahlian \(bukan nama skill\) Guard dan Crowd Control\./);

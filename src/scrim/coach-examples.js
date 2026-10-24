@@ -6,10 +6,11 @@
 // check date, and only facts from the hero dictionary or their own data line; none repeats an exam question. Henry
 // reviewed the first draft on 2026-10-24 (MM trinity, buff rotation, Chou's meta lanes). The first three are hero-free:
 // a question with no match gets them.
-const { retrieved } = require('./mlbb-heroes.json');
+const { retrieved, patch } = require('./mlbb-heroes.json');
 const { dayLabel } = require('./stats');
 
 const CHECKED = dayLabel(retrieved);
+const PATCH = `patch ${patch}`;
 const EXAMPLES = Object.freeze([
   { q: 'Kita lemahnya di mana sih?', data: 'baru beberapa game kecatat, kalah paling sering di early',
     a: 'Dari catatan sejauh ini kalahnya paling sering di early, tapi datanya masih dikit, jadi masih terlalu dini buat '
@@ -44,10 +45,11 @@ const EXAMPLES = Object.freeze([
       + 'dulu MM lawan pakai trinity yang mana sebelum beli, biar counter-nya kena. Di tim kalian biasanya siapa yang pegang '
       + 'item counter?' },
   { q: 'Cooldown ulti Hayabusa berapa detik?',
-    data: `KAMUS dicek ${CHECKED}: Hayabusa Assassin di Jungle; BUKU PINTAR: buff awal jungler nentuin rotasi`,
+    data: `KAMUS dicek ${CHECKED}, ${PATCH}: Hayabusa Assassin di Jungle; BUKU PINTAR: buff awal jungler nentuin rotasi`,
     a: 'Buat jungler kayak Hayabusa, yang paling ngaruh itu mulai dari buff mana, karena itu nentuin rotasi: mulai biru '
-      + 'biasanya ke bawah, mulai merah ke atas, walau nggak selalu. Angka cooldown-nya belum ada di catatan aku (data '
-      + `terakhir dicek ${CHECKED}), jadi kalau butuh angka pasti, minta admin update ya. Kamu biasanya mulai dari buff mana?` },
+      + 'biasanya ke bawah, mulai merah ke atas, walau nggak selalu. Angka cooldown-nya belum ada di catatan aku (data aku '
+      + `per ${PATCH}, dicek ${CHECKED}), jadi kalau butuh angka pasti, minta admin update ya. Kamu biasanya mulai dari buff `
+      + 'mana?' },
   { q: 'Chou main di lane apa?',
     data: 'KAMUS: Chou Fighter, lane versi Liquipedia EXP Lane; BUKU PINTAR: di meta Chou lebih sering dipakai Roam dan bisa '
       + 'flex ke Gold Lane',

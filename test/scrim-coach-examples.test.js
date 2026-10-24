@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EXAMPLES, pickExamples, examplesBlock } = require('../src/scrim/coach-examples');
-const { heroes, retrieved } = require('../src/scrim/mlbb-heroes.json');
+const { heroes, retrieved, patch } = require('../src/scrim/mlbb-heroes.json');
 const { dayLabel } = require('../src/scrim/stats');
 
 const LANE = { Gold: 'Gold Lane', Exp: 'EXP Lane', Mid: 'Mid Lane', Jungle: 'Jungle', Roam: 'Roam' };
@@ -40,7 +40,7 @@ test('the examples follow the coach rules they teach', () => {
   assert.ok(EXAMPLES.length >= 8);
   const checked = dayLabel(retrieved);
   for (const { q, a, data = '' } of EXAMPLES) {
-    assert.doesNotMatch(`${q} ${a} ${data}`.replaceAll(checked, ''), /\d/, q);
+    assert.doesNotMatch(`${q} ${a} ${data}`.replaceAll(checked, '').replaceAll(`patch ${patch}`, ''), /\d/, q);
     assert.doesNotMatch(a.split(/(?<=[.!?])\s+/)[0], /\bmaaf\b|nggak (yakin|tahu)|belum dapat data/i, q);
     assert.doesNotMatch(a, /hal lain|pertanyaan lain/i, q);
     assert.ok(a.split(/[.!?](?:\s|$)/).filter(part => part.trim()).length <= 4, q);
@@ -60,7 +60,7 @@ test('the examples follow the coach rules they teach', () => {
 // Henry 2026-10-24: an unknown skill number says how old the data is, so members know it needs an update.
 test('the number example names the dictionary check date and the buff rotation instead of a guess', () => {
   const cooldown = pickExamples('cooldown skill Gusion berapa lama?')[0];
-  assert.ok(cooldown.a.includes(`dicek ${dayLabel(retrieved)}`), cooldown.a);
+  assert.ok(cooldown.a.includes(`per patch ${patch}, dicek ${dayLabel(retrieved)}`), cooldown.a);
   assert.match(cooldown.a, /minta admin update/);
   assert.match(cooldown.a, /buff/);
   assert.ok(!EXAMPLES.some(example => /dihapus/.test(example.q)), 'premise example dropped: rarely asked');

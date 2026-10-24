@@ -2,11 +2,12 @@
 
 // "Buku pintar": MLBB knowledge from Henry (ex competitive player) that no open source holds, such as item cores, item
 // counters, jungle rotation and meta lanes. A question gets the entries whose pattern it matches, under a dated header,
-// so the coach can say how old its knowledge is. Add entries here when Henry shares more; set PATCH once he names it.
+// so the coach can say how old its knowledge is. Add entries here when Henry shares more, and move PATCH with them.
 const { dayLabel } = require('./stats');
 
 const CHECKED = '2026-10-24';
-const PATCH = null;
+// Henry: patch 2.2.16a, season 42. Liquipedia (checked 2026-10-24): released 2026-10-14, newest patch page.
+const PATCH = 'patch 2.2.16a rilis 14 Okt 2026, season 42';
 // A Marksman build question: trinity words, or build/item next to "mm" or one of the Marksmen Henry named.
 const MM = 'mm|marksman|irithel|miya|obsidia|layla|bruno|moskov|hanabi|karrie|wanwan|melissa|claude';
 const MM_BUILD = new RegExp(`\\btrinity\\b|\\bsky piercer\\b|\\bcrit(ical)?\\b|\\b(build|item|core|inti)\\b[^.?!]*\\b(${MM})\\b`
@@ -40,8 +41,7 @@ const ENTRIES = Object.freeze([
   { match: /\bemblem\b|\btalent\b/i,
     text: 'Emblem nggak cuma ikut role, tapi tergantung hero-nya.' },
 ]);
-const HEADER = `BUKU PINTAR MLBB (ilmu dari Henry, eks pemain kompetitif; dicek ${dayLabel(CHECKED)}, `
-  + `${PATCH ? `patch ${PATCH}` : 'patch belum dicatat'})`;
+const HEADER = `BUKU PINTAR MLBB (ilmu dari Henry, eks pemain kompetitif; ${PATCH}; dicek ${dayLabel(CHECKED)})`;
 
 function textbookCard(text = '') {
   const lines = ENTRIES.filter(entry => entry.match.test(String(text ?? ''))).map(entry => `- ${entry.text}`);

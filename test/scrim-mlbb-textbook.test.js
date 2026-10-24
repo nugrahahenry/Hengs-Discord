@@ -7,7 +7,8 @@ const { textbookCard } = require('../src/scrim/mlbb-textbook');
 // Henry 2026-10-24 (ex competitive player): MM item cores, item counters, jungle buff rotation, Chou's meta lanes, emblems.
 test('the textbook adds the entries a question needs, with source and date, and nothing for other questions', () => {
   const build = textbookCard('build mm yang paling gacor apa?');
-  assert.match(build, /^BUKU PINTAR MLBB \(ilmu dari Henry, eks pemain kompetitif; dicek 24 Okt 2026, patch belum dicatat\)\n- /);
+  // Henry 2026-10-24: patch 2.2.16a, season 42 (Liquipedia: released 2026-10-14, newest patch page).
+  assert.match(build, /^BUKU PINTAR MLBB \(ilmu dari Henry, eks pemain kompetitif; patch 2\.2\.16a rilis 14 Okt 2026, season 42; dicek 24 Okt 2026\)\n- /);
   assert.match(build, /Haas's Claws, Berserker's Fury, Windtalker/);
   assert.match(build, /Corrosion Scythe, Demon Hunter Sword, Golden Staff/);
   assert.doesNotMatch(build, /Blade Armor/);
