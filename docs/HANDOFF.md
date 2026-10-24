@@ -2,6 +2,13 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.79.3 welcome logo integration (local, not deployed) - 2026-10-24
+
+- Welcome and leave card rendering now prefers `assets/brand/hengs-bot-icon-v2.png`.
+- `HENGS_LOGO_PATH` and the previous logo candidates remain as fallbacks, so rollback does not require a config change.
+- Verification: `node --test test/member-onboarding.test.js` passed 11/11.
+- Deploy remains pending Henry's approval and the existing v1.79.x command and asset gates.
+
 ## Hengs Discord v1.79.2 failed sends reported in bot-settings (committed, not deployed) - 2026-10-24
 
 - Cause found live (read-only probes in .cloud/automation/deploy-v1710: welcome-check.sh, welcome-perms.sh): in

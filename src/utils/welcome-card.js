@@ -385,6 +385,7 @@ function getLogoCandidates(options = {}) {
   return [
     options.logoPath,
     process.env.HENGS_LOGO_PATH,
+    path.resolve(__dirname, '../../assets/brand/hengs-bot-icon-v2.png'),
     path.resolve(__dirname, '../../assets/henzzz_bot_icon.png'),
     path.resolve(__dirname, '../../assets/hengs-bot-icon.png'),
     path.resolve(process.cwd(), 'assets/hengs-bot-icon.png'),

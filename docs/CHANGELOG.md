@@ -5,6 +5,17 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.79.3] - 2026-10-24
+
+### Changed
+
+- Kartu welcome dan leave sekarang memilih `assets/brand/hengs-bot-icon-v2.png` sebagai logo utama, dengan fallback
+  ke aset lama dan override `HENGS_LOGO_PATH` tetap dipertahankan.
+
+### Verification
+
+- `node --test test/member-onboarding.test.js`: 11/11 lulus.
+
 ## [1.79.2] - 2026-10-24
 
 ### Fixed
