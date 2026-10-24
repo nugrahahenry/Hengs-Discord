@@ -65,6 +65,8 @@ test('the number example names the dictionary check date and the buff rotation i
   assert.match(cooldown.a, /buff/);
   assert.ok(!EXAMPLES.some(example => /dihapus/.test(example.q)), 'premise example dropped: rarely asked');
   assert.match(pickExamples('counter crit pakai item apa?')[0].a, /Blade Armor/);
+  // Henry 2026-10-24, answer 1: the buy order is known now, so the build example uses it.
+  assert.match(pickExamples('build item paling gacor buat Miya apa?')[0].a, /Windtalker dulu/);
 });
 
 test('the example block says it is style only and wraps each example', () => {

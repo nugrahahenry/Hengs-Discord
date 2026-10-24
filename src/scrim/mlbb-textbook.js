@@ -7,11 +7,26 @@ const { dayLabel } = require('./stats');
 
 const CHECKED = '2026-10-24';
 const PATCH = null;
+// A Marksman build question: trinity words, or build/item next to "mm" or one of the Marksmen Henry named.
+const MM = 'mm|marksman|irithel|miya|obsidia|layla|bruno|moskov|hanabi|karrie|wanwan|melissa|claude';
+const MM_BUILD = new RegExp(`\\btrinity\\b|\\bsky piercer\\b|\\bcrit(ical)?\\b|\\b(build|item|core|inti)\\b[^.?!]*\\b(${MM})\\b`
+  + `|\\b(${MM})\\b[^.?!]*\\b(build|item)\\b`, 'i');
+// Item names checked against Liquipedia page titles on 2026-10-24.
 const ENTRIES = Object.freeze([
-  { match: /\btrinity\b|\b(build|item|core|inti)\s+(mm|marksman)\b|\b(mm|marksman)\s+(build|item)\b|\bcrit(ical)?\b/i,
+  { match: MM_BUILD,
     text: "Item inti Marksman (MM) disebut trinity, ada dua tipe. Trinity critical: Haas's Claws, Berserker's Fury, "
-      + 'Windtalker. Trinity biasa: Corrosion Scythe, Demon Hunter Sword, Golden Staff. Yang sering bikin bingung itu '
-      + 'urutan belinya; urutannya belum ada di buku.' },
+      + 'Windtalker. Trinity biasa: Corrosion Scythe, Demon Hunter Sword, Golden Staff. Tipe yang dipakai tergantung hero.' },
+  { match: MM_BUILD,
+    text: "Urutan trinity critical: biasanya Windtalker dulu (efek angin-nya lebih sakit daripada Haas's Claws duluan yang "
+      + "isinya lifesteal), lalu Berserker's Fury, kecuali MM yang butuh Sky Piercer seperti Obsidia. Bruno biasanya Haas's "
+      + 'Claws duluan karena power spike-nya di item itu. MM yang biasa pakai trinity critical: Irithel, Layla, Bruno, Miya, '
+      + 'Obsidia. Moskov dan Hanabi bisa, tapi agak susah, jadi lebih cocok trinity biasa.' },
+  { match: MM_BUILD,
+    text: 'Urutan trinity biasa: Corrosion Scythe dulu, lalu Golden Staff atau Demon Hunter Sword; kalau lawan banyak tank '
+      + 'tebal, Demon Hunter Sword dulu baru Golden Staff. Sky Piercer bisa masuk setelah Corrosion Scythe kalau lagi menang, '
+      + 'atau setelah Golden Staff atau Demon Hunter Sword kalau lagi kalah. MM yang biasa pakai trinity biasa: Karrie, '
+      + 'Moskov, Hanabi, Wanwan, Melissa, Claude, juga Miya dan Obsidia (dua ini lebih condong ke trinity biasa, tapi bisa '
+      + 'critical).' },
   { match: /\bcounter\b|\bblade armor\b|\bchastise\b/i,
     text: 'Counter trinity critical: Blade Armor. Counter trinity biasa: Chastise Pauldron.' },
   { match: /\bbuff\b|\brotasi\b|\bgank\b|\bjungler?\b.*\b(mulai|start|awal)\b/i,

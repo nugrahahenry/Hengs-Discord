@@ -21,3 +21,16 @@ test('the textbook adds the entries a question needs, with source and date, and 
   assert.equal(textbookCard('kita kalah mulu, latihan apa?'), '');
   assert.equal(textbookCard(''), '');
 });
+
+// Henry 2026-10-24, answer 1: buy order per trinity, Sky Piercer timing, and which Marksmen use which trinity.
+test('build questions get the buy order for both trinity types and who uses which', () => {
+  const crit = textbookCard('urutan build trinity critical gimana?');
+  assert.match(crit, /Windtalker dulu/);
+  assert.match(crit, /lalu Berserker's Fury, kecuali MM yang butuh Sky Piercer seperti Obsidia/);
+  assert.match(crit, /Bruno biasanya Haas's Claws duluan/);
+  const karrie = textbookCard('build Karrie apa?');
+  assert.match(karrie, /Corrosion Scythe dulu, lalu Golden Staff atau Demon Hunter Sword/);
+  assert.match(karrie, /Karrie, Moskov, Hanabi, Wanwan, Melissa, Claude/);
+  assert.match(textbookCard('sky piercer kapan dibeli?'), /setelah Corrosion Scythe kalau lagi menang/);
+  assert.doesNotMatch(textbookCard('build mm yang paling gacor apa?'), /belum ada di buku/);
+});

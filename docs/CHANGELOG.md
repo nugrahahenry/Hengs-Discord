@@ -30,6 +30,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   tanpa kata kasar"): a rule lets the coach tease about badplay or staying up late when the mood is joking, never about
   looks, family, school or talent, and never when someone is upset, tilted, blaming a teammate or in danger. A new
   example shows it while keeping the teammate's stats private. Swear words stay masked; "pea" never was.
+- Henry's first textbook answer: the buy order for both trinity types (critical: Windtalker, then Berserker's Fury,
+  except Sky Piercer users like Obsidia; Bruno starts with Haas's Claws; regular: Corrosion Scythe, then Golden Staff or
+  Demon Hunter Sword, Demon Hunter Sword first against thick tanks, Sky Piercer early when winning), and which Marksmen
+  use which trinity. Item names were checked against Liquipedia page titles. The build example now uses the order.
 
 ### Verification
 

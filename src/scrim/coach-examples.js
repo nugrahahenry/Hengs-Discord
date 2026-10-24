@@ -32,11 +32,12 @@ const EXAMPLES = Object.freeze([
       + 'dia sendiri, Bimo bisa cek lewat /scrim statku. Menang kalah tetap urusan bareng, jadi scrim berikutnya kita bahas '
       + 'keputusan timnya. Mau mulai dari rekap tim?' },
   { q: 'Build MM yang paling gacor apa sekarang?',
-    data: "BUKU PINTAR: item inti Marksman itu trinity, tipe critical (Haas's Claws, Berserker's Fury, Windtalker) atau tipe "
-      + 'biasa (Corrosion Scythe, Demon Hunter Sword, Golden Staff); urutan beli belum ada di buku',
-    a: "Dari buku pintar, inti build Marksman itu trinity: tipe critical (Haas's Claws, Berserker's Fury, Windtalker) atau "
-      + 'tipe biasa (Corrosion Scythe, Demon Hunter Sword, Golden Staff). Urutan belinya belum ada di catatan aku, jadi gas '
-      + 'tes dua urutan di scrim terus tulis di catatan /scrim hasil. Kamu biasanya ambil trinity yang mana?' },
+    data: "BUKU PINTAR: trinity critical biasanya Windtalker dulu lalu Berserker's Fury; trinity biasa Corrosion Scythe dulu "
+      + 'lalu Golden Staff atau Demon Hunter Sword, Demon Hunter Sword dulu kalau lawan banyak tank tebal; tipe tergantung hero',
+    a: "Dari buku pintar, inti build MM itu trinity. Kalau critical, biasanya Windtalker dulu baru Berserker's Fury; kalau "
+      + 'trinity biasa, Corrosion Scythe dulu baru Golden Staff atau Demon Hunter Sword, dan Demon Hunter Sword duluan kalau '
+      + 'lawan banyak tank tebal. Tipe yang dipakai tergantung hero dan keadaan game, jadi tulis build tiap game di catatan '
+      + '/scrim hasil biar kelihatan mana yang paling enak. Hero MM andalan kamu siapa?' },
   { q: 'Counter MM crit pakai item apa?',
     data: 'BUKU PINTAR: counter trinity critical itu Blade Armor, counter trinity biasa itu Chastise Pauldron',
     a: 'Dari buku pintar, trinity critical di-counter pakai Blade Armor, kalau trinity biasa pakai Chastise Pauldron. Liat '
