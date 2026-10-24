@@ -1,6 +1,27 @@
 # Brief buat ChatGPT — Konsep Desain Welcome Card Discord
 
-## Pembaruan v1.60.0
+## Implementasi aktif v1.82.2
+
+- Ukuran tetap 900 x 280. Welcome memakai `assets/welcome/welcome-gateway-v3.png`, sedangkan
+  leave memakai `assets/welcome/leave-gateway-v3.png`. Keduanya sudah dipotong ke ukuran kartu
+  dan masing-masing di bawah 512 KiB. Lapisan nebula/galaksi aktif secara default.
+- Maskot default: `assets/brand/hengs-welcome-mascot-v2.png` dan
+  `assets/brand/hengs-leave-mascot-v2.png`, PNG transparan 264 x 388, masing-masing di bawah 200 KiB.
+  Maskot ditempatkan di sisi kanan nama, terpisah dari planet nomor member agar wajah tetap terlihat.
+- Teks, avatar, umur akun/durasi member, tanggal, dan nomor member tetap digambar Canvas.
+  Master gambar berada di `assets/_originals/`; jangan menaruh data member di background statis.
+- `backgroundPath` dan `mascotPath` mengungguli opsi per jenis (`welcomeBackgroundPath`,
+  `leaveBackgroundPath`, `welcomeMascotPath`, `leaveMascotPath`), lalu variabel lingkungan
+  `HENGS_WELCOME_BACKGROUND_PATH`, `HENGS_LEAVE_BACKGROUND_PATH`, `HENGS_WELCOME_MASCOT_PATH`,
+  atau `HENGS_LEAVE_MASCOT_PATH`, lalu aset bawaan. Path override yang tidak tersedia kembali
+  ke kandidat berikutnya. Jika semua maskot tidak tersedia, renderer memakai layout planet saja.
+- `galaxyOverlay: false` mematikan efek galaksi tambahan tanpa mengganti gambar.
+- Preview offline tetap memakai `scripts/preview-community-cards.js`; lihat nama panjang serta
+  ukuran desktop/HP sebelum mengganti tata letak. QA v1.82.2: 933/933 di Node 22.23.3.
+- Belum deploy. Keberhasilan render lokal tidak membuktikan permission channel atau pengiriman
+  Discord; keduanya perlu diperiksa pada acceptance produksi terpisah.
+
+## Riwayat pembaruan v1.60.0
 
 - Keluarga Aurora dipertahankan, bukan desain ulang logo/background. Nama tampilan member
   menjadi hero 30-46px, `@username` asli 15-19px menjadi penjelas, caption 15px diberi dua baris.

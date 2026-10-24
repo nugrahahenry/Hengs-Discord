@@ -1,15 +1,30 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-24
+Updated: 2026-10-25
 
-## Hengs Discord v1.82.2 welcome and leave galaxy cards (local, not deployed) - 2026-10-25
+## Hengs Discord v1.82.2 welcome and leave galaxy cards (committed locally, not deployed) - 2026-10-25
 
 - Welcome and leave cards now select separate production backgrounds, each with a restrained galaxy haze overlay.
 - Optional 3D mascots are now defaulted from `assets/brand/` and placed beside a compact member badge so `#member`
   remains readable. Explicit `backgroundPath`, `mascotPath`, and type-specific paths still override the defaults.
 - Source artwork and previews are kept under `assets/_originals/`; production-sized files are under `assets/welcome/` and
   `assets/brand/`.
-- Verification: `node --test test/member-onboarding.test.js` passed 13/13 and `git diff --check` passed.
+- Code/artwork checkpoint: `3ee3a12` on `main`. Push remains on hold at Henry's request.
+- Final QA: Node 22.23.3 full suite 933/933, zero failures/skips, with test-only TEMP/TMP under
+  `.cloud/qa/welcome-v1822/temp`. The complete offline test process ran outside the Windows sandbox;
+  no ACL/owner changes, bot startup, provider requests, or cloud writes were needed.
+- The previous sandbox run on PATH Node 24 reported 223 failures. Repeating on Node 22 with workspace
+  temp reduced this to 931 pass, 1 failure, 1 skip, both remaining cases requiring symlink support.
+  The host run verified both symlink cases rather than disabling or weakening those assertions.
+- Renderer/release focused QA: 22/22. Regression checks now verify default welcome/leave asset
+  selection, generic/type-specific override precedence, missing-path fallback, galaxy toggle, and
+  transparent visible mascot pixels. These renderer checks no longer depend on draft source artwork under `_originals`.
+- QA follow-up changes tests, one stale comment, and documentation only; product version stays
+  1.82.2. Commit subject: `test(welcome): Hengs Discord v1.82.2 - verify bundled artwork and full offline suite`.
+- Concurrent appreciation edits observed after this QA run are outside this checkpoint and remain
+  unstaged. The 933/933 result does not certify those subsequent edits.
+- Next gate: explicit push/deploy instruction for the batched release, followed by private preview
+  in the bot channel. The separate Coach/Analis release gates below remain applicable.
 - No Discord deployment, command registration, or runtime state change has been performed.
 
 ## Hengs Discord v1.82.0 broadcast draft cards (committed, not deployed) - 2026-10-24

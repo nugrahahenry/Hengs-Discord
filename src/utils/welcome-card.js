@@ -1228,7 +1228,7 @@ async function generateCard(member, type = 'welcome', options = {}) {
   const random = createSeededRandom(`${data.id}:${normalizedType}:${data.memberNumber}`);
   drawStars(ctx, CARD.width, CARD.height, random, theme);
 
-  // Optional preview/brand layer. Production keeps the existing card when no path is configured.
+  // Bundled mascot by default; if no image loads, the planet-only layout remains available.
   drawMascot(ctx, mascotImage, theme, data.isLeave);
 
   drawLogoWatermark(ctx, logoImage, theme);

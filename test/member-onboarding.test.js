@@ -178,8 +178,8 @@ test('production welcome background is an optimized card-sized PNG', async () =>
   assert.ok(stat.size < 512 * 1024);
 });
 
-test('production welcome and leave artwork has bounded dimensions', async () => {
-  const { loadImage } = require('@napi-rs/canvas');
+test('production welcome and leave artwork has bounded dimensions and transparent mascots', async () => {
+  const { createCanvas, loadImage } = require('@napi-rs/canvas');
   const assetRoot = path.join(__dirname, '..', 'assets');
   const backgrounds = [
     path.join(assetRoot, 'welcome', 'welcome-gateway-v3.png'),
@@ -203,10 +203,33 @@ test('production welcome and leave artwork has bounded dimensions', async () => 
     assert.equal(image.width, 264);
     assert.equal(image.height, 388);
     assert.ok(stat.size < 200 * 1024);
+    const ctx = createCanvas(image.width, image.height).getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+    let transparent = 0;
+    let visible = 0;
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] === 0) transparent += 1;
+      if (pixels[index] > 128) visible += 1;
+    }
+    assert.ok(transparent > image.width * image.height * 0.1, 'mascot keeps transparent space');
+    assert.ok(visible > image.width * image.height * 0.1, 'mascot is not an empty image');
   }
 });
 
-test('optional mascot assets layer only when explicitly configured', async () => {
+test('welcome and leave select their bundled artwork, honor overrides and recover from missing paths', async (t) => {
+  const keys = [
+    'HENGS_WELCOME_BACKGROUND_PATH', 'HENGS_LEAVE_BACKGROUND_PATH',
+    'HENGS_WELCOME_MASCOT_PATH', 'HENGS_LEAVE_MASCOT_PATH',
+  ];
+  const saved = new Map(keys.map(key => [key, process.env[key]]));
+  t.after(() => {
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  for (const key of keys) delete process.env[key];
   const now = new Date('2026-10-24T08:00:00Z');
   const member = {
     id: 'preview-member',
@@ -220,22 +243,42 @@ test('optional mascot assets layer only when explicitly configured', async () =>
       displayAvatarURL: () => null,
     },
   };
-  const assetRoot = path.join(__dirname, '..', 'assets', '_originals');
-  const baseOptions = {
-    now,
-    serverName: 'Hengs',
-    memberNumber: 55,
-    backgroundPath: path.join(assetRoot, 'welcome-leave-gateway-v3.png'),
-  };
-  const withoutMascot = await generateCard(member, 'welcome', baseOptions);
-  const withMascot = await generateCard(member, 'welcome', {
-    ...baseOptions,
-    mascotPath: path.join(assetRoot, 'hengs-welcome-mascot-v2.png'),
-  });
-
-  assert.ok(Buffer.isBuffer(withoutMascot));
-  assert.ok(Buffer.isBuffer(withMascot));
-  assert.notDeepEqual(withMascot, withoutMascot);
+  const assetRoot = path.join(__dirname, '..', 'assets');
+  const baseOptions = { now, serverName: 'Hengs', memberNumber: 55 };
+  for (const type of ['welcome', 'leave']) {
+    const otherType = type === 'welcome' ? 'leave' : 'welcome';
+    const backgroundPath = path.join(assetRoot, 'welcome', `${type}-gateway-v3.png`);
+    const mascotPath = path.join(assetRoot, 'brand', `hengs-${type}-mascot-v2.png`);
+    const alternateBackground = path.join(assetRoot, 'welcome', `${otherType}-gateway-v3.png`);
+    const alternateMascot = path.join(assetRoot, 'brand', `hengs-${otherType}-mascot-v2.png`);
+    const bundled = await generateCard(member, type, baseOptions);
+    assert.ok(Buffer.isBuffer(bundled));
+    assert.deepEqual(await generateCard(member, type, {
+      ...baseOptions, backgroundPath, mascotPath,
+    }), bundled, `${type} uses its own bundled artwork by default`);
+    const override = await generateCard(member, type, {
+      ...baseOptions, backgroundPath: alternateBackground, mascotPath: alternateMascot,
+    });
+    assert.notDeepEqual(override, bundled, `${type} overrides affect actual pixels`);
+    assert.deepEqual(await generateCard(member, type, {
+      ...baseOptions,
+      [`${type}BackgroundPath`]: alternateBackground,
+      [`${type}MascotPath`]: alternateMascot,
+    }), override, `${type} accepts type-specific options`);
+    assert.deepEqual(await generateCard(member, type, {
+      ...baseOptions, backgroundPath, mascotPath,
+      [`${type}BackgroundPath`]: alternateBackground,
+      [`${type}MascotPath`]: alternateMascot,
+    }), bundled, 'generic explicit paths take precedence over type-specific paths');
+    assert.deepEqual(await generateCard(member, type, {
+      ...baseOptions,
+      backgroundPath: path.join(assetRoot, 'missing-preview-background.png'),
+      mascotPath: path.join(assetRoot, 'missing-preview-mascot.png'),
+    }), bundled, 'missing overrides fall back to bundled images');
+    assert.notDeepEqual(await generateCard(member, type, {
+      ...baseOptions, galaxyOverlay: false,
+    }), bundled, 'galaxy overlay can be turned off independently');
+  }
 });
 
 test('member tenure keeps minute and hour precision instead of showing zero days', () => {

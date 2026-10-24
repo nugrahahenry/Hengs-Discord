@@ -16,7 +16,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- `node --test test/member-onboarding.test.js` passed 13/13.
+- Full offline suite passed 933/933 on Node 22.23.3, with no skipped tests, using a workspace temp
+  directory and a Windows host test process with symlink support.
+- Focused renderer and release checks passed 22/22. Coverage includes bundled defaults, explicit
+  artwork overrides, missing-path fallback, the galaxy toggle, and mascot transparency.
 - `git diff --check` passed.
 
 ## [1.82.1] - 2026-10-24
