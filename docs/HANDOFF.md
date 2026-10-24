@@ -2,6 +2,14 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.80.0 (provisional) coach example answers on branch coach-v2 (not deployed) - 2026-10-24
+
+- coach-v2 was fast-forwarded to main 0816cf6 (v1.79.0) after the merge, then: each coach turn gets the three closest of
+  eight example answers (src/scrim/coach-examples.js, TF-IDF + cosine) after the rules. Exam v11 had shown the rules
+  alone barely moved the style.
+- The eight texts are drafts shown to Henry in chat; his OK on the wording is still open.
+- Next: coach exam on 2026-10-25 (Discord key quota), the 12 v11 scenarios plus four new unseen ones (N1-N4).
+
 ## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24
 
 - Henry: "Ya, gabung coach-v2 ke main sebagai versi berikutnya. Beresin dulu 1 test yang gagal, push main, jangan

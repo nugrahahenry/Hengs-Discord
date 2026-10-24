@@ -8,6 +8,7 @@
 const { cutUnits, opponentKey, dateLabel, whenLabel, wibDay, formatTeamRecap, formatPlayerStats } = require('./stats');
 const { LIQUIPEDIA_CREDIT, proMetaCard } = require('./pro-meta');
 const { heroCard } = require('./mlbb-dictionary');
+const { examplesBlock } = require('./coach-examples');
 
 const COACH_DAILY_LIMIT = 15;
 const COACH_TEMPERATURE = 0.3;
@@ -166,8 +167,9 @@ function coachContext(games, { text = '', userId = null, now = Date.now(), targe
   const extras = [pro, heroCard(question)].filter(Boolean);
   // Exam v8: the model kept dropping the pro-pattern caveat, so code puts it under the reply with the credit.
   const credit = extras.length ? `${LIQUIPEDIA_CREDIT}${pro ? '. Pola draft pro belum tentu cocok buat tim sendiri.' : ''}` : '';
+  // Exam v11: rules alone barely moved the answer style, so the three closest example answers follow them.
   return { question, credit, context: { kind: 'home', visibility: 'coach',
-    system: COACH_RULES, temperature: COACH_TEMPERATURE, maxTokens: COACH_MAX_TOKENS,
+    system: `${COACH_RULES}\n${examplesBlock(question)}`, temperature: COACH_TEMPERATURE, maxTokens: COACH_MAX_TOKENS,
     data: coachData(games, { text: question, userId, now, target, extras }), ...(userId ? { stateless: true } : {}),
     guard(answer) {
       const checked = guardReply(answer, { question });

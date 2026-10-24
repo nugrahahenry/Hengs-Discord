@@ -601,7 +601,7 @@ test('a team member mentioning Hengs in hasil-scrim gets the coach, which reads 
   assert.equal(text, 'kita kalah mulu, latihan apa?');
   assert.equal(key, `${G}:${U}`);
   assert.deepEqual([context.kind, context.visibility, Boolean(context.stateless)], ['home', 'coach', false]);
-  assert.equal(context.system, COACH_RULES);
+  assert.ok(context.system.startsWith(`${COACH_RULES}\nCONTOH JAWABAN`));
   assert.equal(context.temperature, 0.3);
   assert.match(context.data, /Semua: W 1 dari 2 game/);
   assert.match(context.data, /gank awal, \(anggota\) telat/);

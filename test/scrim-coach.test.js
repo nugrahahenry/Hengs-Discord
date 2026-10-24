@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { COACH_RULES, BANTUAN_TEXT, COACH_DAILY_LIMIT, COACH_TEMPERATURE, coachData, coachContext, scrubIds, guardReply,
   createCoachQuota, safeText, debriefText } = require('../src/scrim/coach');
 const { LIMITS } = require('../src/conversation-context');
+const { examplesBlock } = require('../src/scrim/coach-examples');
 
 const U = '323456789012345678', T2 = '523456789012345678';
 const NOW = Date.UTC(2026, 9, 21, 5, 0); // 12:00 WIB
@@ -185,8 +186,13 @@ test('one coach turn context: rules, data, low temperature, guard; a personal tu
   const seen = [];
   const team = coachContext(games, { text: `vs <@${T2}> gimana`, now: NOW, onGuard: (raw, checked) => seen.push([raw, checked.masked]) });
   assert.equal(team.question, 'vs (anggota) gimana');
-  assert.deepEqual([team.context.kind, team.context.visibility, team.context.system, team.context.temperature, team.context.stateless],
-    ['home', 'coach', COACH_RULES, COACH_TEMPERATURE, undefined]);
+  assert.deepEqual([team.context.kind, team.context.visibility, team.context.temperature, team.context.stateless],
+    ['home', 'coach', COACH_TEMPERATURE, undefined]);
+  // Henry 2026-10-24: three example answers closest to the question follow the rules (exam v11: rules alone barely moved
+  // the style).
+  assert.equal(team.context.system, `${COACH_RULES}\n${examplesBlock('vs (anggota) gimana')}`);
+  assert.match(coachContext(games, { text: 'build paling gacor buat Miya apa?', now: NOW }).context.system,
+    /\nCONTOH JAWABAN [^\n]*\n<contoh>\nPertanyaan: Build paling gacor buat Layla/);
   assert.equal(COACH_TEMPERATURE, 0.3);
   // Exam v7: one answer was cut off at 700 tokens (reasoning counts too).
   assert.equal(team.context.maxTokens, 900);

@@ -5,6 +5,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.80.0] - 2026-10-24 (provisional, branch coach-v2)
+
+### Added
+
+- Example answers for the coach (few-shot): eight examples in `src/scrim/coach-examples.js` that start from what is
+  known, hedge once and give one way to find out. Each coach turn adds the three closest to the question by TF-IDF and
+  cosine similarity after the rules, so hero names from unrelated examples stay out. A test checks the examples hold no
+  numbers, no maaf openers or generic closers, and only roles, lanes and specialties from the hero dictionary; none
+  repeats an exam question.
+
+### Verification
+
+- Exam v11 (rules only) barely moved the answer style, which is why examples come next (sources: OpenAI accuracy
+  guide, Anthropic prompting guide). The coach exam reruns on 2026-10-25 with four new unseen questions.
+
 ## [1.79.0] - 2026-10-24
 
 Hengs Coach v2, merged from branch `coach-v2` (its provisional v1.78.0 and v1.79.0).
