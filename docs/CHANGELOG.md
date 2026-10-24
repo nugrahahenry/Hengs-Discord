@@ -12,8 +12,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Example answers for the coach (few-shot): eight examples in `src/scrim/coach-examples.js` that start from what is
   known, hedge once and give one way to find out. Each coach turn adds the three closest to the question by TF-IDF and
   cosine similarity after the rules, so hero names from unrelated examples stay out. A test checks the examples hold no
-  numbers, no maaf openers or generic closers, and only roles, lanes and specialties from the hero dictionary; none
-  repeats an exam question.
+  numbers, no maaf openers or generic closers, and only roles, lanes and specialties from the hero dictionary or the
+  example's own data line; none repeats an exam question.
+- "Buku pintar" (`src/scrim/mlbb-textbook.js`): MLBB knowledge from Henry, an ex competitive player, that no open
+  source holds: the two Marksman trinity cores, their counter items (Blade Armor, Chastise Pauldron), how the starting
+  jungle buff predicts the rotation (a common pattern, not a rule), Chou's meta lanes, and that emblems depend on the
+  hero. A question gets the matching entries under a dated header ("dicek 24 Okt 2026, patch belum dicatat"), with no
+  Liquipedia credit since the knowledge is Henry's own.
+
+### Changed
+
+- Henry reviewed the example draft: the build, number and Chou examples now use the buku pintar, the number example
+  names the dictionary's check date and asks for an admin update instead of guessing, and the rarely asked premise
+  example became a counter-item one. The hero card says its lanes are Liquipedia's main lanes that can flex in the
+  meta, and the rules take meta lanes only from the buku pintar or the pro draft card.
 
 ### Verification
 

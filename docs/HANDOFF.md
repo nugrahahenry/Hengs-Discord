@@ -7,7 +7,10 @@ Updated: 2026-10-24
 - coach-v2 was fast-forwarded to main 0816cf6 (v1.79.0) after the merge, then: each coach turn gets the three closest of
   eight example answers (src/scrim/coach-examples.js, TF-IDF + cosine) after the rules. Exam v11 had shown the rules
   alone barely moved the style.
-- The eight texts are drafts shown to Henry in chat; his OK on the wording is still open.
+- Henry reviewed the eight examples point by point and added his own knowledge (MM trinity, counter items, buff
+  rotation, Chou flex, emblems by hero). That knowledge is src/scrim/mlbb-textbook.js ("buku pintar", dated, patch
+  not recorded yet); examples 1, 2, 3 and 8 were rewritten. Example 6 (others' stats) waits for his call on playful
+  teasing, a kid-safety question.
 - Next: coach exam on 2026-10-25 (Discord key quota), the 12 v11 scenarios plus four new unseen ones (N1-N4).
 
 ## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24

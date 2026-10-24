@@ -177,6 +177,20 @@ test('one coach turn adds the pro draft card and hero facts it needs, and says w
   assert.match(COACH_RULES, /META PRO di DATA itu data draft pro/);
 });
 
+// Henry 2026-10-24: his item and macro knowledge joins the card as "BUKU PINTAR"; it is not Liquipedia, so no credit.
+test('a textbook entry joins the data card without the Liquipedia credit, and the rules say how to use it', () => {
+  const book = coachContext(games, { text: 'build mm yang paling gacor apa?', now: NOW });
+  assert.match(book.context.data, /\n\nBUKU PINTAR MLBB \(ilmu dari Henry/);
+  assert.equal(book.credit, '');
+  const both = coachContext(games, { text: 'Chou main di lane apa?', now: NOW });
+  assert.match(both.context.data, /KAMUS MLBB/);
+  assert.match(both.context.data, /BUKU PINTAR MLBB/);
+  assert.equal(both.credit, '-# Data: Liquipedia (CC-BY-SA 3.0)');
+  assert.match(COACH_RULES, /BUKU PINTAR di DATA itu ilmu MLBB dari Henry/);
+  assert.match(COACH_RULES, /lane meta cuma dari BUKU PINTAR atau META PRO/);
+  assert.match(COACH_RULES, /sebut tanggal cek KAMUS atau BUKU PINTAR/);
+});
+
 test('member-written target text is masked like coach replies', () => {
   assert.equal(safeText('jangan noob lagi'), 'jangan n*** lagi');
   assert.equal(safeText('kumpul sebelum objective'), 'kumpul sebelum objective');
@@ -192,7 +206,7 @@ test('one coach turn context: rules, data, low temperature, guard; a personal tu
   // the style).
   assert.equal(team.context.system, `${COACH_RULES}\n${examplesBlock('vs (anggota) gimana')}`);
   assert.match(coachContext(games, { text: 'build paling gacor buat Miya apa?', now: NOW }).context.system,
-    /\nCONTOH JAWABAN [^\n]*\n<contoh>\nPertanyaan: Build paling gacor buat Layla/);
+    /\nCONTOH JAWABAN [^\n]*\n<contoh>\nPertanyaan: Build MM yang paling gacor/);
   assert.equal(COACH_TEMPERATURE, 0.3);
   // Exam v7: one answer was cut off at 700 tokens (reasoning counts too).
   assert.equal(team.context.maxTokens, 900);

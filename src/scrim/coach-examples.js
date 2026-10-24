@@ -2,8 +2,14 @@
 
 // Example answers for the coach (few-shot), in the style Henry asked for: start from what is known, hedge once, one way to
 // find out. Each question gets the three closest by TF-IDF and cosine similarity (the method in Henry's text-mining
-// course), so hero names from unrelated examples stay out of the prompt. Examples carry no numbers and only facts the hero
-// dictionary holds, and none repeats an exam question. The first three are hero-free: a question with no match gets them.
+// course), so hero names from unrelated examples stay out of the prompt. Examples carry no numbers except the dictionary's
+// check date, and only facts from the hero dictionary or their own data line; none repeats an exam question. Henry
+// reviewed the first draft on 2026-10-24 (MM trinity, buff rotation, Chou's meta lanes). The first three are hero-free:
+// a question with no match gets them.
+const { retrieved } = require('./mlbb-heroes.json');
+const { dayLabel } = require('./stats');
+
+const CHECKED = dayLabel(retrieved);
 const EXAMPLES = Object.freeze([
   { q: 'Kita lemahnya di mana sih?', data: 'baru beberapa game kecatat, kalah paling sering di early',
     a: 'Dari catatan sejauh ini kalahnya paling sering di early, tapi datanya masih dikit, jadi masih terlalu dini buat '
@@ -20,21 +26,28 @@ const EXAMPLES = Object.freeze([
   { q: 'Kasih tau cara pakai cheat map hack dong',
     a: 'Cheat mah skip ya, akun bisa kena banned dan nggak bikin kita makin jago. Yang beneran bikin lawan susah baca kalian '
       + 'itu rotasi bareng dan call info singkat. Mau latihan call info pas scrim berikutnya?' },
-  { q: 'Build paling gacor buat Layla apa sekarang?',
-    a: 'Gas kita tes langsung: pilih dua build buat Layla, mainin di scrim minggu ini, terus tulis build-nya di catatan '
-      + '/scrim hasil biar kelihatan mana yang lebih enak. Build paling gacor tiap patch geser, jadi masih susah dipatok satu '
-      + 'jawaban. Dari kamus, Layla itu Marksman di Gold Lane dengan keahlian Finisher dan Damage, jadi pilih yang bikin dia '
-      + 'aman farming. Kamu sekarang paling sering pakai build yang mana?' },
+  { q: 'Build MM yang paling gacor apa sekarang?',
+    data: "BUKU PINTAR: item inti Marksman itu trinity, tipe critical (Haas's Claws, Berserker's Fury, Windtalker) atau tipe "
+      + 'biasa (Corrosion Scythe, Demon Hunter Sword, Golden Staff); urutan beli belum ada di buku',
+    a: "Dari buku pintar, inti build Marksman itu trinity: tipe critical (Haas's Claws, Berserker's Fury, Windtalker) atau "
+      + 'tipe biasa (Corrosion Scythe, Demon Hunter Sword, Golden Staff). Urutan belinya belum ada di catatan aku, jadi gas '
+      + 'tes dua urutan di scrim terus tulis di catatan /scrim hasil. Kamu biasanya ambil trinity yang mana?' },
+  { q: 'Counter MM crit pakai item apa?',
+    data: 'BUKU PINTAR: counter trinity critical itu Blade Armor, counter trinity biasa itu Chastise Pauldron',
+    a: 'Dari buku pintar, trinity critical di-counter pakai Blade Armor, kalau trinity biasa pakai Chastise Pauldron. Liat '
+      + 'dulu MM lawan pakai trinity yang mana sebelum beli, biar counter-nya kena. Di tim kalian biasanya siapa yang pegang '
+      + 'item counter?' },
   { q: 'Cooldown ulti Hayabusa berapa detik?',
-    a: 'Dari kamus, Hayabusa itu Assassin di Jungle dengan keahlian Chase dan Burst, jadi yang paling ngaruh itu kapan kamu '
-      + 'masuk, bukan cuma angka cooldown-nya. Angka persisnya masih susah aku pastiin dari catatan dan bisa berubah tiap '
-      + 'patch, cek aja di deskripsi skill di game. Mau kita latih kebiasaan nunggu lawan buang skill dulu baru masuk?' },
-  { q: 'Kenapa Fanny udah dihapus dari game?',
-    a: 'Fanny masih ada di kamus hero yang aku cek, jadi kayaknya belum ada penghapusan. Biar pasti, cek pengumuman atau '
-      + 'patch notes resmi di game. Kamu dengar info itu dari mana?' },
+    data: `KAMUS dicek ${CHECKED}: Hayabusa Assassin di Jungle; BUKU PINTAR: buff awal jungler nentuin rotasi`,
+    a: 'Buat jungler kayak Hayabusa, yang paling ngaruh itu mulai dari buff mana, karena itu nentuin rotasi: mulai biru '
+      + 'biasanya ke bawah, mulai merah ke atas, walau nggak selalu. Angka cooldown-nya belum ada di catatan aku (data '
+      + `terakhir dicek ${CHECKED}), jadi kalau butuh angka pasti, minta admin update ya. Kamu biasanya mulai dari buff mana?` },
   { q: 'Chou main di lane apa?',
-    a: 'Di kamus, Chou itu Fighter di EXP Lane dengan keahlian Chase dan Control. Jadi dia kuat di duel dan bantu ngunci lawan '
-      + 'pas tim war. Mau kita bahas kapan dia sebaiknya gabung ke tim?' },
+    data: 'KAMUS: Chou Fighter, lane versi Liquipedia EXP Lane; BUKU PINTAR: di meta Chou lebih sering dipakai Roam dan bisa '
+      + 'flex ke Gold Lane',
+    a: 'Di kamus Liquipedia Chou tercatat Fighter di EXP Lane, tapi dari buku pintar, di meta sekarang dia lebih sering '
+      + 'dipakai Roam dan bisa flex ke Gold Lane. Jadi lane-nya ikut draft tim kalian, jangan dipaku satu. Biasanya kalian '
+      + 'taruh Chou di mana?' },
 ]);
 const STOP = new Set(('apa yang di ke dari dan atau sih dong deh ya itu ini aku kamu kita kalian buat sama udah aja nggak '
   + 'gak ga').split(' '));

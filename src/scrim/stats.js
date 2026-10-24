@@ -15,6 +15,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', '
 const opponentKey = name => String(name).toLowerCase().replace(/\s+/g, ' ').trim();
 const wibDay = at => Math.floor((at + WIB) / DAY);
 const dateLabel = at => { const day = new Date(at + WIB); return `${day.getUTCDate()} ${MONTHS[day.getUTCMonth()]}`; };
+// "2026-10-24" reads as "24 Okt 2026": how old a knowledge snapshot is.
+const dayLabel = iso => `${dateLabel(Date.parse(iso))} ${iso.slice(0, 4)}`;
 const whenLabel = at => { const time = new Date(at + WIB); return `${dateLabel(at)} ${String(time.getUTCHours()).padStart(2, '0')}:${String(time.getUTCMinutes()).padStart(2, '0')} WIB`; };
 const wins = games => games.filter(game => game.outcome === 'menang').length;
 
@@ -105,5 +107,5 @@ function todayScore(games, opponent, at) {
   return { won: wins(today), lost: today.length - wins(today) };
 }
 
-module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, wibDay, dateLabel, whenLabel, todayScore, formatTeamRecap,
-  formatPlayerStats };
+module.exports = { MIN_SAMPLE, REASON_LABEL, cutUnits, opponentKey, wibDay, dateLabel, dayLabel, whenLabel, todayScore,
+  formatTeamRecap, formatPlayerStats };
