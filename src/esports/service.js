@@ -16,7 +16,7 @@ const { WATCH, DISCOVER, discoveredEntries } = require('./watch');
 const { wibDay, wibMinutes, previousDay, matchesOf, dayMatches, featured, eventState } = require('./schedule');
 const { voteKey, topGuessers } = require('./predictions');
 const { wibTime, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption, dayRecapData, dayCaption,
-  eventRecapData, eventCaption } = require('./daily');
+  eventRecapData, eventCaption, factsOf, analisCard } = require('./daily');
 
 const MIN = 60_000; const HOUR = 60 * MIN; const DAY_MS = 24 * HOUR;
 const LIVE_EVERY = 20 * MIN; const IDLE_EVERY = 3 * HOUR;
@@ -33,10 +33,17 @@ async function defaultBanner() {
 
 function createEsportsService({ guildAccess, store = createEsportsStore(), liquipedia = createLiquipedia(),
   render = renderSeriesCard, renderPreview = renderPreviewCard, renderList = renderListCard, now = Date.now, logger = console,
-  watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {} } = {}) {
+  watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {}, commentator = null } = {}) {
   let client = null; let running = false; let timer = null;
   const watchlist = () => (discover ? [...watch, ...store.discovered()] : watch);
   const leagueOf = page => watchlist().find(w => w.title === page)?.league || '';
+  const teamNames = all => [...new Set(all.flatMap(m => m.teams.flatMap(t => [t.name, t.ticker])).filter(Boolean))];
+
+  // The caster's line for a card, or null so the template caption stands.
+  async function line(kind, data, all) {
+    if (!commentator) return null;
+    try { return await commentator.caption(kind, factsOf(data), { teams: teamNames(all) }); } catch { return null; }
+  }
 
   function due(pages) {
     const live = Object.values(pages).flatMap(p => p.matches || [])
@@ -153,8 +160,11 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     }
     for (const match of picked) {
       const key = `preview:${match.id}`; const hash = previewHash(match); const claim = store.daily(guild.id, key);
-      const build = async () => previewPayload(match, await renderPreview(previewData(match, all)),
-        { key: voteKey(match.id), caption: previewCaption(match) });
+      const build = async () => {
+        const data = previewData(match, all);
+        return previewPayload(match, await renderPreview(data),
+          { key: voteKey(match.id), caption: previewCaption(match, await line('preview', data, all)) });
+      };
       if (!claim) {
         if (match.startAt <= now()) continue;
         store.claimDaily(guild.id, key, { hash });
@@ -180,8 +190,10 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     if (finished.length < list.length && !late) return;
     store.claimDaily(guild.id, key);
     const votes = store.allVotes(guild.id);
-    await send(guild, channel, 'Rekap harian Analis', key,
-      async () => listPayload(await renderList(dayRecapData(list, day, votes)), `Rekap ${day}`, dayCaption(list, day)));
+    await send(guild, channel, 'Rekap harian Analis', key, async () => {
+      const data = dayRecapData(list, day, votes);
+      return listPayload(await renderList(data), `Rekap ${day}`, dayCaption(list, day, await line('day', data, all)));
+    });
   }
 
   async function memberNames(guild, ids) {
@@ -200,8 +212,21 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     store.claimDaily(guild.id, key);
     const votes = store.allVotes(guild.id);
     const names = await memberNames(guild, topGuessers(votes, state.matches).map(x => x.user));
-    await send(guild, channel, 'Rekap event Analis', key,
-      async () => listPayload(await renderList(eventRecapData(state, event, votes, names)), `Rekap ${event}`, eventCaption(state, event)));
+    await send(guild, channel, 'Rekap event Analis', key, async () => {
+      const data = eventRecapData(state, event, votes, names);
+      return listPayload(await renderList(data), `Rekap ${event}`, eventCaption(state, event, await line('event', data, all)));
+    });
+  }
+
+  // An Analis question from #tanya-hengs, answered from the cached pages only (no Liquipedia request).
+  async function answer(question) {
+    if (!commentator) return null;
+    const all = matchesOf(store.pages(), watchlist());
+    const card = analisCard(all, now(), question);
+    if (!card) return null;
+    let text = null;
+    try { text = await commentator.answer(question, card, { teams: teamNames(all) }); } catch { text = null; }
+    return text ? `${text}\n-# Data: Liquipedia (CC-BY-SA 3.0)` : null;
   }
 
   async function daily(guild, channel, pages) {
@@ -283,7 +308,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
       timer = setInterval(() => { void tick(); }, 5 * MIN); timer.unref?.();
       setTimeout(() => { void tick(); }, MIN).unref?.();
     },
-    tick, ensureGuide, handleVote,
+    tick, ensureGuide, handleVote, answer,
   };
 }
 

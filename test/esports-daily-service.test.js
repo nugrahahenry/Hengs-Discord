@@ -121,3 +121,28 @@ test('index.js routes hengs-analis buttons to the Analis vote handler', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8').replace(/\r\n/g, '\n');
   assert.match(source, /startsWith\('hengs-analis:'\)\) \{\n\s+try \{ await esportsService\.handleVote\(interaction\); \}/);
 });
+
+test('with a commentator the preview carries its line, answers come from the cached pages, and failures keep the template', async t => {
+  const r = rig(t, [match('a', [ONIC, RRQ], at(15)), match('p', [EVOS, AE], at(15) - 30 * HOUR, [1, 1])], { now: at(8, 5) });
+  const seen = [];
+  const commentator = { caption: async (kind, card, { teams }) => { seen.push([kind, card, teams]); return 'ONIC siap panas jam 15:00!'; },
+    answer: async question => `Jawaban buat: ${question}` };
+  const service = createEsportsService({ guildAccess: { classify: () => ({ kind: 'home' }) }, store: r.store, watch: WATCH,
+    liquipedia: { async revisions(titles) { return titles.map(title => ({ title, revid: 1, missing: false })); } },
+    renderPreview: async () => Buffer.from('png'), renderList: async () => Buffer.from('png'), render: async () => Buffer.from('png'),
+    now: () => r.clock.now, logger: { error() {} }, commentator });
+  service.attach({ guilds: { cache: new Map([[GUILD, { id: GUILD, channels: { cache: new Map([[r.channel.id, r.channel]]) } }]]) } });
+  await service.tick();
+  const preview = r.sent.find(p => p.files[0].name === 'hengs-preview.png');
+  assert.match(JSON.stringify(preview.components), /ONIC siap panas jam 15:00!/);
+  assert.equal(seen[0][0], 'preview'); assert.match(seen[0][1], /ONIC vs RRQ HOSHI/); assert.ok(seen[0][2].includes('EVOS'));
+  assert.equal(await service.answer('siapa MVP kemarin?'), 'Jawaban buat: siapa MVP kemarin?\n-# Data: Liquipedia (CC-BY-SA 3.0)');
+  assert.equal(await r.service.answer('apa aja?'), null); // no commentator configured: the guide answers
+});
+
+test('index.js builds the caster from the Groq client and answers the analis intent before the guide', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8').replace(/\r\n/g, '\n');
+  assert.match(source, /createCommentator\(\{ complete: createCasterCompletion\(\{ client: agent\.groq/);
+  const route = source.slice(source.indexOf("if (route.intent === 'analis')"), source.indexOf('const guide = guideFor(route.intent'));
+  assert.match(route, /await esportsService\.answer\(text\)/);
+});

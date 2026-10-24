@@ -6,6 +6,10 @@ const crypto = require('node:crypto');
 const { wibDate } = require('./card');
 const { record, heroPool, statsOf, tag } = require('./schedule');
 const { shareRight, topGuessers } = require('./predictions');
+const { heroes } = require('../scrim/mlbb-heroes.json');
+
+const HERO_NAMES = heroes.map(hero => hero.name);
+const words = text => ` ${String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `;
 
 const wibTime = at => new Date(at + 7 * 3_600_000).toISOString().slice(11, 16);
 const dayLabel = day => wibDate(Date.parse(`${day}T05:00:00Z`)).split(' · ')[0];
@@ -30,10 +34,12 @@ function previewData(match, all) {
     heroes: [heroPool(all, match.family, a), heroPool(all, match.family, b)],
   };
 }
-const previewCaption = match => [
+// Captions take an optional line from the LLM caster; without one the template stands.
+const previewCaption = (match, line = null) => [
   `**${match.teams[0].name} vs ${match.teams[1].name}** · ${wibTime(match.startAt)} WIB · ${bo(match)}`,
+  line,
   'Tebak pemenangnya pakai tombol di bawah. Tebakan dikunci pas laga mulai, cuma buat seru-seruan.',
-].join('\n');
+].filter(Boolean).join('\n');
 // What a posted preview shows; a different hash means the schedule changed and the card is edited.
 const previewHash = match => crypto.createHash('sha256').update(JSON.stringify({ at: match.startAt, stage: match.stage,
   bestof: match.bestof, teams: match.teams.map(t => [t.key, t.name, t.ticker]) })).digest('hex').slice(0, 16);
@@ -63,8 +69,8 @@ function dayRecapData(matches, day, votesByMatch) {
   ].filter(section => section.lines.length);
   return { title: `Rekap hari ini · ${leagues(matches)}`, date: dayLabel(day), sections };
 }
-const dayCaption = (matches, day) => `**Rekap ${dayLabel(day)}**: ${matches.filter(done)
-  .map(m => `${tag(m.teams[m.winner - 1])} menang ${Math.max(...m.score)}-${Math.min(...m.score)}`).join(', ')}.`;
+const dayCaption = (matches, day, line = null) => `**Rekap ${dayLabel(day)}**: ${line || `${matches.filter(done)
+  .map(m => `${tag(m.teams[m.winner - 1])} menang ${Math.max(...m.score)}-${Math.min(...m.score)}`).join(', ')}.`}`;
 
 function eventRecapData(state, event, votesByMatch, names) {
   const { final, matches } = state;
@@ -88,7 +94,50 @@ function eventRecapData(state, event, votesByMatch, names) {
     ].filter(section => section.lines.length),
   };
 }
-const eventCaption = (state, event) => `**${state.final.teams[state.final.winner - 1].name} juara ${event}!** Rekap lengkapnya ada di kartu.`;
+const eventCaption = (state, event, line = null) => `**${state.final.teams[state.final.winner - 1].name} juara ${event}!** ${line || 'Rekap lengkapnya ada di kartu.'}`;
+
+// The facts a caption may use: exactly the lines on the card.
+function factsOf(data) {
+  if (data.teams) {
+    return [data.title, data.date, `${data.time} · ${data.bestof}`, `${data.teams[0].name} vs ${data.teams[1].name}`, data.record,
+      ...data.teams.map((team, i) => `Andalan ${team.ticker || team.name}: ${data.heroes[i].map(h => `${h.name} (${h.picks} game)`).join(', ') || 'belum ada data hero'}`)]
+      .join('\n');
+  }
+  return [data.title, data.date, data.headline, data.subline, ...data.sections.map(s => `${s.heading}: ${s.lines.join('; ')}`)]
+    .filter(Boolean).join('\n');
+}
+
+// What Hengs knows for an Analis question: results of the last 7 days, today's schedule, the next matches, hero counts,
+// and a line for every hero the question names (the top-5 lists alone left those out).
+function analisCard(all, now, question = '') {
+  const WEEK = 7 * 86_400_000;
+  const day = m => new Date(m.startAt + 7 * 3_600_000).toISOString().slice(0, 10);
+  const today = new Date(now + 7 * 3_600_000).toISOString().slice(0, 10);
+  const known = m => m.startAt && m.teams.every(t => t.key?.trim() && !/^(tbd|tba)$/i.test(t.key.trim()));
+  const recent = all.filter(m => done(m) && m.startAt && m.startAt <= now && now - m.startAt <= WEEK)
+    .sort((a, b) => b.startAt - a.startAt).slice(0, 15);
+  const todays = all.filter(m => known(m) && !done(m) && day(m) === today).sort((a, b) => a.startAt - b.startAt);
+  const next = all.filter(m => known(m) && !done(m) && day(m) > today && m.startAt - now <= 2 * WEEK)
+    .sort((a, b) => a.startAt - b.startAt).slice(0, 5);
+  const s = statsOf(recent, { top: 5 });
+  const asked = words(question);
+  const named = HERO_NAMES.filter(name => words(name).trim().length >= 3 && asked.includes(words(name)))
+    .sort((a, b) => asked.indexOf(words(a)) - asked.indexOf(words(b))).slice(0, 3);
+  const decided = recent.flatMap(m => m.games.filter(g => g.winner));
+  const heroLine = name => {
+    const picks = decided.flatMap(g => [0, 1].filter(t => (g.picks[t] || []).includes(name)).map(t => g.winner === t + 1));
+    const bans = decided.filter(g => [0, 1].some(t => (g.bans[t] || []).includes(name))).length;
+    return `${name}: dipick ${picks.length} kali (menang ${picks.filter(Boolean).length}), diban ${bans} kali dalam 7 hari terakhir`;
+  };
+  return [
+    recent.length ? `Hasil 7 hari terakhir:\n${recent.map(m => `- ${dayLabel(day(m))} · ${m.league} · ${m.teams[0].name} ${m.score[0]}-${m.score[1]} ${m.teams[1].name}${m.mvp ? ` · MVP ${m.mvp}` : ''}`).join('\n')}` : null,
+    todays.length ? `Jadwal hari ini:\n${todays.map(m => `- ${wibTime(m.startAt)} WIB · ${m.teams[0].name} vs ${m.teams[1].name} · ${m.league}`).join('\n')}` : null,
+    next.length ? `Jadwal berikutnya:\n${next.map(m => `- ${dayLabel(day(m))} ${wibTime(m.startAt)} WIB · ${m.teams[0].name} vs ${m.teams[1].name} · ${m.league}`).join('\n')}` : null,
+    s.picks.length ? `Hero terlaris 7 hari: ${s.picks.map(h => `${h.name} ${h.count}`).join(', ')} (dari ${s.games} game)` : null,
+    s.bans.length ? `Ban terbanyak 7 hari: ${s.bans.map(h => `${h.name} ${h.count}`).join(', ')}` : null,
+    recent.length && named.length ? `Hero yang ditanya:\n${named.map(heroLine).join('\n')}` : null,
+  ].filter(Boolean).join('\n');
+}
 
 module.exports = { wibTime, dayLabel, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption,
-  dayRecapData, dayCaption, eventRecapData, eventCaption };
+  dayRecapData, dayCaption, eventRecapData, eventCaption, factsOf, analisCard };

@@ -61,3 +61,22 @@ test('the busy-day list shows every match and marks the ones with predictions', 
   assert.deepEqual(data.sections[0].lines, ['15:00 WIB · ONIC vs RRQ · Bo3 · ada tebakan', '16:00 WIB · EVOS vs AE · Bo3']);
   assert.equal(d.compactCaption(list, '2026-11-04'), '**Jadwal Rabu, 4 Nov 2026**: 2 laga. Tombol tebakan ada di kartu laga unggulan di bawah.');
 });
+
+test('fact cards list exactly what the card shows, and the Analis card covers 7 days, today and what comes next', () => {
+  const data = d.previewData(match('next', [ONIC, RRQ], START), []);
+  assert.deepEqual(d.factsOf(data).split('\n').slice(0, 4), ['MPL ID S18 Playoffs · Upper Bracket', 'Rabu, 4 Nov 2026', '15:00 WIB · Bo3', 'ONIC vs RRQ HOSHI']);
+  const recap = d.factsOf({ title: 'Rekap', date: 'Rabu', headline: 'EVOS juara!', sections: [{ heading: 'Hasil', lines: ['ONIC 2-0 RRQ'] }] });
+  assert.equal(recap, 'Rekap\nRabu\nEVOS juara!\nHasil: ONIC 2-0 RRQ');
+  const now = START + 5 * HOUR;
+  const card = d.analisCard([match('old', [ONIC, RRQ], START - 9 * 24 * HOUR, [1, 1]), match('a', [ONIC, RRQ], START - 24 * HOUR, [1, 1], { mvp: 'Kairi' }),
+    match('t', [EVOS, ONIC], START + 6 * HOUR), match('n', [EVOS, RRQ], START + 30 * HOUR)], now);
+  assert.match(card, /Hasil 7 hari terakhir:\n- Selasa, 3 Nov 2026 · MPL ID S18 Playoffs · ONIC 2-0 RRQ HOSHI · MVP Kairi/);
+  assert.match(card, /Jadwal hari ini:\n- 21:00 WIB · EVOS vs ONIC/);
+  assert.match(card, /Jadwal berikutnya:\n- Kamis, 5 Nov 2026 21:00 WIB · EVOS vs RRQ HOSHI/);
+  assert.match(card, /Hero terlaris 7 hari: /);
+  assert.doesNotMatch(card, /26 Okt/); // the match from 9 days ago is out
+  const asked = d.analisCard([match('a', [ONIC, RRQ], START - 24 * HOUR, [1, 1])], now, 'Lancelot sama Fanny gimana?');
+  assert.match(asked, /Hero yang ditanya:\nLancelot: dipick 2 kali \(menang 2\), diban 0 kali dalam 7 hari terakhir\nFanny: dipick 0 kali \(menang 0\), diban 2 kali/);
+  assert.doesNotMatch(card, /Hero yang ditanya/);
+  assert.equal(d.analisCard([], now), '');
+});

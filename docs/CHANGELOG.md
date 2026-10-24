@@ -5,6 +5,30 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.81.0] - 2026-10-24
+
+### Added
+
+- Hengs Analis caster. Henry: "Gw maunya kan llm, bikin jadi LLM aja lah", then "Komentator + bisa ditanya".
+  - `src/esports/commentator.js`: Groq `openai/gpt-oss-120b` in JSON mode writes a caster-style line for the preview,
+    the night recap and the event recap, only from a fact card made of the card's own lines.
+  - The check: every number, every hero from the Liquipedia hero dictionary and every team name or ticker on the
+    watched pages that the text names must appear in the facts (for an answer, also in the question); no betting
+    words; a length cap. One retry with the rejected tokens named, then the template caption.
+  - Analis questions in #tanya-hengs (chat intent `analis`) are answered from a 7-day card (results with MVPs, today's
+    schedule, the next matches, top picks and bans, and a line for each hero the question names), with the same check.
+    No data or a failed check falls back to the guide. No Liquipedia request per question.
+- Live probe (mock matches, Groq, about 10 requests): captions and answers kept to the facts; "Lancelot menang berapa
+  kali?" got the right count once named heroes had their own line; no answer says "FAKTA" any more.
+
+### Changed
+
+- Release pins: v1.80.1 left `test/cloud-release.test.js` at 1.80.0; all pins are 1.81.0 now.
+
+### Verification
+
+- Node 22 full suite 926/926 via PowerShell.
+
 ## [1.80.1] - 2026-10-24
 
 ### Changed

@@ -2,6 +2,16 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.81.0 Analis caster (committed, not deployed) - 2026-10-24
+
+- LLM captions on the preview, night recap and event recap, and Analis answers in #tanya-hengs, all from Hengs' own
+  numbers with a token check and a template or guide fallback. Uses the existing Groq key (GROQ_MODEL, default
+  gpt-oss-120b); without a key everything stays on templates.
+- Next here: v1.82.0 broadcast draft card for pro series (Henry: "laga pro itu bisa dikembangin sama gpt gak buat
+  template draft broadcast nya?"). Henry's GPT designs the template art to a fixed layout; Hengs writes hero names,
+  roles (Liquipedia hero dictionary), bans, score and MVP into the slots. Item, emblem and KDA cards for scrims come
+  from member screenshots through the Coach session.
+
 ## Hengs Discord v1.80.1 welcome card visual polish (committed, not deployed) - 2026-10-24
 
 - Welcome and leave cards use a compact hero pill, stronger member-name underline, and a clearer v2 logo watermark.

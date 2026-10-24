@@ -67,6 +67,6 @@ test('welcome, leave and boost handlers report through the one reporter; the wel
   assert.equal((welcome.match(/await reportWelcome\(/g) || []).length, 3); // channel missing, permissions, send error
   assert.match(between('client.on(Events.GuildMemberRemove', 'client.on(Events.GuildMemberUpdate'), /reportFailure\(member\.guild, \{ feature: 'Leave card'/);
   assert.match(source, /reportFailure\(g, \{ feature: 'Ucapan boost'/);
-  assert.match(source, /createEsportsService\(\{ guildAccess, reportFailure \}\)/);
+  assert.match(source, /createEsportsService\(\{ guildAccess, reportFailure,/);
   assert.match(source, /countReactions: countMemeReactions \}\), reportFailure \}\);/);
 });

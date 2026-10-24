@@ -2,7 +2,10 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.80.1 - welcome and leave cards now have a compact hero pill, stronger member
+**Current checkpoint:** Hengs Discord v1.81.0 - the Analis caster: an LLM writes caster-style lines for the match-day
+cards and answers Analis questions in #tanya-hengs, only from Hengs' own Liquipedia numbers (every number, hero and
+team it names is checked; otherwise the template or the guide). Builds on v1.80.1: welcome and leave cards now have a
+compact hero pill, stronger member
 focus, and a clearer Hengs logo watermark. Preview: `assets/_originals/welcome-card-v2-preview.png`. Builds on
 v1.80.0 Hengs Analis match days: at 08:00 WIB a broadcast-style preview card
 per match (season record, go-to heroes) with buttons to guess the winner, a night recap card (results, hero numbers,

@@ -61,6 +61,7 @@ const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createEsportsService } = require('./esports/service');
+const { createCommentator, createCasterCompletion } = require('./esports/commentator');
 const { createEsportsStore } = require('./esports/store');
 const { createNewsEditor } = require('./news/editor');
 const { createMemeMaker } = require('./news/memes');
@@ -115,8 +116,10 @@ const countMemeReactions = async ({ channelId, messageId }) => {
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
   memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
     taste: createMemeTaste(), countReactions: countMemeReactions }), reportFailure });
-// Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only).
-const esportsService = createEsportsService({ guildAccess, reportFailure });
+// Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only). The caster writes captions and
+// answers from Hengs' own numbers; without a Groq client the templates stay.
+const esportsService = createEsportsService({ guildAccess, reportFailure,
+  commentator: createCommentator({ complete: createCasterCompletion({ client: agent.groq, model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b' }) }) });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
@@ -663,6 +666,14 @@ client.on(Events.MessageCreate, async (msg) => {
     if (kirim) {
       await msg.reply(chatActions.offer(msg, kirim));
       return;
+    }
+    // An Analis question gets an answer from the cached Liquipedia numbers; no data or a failed check falls back to the guide.
+    if (route.intent === 'analis') {
+      const answer = await esportsService.answer(text).catch(() => null);
+      if (answer) {
+        await msg.reply({ content: answer, allowedMentions: { parse: [] } });
+        return;
+      }
     }
     const guide = guideFor(route.intent, msg.guild);
     if (guide) {
