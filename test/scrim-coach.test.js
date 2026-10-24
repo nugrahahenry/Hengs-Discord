@@ -90,6 +90,20 @@ test('made-up "first N minutes" windows become "di awal game"; plain practice du
   }
 });
 
+// Exam v11: once the rules named the generic closer, three answers ended with it; code drops it instead.
+test('a closing "anything else" sentence is dropped from coach replies, other questions stay', () => {
+  assert.equal(guardReply('Coba cek patch notes resmi. Kalau ada hal lain yang mau dibahas, tinggal tanya aja! 😊').text,
+    'Coba cek patch notes resmi.');
+  assert.equal(guardReply('Lolita main di Roam. Ada hal lain yang mau kamu tanyain soal build atau playstyle?').text,
+    'Lolita main di Roam.');
+  assert.equal(guardReply('Gas latihan call 🚀 Kalau ada pertanyaan lain, kabarin aku ya').text, 'Gas latihan call 🚀');
+  const kept = 'Kalau ada hal lain yang bikin kesel, ceritain aja. Menurut kamu, apa yang paling bikin tilt?';
+  assert.equal(guardReply(kept).text, kept);
+  assert.equal(guardReply('Ada yang lain ngerasain hal sama?').text, 'Ada yang lain ngerasain hal sama?');
+  assert.equal(guardReply('Kalau ada pertanyaan lain, tanya aja ya').text, 'Kalau ada pertanyaan lain, tanya aja ya');
+  assert.doesNotMatch(COACH_RULES, /hal lain|pertanyaan lain/);
+});
+
 test('the rules ask for habits as targets and forbid links', () => {
   assert.match(COACH_RULES, /bukan jumlah menang atau win rate/);
   assert.match(COACH_RULES, /Jangan tulis link/);

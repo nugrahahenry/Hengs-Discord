@@ -21,6 +21,9 @@ Updated: 2026-10-24
   first, one light hedge, one way to find out, no maaf opener); the lane card counts who fills each lane. Exam keys A2,
   C4, D1, E1-E4 and K2 got the style requirement before run v11 (noted in scenarios.json `changes`); run.cjs flags
   "buka pakai ragu" and "penutup generik".
+- Exam v11 (12 scenarios, stricter keys): 16/24, H 0. Dodge openers 6 to 5, generic closers 0 to 3 because the rule
+  named the closer; the next commit drops it in code (replayed offline on v11: only E2, E4, K1 change). Next lever:
+  few-shot examples Henry approves; rerun the exam tomorrow (36 requests on the Discord key today).
 - Still open: the screenshot path waits for Henry's 10 end-of-match screenshots in discord-bot/.cloud/evals/ss-test
   (harness .cloud/evals/ss-vision-2026-10-24/read.cjs; qwen/qwen3.8-27b is on the Discord key).
 

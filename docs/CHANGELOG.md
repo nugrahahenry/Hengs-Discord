@@ -39,6 +39,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   or close with "kalau ada hal lain tanya aja". A ward question gets the alternative tip in its first sentence. The
   lane card counts who fills each lane from the snapshot (Gold Lane 18 Marksman of 19 heroes, and so on) and says lane
   positions and mechanics are not in it.
+- Exam v11 showed that naming the generic closer in the rules primed it (3 of 12 answers ended with it, none before),
+  so the rules no longer name it and the reply guard drops a last sentence about "hal lain" or "pertanyaan lain"
+  (kept when it is the whole reply).
 
 ### Verification
 

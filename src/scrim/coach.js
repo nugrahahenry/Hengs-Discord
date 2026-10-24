@@ -31,7 +31,7 @@ CARA COACHING:
 - Di bawah 5 game bilang datanya masih dikit; jangan simpulin pola dari kurang dari 5 kali kalah. DATA kosong: ajak catat tiap game pakai /scrim hasil.
 - META PRO di DATA itu data draft pro dari Liquipedia: sebut jumlah gamenya, bilang itu pola tim pro yang belum tentu cocok buat tim sendiri, dan jangan tambah hero atau angka di luar itu.
 - KAMUS MLBB di DATA itu fakta hero dari Liquipedia: boleh dipakai buat jawab role, lane, isi lane, dan spesialis hero; fakta MLBB lain di luar itu jangan ditebak.
-- Belum pasti atau nggak ada di DATA (pengganti aturan umum soal bilang nggak tahu): jangan jawab maaf, nggak tahu, atau nggak yakin doang. Mulai dari yang ada di DATA atau KAMUS, atau satu kebiasaan main yang aman; sebut sekali dengan santai bagian yang masih susah dipastiin; lalu kasih satu cara cari tahu bareng (cek di game, coba di scrim terus catat, atau tanya tim). Jangan tutup pakai "kalau ada hal lain tanya aja".
+- Belum pasti atau nggak ada di DATA (pengganti aturan umum soal bilang nggak tahu): jangan jawab maaf, nggak tahu, atau nggak yakin doang. Mulai dari yang ada di DATA atau KAMUS, atau satu kebiasaan main yang aman; sebut sekali dengan santai bagian yang masih susah dipastiin; lalu kasih satu cara cari tahu bareng (cek di game, coba di scrim terus catat, atau tanya tim).
 - Tim cerita menang: rayakan singkat, puji aksi spesifik, lalu tanya apa yang jalan dan mau dipertahankan. Jangan langsung bahas kelemahan.
 - Ada yang nyalahin teman: tanggapi dulu kesalnya, bilang kamu nggak setuju pakai label buat teman, lalu ajak bahas keputusan tim dan ngobrol baik-baik setelah main.
 - Pertanyaan soal lawan tertentu: pakai bagian Rekap scrim vs lawan itu di DATA sebagai fokus, bukan rekap tim keseluruhan.
@@ -80,6 +80,10 @@ const censored = () => '(ejekan disensor)';
 // non-breaking hyphen (code point 2011) in "5-menit"; cleanText already turns en and em dashes into "-".
 const NB_HYPHEN = new RegExp(String.fromCharCode(0x2011), 'g');
 const WINDOW = /(?:\b(?:di|pada|selama|dalam)\s+)?\b\d+(?:\s*-\s*\d+)?\s*-?\s*(?:menit|detik)\s+(?:pertama|awal)\b/gi;
+// Exam v11: once the rules named the generic closer ("kalau ada hal lain, tanya aja"), three answers ended with it. The
+// rules no longer name it; code drops a last sentence about "hal lain" or "pertanyaan lain" unless it is the whole reply.
+const CLOSER = /(^|[.!?\p{Extended_Pictographic}]\s+)(?:kalau|kalo|jika|ada)\b[^.!?]*\b(?:hal|pertanyaan)\s+lain\b[^.!?]*[.!?]*[\s\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Variation_Selector}\p{Join_Control}]*$/iu;
+const dropCloser = text => text.replace(CLOSER, '$1').trim() || text;
 
 const scrubIds = text => String(text ?? '').replace(/<@&\d{17,20}>/g, '(role)').replace(/<#\d{17,20}>/g, '(channel)')
   .replace(/<@!?\d{17,20}>/g, '(anggota)').replace(/\b\d{17,20}\b/g, '(anggota)');
@@ -147,7 +151,7 @@ function debriefText(games, { target = null } = {}) {
 function guardReply(reply, { question = '' } = {}) {
   const raw = String(reply ?? '').trim();
   const unmarked = raw.replace(MARKER, '').trim();
-  const { text, masked } = mask(unmarked.replace(NB_HYPHEN, '-').replace(WINDOW, 'di awal game'));
+  const { text, masked } = mask(dropCloser(unmarked.replace(NB_HYPHEN, '-').replace(WINDOW, 'di awal game')));
   if (unmarked === raw && !CRISIS.test(question)) return { text, masked };
   return { text: `${cutUnits(text, MAX_REPLY - BANTUAN_TEXT.length - 2)}\n\n${BANTUAN_TEXT}`, masked };
 }
