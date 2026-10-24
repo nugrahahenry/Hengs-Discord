@@ -2,7 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.79.1 - Hengs chat no longer opens an unsure answer with "maaf" (code drops
+**Current checkpoint:** Hengs Discord v1.79.2 - failed sends (welcome, leave, boost, news, memes, analyst cards) are
+reported in bot-settings with the missing permissions named, once per 6 hours per failure. Builds on v1.79.1: Hengs
+chat no longer opens an unsure answer with "maaf" (code drops
 the apology; the honest game facts prompt stays). Builds on v1.79.0 Hengs Coach v2: one team practice target with
 `/scrim target` and a
 debrief nudge after the third game of a day, pro draft stats and a Liquipedia hero dictionary in the coach's data

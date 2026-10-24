@@ -15,8 +15,10 @@ const { isGuildManager } = require('../prompt-assistant');
 const TTL = 10 * 60_000;
 const HOUR = 3_600_000;
 const KINDS = Object.freeze(['news', 'meme']);
+// What a news post needs in its channel; memes also attach their image.
+const NEWS_NEEDS = Object.freeze([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]);
 function createNewsService({ store = createNewsStore(), readFeeds = createFeedReader({ readTrends: createTrendReader() }),
-  now = Date.now, guildAccess, logger = console, editArticles = async items => items, memeMaker = null } = {}) {
+  now = Date.now, guildAccess, logger = console, editArticles = async items => items, memeMaker = null, reportFailure = async () => {} } = {}) {
   const drafts = new Map();
   const busy = new Map();
   const delivering = new Set();
@@ -38,7 +40,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     if (!channel || channel.id !== channelId || channel.guildId !== guild.id || channel.type !== ChannelType.GuildText) throw new Error('NEWS_CHANNEL_INVALID');
     const me = await guild.members.fetchMe();
     const permissions = channel.permissionsFor(me);
-    if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+    if (!permissions?.has(NEWS_NEEDS)) {
       throw new Error('NEWS_CHANNEL_PERMISSIONS');
     }
     return channel;
@@ -83,9 +85,9 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       try {
         const nonce = BigInt(`0x${crypto.createHash('sha256').update(`hengs-news:${guild.id}:${day}:${kind}:${slot}`).digest('hex').slice(0, 16)}`).toString();
         sent = await channel.send({ ...payloadFor(row, items, kind), nonce, enforceNonce: true });
-      } catch {
+      } catch (error) {
         store.finish(guild.id, claimed.revision, day, 'failed', slot, kind);
-        throw new Error('NEWS_SEND_UNCERTAIN');
+        throw new Error('NEWS_SEND_UNCERTAIN', { cause: error });
       }
       const finished = store.finish(guild.id, claimed.revision, day, 'sent', slot, kind);
       // Hengs-made memes go to the taste store, so reactions can steer later memes.
@@ -246,11 +248,12 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     const due = dueSlot(row, now(), kind);
     if (!due) return;
     const { day, slot } = due;
+    let guild = null;
     try {
       if (kind === 'meme' && !row.settings.memeChannelId) {
         store.claim(row.guildId, row.revision, day, [], 'cancelled', slot, null, kind); return;
       }
-      const guild = client.guilds.cache.get(row.guildId);
+      guild = client.guilds.cache.get(row.guildId);
       if (!guild) return;
       const result = kind === 'news' ? await newsFor(row) : await memeFor(row, slot);
       assertRevision(row.guildId, row.revision);
@@ -259,8 +262,14 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         store.claim(row.guildId, row.revision, day, [], result.failures ? 'failed' : 'empty', slot, null, kind); return;
       }
       await deliver(guild, row, result.items, day, () => {}, slot, kind);
-    } catch {
+    } catch (error) {
       logger.error('[news] NEWS_TICK_FAILED');
+      // A failed send, a gone channel or missing permissions goes to bot-settings; feed trouble does not.
+      if (guild && ['NEWS_SEND_UNCERTAIN', 'NEWS_CHANNEL_INVALID', 'NEWS_CHANNEL_PERMISSIONS'].includes(error?.message)) {
+        const id = kind === 'meme' ? row.settings.memeChannelId : row.settings.channelId;
+        await reportFailure(guild, { feature: kind === 'meme' ? 'Meme harian' : 'Berita harian', channel: guild.channels.cache.get(id) || null,
+          code: error.cause?.code || null, ...(kind === 'meme' ? {} : { needs: NEWS_NEEDS }) });
+      }
       // Pre-send failures also consume the slot; no repeated permission/network storm.
       const current = store.get(row.guildId);
       if (current?.revision === row.revision && dueSlot(current, now(), kind)?.slot === slot && day === wibClock(now()).day) {

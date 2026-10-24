@@ -5,6 +5,30 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.79.2] - 2026-10-24
+
+### Fixed
+
+- Failed sends no longer fail silently. The welcome card had failed on a channel permission since mid-October (3 of
+  5 joins: @everyone was denied Send Messages in #welcome and Hengs had no overwrite) and nobody knew until Henry's
+  friend joined without a welcome. Henry: "bikin Hengs lapor ke bot-settings kalau kirim welcome gagal (sebut izin
+  yang kurang)", then "Fitur lain yang gagal kirim" too.
+  - `src/utils/failure-report.js`: one reporter posts a note to bot-settings, without pings, naming the
+    permissions Hengs lacks the way Discord's channel settings word them ("Send Messages") with the fix steps, or
+    the error code, or that the channel is gone.
+  - The same feature, channel, person and reason is noted once per 6 hours, so a failure that repeats every tick
+    does not flood bot-settings; each member's failed welcome still gets its own note.
+  - Covered: welcome (permissions checked before the card is drawn, a missing WELCOME_CHANNEL_ID channel, send
+    errors), leave card, boost message, scheduled news and memes (failed send, channel gone, missing permissions;
+    feed trouble is not a send failure) and Hengs Analis cards.
+  - `postBotSettings` finds the channel through the same `findBotSettings`.
+- One-off, owner-approved: the 3 members who missed their welcome since 15 Oct were listed in bot-settings by a
+  read-only cloud probe plus one REST post (no gateway login, no pings).
+
+### Verification
+
+- Node 22 full suite 895/895 via PowerShell.
+
 ## [1.79.1] - 2026-10-24
 
 ### Added

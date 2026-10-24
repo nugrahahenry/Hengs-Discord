@@ -20,10 +20,13 @@ const { createChatActions, firstImage, readKirim } = require('./chat-actions');
 const { createCoachQuota } = require('./scrim/coach');
 const state = require('./state');
 const { generateCard } = require('./utils/welcome-card');
-const { AttachmentBuilder } = require('discord.js');
+const { AttachmentBuilder, escapeMarkdown } = require('discord.js');
 const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
 const { assignMemberRole, buildWelcomeEmbed, findOnboardingChannel } = require('./utils/member-onboarding');
+const { createFailureReporter, findBotSettings, missingPermissions } = require('./utils/failure-report');
+// Failed sends (welcome, leave, boost, news, memes, analyst cards) are reported in bot-settings.
+const reportFailure = createFailureReporter();
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
@@ -111,9 +114,9 @@ const countMemeReactions = async ({ channelId, messageId }) => {
 };
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
   memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
-    taste: createMemeTaste(), countReactions: countMemeReactions }) });
+    taste: createMemeTaste(), countReactions: countMemeReactions }), reportFailure });
 // Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only).
-const esportsService = createEsportsService({ guildAccess });
+const esportsService = createEsportsService({ guildAccess, reportFailure });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
@@ -231,9 +234,7 @@ async function updateServerStats(guild) {
 // ── Kirim status ke channel bot-settings (log/kontrol Hengs) ─────────────────
 async function postBotSettings(guild, content) {
   try {
-    const lc = c => c.name.toLowerCase();
-    const ch = guild.channels.cache.find(c => c.isTextBased?.() && lc(c).includes('bot-settings'))
-            || guild.channels.cache.find(c => c.isTextBased?.() && lc(c).includes('settings'));
+    const ch = findBotSettings(guild);
     if (ch) await ch.send(content);
   } catch (e) { console.error('⚠️ postBotSettings error:', e.message); }
 }
@@ -342,7 +343,9 @@ client.on(Events.GuildMemberAdd, async (member) => {
   if (scope.kind !== 'home') return;
   // Auto-role and stats remain operational even when the welcome channel is missing.
   await updateServerStats(member.guild).catch(() => {});
-  await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
+  const role = await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
+  const reportWelcome = (target, details = {}) => reportFailure(member.guild, { feature: 'Welcome', channel: target,
+    who: `<@${member.id}>`, extra: role.ok ? 'Role Member-nya tetap sudah dikasih.' : null, ...details });
 
   const channelId = process.env.WELCOME_CHANNEL_ID;
   if (!channelId) {
@@ -352,6 +355,13 @@ client.on(Events.GuildMemberAdd, async (member) => {
   const channel = member.guild.channels.cache.get(channelId);
   if (!channel) {
     console.warn('  WELCOME_CHANNEL_ID tidak ditemukan; auto-role tetap berjalan tanpa welcome card.');
+    await reportWelcome(null, { reason: 'channel dari WELCOME_CHANNEL_ID tidak ketemu. Cek ID-nya di konfigurasi bot' });
+    return;
+  }
+  // Checked before the card is drawn: a welcome that cannot go out is reported instead of failing silently.
+  if (missingPermissions(channel, member.guild.members.me).length) {
+    console.error('❌ Welcome card error: Missing Permissions');
+    await reportWelcome(channel);
     return;
   }
 
@@ -393,6 +403,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     }
   } catch (err) {
     console.error('❌ Welcome card error:', err.message);
+    await reportWelcome(channel, { code: err.code || null });
   }
 
 });
@@ -427,6 +438,8 @@ client.on(Events.GuildMemberRemove, async (member) => {
     }
   } catch (err) {
     console.error('❌ Leave card error:', err.message);
+    await reportFailure(member.guild, { feature: 'Leave card', channel, code: err.code || null,
+      who: escapeMarkdown(String(member.user?.username || 'member')) });
   }
 
   // Update stats
@@ -459,6 +472,8 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
     console.log(`💜 Boost dari ${newMember.user.username}`);
   } catch (err) {
     console.error('❌ Boost message error:', err.message);
+    await reportFailure(g, { feature: 'Ucapan boost', channel, code: err.code || null,
+      needs: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] });
   }
 });
 

@@ -29,7 +29,8 @@ async function defaultBanner() {
 }
 
 function createEsportsService({ guildAccess, store = createEsportsStore(), liquipedia = createLiquipedia(),
-  render = renderSeriesCard, now = Date.now, logger = console, watch = WATCH, loadBanner = defaultBanner } = {}) {
+  render = renderSeriesCard, now = Date.now, logger = console, watch = WATCH, loadBanner = defaultBanner,
+  reportFailure = async () => {} } = {}) {
   let client = null; let running = false; let timer = null;
   const leagueOf = page => watch.find(w => w.title === page)?.league || '';
 
@@ -69,9 +70,10 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     let message;
     try {
       message = await channel.send(seriesPayload(match, { league: leagueOf(match.page) }, await render(match, { league: leagueOf(match.page) })));
-    } catch {
+    } catch (error) {
       store.finish(guild.id, match.id, { status: 'failed' });
       logger.error('[esports] ESPORTS_SEND_FAILED');
+      await reportFailure(guild, { feature: 'Kartu Analis', channel, code: error?.code || null });
       return;
     }
     store.finish(guild.id, match.id, { status: 'sent', messageId: message.id, channelId: channel.id });

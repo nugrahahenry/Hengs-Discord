@@ -40,7 +40,7 @@ function rig(t, wiki) {
       return titles.map(title => ({ title, revid: title === PAGE ? lp.revid : 0, missing: title !== PAGE })); },
     async contents(titles) { lp.contentCalls++; return titles.map(title => ({ title, revid: lp.revid, content: lp.wiki, missing: false })); },
   };
-  const sent = []; const reacts = []; const edits = []; const dms = []; const logs = []; const pins = [];
+  const sent = []; const reacts = []; const edits = []; const dms = []; const logs = []; const pins = []; const reports = [];
   const messages = new Map();
   const channel = { id: '900000000000000001', guildId: GUILD, name: '📊・hengs-analis', type: ChannelType.GuildText,
     fail: false,
@@ -58,9 +58,10 @@ function rig(t, wiki) {
     async fetchOwner() { return { async send(p) { dms.push(p); } }; } };
   const service = createEsportsService({ guildAccess: { classify: () => ({ kind: 'home' }) }, store, liquipedia,
     render: async () => Buffer.from('png'), now: () => clock.now, logger: { error: code => logs.push(code) },
-    watch: [{ title: PAGE, league: 'MPL PH S18 Playoffs' }, { title: 'Missing/Page', league: 'Other' }], loadBanner: async () => null });
+    watch: [{ title: PAGE, league: 'MPL PH S18 Playoffs' }, { title: 'Missing/Page', league: 'Other' }], loadBanner: async () => null,
+    reportFailure: async (g, details) => { reports.push(details); } });
   service.attach({ guilds: { cache: new Map([[GUILD, guild]]) } });
-  return { service, store, clock, lp, sent, reacts, edits, dms, logs, pins, messages, channel };
+  return { service, store, clock, lp, sent, reacts, edits, dms, logs, pins, messages, channel, reports };
 }
 
 const WIKI = [series('R1M1', NOW - 10 * HOUR, [1, 1, 1], 'KyleTzy'), series('R1M2', NOW - 72 * HOUR, [2, 2, 2]),
@@ -123,6 +124,7 @@ test('a failed send is recorded and never retried', async t => {
   await r.service.tick();
   assert.equal(r.store.post(GUILD, `${PAGE}#R1M1#0`).status, 'failed');
   assert.ok(r.logs.includes('[esports] ESPORTS_SEND_FAILED')); assert.ok(!JSON.stringify(r.logs).includes('private-provider'));
+  assert.deepEqual(r.reports.map(x => [x.feature, x.channel.id, x.code]), [['Kartu Analis', r.channel.id, null]]); // to bot-settings
   r.channel.fail = false; r.clock.now += 3 * HOUR; await r.service.tick();
   assert.equal(r.sent.length, 0);
 });

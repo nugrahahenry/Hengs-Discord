@@ -2,6 +2,18 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.79.2 failed sends reported in bot-settings (committed, not deployed) - 2026-10-24
+
+- Cause found live (read-only probes in .cloud/automation/deploy-v1710: welcome-check.sh, welcome-perms.sh): in
+  #welcome @everyone is denied Send Messages and Hengs has no overwrite, so 3 of 5 welcomes since 15 Oct failed with
+  Missing Permissions. The role still came first, so members got Member but no card.
+- Henry's fix in Discord (not done yet at commit time): #welcome > Edit Channel > Permissions > add role Hengs Bot >
+  allow Send Messages (plus View Channel, Embed Links, Attach Files).
+- welcome-missed.sh (owner-approved one-off) posted the 3 missed members to bot-settings; it skips if its note is
+  already there.
+- After the deploy, every failed send (welcome, leave, boost, news, memes, analyst cards) posts one note to
+  bot-settings, at most once per 6 hours for the same feature, channel, person and reason.
+
 ## Hengs Discord v1.79.1 no maaf opener in Hengs chat (committed, not deployed) - 2026-10-24
 
 - Henry: "Boleh disamain, kasih aja ke chatt hengs", about the coach's rule for unsure answers.
