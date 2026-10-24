@@ -2,6 +2,16 @@
 
 Updated: 2026-10-24
 
+## Hengs Discord v1.82.2 welcome and leave galaxy cards (local, not deployed) - 2026-10-25
+
+- Welcome and leave cards now select separate production backgrounds, each with a restrained galaxy haze overlay.
+- Optional 3D mascots are now defaulted from `assets/brand/` and placed beside a compact member badge so `#member`
+  remains readable. Explicit `backgroundPath`, `mascotPath`, and type-specific paths still override the defaults.
+- Source artwork and previews are kept under `assets/_originals/`; production-sized files are under `assets/welcome/` and
+  `assets/brand/`.
+- Verification: `node --test test/member-onboarding.test.js` passed 13/13 and `git diff --check` passed.
+- No Discord deployment, command registration, or runtime state change has been performed.
+
 ## Hengs Discord v1.82.0 broadcast draft cards (committed, not deployed) - 2026-10-24
 
 - Each finished pro series now posts its result card plus one draft card per game in the same gallery

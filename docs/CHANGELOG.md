@@ -5,6 +5,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.82.2] - 2026-10-25
+
+### Changed
+
+- Welcome and leave cards now use separate galaxy gateway backgrounds with an optional 3D Hengs mascot layer.
+- The mascot is scaled into a dedicated side slot so the member badge remains readable.
+- Added optimized production artwork under `assets/welcome/` and `assets/brand/`, with source artwork and previews under
+  `assets/_originals/`.
+
+### Verification
+
+- `node --test test/member-onboarding.test.js` passed 13/13.
+- `git diff --check` passed.
+
 ## [1.82.1] - 2026-10-24
 
 ### Changed

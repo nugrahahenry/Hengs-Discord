@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 
 const {
   buildOnboardingFields, buildWelcomeEmbed, findOnboardingChannel, findMemberRole, assignMemberRole,
@@ -175,6 +176,66 @@ test('production welcome background is an optimized card-sized PNG', async () =>
   assert.equal(image.width, CARD.width);
   assert.equal(image.height, CARD.height);
   assert.ok(stat.size < 512 * 1024);
+});
+
+test('production welcome and leave artwork has bounded dimensions', async () => {
+  const { loadImage } = require('@napi-rs/canvas');
+  const assetRoot = path.join(__dirname, '..', 'assets');
+  const backgrounds = [
+    path.join(assetRoot, 'welcome', 'welcome-gateway-v3.png'),
+    path.join(assetRoot, 'welcome', 'leave-gateway-v3.png'),
+  ];
+  for (const backgroundPath of backgrounds) {
+    const image = await loadImage(backgroundPath);
+    const stat = require('node:fs').statSync(backgroundPath);
+    assert.equal(image.width, CARD.width);
+    assert.equal(image.height, CARD.height);
+    assert.ok(stat.size < 512 * 1024);
+  }
+
+  const mascots = [
+    path.join(assetRoot, 'brand', 'hengs-welcome-mascot-v2.png'),
+    path.join(assetRoot, 'brand', 'hengs-leave-mascot-v2.png'),
+  ];
+  for (const mascotPath of mascots) {
+    const image = await loadImage(mascotPath);
+    const stat = require('node:fs').statSync(mascotPath);
+    assert.equal(image.width, 264);
+    assert.equal(image.height, 388);
+    assert.ok(stat.size < 200 * 1024);
+  }
+});
+
+test('optional mascot assets layer only when explicitly configured', async () => {
+  const now = new Date('2026-10-24T08:00:00Z');
+  const member = {
+    id: 'preview-member',
+    displayName: 'Vemz',
+    joinedAt: new Date('2026-10-15T10:00:00Z'),
+    guild: { memberCount: 55 },
+    user: {
+      id: 'preview-user',
+      username: 'vemz3119',
+      createdAt: new Date('2020-01-01T00:00:00Z'),
+      displayAvatarURL: () => null,
+    },
+  };
+  const assetRoot = path.join(__dirname, '..', 'assets', '_originals');
+  const baseOptions = {
+    now,
+    serverName: 'Hengs',
+    memberNumber: 55,
+    backgroundPath: path.join(assetRoot, 'welcome-leave-gateway-v3.png'),
+  };
+  const withoutMascot = await generateCard(member, 'welcome', baseOptions);
+  const withMascot = await generateCard(member, 'welcome', {
+    ...baseOptions,
+    mascotPath: path.join(assetRoot, 'hengs-welcome-mascot-v2.png'),
+  });
+
+  assert.ok(Buffer.isBuffer(withoutMascot));
+  assert.ok(Buffer.isBuffer(withMascot));
+  assert.notDeepEqual(withMascot, withoutMascot);
 });
 
 test('member tenure keeps minute and hour precision instead of showing zero days', () => {
