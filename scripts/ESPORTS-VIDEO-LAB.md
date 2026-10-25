@@ -124,8 +124,24 @@ column between the opposing rosters. Portrait moves the same comparison above th
 and KP remain disabled on numeric conflicts. No objectives, patch, hero identities or gameplay explanation are
 invented to fill the middle column. Markdown remains the accessible text alternative; no browser interaction exists.
 
+### Reusable arena background
+
+`esports-broadcast-scene.js` reuses the fixed, already bundled Crown Stage arena artwork. It is decorative
+Hengs art, not a photograph of the source event, team venue or endorsement. No new generation, lookup or download
+occurs. Cover scaling preserves the art's proportions, with separate wide/portrait framing.
+
+Blue/red side lighting, gold score framing and dark reading mats depend only on canvas/layout geometry.
+No team names, winners, scores or random seeds are baked into the background. Numeric rows and the central
+comparison retain their opaque reading surfaces. A missing/broken arena stops export with
+`BROADCAST_BACKGROUND_UNAVAILABLE`, rather than silently returning a flat substitute.
+
+Long labels are shortened with an ellipsis instead of horizontally compressed. Original names and all facts
+remain complete in the Markdown/JSON companion. Tests cover both aspect ratios, with/without item rows,
+contrast behind muted table/footer text, other teams, unknown data and long names. The sample remains a
+local untrusted preview, not a live bot route or automatic match-analysis product.
+
 ```powershell
-node --test test/esports-team-catalog.test.js test/esports-scoreboard-review.test.js test/esports-video-lab.test.js
+node --test test/esports-broadcast-scene.test.js test/esports-team-catalog.test.js test/esports-scoreboard-review.test.js test/esports-video-lab.test.js
 ```
 
 ## Supervised public-video trial

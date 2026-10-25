@@ -7,6 +7,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Developer tooling
 
+- Added a reusable arena background to offline scoreboard previews using the existing Crown Stage artwork,
+  geometry-based side lighting and dark reading mats. Long labels now use ellipses instead of horizontal
+  compression; complete names remain in the report. Stats, source pixels and review JSON are unchanged.
+  Full suite: 988/988, zero failures/skips. No new image generation, external calls or runtime activation.
 - Added an offline region/season logo catalog, starting with eight officially sourced MPL Philippines S18 marks.
   Exact aliases and pinned PNG bytes avoid fuzzy cross-region matches; unknown teams retain initials. Moved
   duration, gold totals and gold gap into a central broadcast column, with a stacked phone layout. Item crops

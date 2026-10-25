@@ -2,6 +2,30 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 reusable arena background (not pushed, not deployed) - 2026-10-25
+
+- Henry requested a less generic background that works across differing match data. Reused the existing,
+  inspected Crown Stage `arena-background.png`, not new generation or a team-specific photo. Original bytes
+  unchanged. Impeccable bolder refinement preserves the Analis fonts, palette, foreground statistics and layout.
+- New `scripts/esports-broadcast-scene.js` frames that fixed artwork in wide/portrait cover crops, with inherited
+  blue/red lighting, gold score framing and geometry-bound reading mats. No match values or random seed in the
+  layer, no selectable file path/URL. Failed asset loading stops export with a fixed code rather than silent fallback.
+- Renderer now shortens long labels with ellipses instead of squeezing them horizontally. Complete labels stay
+  in Markdown/JSON. No numeric claims, order, source pixel regions, validation or production behavior changed.
+- Final artifacts: `.cloud/evals/youtube-observer-2026-10-25/flcn-rora-arena-final/`, using the preceding catalog
+  input. Wide 1800x1240 (~1.05 MiB), item portrait 900x2280 (~0.86 MiB), Markdown/JSON, plus clearly marked
+  synthetic other-team/unknown/long-name previews. Entire review JSON equals the previous broadcast-final JSON.
+- QA: 988/988 full offline tests, zero failures/skips (`arena-full-suite.tap`); initial focused 27/27 before
+  the final label test. Four new tests cover stable scene output, supported dimensions, reading-mat contrast
+  at least 4.5:1, alternate/missing data and non-squashed labels. Existing item/logo pixel checks still pass.
+- Visual QA: batched wide/portrait and two edge cases, one label fix, one final confirmation. No observed
+  clipping/overlap for these fixtures. Layout scan empty. Final syntax, scoped secret/copy and whitespace
+  checks accompany the commit. No new spec/plan or dependencies; no runtime, inference, browser or cloud action.
+- Next: Henry's visual feedback; region-catalog expansion remains separate. All provider trial markers and
+  review-required/untrusted status preserved. This is not proof of daily extraction or gameplay analysis.
+- Version stays 1.83.0; push/deploy held. Subject:
+  `chore(esports): Hengs Discord v1.83.0 - add reusable arena backgrounds`.
+
 ## Hengs Discord v1.83.0 regional logos and broadcast layout (not pushed, not deployed) - 2026-10-25
 
 - Henry requested reusable logos from the web, all regions in stages, plus a central gold comparison similar
