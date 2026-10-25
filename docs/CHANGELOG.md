@@ -18,6 +18,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   one separately authorized HTTP 404 result. No runtime activation, automatic retries or deployment are included.
 - Supervised-trial QA: full offline suite 955/955 on Node 22.23.3, zero failures/skips, plus final focused recheck
   19/19 after diagnostic-category hardening. Tests use fake responses and do not establish live extraction success.
+- Added a bounded public-scoreboard image probe with PNG/JPEG size/signature checks, exact reviewed-image hash,
+  explicit source-timestamp provenance and separately selected Gemini 3.8 Flash support. No model fallback or
+  automatic retry. The two authorized image trials returned legacy-model unavailability and a 90-second timeout;
+  neither produced verified statistics. Full offline QA: 960/960; focused: 24/24. Runtime remains unchanged.
 
 ## [1.83.0] - 2026-10-25
 

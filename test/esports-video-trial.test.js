@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const { validateTrial, buildRequest, parseObservation, runTrial, ENDPOINT } = require('../scripts/esports-video-trial');
 const NOW = Date.parse('2026-10-25T10:00:00Z');
 const FAKE_KEY = `AIza${'x'.repeat(30)}`; // Synthetic only, never a provider credential.
@@ -15,6 +16,70 @@ const data = () => ({ status: 'SCOREBOARD', event: 'Demo', seriesId: 'match 1', 
       deaths: side ? 2 : 1, assists: 2, gold: 8000 })) })) });
 const payload = (value = data()) => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(value) }] } }],
   usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20, totalTokenCount: 120 } });
+const frameBytes = Buffer.from('89504e470d0a1a0a0000000000000000', 'hex'); // Synthetic signature fixture, not a real provider input.
+const framePlan = () => ({ ...plan(), inputKind: 'frame', publicFrameReviewed: true, imageFile: 'fixture.png',
+  imageSha256: createHash('sha256').update(frameBytes).digest('hex'), imageMimeType: 'image/png', frameOffsetSeconds: null });
+
+test('frame plan requires reviewed public evidence, a safe filename, digest, MIME and explicit provenance', () => {
+  assert.equal(validateTrial(framePlan(), NOW).inputKind, 'frame');
+  for (const patch of [{ publicFrameReviewed: false }, { imageFile: '../private.png' }, { imageFile: 'file.env' },
+    { imageFile: 'https://example.com/a.png' }, { imageSha256: 'guess' }, { imageMimeType: 'text/plain' },
+    { frameOffsetSeconds: undefined }, { frameOffsetSeconds: -1 }, { frameOffsetSeconds: 99999 }]) {
+    assert.throws(() => validateTrial({ ...framePlan(), ...patch }, NOW), /INVALID_FRAME_PLAN/);
+  }
+  assert.throws(() => validateTrial({ ...plan(), inputKind: 'unknown' }, NOW), /INVALID_TRIAL_INPUT/);
+});
+
+test('frame request sends only pinned image bytes and no video URL, reference answers or video metadata', () => {
+  const request = buildRequest(framePlan(), NOW, frameBytes);
+  assert.deepEqual(request.contents[0].parts[0], { inlineData: { mimeType: 'image/png', data: frameBytes.toString('base64') } });
+  const serialized = JSON.stringify(request);
+  for (const forbidden of ['fileUri', 'videoMetadata', 'FLCN', 'RORA', 'Kyle', '11290', 'youtube.com']) {
+    assert.ok(!serialized.includes(forbidden), forbidden);
+  }
+  assert.equal(request.generationConfig.maxOutputTokens, 4096);
+  assert.equal(request.tools, undefined);
+});
+
+test('frame validation rejects missing, oversized, changed or mismatched bytes before the provider call', async () => {
+  let calls = 0;
+  const fetchImpl = async () => { calls++; throw new Error('unexpected'); };
+  for (const bytes of [undefined, Buffer.alloc(0), Buffer.alloc(4194305), Buffer.from('not an image'), Buffer.from(frameBytes).fill(1, 10)]) {
+    await assert.rejects(runTrial(framePlan(), FAKE_KEY, { now: NOW, frameBytes: bytes, fetchImpl }));
+  }
+  assert.throws(() => buildRequest({ ...framePlan(), imageMimeType: 'image/jpeg' }, NOW, frameBytes), /FRAME_EVIDENCE_MISMATCH/);
+  assert.equal(calls, 0);
+});
+
+test('frame output cannot invent a source timestamp or label the evidence as trusted', async () => {
+  let calls = 0;
+  const result = await runTrial(framePlan(), FAKE_KEY, { now: NOW, frameBytes, fetchImpl: async (_, options) => {
+    calls++; assert.equal(JSON.parse(options.body).contents[0].parts[0].fileData, undefined);
+    return new Response(JSON.stringify(payload()));
+  } });
+  assert.equal(calls, 1); assert.equal(result.code, 'CANDIDATE_ONLY');
+  assert.equal(result.observation.videoOffsetSeconds, null);
+  assert.ok(result.report.issues.includes('MISSING_OR_INVALID_VIDEO_OFFSET'));
+  assert.equal(result.evidence.timestampOrigin, 'OPERATOR_NOT_MODEL');
+  assert.equal(result.evidence.imageSha256, framePlan().imageSha256);
+  assert.equal(result.trustedForCoach, false);
+  assert.ok(!JSON.stringify(result).includes(frameBytes.toString('base64')));
+});
+
+test('the explicitly selected current frame model has its own fixed endpoint and thinking contract, never a fallback', async () => {
+  const current = { ...framePlan(), model: 'gemini-3.8-flash' };
+  assert.deepEqual(buildRequest(current, NOW, frameBytes).generationConfig.thinkingConfig,
+    { thinkingLevel: 'low', includeThoughts: false });
+  assert.throws(() => validateTrial({ ...plan(), model: current.model }, NOW), /TRIAL_NOT_APPROVED/);
+  assert.throws(() => validateTrial({ ...current, model: 'gemini-paid' }, NOW), /TRIAL_NOT_APPROVED/);
+  let calls = 0;
+  const result = await runTrial(current, FAKE_KEY, { now: NOW, frameBytes, fetchImpl: async (url, options) => {
+    calls++; assert.equal(url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent');
+    assert.equal(options.redirect, 'error');
+    return new Response(JSON.stringify({ error: { status: 'NOT_FOUND', message: 'model unavailable' } }), { status: 404 });
+  } });
+  assert.equal(calls, 1); assert.equal(result.code, 'PROVIDER_REJECTED'); assert.equal(result.category, 'MODEL_UNAVAILABLE');
+});
 
 test('trial requires recent human approval, the selected model, public archive and short interval', () => {
   assert.equal(validateTrial(plan(), NOW).model, 'gemini-2.5-flash');

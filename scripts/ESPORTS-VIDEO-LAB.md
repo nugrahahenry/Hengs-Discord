@@ -68,6 +68,35 @@ means one attempted fetch, not proof of provider receipt, billing or successful 
 raw provider error is persisted. Later diagnostics retain only a fixed failure category. Results can only become
 `CANDIDATE_ONLY` or `NO_READABLE_SCREEN`; neither means verified Coach knowledge. Unknown fields stay null.
 
+## Supervised public-frame trial
+
+The same runner also supports `inputKind: "frame"`, separately authorized for exactly one reviewed public image.
+Keep the common approval, freshness, trial ID and canonical source URL fields above. Select either the legacy
+`gemini-2.5-flash` or explicitly approved `gemini-3.8-flash`; there is no automatic model fallback. The latter is
+allowed only for this image probe, not the video path. Legacy support is not evidence the older model is available.
+
+Frame plans replace the clip fields with:
+
+- `publicFrameReviewed: true` after inspecting the actual file, excluding private account UI, chats and unrelated
+  page content. Do not send a full browser screenshot just because its filename says scoreboard.
+- `imageFile`: a PNG/JPEG basename directly inside the ignored eval folder, with no URL or directory traversal.
+- `imageMimeType`: `image/png` or `image/jpeg`, matching the actual file signature, not just its extension.
+- `imageSha256`: the exact reviewed bytes' lowercase SHA-256; maximum input size is 4 MiB.
+- `frameOffsetSeconds`: a verified source position, or explicitly `null` when the precise image timestamp is unknown.
+
+The request sends `inlineData` plus extraction instructions, not the source URL, expected answers or video metadata.
+The source URL is local provenance only. Gemini 3.8 Flash uses `thinkingLevel: "low"` and no thoughts in the output;
+one candidate, 4096 output tokens, 90-second timeout and the existing no-retry/secret boundaries still apply.
+The operator, not the model, supplies the source offset. A missing offset remains review-required even when
+scoreboard arithmetic reconciles. Every result stays `trustedForCoach: false`.
+
+Verified contract references (25 October 2026): [generateContent parts](https://ai.google.dev/api/generate-content),
+[image inputs](https://ai.google.dev/gemini-api/docs/image-understanding),
+[Gemini 3.8 Flash](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash),
+[thinking configuration](https://ai.google.dev/gemini-api/docs/generate-content/thinking), and
+[pricing and Free-tier data use](https://ai.google.dev/gemini-api/docs/pricing).
+Recheck the actual project's tier and model quota before any newly authorized request; code cannot prove price.
+
 ## Evidence as of 25 October 2026
 
 The public source was manually matched at 04:14:06 to the supplied FLCN/RORA game-five scoreboard. This is manual
@@ -77,7 +106,14 @@ authorization, one additional trial reached the endpoint but returned HTTP 404. 
 error body, so the precise 404 cause is unknown. Model metadata/list access succeeded, but that does not prove
 video inference access. No usable model observation or token usage was returned, and no automatic retry occurred.
 
-Next: separately authorize a minimal frame-only vision probe before another YouTube trial. That separates visual
-extraction from URL ingestion. Do not switch models or loop requests blindly. Field-level accuracy, live discovery,
-live gameplay input, multi-team isolation, retention and publishing remain unverified. No raw broadcast downloader
-is included, and no bot, scheduler or Coach knowledge store is changed by these experiments.
+Two separately authorized image probes then used the original clean scoreboard image supplied by Henry. The exact
+source offset for that original image is unknown; the browser reference at 04:14:06 uses a different broadcast
+layout. The image-only 2.5 Flash request returned HTTP 404 / `MODEL_UNAVAILABLE`. This specific request had no video
+URL to ingest. After separate model-change approval, the one 3.8 Flash request timed out at 90 seconds, without a
+usable observation or token metadata. Timeout does not identify its cause or establish whether quota was consumed.
+
+Stop live trials here. No automatic retries or model fallback occurred. All four attempt markers remain. Test
+coverage is 960/960 offline, not proof of successful provider extraction. Next, validate the review/import experience
+offline against the explicitly manual reference and resolve provider availability before requesting another trial.
+Field-level model accuracy, live discovery, live gameplay input, multi-team isolation, retention and publishing
+remain unverified. No raw broadcast downloader is included, and no bot, scheduler or Coach knowledge store is changed.

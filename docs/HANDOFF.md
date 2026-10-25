@@ -2,6 +2,34 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 bounded scoreboard frame probe (not pushed, not deployed) - 2026-10-25
+
+- This is the latest evidence; it supersedes the next-gate/no-further-request statements below. Henry approved
+  one frame probe, then explicitly approved one additional probe with Gemini 3.8 Flash after the first failed.
+- Added frame-only input to the isolated trial runner: reviewed PNG/JPEG, maximum 4 MiB, exact SHA-256 pin,
+  safe local basename, one fixed official endpoint, no automatic fallback or retry. No bot/runtime imports.
+- Used Henry's original clean public scoreboard image, unchanged. The earlier browser screenshot includes page
+  chrome and recommendations and was NOT sent. No private chat, account UI, reference answers or video URL entered
+  the frame request. The source URL remains local provenance only; this image's exact source offset is unknown.
+- Gemini 2.5 Flash frame attempt: `PROVIDER_REJECTED`, HTTP 404, `MODEL_UNAVAILABLE`. This request contained no
+  YouTube input, so that specific result is a model-access failure, not evidence of failed URL ingestion.
+- Henry then approved exactly one Gemini 3.8 Flash frame attempt after the Hengs project UI showed Free tier and
+  model quotas. Result: `PROVIDER_TIMEOUT` at the 90-second limit. No observation or token usage returned. Timeout
+  does not establish the root cause, whether inference started, or whether quota was consumed. Do not retry.
+- The immutable `flcn-rora-frame-first` and `flcn-rora-frame-38` plan/attempt/result files remain under the ignored
+  eval folder. Combined with the earlier two video trials, there have been four individually authorized attempted
+  POSTs and zero usable model observations. Do not delete markers or create another trial ID to bypass this gate.
+- Numeric accuracy, video/live access and gameplay understanding remain unmeasured. Manual reference stats are
+  NOT model output. A future frame candidate cannot invent its source timestamp or become trusted Coach knowledge.
+- QA: full offline suite 960/960 on Node 22.23.3, zero failures/skips; focused 24/24. Security review checked fixed
+  destinations, header-only secret, exact image hash/MIME/size, local path bounds, no redirects/retries, bounded
+  output and untrusted candidate handling. Tests use synthetic inputs and fake network responses only.
+- Next: stop live requests. Use the existing manual public scoreboard reference to validate the review/import
+  experience offline; diagnose provider availability separately before another explicitly authorized trial.
+  No scheduler, billing change, key rotation/transfer, bot restart, cloud deployment or Coach knowledge write.
+- Product remains 1.83.0, experimental tooling only. Push/deploy remain held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add bounded scoreboard frame probe`.
+
 ## Hengs Discord v1.83.0 supervised video trial (not pushed, not deployed) - 2026-10-25
 
 - Latest state supersedes the setup-only/no-provider-request statements in earlier checkpoint sections below.
