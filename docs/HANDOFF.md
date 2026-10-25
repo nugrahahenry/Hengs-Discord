@@ -2,6 +2,38 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 supervised video trial (not pushed, not deployed) - 2026-10-25
+
+- Latest state supersedes the setup-only/no-provider-request statements in earlier checkpoint sections below.
+  Added `scripts/esports-video-trial.js` and eight regression tests. No runtime imports or dependency changes.
+- Manually located the user's scoreboard at 04:14:06 (15246 seconds) of the public MPL Philippines archive.
+  Match 5 / game 5: FLCN 17 vs RORA 3, gold 42.6k vs 32.4k, game duration 11:52. This is visual ground truth,
+  not model output. The reference fixture and screenshot remain ignored under the existing local eval folder.
+- Operator-attested plan: public archive, Free tier, one request, Gemini 2.5 Flash, 04:14:00..04:14:30.
+  Request uses the official generateContent clipping contract, max 4096 output tokens and 512 thinking tokens.
+  No prior-answer values, private scrim/chat, tool calls or credentials in prompt/URL/output.
+- First authorized attempt returned `PROVIDER_REQUEST_FAILED`. Separate no-key read-only diagnostics identified
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. Node 22.23.3 `--use-system-ca` made the endpoint reachable while preserving
+  HTTPS verification. No custom root installed and no TLS/ACL/security bypass was used.
+- Henry explicitly approved exactly one additional trial after that fix. It returned `PROVIDER_REJECTED` / HTTP
+  404; no observation or usage metadata returned. That runner discarded the provider body, so the precise cause
+  is unknown. Subsequent authenticated model-list GET succeeded and listed 2.5 Flash with generateContent support;
+  metadata access does not prove video inference availability. No third POST is authorized or was attempted.
+- Both immutable local attempt markers and result records remain. Do not erase/reset them or call a new trial ID
+  without authorization. Future failures now retain a bounded fixed-code category, never provider prose/errors.
+- Every successful candidate would still require human field-level comparison and remains `trustedForCoach:false`.
+  No claims of extraction accuracy, autonomous discovery, live coaching or model learning are justified yet.
+- Security review: fixed official HTTPS destination, header-only secret, no redirects/SDK retry, bounded response,
+  strict URL and plan window, whitelisted result fields, ignored secret/results, exclusive attempt/result creation.
+  The plan is a supervised attestation rather than an automatic pricing/metadata check; its trust boundary is local.
+- QA: full offline suite 955/955 on Node 22.23.3, zero failures/skips; final focused recheck 19/19 after hardening
+  failure-category property lookup. No real provider requests are made by these tests.
+- Next gate: separately authorize one frame-only vision probe using the public screenshot. This separates vision
+  output from YouTube URL ingestion before changing models or attempting more videos. Free-tier/quotas must be
+  checked again when executing. No billing change, cloud transfer, bot restart, deploy, scheduler or knowledge write.
+- Product remains 1.83.0 (isolated tooling only). Push remains held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add supervised public video trial`.
+
 ## Hengs Gemini access setup (local only, not connected to runtime) - 2026-10-25
 
 - Henry selected existing Google project LabQ and requested one general-purpose key named exactly Hengs, not a

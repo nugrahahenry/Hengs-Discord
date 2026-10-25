@@ -12,6 +12,12 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   See `scripts/ESPORTS-VIDEO-LAB.md` for limitations and the supervised provider-evaluation gate.
 - Full offline suite passed 947/947 on Node 22.23.3 with zero skips, including 11 lab tests. Product version remains
   1.83.0; this is experimental tooling, not an activated video extraction feature.
+- Added a separate supervised public-video trial with an exclusive attempt marker, a maximum 60-second interval,
+  one provider request, bounded output and fixed-code diagnostics. It cannot publish or mark results as trusted.
+  Manual source matching succeeded; actual provider extraction remains unverified after a transport failure and
+  one separately authorized HTTP 404 result. No runtime activation, automatic retries or deployment are included.
+- Supervised-trial QA: full offline suite 955/955 on Node 22.23.3, zero failures/skips, plus final focused recheck
+  19/19 after diagnostic-category hardening. Tests use fake responses and do not establish live extraction success.
 
 ## [1.83.0] - 2026-10-25
 
