@@ -2,6 +2,24 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.84.1 balanced appreciation rosters (local, not deployed)
+
+- Henry requested tidy Hall of Fame/player layouts for differing counts. Impeccable layout refinement
+  preserves Crown Stage artwork, palette and fonts. One name is centered and larger, two sit side by side,
+  four become 2+2, seven become 3+2+2. Long names switch to wider columns using real glyph measurements.
+  Nicknames align below the tallest name in each row. Input order and complete names remain unchanged.
+- No state/schema, permission, certificate, channel routing or provider changes. Existing announcements
+  destination and pending-draft review remain. No new assets, image generation, dependencies or spec/plan.
+- Focused appreciation tests passed 27/27. Full offline suite passed 1007/1007, zero failures/skips,
+  using Node22.23.3 and approved normal Windows test permissions for existing symlink regressions.
+  Log `.cloud/qa-roster-final.tap`. No ACL change. Syntax, whitespace, version and scoped secret review passed.
+  Batched visual QA at 360px plus full-size layout geometry found no clipping/overlap in these fixtures.
+  Mechanical layout scan returned no findings. Asset bytes and certificate handling were not modified.
+  Synthetic zero-to-eight-player and long-name previews are in `.cloud/previews/community-cards/roster-layout/`.
+  `scripts/preview-community-cards.js --rosters` reproduces them without any external calls.
+- Push remains held with the preceding batch. No bot startup, Discord upload or deployment.
+  Subject `fix(appreciation): Hengs Discord v1.84.1 - balance player roster layouts`.
+
 ## Hengs Discord v1.84.0 certificate uploads and clearer appreciation copy (local, not deployed)
 
 - Henry requested concise bullet explanations without em dashes/semicolons, optional certificate images, and

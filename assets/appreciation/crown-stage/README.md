@@ -26,3 +26,8 @@ Stage architecture is decorative, not evidence of a real MPL venue; separate rea
 The 1080px-wide poster has a minimum height of 1350px and can grow for long text or up to
 eight players. It is static, not animated. Fonts and fixed art are decoded once per process;
 rendered posters and roster input are not cached or persisted by the renderer.
+
+Roster rows are centered and balanced for zero to eight players. Short names use 1, 2, 3,
+2+2, 3+2, 3+3, 3+2+2 or 3+3+2 positions. Measured long names can switch to wider two-column
+rows. A solo recipient's player name is larger. Name sizes stay consistent across the roster,
+and nicknames align below the tallest name in each row. Input order and full text are preserved.

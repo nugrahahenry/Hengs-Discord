@@ -5,6 +5,17 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.84.1] - 2026-10-26
+
+### Fixed
+
+- Appreciation roster spacing now follows player count. One player is centered, two sit side by side,
+  four use two balanced rows, and larger rosters avoid a lone final player when possible.
+- Long names receive wider columns, consistent font sizes and aligned nickname rows without losing text.
+  Original artwork, certificate bytes, roster order and publication permissions remain unchanged.
+- Offline `--rosters` previews cover zero through eight players and mixed long names with DEMO labels.
+- Verification passed 1007 offline tests with no failures or skips. Local checkpoint only, not deployed.
+
 ## [1.84.0] - 2026-10-26
 
 ### Added

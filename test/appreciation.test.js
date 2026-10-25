@@ -262,6 +262,56 @@ test('layout retains 0..8 players and full long text without overlapping text bo
   }
 });
 
+test('rosters balance 0..8 players, preserve order and center each row', async () => {
+  await renderAppreciationCard(data);
+  const { createCanvas } = require('@napi-rs/canvas');
+  const ctx = createCanvas(1080, 1350).getContext('2d');
+  const expected = [[], [1], [2], [3], [2, 2], [3, 2], [3, 3], [3, 2, 2], [3, 3, 2]];
+  const layouts = expected.map((counts, count) => {
+    const players = Array.from({ length: count }, (_, i) => `Player ${i + 1} (Nick ${i + 1})`).join('\n');
+    const layout = layoutCard(ctx, cardContent({ ...data, players }), true);
+    assert.deepEqual(layout.roster.map(row => row.count), counts);
+    assert.deepEqual(layout.roster.flatMap(row => row.names.map(block => block.lines.join(' '))),
+      Array.from({ length: count }, (_, i) => `Player ${i + 1}`));
+    const sizes = new Set(layout.roster.flatMap(row => row.names.map(block => block.size)));
+    assert.ok(sizes.size <= 1, 'players have a consistent visual weight');
+    for (const row of layout.roster) {
+      assert.equal(row.names.reduce((sum, block) => sum + block.x, 0) / row.count, 540);
+      assert.equal(new Set(row.names.map(block => block.y)).size, 1);
+      assert.equal(new Set(row.nicknames.map(block => block.y)).size, 1);
+      for (const block of [...row.names, ...row.nicknames]) {
+        assert.ok(block.x - block.width / 2 >= 60);
+        assert.ok(block.x + block.width / 2 <= 1020);
+      }
+    }
+    return layout;
+  });
+  assert.ok(layouts[1].roster[0].names[0].size > layouts[3].roster[0].names[0].size);
+  assert.ok(layouts[1].roster[0].names[0].width > layouts[3].roster[0].names[0].width);
+});
+
+test('wide names use roomy rows and aligned nicknames without empty nickname gaps', async () => {
+  await renderAppreciationCard(data);
+  const { createCanvas } = require('@napi-rs/canvas');
+  const ctx = createCanvas(1080, 1350).getContext('2d');
+  const players = ['WWWWWWWWWWWWWWWWWWWWWWWW (North)', 'Dara (Sky)', 'Bima', 'Nadia (Bulan 🌙)'];
+  const content = cardContent({ ...data, players: players.join('\n') });
+  const layout = layoutCard(ctx, content, true);
+  assert.deepEqual(layout.roster.map(row => row.count), [2, 2]);
+  const first = layout.roster[0];
+  assert.ok(first.names[0].lines.length > first.names[1].lines.length);
+  assert.equal(first.nicknames[0].y, first.nicknames[1].y);
+  assert.ok(first.nicknames[0].y >= Math.max(...first.names.map(b => b.y + b.height)));
+  assert.equal(layout.roster[1].nicknames.length, 1);
+  assert.ok(layout.roster[1].y > first.bottom);
+  const rendered = layout.roster.flatMap(row => [...row.names, ...row.nicknames])
+    .map(block => block.lines.join('')).join('').replaceAll(' ', '');
+  for (const player of content.players) {
+    assert.ok(rendered.includes(player.name.replaceAll(' ', '')));
+    assert.ok(rendered.includes(player.nick.replaceAll(' ', '')));
+  }
+});
+
 test('structured revision prefills fields, redraws privately and refuses stale or unauthorized forms', async t => {
   withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, BOT_SETTINGS_CHANNEL_ID: 'settings' });
   const { draft } = store.createDraft({ ...template });

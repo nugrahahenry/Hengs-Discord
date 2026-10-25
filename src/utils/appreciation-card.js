@@ -81,6 +81,52 @@ function textBlock(ctx, value, { x = 540, y = 0, width = 920, size = 47, min = s
   return { x, y, width, size, family, color, lines, lineHeight, height: lines.length * lineHeight };
 }
 
+// Equal-width rows with at most one player's difference. Four becomes 2+2, seven 3+2+2.
+function rosterRowCounts(count, columns = 3) {
+  if (!count) return [];
+  const rows = Math.ceil(count / columns);
+  const base = Math.floor(count / rows);
+  const extra = count % rows;
+  return Array.from({ length: rows }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+function layoutRoster(ctx, players, startY) {
+  if (!players.length) return { rows: [], blocks: [], bottom: startY };
+  // Measure real glyphs instead of character counts. Long names get wider columns.
+  const fitsThree = players.every(player =>
+    textBlock(ctx, player.name, { width: 278, size: 64, min: 56, maxLines: 2, family: 'Crown Names' }).lines.length <= 2
+    && (!player.nick || textBlock(ctx, player.nick, { width: 278, size: 41, min: 36, maxLines: 2 }).lines.length <= 2));
+  const counts = rosterRowCounts(players.length, fitsThree ? 3 : 2);
+  const columns = Math.max(...counts);
+  const cellWidth = { 1: 880, 2: 460, 3: 320 }[columns];
+  const width = cellWidth - 42;
+  const nameSize = Math.min(...players.map(player => textBlock(ctx, player.name,
+    { width, size: columns === 1 ? 84 : columns === 2 ? 72 : 64, min: 48, maxLines: 2, family: 'Crown Names' }).size));
+  const nickSize = Math.min(...players.map(player => textBlock(ctx, player.nick,
+    { width, size: columns === 1 ? 48 : 41, min: 36, maxLines: 2 }).size));
+  const blocks = [];
+  const rows = [];
+  let y = startY;
+  let offset = 0;
+  for (const count of counts) {
+    const group = players.slice(offset, offset + count);
+    const names = group.map((player, i) => textBlock(ctx, player.name, {
+      x: SIZE.width / 2 + (i - (count - 1) / 2) * cellWidth,
+      y, width, size: nameSize, family: 'Crown Names',
+    }));
+    const nameBottom = y + Math.max(...names.map(block => block.height));
+    const nicknames = group.flatMap((player, i) => player.nick ? [textBlock(ctx, player.nick, {
+      x: names[i].x, y: nameBottom + 4, width, size: nickSize, color: P.gold,
+    })] : []);
+    const bottom = Math.max(nameBottom, ...nicknames.map(block => block.y + block.height));
+    blocks.push(...names, ...nicknames);
+    rows.push({ count, y, bottom, names, nicknames });
+    offset += count;
+    y = bottom + 28;
+  }
+  return { rows, blocks, bottom: rows.at(-1).bottom };
+}
+
 function layoutCard(ctx, content, demo) {
   const blocks = [];
   const add = (value, options) => {
@@ -115,25 +161,11 @@ function layoutCard(ctx, content, demo) {
       }
     }
   }
-  if (content.players.length) {
-    y += 44;
-    const columns = content.players.some(p => p.name.length > 18 || p.nick.length > 22) ? 2 : 3;
-    for (let offset = 0; offset < content.players.length; offset += columns) {
-      const row = content.players.slice(offset, offset + columns);
-      const cellWidth = columns === 3 ? 320 : 460;
-      let bottom = y;
-      row.forEach((player, i) => {
-        const x = 540 + (i - (row.length - 1) / 2) * cellWidth;
-        let next = add(player.name, { x, y, width: cellWidth - 42, size: 64, min: 48, maxLines: 2, family: 'Crown Names' });
-        if (player.nick) next = add(player.nick, { x, y: next, width: cellWidth - 42, size: 41, min: 36, maxLines: 2, color: P.gold });
-        bottom = Math.max(bottom, next);
-      });
-      y = bottom + 20;
-    }
-  }
+  const roster = layoutRoster(ctx, content.players, y + 44);
+  if (roster.rows.length) { blocks.push(...roster.blocks); y = roster.bottom + 20; }
   const height = Math.max(SIZE.height, y + 90);
   add(demo ? 'DEMO / HENGS HALL OF FAME' : 'HENGS HALL OF FAME', { y: height - 63, size: 27, color: P.ice });
-  return { blocks, metadata, height };
+  return { blocks, metadata, roster: roster.rows, height };
 }
 
 async function renderAppreciationCard(input, { demo = false } = {}) {

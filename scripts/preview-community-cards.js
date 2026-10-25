@@ -7,8 +7,52 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { renderAppreciationCard } = require('../src/utils/appreciation-card');
 const { generateCard } = require('../src/utils/welcome-card');
 
+// Synthetic rosters only. Keep artwork and original certificates unchanged.
+async function previewRosters() {
+  const output = path.join(__dirname, '../.cloud/previews/community-cards/roster-layout');
+  fs.mkdirSync(output, { recursive: true });
+  const players = ['Raka (Sky)', 'Dara (Moon)', 'Bima (Nova)', 'Nadia (Luna)', 'Satria (North)', 'Maya', 'Aruna', 'Rio'];
+  const fixtures = Array.from({ length: 9 }, (_, count) => ({
+    name: `${count}-players`, label: `${count} pemain`, players: players.slice(0, count).join('\n'),
+  }));
+  fixtures.push({ name: 'long-names', label: 'Nama panjang dan tanpa nickname',
+    players: 'Muhammad Arya Wibisana (North Star)\nDara (Moon)\nBima\nNadia (Bulan)' });
+  const cards = [];
+  for (const fixture of fixtures) {
+    const buffer = await renderAppreciationCard({ recipient: 'Hengs Family', achievement: 'Juara 1 turnamen MLBB',
+      occasion: 'Turnamen Contoh', players: fixture.players }, { demo: true });
+    fs.writeFileSync(path.join(output, `${fixture.name}.png`), buffer);
+    cards.push({ ...fixture, image: await loadImage(buffer) });
+  }
+  function sheet(name, selection) {
+    const width = 360;
+    const gap = 18;
+    const rows = [];
+    for (let i = 0; i < selection.length; i += 3) rows.push(selection.slice(i, i + 3));
+    const heights = rows.map(row => Math.ceil(Math.max(...row.map(card => card.image.height * width / card.image.width))) + 48);
+    const canvas = createCanvas(3 * width + 4 * gap, heights.reduce((a, b) => a + b, gap));
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#202127'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    let y = gap;
+    rows.forEach((row, index) => {
+      row.forEach((card, column) => {
+        const x = gap + column * (width + gap);
+        ctx.fillStyle = '#f6f8fe'; ctx.font = '18px "Crown Text"';
+        ctx.fillText(card.label, x, y + 20);
+        ctx.drawImage(card.image, x, y + 32, width, card.image.height * width / card.image.width);
+      });
+      y += heights[index];
+    });
+    fs.writeFileSync(path.join(output, `${name}.png`), canvas.toBuffer('image/png'));
+  }
+  sheet('roster-comparison', [cards[1], cards[2], cards[4]]);
+  sheet('roster-edge-cases', [cards[0], cards[3], cards[5], cards[6], cards[7], cards[8], cards[9]]);
+  console.log('ROSTER_CARD_PREVIEWS_OK');
+}
+
 async function main() {
   const input = process.argv[2];
+  if (input === '--rosters') return previewRosters();
   const data = input ? JSON.parse(fs.readFileSync(path.resolve(input), 'utf8'))
     : { recipient: 'Tim Orion', achievement: 'Juara 1 turnamen komunitas', players: 'Raka (Sky)\nDara' };
   const output = path.join(__dirname, '../.cloud/previews/community-cards');

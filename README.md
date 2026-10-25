@@ -419,8 +419,12 @@ Tidak perlu mendaftarkan slash command baru.
   Jika format teks diubah bebas, gambar lama dihapus dan draft menjadi teks biasa.
   Logo Hengs Family dipakai untuk tim Hengs Familia/Family, penerima lain memakai ilustrasi trofi.
   Nama tidak otomatis ditambah kata Tim. Isi `Hengs Family` atau `Hengs Family X SYN` sesuai nama sebenarnya.
+  Susunan pemain menyesuaikan jumlahnya. Satu nama di tengah, dua berdampingan, empat jadi dua baris.
+  Lima sampai delapan pemain dibagi seimbang. Nama panjang mendapat ruang lebih lebar tanpa dipotong.
+  Urutan pemain tetap mengikuti isian, dan nickname tetap opsional.
 
   Preview offline sintetis: `node scripts/preview-community-cards.js`; hasil di `.cloud/previews/`.
+  Tambahkan `--rosters` untuk membandingkan contoh nol sampai delapan pemain tanpa mengirim ke Discord.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.
