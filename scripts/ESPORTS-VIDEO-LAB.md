@@ -30,6 +30,38 @@ The exported helpers accept explicit inputs for offline evaluation:
 Tests use synthetic fixtures. They do not prove video access, automatic scene discovery, live ingestion,
 OCR/vision accuracy, gameplay understanding, source-use rights, cost, or compatibility with all broadcasts.
 
+## Offline scoreboard review cards
+
+`scripts/esports-scoreboard-review.js` turns a local candidate into two PNG previews (1600x1200 and 900x1650),
+an accessible Markdown report and a whitelisted JSON review. It uses the existing Analis fonts/palette, makes
+zero network requests, reads no credentials and is not connected to Discord publication or Coach storage.
+
+```powershell
+node scripts/esports-scoreboard-review.js --input "<absolute eval input.json>" --out-dir "<absolute new eval directory>"
+node --test test/esports-scoreboard-review.test.js test/esports-video-lab.test.js
+```
+
+Both paths must be inside the repository's ignored `.cloud/evals/`; the output directory must not exist and its
+parent must exist. Input is capped at 64 KiB. Symbolic-link components and overwriting are rejected. Outputs are
+`scoreboard-wide.png`, `scoreboard-portrait.png`, `review.md` and `review.json` (written last). A failed disk write
+may leave partial previews, never a successful completion response. Do not use partial output as a completed review.
+
+The input wrapper has `evidenceKind: "manual_transcription"` or `"model_candidate"`, and `observation` in the
+scoreboard shape used by `inspectScoreboard`: source URL, source offset (nullable), event, series/game identity,
+game duration, winner index, optional patch, two teams and five players each. Unknown fields should be `null`.
+Manual origin is an operator declaration, not proof that a person checked every number. Use only the actual
+source offset for that screenshot; a matching game with a different layout is not an exact timestamp match.
+
+The cards distinguish game kills from series score. KP is `(kills + assists) / team kills`, rounded to one decimal.
+Unknown values remain `?`, never zero. Invalid, incomplete or contradictory numeric data disables derived KP/gold
+claims; zero team kills has unknown KP. No hero, item, MVP, draft order or causal gameplay advice is invented.
+The JSON drops unrelated fields and always sets `reviewStatus: "REVIEW_REQUIRED"`, `trustedForCoach: false` and
+`publishable: false`. Numeric consistency cannot establish visual extraction accuracy or source authenticity.
+
+The FLCN/RORA local example is a manual transcription, not a successful Gemini observation. Its exact screenshot
+offset and patch remain unknown. No public-match data is inserted into private-team or shared knowledge stores.
+This is a view/export experiment, not an approve/correct UI or a production importer. Those require a later contract.
+
 ## Supervised public-video trial
 
 `esports-video-trial.js` is an operator-only experiment, never a background worker. Importing it does not read

@@ -2,6 +2,30 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 offline scoreboard review cards (not pushed, not deployed) - 2026-10-25
+
+- Henry approved continuing the manual-reference preview after the provider timeout. No additional Gemini request
+  was made. The provider gate remains stopped; this checkpoint does not claim automatic image/video extraction.
+- New isolated `scripts/esports-scoreboard-review.js` renders wide (1600x1200) and portrait (900x1650) cards,
+  plus a full Markdown alternative and whitelisted JSON report. It reuses existing Analis fonts/colors only;
+  no runtime/card module changes, dependencies, generated art, new UI framework or provider credentials.
+- The local example uses the original public FLCN/RORA screenshot: 17:3 game kills, gold 42600:32400, duration
+  11:52, ten player rows. KP is derived from supplied numbers, not a model insight. The exact screenshot source
+  offset is intentionally null; the old video's matching game is not asserted to be the exact same frame.
+- Preview: `.cloud/evals/youtube-observer-2026-10-25/flcn-rora-review-preview/`; input is the adjacent
+  `flcn-rora-review.input.json`. Both ignored. Actual screenshots and credentials are not bundled into previews.
+- Unknowns remain `?`; inconsistent totals/deaths or impossible participation suppress derived metrics. Missing
+  source/timestamp, patch and gameplay limitations remain separate from numeric consistency. Every output is
+  review-required, untrusted for Coach and not publishable. No approve/import action exists at this stage.
+- File boundary: explicit absolute input/output inside ignored evals, maximum 64 KiB JSON, no link components,
+  exclusive output directory/files, no overwrite, fixed CLI errors. Results never read production state or secrets.
+- QA: 968/968 full offline suite, zero failures/skips; 19/19 focused review/lab tests, syntax and diff checks.
+  Both rendered PNGs visually inspected; all rows and provenance labels visible. Transcript: `review-full-suite.tap`.
+- Next: Henry reviews the visual card, then define explicit correction/acceptance before any Coach import.
+  Keep provider diagnosis separate; no new inference, watcher, cloud change or deployment authorized here.
+- Product remains 1.83.0 (isolated tooling). Commit subject:
+  `chore(esports): Hengs Discord v1.83.0 - add offline scoreboard review cards`. Push/deploy remain held.
+
 ## Hengs Discord v1.83.0 bounded scoreboard frame probe (not pushed, not deployed) - 2026-10-25
 
 - This is the latest evidence; it supersedes the next-gate/no-further-request statements below. Henry approved

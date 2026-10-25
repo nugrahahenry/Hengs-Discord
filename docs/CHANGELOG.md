@@ -7,6 +7,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Developer tooling
 
+- Added offline scoreboard review cards in wide and phone-friendly layouts with a full Markdown alternative.
+  Manual versus model provenance, ten-player K/D/A/gold, derived kill participation, missing-data markers and
+  arithmetic-conflict checks stay visible. No provider calls, automatic acceptance, publication or Coach writes.
+  Full offline suite: 968/968; focused review/lab checks: 19/19. Runtime version remains 1.83.0.
 - Added an offline esports video lab for URL validation, metadata-state fixtures, bounded clip plans and candidate
   scoreboard consistency checks. It performs no network requests and is not connected to the bot or Coach knowledge.
   See `scripts/ESPORTS-VIDEO-LAB.md` for limitations and the supervised provider-evaluation gate.
