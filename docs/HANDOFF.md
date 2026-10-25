@@ -2,6 +2,52 @@
 
 Updated: 2026-10-26
 
+## Authorized Hall of Fame publication - 2026-10-26
+
+- Henry confirmed one Juara 1 MLBB post for Hengs Family X SYN, Anti Squad Organizer,
+  25 October 2026, in the existing Hall of Fame channel. Five exact member usernames were
+  resolved uniquely and rechecked before sending. The roster uses one bullet and one mention
+  per player. No role/everyone mentions or optional MLBB positions were inferred.
+- The local v1.84.1 renderer supplied the poster. Henry's original Juara 1 certificate was
+  attached unchanged. The other Juara 2 certificate was not published. Readback verified five
+  mentions, both images, author/content and the original certificate SHA-256.
+- One REST-only operator publication completed with HALL_PUBLISHED_VERIFIED. An exclusive
+  attempt marker and receipt prevent accidental reruns. Temporary remote staging was removed
+  and cleanup verified. No gateway login, restart, deploy, permission change or new role.
+  Discord and WA were active/enabled during preflight; Discord health was CONNECTED/OK/fresh
+  on cloud v1.71.0. This is a one-off publication, not a deployment of the local feature batch.
+- Operator files and the exact message URL are kept in ignored `.cloud/automation/hall-20261026/`.
+  Browser readback also confirmed the rendered post and the five displayed member mentions.
+  Product version stays v1.84.1. Push remains held with the existing batch.
+
+## Supervised grand-final capture pack - 2026-10-26
+
+- Henry requested screenshots from public YouTube archive PYoBI4VtshE to seed the Coach evaluation.
+  Verified Chrome Henry was reused. Capture used visible browser controls and visual inspection,
+  not a background downloader, model request, scheduled watcher or autonomous engine.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/` now contains 13 JPEGs: six Final Changes
+  drafts, five final scoreboards with item icons, one late-game-six frame and one champion banner.
+  Timestamp/source/SHA-256 metadata is in `manifest.json`; `README.md` links each frame and source time.
+  ZIP `.cloud/evals/mpl-ph-grand-final-capture-pack.zip` contains only those images and two index files.
+- The video contains six games, not ten. Game six final table was not found in inspected segments.
+  Its late-game score/gold/clock are explicitly not final statistics. No absence claim about every
+  uninspected video segment. Four other games are still needed for ten distinct games, or five
+  additional complete result tables for ten full draft/result pairs.
+- Side assignments change across games. Draft hero/player mapping can still change in Final Changes.
+  Broadcast AI predictor prose/percentages are not factual labels. Item names and per-player extraction
+  remain pending. No raw personal account UI/chat included. Third-party rights remain with their owners.
+- Validation: all 13 images decode; JPEG signatures, declared sizes and hashes match. ZIP has exactly
+  15 entries and all 13 archived image hashes match. Final game counts are six drafts/five full tables.
+  Browser crop capture occasionally timed out; later files use the working fullscreen screenshot
+  path with neutral letterboxing. No attempt was made to fill missing statistics or erase uncertainty.
+- All evidence stays untrusted for Coach ingestion, with no provider calls or model training. Previous
+  stopped Gemini trial markers remain untouched. Next: independently review/transcribe this small
+  corpus, then test draft/scoreboard scene detection and field-level extraction against its evidence.
+  Daily discovery, ten-game coverage and general gameplay coaching are not completed by this capture.
+- Documentation-only checkpoint. Version v1.84.1 unchanged, no product code/dependencies modified.
+  Push remains held with the prior batch; no deployment. Subject:
+  `docs(handoff): Hengs Discord v1.84.1 - record championship post and verified capture pack`.
+
 ## Hengs Discord v1.84.1 balanced appreciation rosters (local, not deployed)
 
 - Henry requested tidy Hall of Fame/player layouts for differing counts. Impeccable layout refinement
