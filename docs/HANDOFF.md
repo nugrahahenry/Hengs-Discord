@@ -2,6 +2,35 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 regional logos and broadcast layout (not pushed, not deployed) - 2026-10-25
+
+- Henry requested reusable logos from the web, all regions in stages, plus a central gold comparison similar
+  to his screenshot. Phase one is complete: eight MPL Philippines S18 marks from the official teams page.
+  Indonesia and other regions are not yet bundled; verify league/season/source before each next batch.
+- Static collection in `assets/esports/teams/` pins official source, date, aliases, PNG hashes and dimensions.
+  Original CDN suffixes say WebP but verified bytes are PNG. No redraw/recolor. Three dark marks use light plates.
+  Third-party rights remain with teams; local preview only, no claim of affiliation or redistribution permission.
+- `scripts/esports-team-catalog.js` resolves exact aliases within an explicit collection; no online render-time
+  lookup or fuzzy cross-region fallback. Unknown teams use initials, unknown collections fail. Explicit manual
+  logo evidence takes priority and cannot silently fall back if its pinned source is invalid.
+- `scripts/esports-broadcast-card.js` separates presentation from review validation. Wide layout has opposing
+  rosters and neutral central duration/gold totals/bar/gap; portrait has comparison above stacked rosters.
+  Inherited Analis palette/fonts retained through Impeccable layout review. No new generated art or dependencies.
+- Final ignored input: `flcn-rora-review-catalog.input.json`; output: `flcn-rora-broadcast-final/`, inside
+  `.cloud/evals/youtube-observer-2026-10-25/`. Also `teams-ph-s18-contact-sheet-final.png`.
+  Observation, derived numbers, item evidence, checks, notes and missing fields equal the preceding preview.
+- QA: 984/984 full offline suite, zero failures/skips; earlier focused baseline 34/34 before final plate test.
+  Final full suite covers all six added catalog/geometry/contrast cases plus existing source-pixel regressions.
+  Transcript: `catalog-full-suite.tap`. Both final layouts and all eight logos inspected, one contrast fix batch.
+  Layout scan empty. Syntax, whitespace, scoped secret/long-dash and synchronized 1.83.0 metadata checks passed.
+- Security review: only fixed bundled assets, no input-controlled URLs/paths, no symlink components below repo,
+  PNG/hash/dimension bounds before decode. No secret access, provider calls, live bots, watchers or cloud writes.
+  Outputs remain manual/model-labelled, review-required, untrusted and unpublishable. Provider trials stay stopped.
+- Next: fill Indonesia from verified official season assets, then other regions in batches. Separately finish
+  correction/acceptance and reliable extraction before daily Coach ingestion; this preview is not automation.
+- Runtime version remains 1.83.0. Push/deploy held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add regional logo catalog and broadcast layout`.
+
 ## Hengs Discord v1.83.0 source-pinned team logo previews (not pushed, not deployed) - 2026-10-25
 
 - Henry requested Falcon/Aurora and other team logos plus further visual improvement. No team-logo assets existed

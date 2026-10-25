@@ -32,7 +32,7 @@ OCR/vision accuracy, gameplay understanding, source-use rights, cost, or compati
 
 ## Offline scoreboard review cards
 
-`scripts/esports-scoreboard-review.js` turns a local candidate into two PNG previews (1600x1200 and 900x1650),
+`scripts/esports-scoreboard-review.js` turns a local candidate into two PNG previews (1800x1240 and 900x1650),
 an accessible Markdown report and a whitelisted JSON review. It uses the existing Analis fonts/palette, makes
 zero network requests, reads no credentials and is not connected to Discord publication or Coach storage.
 
@@ -65,7 +65,7 @@ This is a view/export experiment, not an approve/correct UI or a production impo
 ### Optional item-icon evidence
 
 With the operator's permission to crop the supplied public screenshot, the same renderer can place six original
-icon regions below each player. Item layouts are 1600x1520 (side by side) and 900x2280 (stacked). Existing Analis
+icon regions below each player. Item layouts are 1800x1240 (side by side) and 900x2280 (stacked). Existing Analis
 type/colors and the bundled Hengs mascot are reused; statistics are code-rendered, not image-generated.
 
 Add `itemEvidence` to the input wrapper:
@@ -104,7 +104,29 @@ logo source fails rather than silently displaying initials; absence must be expl
 JSON retains `association: "OPERATOR_MARKED"` and `brandVersion: "SOURCE_MATCH_ONLY"`. This is not a verified
 current-logo catalogue, automatic team-name search, official affiliation or publication permission. The example
 uses 43x43 regions from Henry's original scoreboard; enlarged marks are limited by that source resolution.
-No remote logo request, provider inference or brand asset is added to the production bundle.
+No render-time remote logo request or provider inference is made, and production behavior is unchanged.
+
+### Regional logo catalog and broadcast comparison
+
+Optional `teamCatalog: "mpl-ph-s18"` selects eight checked MPL Philippines Season 18 team marks from
+`assets/esports/teams/catalog.json`. Each collection is explicitly region/season scoped, with official source,
+verification date, aliases, exact PNG hash/dimensions and an optional light presentation plate. See the asset
+README for provenance and third-party rights. The files are reused offline, never fetched on each render.
+
+Alias normalization handles case, spaces, dots and hyphens, but not fuzzy names or cross-region inference.
+Unknown names use initials; unknown collections stop. A declared per-match `teamLogoEvidence` takes priority,
+including explicitly absent regions. Broken explicit sources still stop instead of selecting a catalog substitute.
+Catalog association is not proof that those exact marks were used in the historical match or a publication license.
+The dated collection is not a complete current global MPL roster. Other regions will be verified in separate batches.
+
+The wide card now puts duration, both final gold totals, their comparison bar and absolute gold gap in a neutral
+column between the opposing rosters. Portrait moves the same comparison above the two stacked rosters. Gold gap
+and KP remain disabled on numeric conflicts. No objectives, patch, hero identities or gameplay explanation are
+invented to fill the middle column. Markdown remains the accessible text alternative; no browser interaction exists.
+
+```powershell
+node --test test/esports-team-catalog.test.js test/esports-scoreboard-review.test.js test/esports-video-lab.test.js
+```
 
 ## Supervised public-video trial
 

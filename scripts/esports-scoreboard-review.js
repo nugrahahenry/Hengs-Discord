@@ -7,13 +7,12 @@
 // FIRST VIEWPORT: labelled manual/model evidence, game kills (not series score), final gold, two rosters.
 // FORM: existing broadcast card extended for review; stacked roster layout for phone reading.
 const { canonicalVideoUrl, inspectScoreboard } = require('./esports-video-lab');
-const { C, fitText, loadFonts } = require('../src/esports/card');
+const { resolveTeamBrands, loadCatalogLogo } = require('./esports-team-catalog');
+const { renderBroadcastCard, cardGeometry, DIMENSIONS, ITEM_DIMENSIONS } = require('./esports-broadcast-card');
 const { reviewItemEvidence, decodeItemSource, MAX_ITEM_IMAGE_BYTES } = require('./esports-item-evidence');
 const { reviewTeamLogos, decodeLogoSource, MAX_LOGO_IMAGE_BYTES } = require('./esports-team-logos');
 
 const KINDS = Object.freeze({ manual_transcription: 'Dibaca manual dari screenshot', model_candidate: 'Kandidat model, belum diverifikasi' });
-const DIMENSIONS = Object.freeze({ wide: [1600, 1200], portrait: [900, 1650] });
-const ITEM_DIMENSIONS = Object.freeze({ wide: [1600, 1520], portrait: [900, 2280] });
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, max) => Number.isSafeInteger(value) && value >= 0 && value <= max ? value : null;
 const label = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 80
@@ -56,6 +55,7 @@ function createReview(input) {
   })) }));
   const itemEvidence = reviewItemEvidence(input.itemEvidence, teams);
   const teamLogoEvidence = reviewTeamLogos(input.teamLogoEvidence, teams);
+  const teamBranding = resolveTeamBrands(input.teamCatalog, teams);
   const goldDifference = numericConsistent ? teams[0].gold - teams[1].gold : null;
   const notes = [];
   if (goldDifference !== null && goldDifference !== 0) {
@@ -69,7 +69,7 @@ function createReview(input) {
   missing.push('Urutan draft, objektif dan momen gameplay belum dinilai.');
   return { schemaVersion: 1, evidenceKind: input.evidenceKind, evidenceLabel: KINDS[input.evidenceKind],
     reviewStatus: 'REVIEW_REQUIRED', trustedForCoach: false, publishable: false, networkRequests: 0,
-    observation: { ...observation, teams }, itemEvidence, teamLogoEvidence, checks, numericConsistent,
+    observation: { ...observation, teams }, itemEvidence, teamLogoEvidence, teamBranding, checks, numericConsistent,
     derived: { goldDifference, blueGoldSharePercent: numericConsistent ? percent(teams[0].gold, teams[0].gold + teams[1].gold) : null },
     notes, missing,
     boundary: 'Angka akhir bukan bukti penyebab menang atau kalah. Belum masuk pengetahuan Coach.' };
@@ -99,6 +99,16 @@ function renderReviewMarkdown(input) {
     rows.push('## Logo tim', '', 'Logo dipotong dari screenshot dan dipasangkan secara manual ke tim pada pertandingan ini.',
       'Bukan klaim logo terbaru, afiliasi resmi, atau izin publikasi. Tim tanpa logo memakai singkatan, bukan logo rekaan.', '');
   }
+  if (review.teamBranding) {
+    const brand = review.teamBranding;
+    rows.push('## Katalog logo lokal', '',
+      `Koleksi: ${brand.collectionId}. Region: ${brand.region}. Season: ${brand.season}. Diperiksa: ${brand.verifiedAt}.`,
+      `Sumber aset: [Situs MPL](${brand.sourcePage}). Pencocokan alias persis di dalam koleksi, bukan pencarian lintas region.`,
+      ...brand.teams.map((team, index) => `- ${md(o.teams[index].name)}: ${team ? md(team.name) : 'tidak cocok, gunakan inisial'}.`),
+      review.teamLogoEvidence ? 'Potongan logo manual pertandingan diprioritaskan di atas katalog.'
+        : 'Logo memakai file lokal yang hash dan ukurannya diperiksa. Tidak ada unduhan saat render.',
+      'Snapshot katalog bukan bukti branding historis pertandingan, afiliasi resmi, atau izin publikasi.', '');
+  }
   rows.push('KP = (kill + assist) / kill tim. KP tidak dihitung jika data bertentangan, belum lengkap, atau kill tim nol.', '',
     ...review.notes, '', '## Batas bukti', '', ...review.missing.map(line => `- ${line}`), `- ${review.boundary}`, '',
     `Sumber: ${o.sourceUrl ? `[Arsip publik YouTube](${o.sourceUrl})` : 'belum valid'}.`,
@@ -110,126 +120,13 @@ function renderReviewMarkdown(input) {
 
 async function renderReviewCard(input, { layout = 'wide', itemSourceBytes, logoSourceBytes } = {}) {
   if (!Object.hasOwn(DIMENSIONS, layout)) fail('INVALID_REVIEW_LAYOUT');
-  const review = createReview(input); const o = review.observation;
+  const review = createReview(input);
   const itemImage = review.itemEvidence ? await decodeItemSource(itemSourceBytes, review.itemEvidence) : null;
   const logoImage = review.teamLogoEvidence ? await decodeLogoSource(logoSourceBytes, review.teamLogoEvidence) : null;
-  const [width, height] = (itemImage ? ITEM_DIMENSIONS : DIMENSIONS)[layout]; const portrait = layout === 'portrait';
-  loadFonts();
-  const { createCanvas, loadImage } = require('@napi-rs/canvas');
-  const canvas = createCanvas(width, height); const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#080D1F'; ctx.fillRect(0, 0, width, height);
-  const wash = ctx.createLinearGradient(0, 0, width, 440);
-  wash.addColorStop(0, '#153963'); wash.addColorStop(0.48, '#10162D'); wash.addColorStop(1, '#40243D');
-  ctx.fillStyle = wash; ctx.fillRect(0, 0, width, 460);
-  // Angled broadcast framing stays outside the text columns, not behind the statistics.
-  for (const right of [false, true]) {
-    ctx.save(); if (right) { ctx.translate(width, 0); ctx.scale(-1, 1); }
-    ctx.beginPath(); ctx.moveTo(0, 220); ctx.lineTo(20, 200); ctx.lineTo(20, 408); ctx.lineTo(0, 428); ctx.closePath();
-    ctx.fillStyle = right ? C.red : C.blue; ctx.fill();
-    ctx.strokeStyle = right ? '#6D3A52' : '#2C5884'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, 188); ctx.lineTo(42, 146); ctx.lineTo(42, 394); ctx.stroke(); ctx.restore();
-  }
-  ctx.textBaseline = 'alphabetic';
-  const margin = portrait ? 64 : 80; const usable = width - margin * 2;
-  const text = (value, x, y, size = 32, color = C.text, maxWidth = usable, align = 'left', family = 'Analis Text') =>
-    fitText(ctx, String(value), x, y, { size, min: size - 4, family, color, width: maxWidth, align });
-  const line = y => { ctx.strokeStyle = '#33405D'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(width - margin, y); ctx.stroke(); };
-  text('Review pertandingan', margin, 100, 50, C.text, usable - 170, 'left', 'Analis Bold');
-  const logo = await loadImage(require('node:path').join(__dirname, '../assets/brand/hengs-bot-icon-v2.png'));
-  ctx.drawImage(logo, width - margin - 72, 38, 72, 72);
-  text(`${o.event || 'Event belum diketahui'} · Game ${display(o.gameNumber)} · ${duration(o.durationSeconds)}`, margin, 148, 30);
-  text(review.evidenceLabel, margin, 190, 26, C.win);
-  const a = o.teams[0]; const b = o.teams[1];
-  const badgeSize = portrait ? 56 : 82;
-  const badgeGap = portrait ? 16 : 24;
-  const badgeY = portrait ? 224 : 214;
-  const teamMark = (team, index) => {
-    const x = index === 0 ? margin : width - margin - badgeSize;
-    const region = review.teamLogoEvidence?.teams[index].region;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.32)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 6;
-    ctx.fillStyle = region ? '#F1F5F4' : (index === 0 ? '#163658' : '#42243A');
-    ctx.beginPath(); ctx.roundRect(x, badgeY, badgeSize, badgeSize, 12); ctx.fill();
-    ctx.restore();
-    if (region) {
-      const inset = 6; const scale = Math.min((badgeSize - inset * 2) / region.width, (badgeSize - inset * 2) / region.height);
-      const w = region.width * scale; const h = region.height * scale;
-      // Contain the complete original mark, with its source background, without recoloring or AI redraw.
-      ctx.drawImage(logoImage, region.x, region.y, region.width, region.height,
-        x + (badgeSize - w) / 2, badgeY + (badgeSize - h) / 2, w, h);
-    } else {
-      const initial = (team.name || '?').split(/\s+/).map(word => word[0]).join('').slice(0, 2).toUpperCase();
-      text(initial, x + badgeSize / 2, badgeY + badgeSize * 0.69, portrait ? 28 : 40,
-        index === 0 ? C.blue : C.red, badgeSize - 12, 'center', 'Analis Bold');
-    }
-  };
-  teamMark(a, 0); teamMark(b, 1);
-  const nameInset = badgeSize + badgeGap;
-  text(a.name || 'Tim ?', margin + nameInset, portrait ? 270 : 282, portrait ? 50 : 72, C.blue, usable * 0.28 - nameInset, 'left', 'Analis Bold');
-  text(b.name || 'Tim ?', width - margin - nameInset, portrait ? 270 : 282, portrait ? 50 : 72, C.red, usable * 0.28 - nameInset, 'right', 'Analis Bold');
-  text(`${display(a.kills)} : ${display(b.kills)}`, width / 2, 282, portrait ? 76 : 96, C.text, usable * 0.36, 'center', 'Analis Display');
-  text('KILL GAME, BUKAN SKOR SERI', width / 2, 322, 23, C.muted, usable, 'center');
-  if (o.winnerIndex !== null) text(`Pemenang tercatat: ${o.teams[o.winnerIndex].name || '?'}`, width / 2, 365, 30, C.win, usable, 'center');
-  else text('Pemenang belum diketahui', width / 2, 365, 30, C.muted, usable, 'center');
-  text(`${gold(a.gold)} gold`, margin, 416, 32, C.blue, usable * 0.45);
-  text(`${gold(b.gold)} gold`, width - margin, 416, 32, C.red, usable * 0.45, 'right');
-  if (review.derived.goldDifference !== null) text(`Selisih ${gold(Math.abs(review.derived.goldDifference))}`,
-    width / 2, 414, portrait ? 22 : 26, C.win, usable * 0.28, 'center');
-  ctx.fillStyle = '#33405D'; ctx.fillRect(margin, 438, usable, 10);
-  if (review.derived.blueGoldSharePercent !== null) {
-    const split = usable * review.derived.blueGoldSharePercent / 100;
-    ctx.fillStyle = C.blue; ctx.fillRect(margin, 438, split, 10);
-    ctx.fillStyle = C.red; ctx.fillRect(margin + split, 438, usable - split, 10);
-  }
-  const table = (team, index, x, y, w) => {
-    const color = index === 0 ? C.blue : C.red;
-    const col = { name: x + 16, kda: x + w * 0.56, gold: x + w * 0.80, kp: x + w - 16 };
-    ctx.fillStyle = index === 0 ? '#132B49' : '#352239'; ctx.fillRect(x, y - 2, w, 56);
-    text(team.name || 'Tim ?', x + 16, y + 36, 36, color, w * 0.55, 'left', 'Analis Bold');
-    text(o.winnerIndex === index ? 'MENANG' : o.winnerIndex === null ? 'HASIL ?' : 'KALAH', x + w - 16, y + 34, 24,
-      o.winnerIndex === index ? C.win : C.muted, w * 0.35, 'right', 'Analis Bold');
-    text('PEMAIN', col.name, y + 82, 24, C.muted, w * 0.32);
-    text('K / D / A', col.kda, y + 82, 24, C.muted, w * 0.22, 'right');
-    text('GOLD', col.gold, y + 82, 24, C.muted, w * 0.22, 'right');
-    text('KP', col.kp, y + 82, 24, C.muted, w * 0.17, 'right');
-    team.players.forEach((p, i) => {
-      const rowHeight = itemImage ? 116 : 57;
-      const rowY = y + 99 + i * rowHeight;
-      ctx.fillStyle = i % 2 === 0 ? '#151D33' : '#0E162A'; ctx.fillRect(x, rowY, w, rowHeight - (itemImage ? 6 : 0));
-      text(p.name || '?', col.name, rowY + 38, 32, C.text, w * 0.33, 'left', 'Analis Bold');
-      text(`${display(p.kills)} / ${display(p.deaths)} / ${display(p.assists)}`, col.kda, rowY + 38, 29, C.text, w * 0.23, 'right');
-      text(gold(p.gold), col.gold, rowY + 38, 29, C.text, w * 0.22, 'right');
-      text(pct(p.killParticipationPercent), col.kp, rowY + 38, 28, C.muted, w * 0.17, 'right');
-      if (itemImage) {
-        const size = 43; const step = 52; const iconStart = x + 92; const iconY = rowY + 55;
-        text('ITEM', col.name, iconY + 29, 21, C.muted, 60, 'left', 'Analis Bold');
-        review.itemEvidence.rows[index][i].slots.forEach((slot, n) => {
-          const iconX = iconStart + n * step;
-          ctx.fillStyle = '#080D1F'; ctx.fillRect(iconX - 1, iconY - 1, size + 2, size + 2);
-          if (slot) {
-            // Pixel crop only: no invented icon, sharpening, name or item-order inference.
-            ctx.drawImage(itemImage, slot.x, slot.y, slot.width, slot.height, iconX, iconY, size, size);
-          } else text('?', iconX + size / 2, iconY + 30, 28, C.muted, size, 'center');
-        });
-      }
-    });
-  };
-  const tableY = 480; const tableWidth = portrait ? usable : (usable - 56) / 2;
-  table(a, 0, margin, tableY, tableWidth);
-  table(b, 1, portrait ? margin : width / 2 + 28, portrait ? tableY + (itemImage ? 720 : 424) : tableY, tableWidth);
-  const footY = itemImage ? (portrait ? 1930 : 1208) : (portrait ? 1330 : 906);
-  line(footY - 20);
-  text('KP = (kill + assist) / kill tim. ? = belum diketahui.', margin, footY + 16, 26, C.muted);
-  text(review.notes[0] || 'Angka belum cukup konsisten untuk menghitung selisih gold.', margin, footY + 58, 30,
-    review.numericConsistent ? C.win : C.red);
-  text(review.numericConsistent ? 'Angka konsisten. Tetap perlu review sumber.' : 'Ada konflik angka. Periksa sumber sebelum dipakai.', margin, footY + 98, 28, C.muted);
-  text(o.videoOffsetSeconds === null ? 'Posisi video belum pasti · Patch belum diverifikasi'
-    : 'Posisi video dari input · Belum diverifikasi oleh alat ini', margin, footY + 138, 26, C.muted);
-  text(o.sourceUrl ? 'Sumber: arsip publik YouTube · Tautan lengkap di review.md' : 'Sumber belum valid. Jangan dipublikasikan.', margin, footY + 180, 25, C.muted);
-  if (itemImage) text(logoImage ? 'Item & logo dari screenshot. Nama item belum diverifikasi.'
-    : 'Ikon asli screenshot. Nama item & urutan beli belum diverifikasi.', margin, footY + 222, 25, C.win);
-  text('Preview lokal, belum masuk pengetahuan Coach.', margin, height - 54, 26, C.accent);
-  return canvas.toBuffer('image/png');
+  const catalogLogos = review.teamLogoEvidence || !review.teamBranding ? [null, null]
+    : await Promise.all(review.teamBranding.teams.map(team =>
+      team ? loadCatalogLogo(review.teamBranding.collectionId, team.id) : null));
+  return renderBroadcastCard(review, { layout, itemImage, logoImage, catalogLogos });
 }
 
 // Outputs are previews only. No runtime files, URL fetches, credentials, Coach imports or publication.
@@ -276,7 +173,7 @@ async function writeReviewBundle(inputPath, outputDir) {
   return { code: 'OFFLINE_REVIEW_CREATED', images: 2, trustedForCoach: false, networkRequests: 0 };
 }
 
-module.exports = { createReview, renderReviewCard, renderReviewMarkdown, writeReviewBundle, DIMENSIONS, ITEM_DIMENSIONS };
+module.exports = { createReview, renderReviewCard, renderReviewMarkdown, writeReviewBundle, cardGeometry, DIMENSIONS, ITEM_DIMENSIONS };
 if (require.main === module) {
   (async () => {
     if (process.argv.length !== 6 || process.argv[2] !== '--input' || process.argv[4] !== '--out-dir') fail('REVIEW_USAGE_REQUIRED');
@@ -286,7 +183,8 @@ if (require.main === module) {
       'INVALID_REVIEW_FILE', 'REVIEW_OUTPUT_EXISTS', 'REVIEW_USAGE_REQUIRED', 'ESPORTS_FONT_UNAVAILABLE',
       'INVALID_ITEM_EVIDENCE', 'INVALID_ITEM_ROWS', 'ITEM_PLAYER_MISMATCH', 'INVALID_ITEM_REGION',
       'INVALID_ITEM_IMAGE', 'ITEM_SOURCE_MISMATCH', 'INVALID_LOGO_EVIDENCE', 'LOGO_TEAM_MISMATCH',
-      'INVALID_LOGO_REGION', 'INVALID_LOGO_IMAGE', 'LOGO_SOURCE_MISMATCH'];
+      'INVALID_LOGO_REGION', 'INVALID_LOGO_IMAGE', 'LOGO_SOURCE_MISMATCH',
+      'TEAM_CATALOG_UNAVAILABLE', 'CATALOG_LOGO_LINK_REJECTED'];
     console.log(JSON.stringify({ code: allowed.includes(err.message) ? err.message : 'REVIEW_OUTPUT_FAILED', networkRequests: 0 }));
     process.exitCode = 1;
   });

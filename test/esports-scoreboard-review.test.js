@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
-const { createReview, renderReviewMarkdown, renderReviewCard, writeReviewBundle, DIMENSIONS, ITEM_DIMENSIONS } = require('../scripts/esports-scoreboard-review');
+const { createReview, renderReviewMarkdown, renderReviewCard, writeReviewBundle, cardGeometry, DIMENSIONS, ITEM_DIMENSIONS } = require('../scripts/esports-scoreboard-review');
 const { decodeItemSource } = require('../scripts/esports-item-evidence');
 const { decodeLogoSource } = require('../scripts/esports-team-logos');
 
@@ -200,10 +200,11 @@ test('rendered item slots preserve source pixels and player/slot order in both l
     assert.equal(rendered.readUInt32BE(16), w); assert.equal(rendered.readUInt32BE(20), h);
     const image = await loadImage(rendered); const canvas = createCanvas(w, h); const ctx = canvas.getContext('2d');
     ctx.drawImage(image, 0, 0);
-    const left = layout === 'wide' ? 80 : 64;
-    assert.deepEqual([...ctx.getImageData(left + 92 + 21, 480 + 99 + 55 + 21, 1, 1).data], [60, 20, 20, 255]);
-    const right = layout === 'wide' ? 828 : 64; const tableY = layout === 'wide' ? 480 : 1200;
-    assert.deepEqual([...ctx.getImageData(right + 92 + 5 * 52 + 21, tableY + 99 + 4 * 116 + 55 + 21, 1, 1).data], [160, 180, 170, 255]);
+    const g = cardGeometry(layout, true);
+    assert.deepEqual([...ctx.getImageData(g.tableX[0] + g.iconStart + 21,
+      g.tableY[0] + g.rowStart + g.iconY + 21, 1, 1).data], [60, 20, 20, 255]);
+    assert.deepEqual([...ctx.getImageData(g.tableX[1] + g.iconStart + 5 * g.iconStep + 21,
+      g.tableY[1] + g.rowStart + 4 * g.rowHeight + g.iconY + 21, 1, 1).data], [160, 180, 170, 255]);
   }
 });
 
@@ -277,6 +278,7 @@ test('logo manifests reject unsafe sources, mismatched teams and rectangles outs
 
 test('declared logos fail on missing or changed pixels rather than silently falling back to initials', async () => {
   const { input, bytes } = logoFixture(); const evidence = createReview(input).teamLogoEvidence;
+  input.teamCatalog = 'mpl-ph-s18'; // Even a catalog cannot silently override a broken explicit source.
   await assert.rejects(renderReviewCard(input), /INVALID_LOGO_IMAGE/);
   await assert.rejects(decodeLogoSource(Buffer.from('invalid'), evidence), /INVALID_LOGO_IMAGE/);
   await assert.rejects(decodeLogoSource(bytes, { ...evidence, imageSha256: '0'.repeat(64) }), /LOGO_SOURCE_MISMATCH/);
@@ -289,8 +291,8 @@ test('team logo placement preserves source aspect ratio and correct side in both
     const buffer = await renderReviewCard(input, { layout, logoSourceBytes: bytes });
     const [w, h] = DIMENSIONS[layout]; const canvas = createCanvas(w, h); const ctx = canvas.getContext('2d');
     ctx.drawImage(await loadImage(buffer), 0, 0);
-    const size = layout === 'wide' ? 82 : 56; const margin = layout === 'wide' ? 80 : 64;
-    const y = layout === 'wide' ? 214 : 224;
+    const g = cardGeometry(layout, false);
+    const size = g.markSize; const margin = g.margin; const y = g.markY;
     assert.deepEqual([...ctx.getImageData(margin + size / 2, y + size / 2, 1, 1).data], [60, 120, 220, 255]);
     assert.deepEqual([...ctx.getImageData(w - margin - size / 2, y + size / 2, 1, 1).data], [200, 160, 80, 255]);
     // A 2:1 mark is contained, not stretched to fill the square plaque.

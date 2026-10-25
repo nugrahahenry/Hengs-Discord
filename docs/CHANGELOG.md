@@ -7,6 +7,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Developer tooling
 
+- Added an offline region/season logo catalog, starting with eight officially sourced MPL Philippines S18 marks.
+  Exact aliases and pinned PNG bytes avoid fuzzy cross-region matches; unknown teams retain initials. Moved
+  duration, gold totals and gold gap into a central broadcast column, with a stacked phone layout. Item crops
+  and numeric evidence are unchanged. Full offline suite: 984/984, zero failures/skips. No runtime activation,
+  extraction, provider call or publication; product version remains 1.83.0.
 - Added source-pinned team-logo evidence to offline scoreboard previews, with correct-side/aspect-ratio checks,
   neutral initials for explicitly absent logos, and responsive header spacing. The existing computed gold gap is
   now visible above the comparison bar. No logo-name search, inference, publication or production changes.
