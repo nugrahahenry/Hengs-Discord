@@ -1,6 +1,6 @@
 # Hengs esports video experiments
 
-These are not an active YouTube watcher or a finished video extractor. Neither script is imported by the bot.
+These are not an active YouTube watcher or a finished video extractor. None of these scripts is imported by the bot.
 The original `esports-video-lab.js` makes **zero network requests**, loads no secrets, writes no runtime data,
 and cannot publish to Discord. The separate supervised trial below can make one explicitly authorized request.
 Product version remains unchanged: this checkpoint tests a candidate integration rather than shipping one.
@@ -61,6 +61,33 @@ The JSON drops unrelated fields and always sets `reviewStatus: "REVIEW_REQUIRED"
 The FLCN/RORA local example is a manual transcription, not a successful Gemini observation. Its exact screenshot
 offset and patch remain unknown. No public-match data is inserted into private-team or shared knowledge stores.
 This is a view/export experiment, not an approve/correct UI or a production importer. Those require a later contract.
+
+### Optional item-icon evidence
+
+With the operator's permission to crop the supplied public screenshot, the same renderer can place six original
+icon regions below each player. Item layouts are 1600x1520 (side by side) and 900x2280 (stacked). Existing Analis
+type/colors and the bundled Hengs mascot are reused; statistics are code-rendered, not image-generated.
+
+Add `itemEvidence` to the input wrapper:
+
+- `kind: "manual_screenshot_crops"`, `manuallyReviewed: true`.
+- `imageFile`: a lowercase alphanumeric/hyphen PNG basename adjacent to the input JSON, inside ignored evals.
+  No remote URL, nested path or symbolic-link component is accepted.
+- `imageSha256`: lowercase SHA-256 of the exact reviewed image; `width` and `height`: actual pixel dimensions.
+  PNG signature, dimensions and hash are checked before decoding. Limits: 4 MiB, 4096 pixels per edge, 8 Mi pixels.
+- `rows`: two teams in observation order, with five rows each. Every row contains `playerName` matching that
+  observation exactly, and six `slots`. A slot is `{ "x": 0, "y": 0, "width": 31, "height": 31 }` within the source,
+  or `null` when not visible. Crop edges must be integer pixels, 8 through 96 pixels wide/high.
+
+Mark regions manually against the actual source. The example orders the top row left to right, then the bottom
+row; this is **not purchase order**. Null slots display `?`; source cells that look empty retain their original
+pixels. Unknown item names are not guessed, and extra fields cannot declare names, IDs or trusted build advice.
+This is a per-image annotation, not automatic scene/slot detection or an item catalogue. A declared but missing,
+changed or malformed image fails before output creation instead of silently omitting the items.
+
+The report retains source hash/regions and `identification: "UNVERIFIED"`. The PNGs contain the authorized icon
+crops, not the full source image or unrelated faces/account UI. Use only reviewed non-private sources; local
+preview permission does not establish publication or redistribution rights. No provider or runtime is involved.
 
 ## Supervised public-video trial
 

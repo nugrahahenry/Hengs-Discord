@@ -7,6 +7,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Developer tooling
 
+- Polished offline scoreboard previews with clearer team outcomes, alternating rows, the existing Hengs mascot
+  and optional six-slot item rows from explicitly reviewed source-image crops. Exact PNG hash/dimensions and
+  roster associations are checked; unknown item names and purchase order are never invented. No automatic
+  extraction, provider call, Coach import or publication. Full offline suite: 974/974; focused checks: 25/25.
 - Added offline scoreboard review cards in wide and phone-friendly layouts with a full Markdown alternative.
   Manual versus model provenance, ten-player K/D/A/gold, derived kill participation, missing-data markers and
   arithmetic-conflict checks stay visible. No provider calls, automatic acceptance, publication or Coach writes.

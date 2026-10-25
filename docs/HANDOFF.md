@@ -2,6 +2,32 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 source-item scoreboard polish (not pushed, not deployed) - 2026-10-25
+
+- Henry requested better visuals and item visibility, then explicitly authorized code crops from his original
+  public screenshot. This checkpoint is offline only, with no Gemini request, generated art, bot or cloud change.
+- Extended the existing renderer with a blue/red broadcast header, bundled Hengs mascot, clearer team outcomes
+  and alternating player rows. The Impeccable polish pass preserved the inherited Analis type/palette and data.
+- Added `scripts/esports-item-evidence.js`: opt-in manual crop manifest, exact source PNG SHA-256/dimensions,
+  4 MiB / 8 Mi pixel bounds, six regions per player, strict roster match, no names/IDs inferred from tiny icons.
+  Regions are inside the reviewed image and are rendered from pixels only. Unknown slots stay unknown; dark
+  source cells stay dark. Top-row then bottom-row display order is not an assertion about purchase order.
+- Original FLCN/RORA source remains unchanged. Input: `.cloud/evals/youtube-observer-2026-10-25/` plus
+  `flcn-rora-review-items.input.json`; final preview: `flcn-rora-items-preview-v2/`. Both ignored. Version one
+  caught a tight footer and is superseded visually by v2. Do not confuse either preview with automatic extraction.
+- Item cards are 1600x1520 and 900x2280; ordinary cards retain 1600x1200 / 900x1650. The two PNGs include only
+  permitted item crops and the existing mascot. Markdown/JSON companions retain numeric and source limitations.
+- QA: 974/974 full offline tests, zero failures/skips, including 25/25 focused review/lab checks. Six new tests
+  cover manifest/region bounds, source bytes/hash/size, wrong-player associations, unknown slots, no-output failure,
+  and first/last item pixels in both layouts. Transcript: `items-full-suite.tap` in the ignored eval folder.
+- Visual QA: both layouts inspected; one footer-spacing fix and a final wide confirmation. Item/player ordering
+  matches the manually marked source. Security pass confirmed local-only source reads, no URLs/credentials,
+  declared-image failures stop rendering, and output remains review-required/untrusted/unpublishable.
+- Next: compare the visible item row with Henry's source feedback, then define correction/acceptance and verified
+  item identification before Coach use. No retry, automatic video reading, purchase-order claim or publish step.
+- Runtime version stays 1.83.0 (isolated tooling), with push/deploy held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - polish scoreboard cards with source item icons`.
+
 ## Hengs Discord v1.83.0 offline scoreboard review cards (not pushed, not deployed) - 2026-10-25
 
 - Henry approved continuing the manual-reference preview after the provider timeout. No additional Gemini request

@@ -4,7 +4,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createReview, renderReviewMarkdown, renderReviewCard, writeReviewBundle, DIMENSIONS } = require('../scripts/esports-scoreboard-review');
+const { createHash } = require('node:crypto');
+const { createReview, renderReviewMarkdown, renderReviewCard, writeReviewBundle, DIMENSIONS, ITEM_DIMENSIONS } = require('../scripts/esports-scoreboard-review');
+const { decodeItemSource } = require('../scripts/esports-item-evidence');
 
 const fixture = () => ({ evidenceKind: 'manual_transcription', observation: {
   sourceUrl: 'https://www.youtube.com/watch?v=8cDtD3-6Qrc', videoOffsetSeconds: null,
@@ -126,4 +128,97 @@ test('bundle stays inside ignored evals, creates four files, refuses overwrite a
   fs.writeFileSync(inputPath, ' '.repeat(65537));
   await assert.rejects(writeReviewBundle(inputPath, path.join(tmp, 'oversized')), /INVALID_REVIEW_FILE/);
   assert.equal(fs.existsSync(path.join(tmp, 'oversized')), false);
+});
+
+function itemFixture() {
+  const input = fixture();
+  const source = require('@napi-rs/canvas').createCanvas(384, 192); const ctx = source.getContext('2d');
+  const rows = input.observation.teams.map((team, t) => team.players.map((player, p) => ({ playerName: player.name,
+    slots: Array.from({ length: 6 }, (_, s) => {
+      const rect = { x: t * 192 + s * 28, y: p * 32, width: 24, height: 24 };
+      ctx.fillStyle = `rgb(${60 + t * 100},${20 + p * 40},${20 + s * 30})`;
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height); return rect;
+    }) })));
+  const bytes = source.toBuffer('image/png');
+  input.itemEvidence = { kind: 'manual_screenshot_crops', manuallyReviewed: true, imageFile: 'source.png',
+    imageSha256: createHash('sha256').update(bytes).digest('hex'), width: 384, height: 192, rows };
+  return { input, bytes };
+}
+
+test('item evidence is explicit manual provenance and never identifies names or purchase order', () => {
+  const { input } = itemFixture(); const original = structuredClone(input);
+  input.itemEvidence.rows[0][0].slots[0].name = 'invented item';
+  const review = createReview(input);
+  assert.equal(review.itemEvidence.identification, 'UNVERIFIED');
+  assert.equal(review.itemEvidence.layout, 'SOURCE_TOP_ROW_THEN_BOTTOM_ROW');
+  assert.equal(review.itemEvidence.rows.flat().flatMap(row => row.slots).length, 60);
+  assert.doesNotMatch(JSON.stringify(review), /invented item/);
+  assert.equal(review.trustedForCoach, false);
+  delete input.itemEvidence.rows[0][0].slots[0].name; assert.deepEqual(input, original);
+  assert.match(renderReviewMarkdown(input), /bukan urutan pembelian/);
+  assert.match(renderReviewMarkdown(input), /Nama item belum diverifikasi/);
+});
+
+test('item manifests reject unreviewed sources, paths, oversized frames and wrong player associations', () => {
+  const { input } = itemFixture();
+  for (const patch of [{ kind: 'model_guess' }, { manuallyReviewed: false }, { imageFile: '../source.png' },
+    { imageFile: 'https://example.com/source.png' }, { imageFile: 'secret.env' }, { imageSha256: 'guess' },
+    { width: 99999 }, { width: 4096, height: 4096 }, { rows: [] }]) {
+    assert.throws(() => createReview({ ...input, itemEvidence: { ...input.itemEvidence, ...patch } }), /INVALID_ITEM_EVIDENCE/);
+  }
+  input.itemEvidence.rows[0][0].playerName = input.observation.teams[1].players[0].name;
+  assert.throws(() => createReview(input), /ITEM_PLAYER_MISMATCH/);
+});
+
+test('item regions stay inside the reviewed frame; unknown slots stay unknown rather than invented empty items', () => {
+  for (const patch of [{ x: -1 }, { y: 0.2 }, { width: 0 }, { height: 100 }, { x: 380 }, { y: 190 }]) {
+    const { input } = itemFixture(); Object.assign(input.itemEvidence.rows[0][0].slots[0], patch);
+    assert.throws(() => createReview(input), /INVALID_ITEM_REGION/);
+  }
+  const { input } = itemFixture(); input.itemEvidence.rows[0][0].slots[0] = null;
+  assert.equal(createReview(input).itemEvidence.rows[0][0].slots[0], null);
+  input.itemEvidence.rows[0][0].slots.pop();
+  assert.throws(() => createReview(input), /INVALID_ITEM_ROWS/);
+});
+
+test('item decoding pins exact PNG bytes and dimensions before decoding', async () => {
+  const { input, bytes } = itemFixture(); const evidence = createReview(input).itemEvidence;
+  for (const bad of [undefined, Buffer.alloc(0), Buffer.alloc(4194305), Buffer.from('not image bytes')]) {
+    await assert.rejects(decodeItemSource(bad, evidence), /INVALID_ITEM_IMAGE/);
+  }
+  await assert.rejects(decodeItemSource(bytes, { ...evidence, width: 383 }), /ITEM_SOURCE_MISMATCH/);
+  await assert.rejects(decodeItemSource(bytes, { ...evidence, imageSha256: '0'.repeat(64) }), /ITEM_SOURCE_MISMATCH/);
+  await assert.rejects(renderReviewCard(input), /INVALID_ITEM_IMAGE/); // No silent omission when evidence is declared.
+});
+
+test('rendered item slots preserve source pixels and player/slot order in both layouts', async () => {
+  const { input, bytes } = itemFixture(); const { createCanvas, loadImage } = require('@napi-rs/canvas');
+  for (const layout of ['wide', 'portrait']) {
+    const rendered = await renderReviewCard(input, { layout, itemSourceBytes: bytes });
+    const [w, h] = ITEM_DIMENSIONS[layout];
+    assert.equal(rendered.readUInt32BE(16), w); assert.equal(rendered.readUInt32BE(20), h);
+    const image = await loadImage(rendered); const canvas = createCanvas(w, h); const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const left = layout === 'wide' ? 80 : 64;
+    assert.deepEqual([...ctx.getImageData(left + 92 + 21, 480 + 99 + 55 + 21, 1, 1).data], [60, 20, 20, 255]);
+    const right = layout === 'wide' ? 828 : 64; const tableY = layout === 'wide' ? 480 : 1200;
+    assert.deepEqual([...ctx.getImageData(right + 92 + 5 * 52 + 21, tableY + 99 + 4 * 116 + 55 + 21, 1, 1).data], [160, 180, 170, 255]);
+  }
+});
+
+test('bundle reads only the pinned local item source; a hash mismatch writes no output', async t => {
+  const evalRoot = path.resolve(__dirname, '../.cloud/evals'); fs.mkdirSync(evalRoot, { recursive: true });
+  const tmp = fs.mkdtempSync(path.join(evalRoot, 'review-items-test-'));
+  t.after(() => { assert.equal(path.dirname(tmp), evalRoot); assert.ok(path.basename(tmp).startsWith('review-items-test-')); fs.rmSync(tmp, { recursive: true, force: true }); });
+  const { input, bytes } = itemFixture(); const inputPath = path.join(tmp, 'input.json');
+  const imagePath = path.join(tmp, 'source.png'); fs.writeFileSync(inputPath, JSON.stringify(input)); fs.writeFileSync(imagePath, bytes);
+  const output = path.join(tmp, 'preview');
+  await writeReviewBundle(inputPath, output);
+  const report = JSON.parse(fs.readFileSync(path.join(output, 'review.json'), 'utf8'));
+  assert.equal(report.itemEvidence.identification, 'UNVERIFIED');
+  assert.equal(report.networkRequests, 0);
+  input.itemEvidence.imageSha256 = '0'.repeat(64); fs.writeFileSync(inputPath, JSON.stringify(input));
+  const bad = path.join(tmp, 'bad');
+  await assert.rejects(writeReviewBundle(inputPath, bad), /ITEM_SOURCE_MISMATCH/);
+  assert.equal(fs.existsSync(bad), false);
 });
