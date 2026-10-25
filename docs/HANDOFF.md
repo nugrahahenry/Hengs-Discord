@@ -2,6 +2,25 @@
 
 Updated: 2026-10-25
 
+## Hengs Gemini access setup (local only, not connected to runtime) - 2026-10-25
+
+- Henry selected existing Google project LabQ and requested one general-purpose key named exactly Hengs, not a
+  Coach-only credential. The project display name remains LabQ; its displayed tier remains Free tier.
+- The first newly created key was exposed in a tool output because its auth-key format was not handled by the
+  initial redaction. With Henry's action-time approval, that key was deleted; the empty LabQ key list was verified
+  before one replacement was created. The replacement is named Hengs, and the exposed key name is absent.
+- Canonical local credential file: `.cloud/credentials/hengs/gemini.env` (ignored). Reuse this configured credential
+  for approved Hengs Gemini integrations while valid; do not create redundant keys or copy it into source/client
+  bundles, documents, chat, screenshots or Git. Other projects' credentials were not read or changed.
+- Key transferred directly from the approved browser UI into the importer through private stdin, not command-line
+  arguments or clipboard. Verification printed only status booleans: valid environment-file format, private ACL,
+  ignored by Git, no temporary residue. Access is limited to the current Windows user, SYSTEM and administrators.
+- No billing change, provider request, video analysis, cloud transfer, runtime restart or deployment occurred.
+  Credential-format/storage checks do not prove model access or available quota. The video lab remains offline.
+- Next: verify the selected model's free-tier access and quota, identify a known scoreboard interval, then obtain
+  a bounded trial plan before the first inference. Private scrim/chat data must not enter a public-video trial.
+- Setup-only documentation checkpoint; product version remains 1.83.0. Push remains held with the batched work.
+
 ## Hengs Discord v1.83.0 offline esports video lab (not pushed, not deployed) - 2026-10-25
 
 - Henry requested autonomous observations from public MLBB broadcasts for all teams. This checkpoint is an isolated
