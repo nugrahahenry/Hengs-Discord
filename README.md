@@ -2,7 +2,10 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.83.0 - an appreciation for a win that leaves out the tournament, the date or
+**Current checkpoint:** Hengs Discord v1.84.0 adds optional PNG/JPEG certificates to appreciation drafts through
+a native upload button, with private review and unchanged original bytes on publication. Team names stay literal,
+guidance uses short bullets, and certificates can be replaced or unlinked before publishing. Local checkpoint,
+not a deployment claim. Builds on v1.83.0 - an appreciation for a win that leaves out the tournament, the date or
 the players makes Hengs ask for just those, with **Lengkapi detail** (the form, name and achievement filled in) and
 **Bikin sekarang**, plus a note that players can be tagged on the draft with **Tag anggota**. Builds on v1.82.2
 (welcome and leave galaxy cards with an optional 3D mascot) and v1.82.0: every finished pro series also gets a
@@ -91,8 +94,8 @@ Appreciation drafts now use the reviewed Crown Stage artwork, with an adaptive l
 literal tournament and result text, and up to eight players with optional nicknames. Edit
 opens a prefilled form and refuses stale revisions. Review remains private before owner
 publication. The poster plus an unchanged organizer certificate were
-verified in the bot test channel. Reusable certificate ingestion remains deferred; this upload
-used a supervised one-off operator, not a new bot command.
+verified in the bot test channel during the earlier supervised publication. v1.84.0 adds reusable certificate
+intake locally. Its native upload and delivery have offline tests, not yet live Discord acceptance.
 The home server now has a Hall of Fame under Community, with the first owner-approved
 poster and original certificate published. Members can react and discuss in public threads;
 main-channel posting is limited to Hengs and administrators. Reusable Ops destination selection
@@ -415,6 +418,8 @@ Tidak perlu mendaftarkan slash command baru.
   Edit manual tetap tersedia; AI rewrite dimatikan agar fakta penghargaan tidak berubah.
   Jika format teks diubah bebas, gambar lama dihapus dan draft menjadi teks biasa.
   Logo Hengs Family dipakai untuk tim Hengs Familia/Family, penerima lain memakai ilustrasi trofi.
+  Nama tidak otomatis ditambah kata Tim. Isi `Hengs Family` atau `Hengs Family X SYN` sesuai nama sebenarnya.
+
   Preview offline sintetis: `node scripts/preview-community-cards.js`; hasil di `.cloud/previews/`.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
@@ -467,6 +472,22 @@ Tidak perlu mendaftarkan slash command baru.
   melalui `@napi-rs/canvas`
 - **Auto-assign role** Member pas join + **stats channel** auto-update (jumlah member dll)
 - **Admin tools** — `/admin ids`, `/admin webhook`, `/admin lockdown`
+
+### Sertifikat di kartu apresiasi
+
+1. Di bot-commands, mention Hengs dan tulis `bikin kartu apresiasi`.
+2. Klik **Isi kartu apresiasi**. Isi nama, pencapaian, dan detail yang sudah diketahui. Pemain satu per baris.
+3. Buka preview di bot-settings, lalu klik **Sertifikat**. Pilih satu PNG atau JPG, maksimal 8 MiB,
+   8 juta piksel, dan 8192 piksel per sisi. Sertifikat tetap opsional. PDF, GIF dan SVG belum didukung.
+4. Cek gambar asli melalui tautan pada preview. Gunakan **Ganti sertifikat** atau **Lepas sertifikat** bila perlu.
+5. Owner menekan **Publish Now** atau menjadwalkannya setelah review. Poster dan sertifikat menjadi dua gambar
+   terpisah. Tujuannya tetap channel pengumuman, belum otomatis ke Hall of Fame.
+
+Gambar tidak diedit atau dibaca oleh AI. Hengs tidak menganggap unggahan sebagai bukti yang sudah diverifikasi.
+Ruang review harus privat. Mengedit detail kartu menghapus kaitan sertifikat, jadi pasang lagi setelah cocok.
+Mengganti atau melepas lampiran tidak menghapus pesan gambar lama di ruang review. Retensinya mengikuti
+pengelolaan channel. Simpan file asli sendiri. Backup VM menyimpan referensi draft, bukan gambar di Discord.
+Jika pesan gambar di Discord terhapus atau isinya berbeda, publikasi berhenti sampai lampiran diperbaiki.
 
 ## 🛠️ Stack
 

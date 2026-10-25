@@ -5,7 +5,8 @@ const { createHash } = require('node:crypto');
 const pending = require('./appreciation-pending');
 
 function appreciationRevision(draft) {
-  return createHash('sha256').update(JSON.stringify([draft.title, draft.body, draft.lastRevisedAt || '', draft.appreciationTags || null])).digest('hex').slice(0, 16);
+  return createHash('sha256').update(JSON.stringify([draft.title, draft.body, draft.lastRevisedAt || '', draft.appreciationTags || null,
+    draft.appreciationCertificate || null])).digest('hex').slice(0, 16);
 }
 
 function appreciationFormRow(requesterId) {
@@ -31,11 +32,11 @@ function appreciationRows(route, requesterId) {
 
 function appreciationModal(requesterId, { data = {}, draft } = {}) {
   const fields = [
-    ['recipient', 'Nama pemain atau tim', 80, true, 'Tim Orion'],
+    ['recipient', 'Nama pemain atau tim, tanpa awalan wajib', 80, true, 'Hengs Family, tidak perlu ditambah Tim'],
     ['achievement', 'Pencapaiannya apa?', 220, true, 'Juara 1 turnamen MLBB'],
     ['occasion', 'Turnamen atau acara (opsional)', 100, false, 'Kosongkan kalau belum ada nama acara'],
     ['date', 'Tanggal pencapaian (opsional)', 48, false, '17 Oktober 2026'],
-    ['players', 'Pemain (opsional, maksimal 8)', 480, false, 'Satu per baris. Contoh: Raka (Sky). Nickname boleh kosong.'],
+    ['players', 'Pemain (opsional, maksimal 8)', 480, false, 'Satu nama per baris, misalnya Raka (Sky). Nickname opsional.'],
   ];
   return new ModalBuilder().setCustomId(draft
     ? `ops:appreciationedit:${requesterId}:${draft.id}:${appreciationRevision(draft)}`

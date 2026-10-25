@@ -1,6 +1,34 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-25
+Updated: 2026-10-26
+
+## Hengs Discord v1.84.0 certificate uploads and clearer appreciation copy (local, not deployed)
+
+- Henry requested concise bullet explanations without em dashes/semicolons, optional certificate images, and
+  literal team names without a mandatory Tim prefix. Humanizer guided copy only, canonical stored text stays
+  backwards-compatible. Existing appreciation entry point and five-field form retained.
+- Added native Sertifikat/Ganti sertifikat/Lepas sertifikat controls on pending drafts. One PNG/JPEG up to
+  8 MiB, 8 million pixels and 8192px per edge. No PDF/OCR/LLM or image changes. Original stored on Discord in
+  the private review channel. Additive versioned reference in existing Ops state, no image/URL on VM.
+- Upload uses existing revision claim, actor/home/editor permission and stale checks. Publication refetches
+  exact bot-authored attachment and verifies original SHA-256/type/size. Missing/tampered receipt stops send.
+  Two concurrent bounded transfers, no custom retry. Replacement/unlink leaves prior private review messages.
+  Factual edits clear binding. Old binaries must not publish certificate-bearing drafts during rollback.
+- Native Canvas decoding of upload bytes was removed after a malformed PNG test crashed the decoder.
+  PNG signature/chunks/checksums/bounded inflation and JPEG header/end-marker checks now run without native
+  image decoding. This is structural validation, not proof of certificate authenticity or perfect JPEG decoding.
+- Tests use mocked Discord/HTTP only. First test attempt hit Windows temp atomic-rename restrictions, rerun
+  in an isolated writable `.cloud/qa-certificate-temp` directory. No ACL changes. Focused suite 63/63 passed,
+  then two final permission regressions were added. Full final offline suite 1005/1005 passed, zero failures
+  or skips on Node22.23.3 (`.cloud/qa-certificate-final.tap`). An earlier full sandbox run had one symlink
+  permission failure and one skip, so final full QA used approved normal Windows permissions, without ACL edits.
+  Both supplied 1600x1131 PNG certificates passed local structural checks with original bytes unchanged.
+  No Discord upload, bot startup, provider or cloud action. Diff/metadata/syntax and scoped secret checks passed.
+- Canonical contract updated in ignored docs/APPRECIATION-DIRECTION.md. README has click-by-click help.
+  Destination remains announcements, explicitly shown in preview/help. Hall of Fame routing is a separate
+  next feature, not silently enabled. No new spec/plan or stale temporary feature documents introduced.
+- Push remains held with the earlier batched commits until Henry requests it. Local commit subject
+  `feat(appreciation): Hengs Discord v1.84.0 - add reviewed certificate uploads and clearer guidance`.
 
 ## Hengs Discord v1.83.0 reusable arena background (not pushed, not deployed) - 2026-10-25
 

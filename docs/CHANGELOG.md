@@ -5,6 +5,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.84.0] - 2026-10-26
+
+### Added
+
+- Optional native PNG/JPEG certificate upload on pending appreciation drafts. Private review retains the
+  unchanged original, and publication includes a separate certificate image. Replacement/unlink controls,
+  actor/guild/revision checks, bounded downloads and exact-byte verification guard delivery.
+- Literal team-name guidance, short bullet explanations, and no semicolons or long dashes in appreciation copy.
+  No mandatory Tim prefix. Factual edits require a fresh certificate attachment. Publication destination
+  remains announcements. No OCR, new provider, live upload, deployment or Hall of Fame routing in this checkpoint.
+- Verification covers 1005 offline tests with zero failures or skips. Actual Discord upload is not yet dogfooded.
+
 ### Developer tooling
 
 - Added a reusable arena background to offline scoreboard previews using the existing Crown Stage artwork,

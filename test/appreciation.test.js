@@ -74,7 +74,7 @@ test('explicit tag selection is private, actor-bound, member-validated and revis
   const publicPayload = await publicationPayload(interaction.guild, updated);
   assert.deepEqual(publicPayload.allowedMentions, { parse: [], users: [OTHER], repliedUser: false });
   assert.equal(publicPayload.content, `Apresiasi buat <@${OTHER}>! 🏆`);
-  assert.match(publicPayload.embeds[0].data.description, /Pemain:\n• Raka \(Sky\)\n• Dara/);
+  assert.match(publicPayload.embeds[0].data.description, /Pemain\n• Raka \(Sky\)\n• Dara/);
   assert.doesNotMatch(publicPayload.embeds[0].data.description, /;/);
   interaction.values = [OWNER];
   await handleTagSelection(interaction); // Original selector is now stale.

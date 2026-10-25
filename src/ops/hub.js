@@ -19,6 +19,7 @@ const pending = require('./appreciation-pending');
 const { selectedTags, validateMembers } = require('./appreciation-tags');
 const { appreciationModal, appreciationRevision } = require('./appreciation-form');
 const { renderAppreciationCard } = require('../utils/appreciation-card');
+const certificate = require('./appreciation-certificate');
 
 const DATA_DIR = process.env.OPS_DATA_DIR
   ? path.resolve(process.env.OPS_DATA_DIR)
@@ -153,7 +154,16 @@ async function draftPayload(draft, { publicView = false, edit = false, renderCar
     if (!publicView) embed.addFields({ name: 'Tag anggota (opsional)', value: tags.length
       ? `${tags.map(id => `<@${id}>`).join(' ')}\nDiberi tahu saat owner Publish. Preview ini tidak mengirim notifikasi.`
       : 'Tanpa tag. Nama pemain tetap tampil. Pilih Tag anggota kalau ingin memberi notifikasi saat Publish.' });
-    embed.setTitle(`${publicView ? '🏆' : '📋 Draft:'} ${escapeMarkdown(draft.title.replace(/^🏆\s*/, ''))}`.slice(0, 256));
+    if (!publicView) {
+      const ref = draft.appreciationCertificate;
+      const value = !ref ? 'Belum ada. Klik Sertifikat untuk memilih satu PNG atau JPG, maksimal 8 MB.'
+        : certificate.validReference(ref, draft)
+          ? `[Lihat gambar asli](https://discord.com/channels/${ref.guildId}/${ref.channelId}/${ref.messageId})\nIkut terkirim saat Publish. Keaslian belum diverifikasi oleh Hengs.`
+          : 'Lampiran tidak valid. Lepas atau unggah ulang sebelum Publish.';
+      embed.addFields({ name: 'Sertifikat (opsional)', value },
+        { name: 'Tujuan publikasi', value: 'Channel pengumuman. Belum otomatis ke Hall of Fame.' });
+    }
+    embed.setTitle(`${publicView ? '🏆 Apresiasi untuk' : '📋 Draft apresiasi'} ${escapeMarkdown(appreciation.recipient)}`.slice(0, 256));
     try {
       const image = await renderCard(appreciation);
       if (!Buffer.isBuffer(image) || image.length === 0) throw new Error('APPRECIATION_RENDER_EMPTY');
@@ -167,8 +177,13 @@ async function draftPayload(draft, { publicView = false, edit = false, renderCar
   return payload;
 }
 
-async function publicationPayload(guild, draft) {
+async function publicationPayload(guild, draft, options) {
   const payload = await draftPayload(draft, { publicView: true });
+  const attached = await certificate.publicationCertificate(guild, draft, options);
+  if (attached) {
+    payload.files = [...(payload.files || []), attached.file];
+    payload.embeds.push(attached.embed);
+  }
   const ids = readAppreciationDraft(draft) ? selectedTags(draft) : [];
   if (ids.length) {
     if (!process.env.DISCORD_GUILD_ID || guild.id !== process.env.DISCORD_GUILD_ID) throw new Error('APPRECIATION_GUILD_INVALID');
@@ -216,6 +231,9 @@ function approvalRow(draft) {
       ),
       ...(readAppreciationDraft(draft) ? [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`ops:tags:${draft.id}`).setLabel('Tag anggota (opsional)').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`ops:certificate:${draft.id}`).setLabel(draft.appreciationCertificate ? 'Ganti sertifikat' : 'Sertifikat').setStyle(ButtonStyle.Secondary),
+        ...(draft.appreciationCertificate ? [new ButtonBuilder().setCustomId(`ops:certclear:${draft.id}:${appreciationRevision(draft)}`)
+          .setLabel('Lepas sertifikat').setStyle(ButtonStyle.Secondary)] : []),
       )] : []),
     ];
   }
@@ -486,6 +504,9 @@ async function handleAiRevision(interaction, draftId, kind, agent) {
 
 async function handleButton(interaction, { agent } = {}) {
   if (!interaction.isButton?.() || !interaction.customId.startsWith('ops:')) return false;
+  if (/^ops:(certificate|certclear):/.test(interaction.customId)) {
+    return certificate.handleCertificate(interaction, { findSettingsChannel, editStoredPanel });
+  }
   if (interaction.customId.startsWith('ops:tags:')) return handleTagPicker(interaction);
 
   if (interaction.customId.startsWith('ops:appreciationnew:')) {
@@ -604,6 +625,9 @@ async function handleTagSelection(interaction) {
 
 async function handleModal(interaction) {
   if (!interaction.isModalSubmit?.() || !interaction.customId.startsWith('ops:')) return false;
+  if (interaction.customId.startsWith('ops:certupload:')) {
+    return certificate.handleCertificate(interaction, { findSettingsChannel, editStoredPanel });
+  }
   if (interaction.customId.startsWith('ops:appreciationform:')) return handleAppreciationForm(interaction);
   if (interaction.customId.startsWith('ops:appreciationedit:')) return handleAppreciationEdit(interaction);
   const [, action, draftId] = interaction.customId.split(':');
@@ -708,7 +732,7 @@ async function handleAppreciationEdit(interaction) {
     replacement = buildAppreciationDraft(Object.fromEntries(['recipient', 'achievement', 'occasion', 'date', 'players']
       .map(key => [key, interaction.fields.getTextInputValue(key)])));
   } catch {
-    await interaction.reply({ content: 'Revisi belum disimpan. Isi nama dan pencapaian tanpa mention atau link; maksimal 8 pemain, 60 karakter per pemain. Buka Edit lagi untuk memperbaiki.', ephemeral: true });
+    await interaction.reply({ content: 'Revisi belum disimpan.\n• Isi nama dan pencapaian tanpa mention atau link.\n• Maksimal 8 pemain, 60 karakter per pemain.\n• Buka Edit lagi untuk memperbaiki.', ephemeral: true });
     return true;
   }
   // No await between the revision check and the existing synchronous pending-only write.
@@ -722,7 +746,7 @@ async function handleAppreciationEdit(interaction) {
   try { panelUpdated = await editStoredPanel(interaction.guild, updated); }
   catch { console.warn('[ops] APPRECIATION_PANEL_UPDATE_FAILED'); }
   await interaction.editReply({ content: panelUpdated
-    ? 'Data dan poster apresiasi sudah diperbarui. Cek preview dan pilih ulang tag anggota bila perlu sebelum Publish; belum diumumkan.'
+    ? 'Posternya sudah diperbarui. Belum diumumkan.\n• Cek lagi detail di preview.\n• Pilih ulang tag anggota kalau perlu.\n• Kalau tadi ada sertifikat, lampirkan lagi setelah detailnya cocok.'
     : 'Revisi tersimpan, tetapi preview belum diperbarui. Cek `/ops status` sebelum Publish.', allowedMentions: { parse: [] } });
   return true;
 }
@@ -747,7 +771,7 @@ async function handleAppreciationForm(interaction) {
       externalId: `appreciation:${interaction.id}`,
     });
     await interaction.editReply({
-      content: result.created ? `Kartu apresiasi siap direview di \`bot-settings\`. Belum diumumkan. Owner bisa mengedit, publish, atau menjadwalkannya. ${TAG_TIP}`
+      content: result.created ? `Posternya siap dicek di \`bot-settings\`. Belum diumumkan.\n• Pakai Edit kalau ada detail yang perlu diganti.\n• Klik Sertifikat untuk melampirkan PNG atau JPG.\n• ${TAG_TIP}\n• Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.`
         : 'Draft dari form ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] },
     });
   } catch {
@@ -780,7 +804,7 @@ async function handleAppreciationAsk(interaction, action, requester, key) {
       ...buildAppreciationDraft(data), kind: 'announcement', source: 'discord', createdBy: requester,
       externalId: `appreciation-now:${key}`,
     });
-    await interaction.editReply({ content: result.created ? `Kartu apresiasi siap direview di \`bot-settings\`. Belum diumumkan. ${TAG_TIP}`
+    await interaction.editReply({ content: result.created ? `Posternya siap dicek di \`bot-settings\`. Belum diumumkan.\n• Klik Sertifikat kalau ingin menambahkan gambar aslinya.\n• ${TAG_TIP}\n• Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.`
       : 'Draft ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] } });
   } catch {
     console.warn('[ops] APPRECIATION_DRAFT_FAILED');
