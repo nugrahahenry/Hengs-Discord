@@ -9,6 +9,7 @@
 const { canonicalVideoUrl, inspectScoreboard } = require('./esports-video-lab');
 const { C, fitText, loadFonts } = require('../src/esports/card');
 const { reviewItemEvidence, decodeItemSource, MAX_ITEM_IMAGE_BYTES } = require('./esports-item-evidence');
+const { reviewTeamLogos, decodeLogoSource, MAX_LOGO_IMAGE_BYTES } = require('./esports-team-logos');
 
 const KINDS = Object.freeze({ manual_transcription: 'Dibaca manual dari screenshot', model_candidate: 'Kandidat model, belum diverifikasi' });
 const DIMENSIONS = Object.freeze({ wide: [1600, 1200], portrait: [900, 1650] });
@@ -54,6 +55,7 @@ function createReview(input) {
     killParticipationPercent: numericConsistent ? percent(p.kills + p.assists, t.kills) : null,
   })) }));
   const itemEvidence = reviewItemEvidence(input.itemEvidence, teams);
+  const teamLogoEvidence = reviewTeamLogos(input.teamLogoEvidence, teams);
   const goldDifference = numericConsistent ? teams[0].gold - teams[1].gold : null;
   const notes = [];
   if (goldDifference !== null && goldDifference !== 0) {
@@ -67,7 +69,7 @@ function createReview(input) {
   missing.push('Urutan draft, objektif dan momen gameplay belum dinilai.');
   return { schemaVersion: 1, evidenceKind: input.evidenceKind, evidenceLabel: KINDS[input.evidenceKind],
     reviewStatus: 'REVIEW_REQUIRED', trustedForCoach: false, publishable: false, networkRequests: 0,
-    observation: { ...observation, teams }, itemEvidence, checks, numericConsistent,
+    observation: { ...observation, teams }, itemEvidence, teamLogoEvidence, checks, numericConsistent,
     derived: { goldDifference, blueGoldSharePercent: numericConsistent ? percent(teams[0].gold, teams[0].gold + teams[1].gold) : null },
     notes, missing,
     boundary: 'Angka akhir bukan bukti penyebab menang atau kalah. Belum masuk pengetahuan Coach.' };
@@ -93,6 +95,10 @@ function renderReviewMarkdown(input) {
       'Urutan tampilan: baris atas kiri ke kanan, lalu baris bawah. Ini bukan urutan pembelian.',
       'Nama item belum diverifikasi. Slot bertanda ? tidak terlihat; kotak gelap mempertahankan tampilan sumber.', '');
   }
+  if (review.teamLogoEvidence) {
+    rows.push('## Logo tim', '', 'Logo dipotong dari screenshot dan dipasangkan secara manual ke tim pada pertandingan ini.',
+      'Bukan klaim logo terbaru, afiliasi resmi, atau izin publikasi. Tim tanpa logo memakai singkatan, bukan logo rekaan.', '');
+  }
   rows.push('KP = (kill + assist) / kill tim. KP tidak dihitung jika data bertentangan, belum lengkap, atau kill tim nol.', '',
     ...review.notes, '', '## Batas bukti', '', ...review.missing.map(line => `- ${line}`), `- ${review.boundary}`, '',
     `Sumber: ${o.sourceUrl ? `[Arsip publik YouTube](${o.sourceUrl})` : 'belum valid'}.`,
@@ -102,10 +108,11 @@ function renderReviewMarkdown(input) {
   return rows.join('\n');
 }
 
-async function renderReviewCard(input, { layout = 'wide', itemSourceBytes } = {}) {
+async function renderReviewCard(input, { layout = 'wide', itemSourceBytes, logoSourceBytes } = {}) {
   if (!Object.hasOwn(DIMENSIONS, layout)) fail('INVALID_REVIEW_LAYOUT');
   const review = createReview(input); const o = review.observation;
   const itemImage = review.itemEvidence ? await decodeItemSource(itemSourceBytes, review.itemEvidence) : null;
+  const logoImage = review.teamLogoEvidence ? await decodeLogoSource(logoSourceBytes, review.teamLogoEvidence) : null;
   const [width, height] = (itemImage ? ITEM_DIMENSIONS : DIMENSIONS)[layout]; const portrait = layout === 'portrait';
   loadFonts();
   const { createCanvas, loadImage } = require('@napi-rs/canvas');
@@ -133,14 +140,41 @@ async function renderReviewCard(input, { layout = 'wide', itemSourceBytes } = {}
   text(`${o.event || 'Event belum diketahui'} · Game ${display(o.gameNumber)} · ${duration(o.durationSeconds)}`, margin, 148, 30);
   text(review.evidenceLabel, margin, 190, 26, C.win);
   const a = o.teams[0]; const b = o.teams[1];
-  text(a.name || 'Tim ?', margin, 282, portrait ? 66 : 84, C.blue, usable * 0.28, 'left', 'Analis Bold');
-  text(b.name || 'Tim ?', width - margin, 282, portrait ? 66 : 84, C.red, usable * 0.28, 'right', 'Analis Bold');
+  const badgeSize = portrait ? 56 : 82;
+  const badgeGap = portrait ? 16 : 24;
+  const badgeY = portrait ? 224 : 214;
+  const teamMark = (team, index) => {
+    const x = index === 0 ? margin : width - margin - badgeSize;
+    const region = review.teamLogoEvidence?.teams[index].region;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.32)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 6;
+    ctx.fillStyle = region ? '#F1F5F4' : (index === 0 ? '#163658' : '#42243A');
+    ctx.beginPath(); ctx.roundRect(x, badgeY, badgeSize, badgeSize, 12); ctx.fill();
+    ctx.restore();
+    if (region) {
+      const inset = 6; const scale = Math.min((badgeSize - inset * 2) / region.width, (badgeSize - inset * 2) / region.height);
+      const w = region.width * scale; const h = region.height * scale;
+      // Contain the complete original mark, with its source background, without recoloring or AI redraw.
+      ctx.drawImage(logoImage, region.x, region.y, region.width, region.height,
+        x + (badgeSize - w) / 2, badgeY + (badgeSize - h) / 2, w, h);
+    } else {
+      const initial = (team.name || '?').split(/\s+/).map(word => word[0]).join('').slice(0, 2).toUpperCase();
+      text(initial, x + badgeSize / 2, badgeY + badgeSize * 0.69, portrait ? 28 : 40,
+        index === 0 ? C.blue : C.red, badgeSize - 12, 'center', 'Analis Bold');
+    }
+  };
+  teamMark(a, 0); teamMark(b, 1);
+  const nameInset = badgeSize + badgeGap;
+  text(a.name || 'Tim ?', margin + nameInset, portrait ? 270 : 282, portrait ? 50 : 72, C.blue, usable * 0.28 - nameInset, 'left', 'Analis Bold');
+  text(b.name || 'Tim ?', width - margin - nameInset, portrait ? 270 : 282, portrait ? 50 : 72, C.red, usable * 0.28 - nameInset, 'right', 'Analis Bold');
   text(`${display(a.kills)} : ${display(b.kills)}`, width / 2, 282, portrait ? 76 : 96, C.text, usable * 0.36, 'center', 'Analis Display');
   text('KILL GAME, BUKAN SKOR SERI', width / 2, 322, 23, C.muted, usable, 'center');
   if (o.winnerIndex !== null) text(`Pemenang tercatat: ${o.teams[o.winnerIndex].name || '?'}`, width / 2, 365, 30, C.win, usable, 'center');
   else text('Pemenang belum diketahui', width / 2, 365, 30, C.muted, usable, 'center');
   text(`${gold(a.gold)} gold`, margin, 416, 32, C.blue, usable * 0.45);
   text(`${gold(b.gold)} gold`, width - margin, 416, 32, C.red, usable * 0.45, 'right');
+  if (review.derived.goldDifference !== null) text(`Selisih ${gold(Math.abs(review.derived.goldDifference))}`,
+    width / 2, 414, portrait ? 22 : 26, C.win, usable * 0.28, 'center');
   ctx.fillStyle = '#33405D'; ctx.fillRect(margin, 438, usable, 10);
   if (review.derived.blueGoldSharePercent !== null) {
     const split = usable * review.derived.blueGoldSharePercent / 100;
@@ -192,7 +226,8 @@ async function renderReviewCard(input, { layout = 'wide', itemSourceBytes } = {}
   text(o.videoOffsetSeconds === null ? 'Posisi video belum pasti · Patch belum diverifikasi'
     : 'Posisi video dari input · Belum diverifikasi oleh alat ini', margin, footY + 138, 26, C.muted);
   text(o.sourceUrl ? 'Sumber: arsip publik YouTube · Tautan lengkap di review.md' : 'Sumber belum valid. Jangan dipublikasikan.', margin, footY + 180, 25, C.muted);
-  if (itemImage) text('Ikon asli screenshot. Nama item & urutan beli belum diverifikasi.', margin, footY + 222, 25, C.win);
+  if (itemImage) text(logoImage ? 'Item & logo dari screenshot. Nama item belum diverifikasi.'
+    : 'Ikon asli screenshot. Nama item & urutan beli belum diverifikasi.', margin, footY + 222, 25, C.win);
   text('Preview lokal, belum masuk pengetahuan Coach.', margin, height - 54, 26, C.accent);
   return canvas.toBuffer('image/png');
 }
@@ -221,15 +256,17 @@ async function writeReviewBundle(inputPath, outputDir) {
   let input;
   try { input = JSON.parse(fs.readFileSync(inputPath, 'utf8')); } catch { fail('INVALID_REVIEW_FILE'); }
   const review = createReview(input);
-  let itemSourceBytes;
-  if (review.itemEvidence) {
-    const imagePath = path.join(path.dirname(inputPath), review.itemEvidence.imageFile);
+  const readSource = (evidence, maxBytes, errorCode) => {
+    if (!evidence) return undefined;
+    const imagePath = path.join(path.dirname(inputPath), evidence.imageFile);
     inside(imagePath); noLinks(imagePath);
-    if (!fs.statSync(imagePath).isFile() || fs.statSync(imagePath).size > MAX_ITEM_IMAGE_BYTES) fail('INVALID_ITEM_IMAGE');
-    itemSourceBytes = fs.readFileSync(imagePath);
-  }
-  const wide = await renderReviewCard(input, { itemSourceBytes });
-  const portrait = await renderReviewCard(input, { layout: 'portrait', itemSourceBytes });
+    if (!fs.statSync(imagePath).isFile() || fs.statSync(imagePath).size > maxBytes) fail(errorCode);
+    return fs.readFileSync(imagePath);
+  };
+  const itemSourceBytes = readSource(review.itemEvidence, MAX_ITEM_IMAGE_BYTES, 'INVALID_ITEM_IMAGE');
+  const logoSourceBytes = readSource(review.teamLogoEvidence, MAX_LOGO_IMAGE_BYTES, 'INVALID_LOGO_IMAGE');
+  const wide = await renderReviewCard(input, { itemSourceBytes, logoSourceBytes });
+  const portrait = await renderReviewCard(input, { layout: 'portrait', itemSourceBytes, logoSourceBytes });
   const markdown = renderReviewMarkdown(input);
   fs.mkdirSync(outputDir); // Exclusive new directory; all inputs/rendering were validated first.
   for (const [name, contents] of [['scoreboard-wide.png', wide], ['scoreboard-portrait.png', portrait],
@@ -248,7 +285,8 @@ if (require.main === module) {
     const allowed = ['INVALID_REVIEW_INPUT', 'INVALID_REVIEW_ROSTER', 'REVIEW_PATH_OUTSIDE_EVALS', 'REVIEW_LINK_REJECTED',
       'INVALID_REVIEW_FILE', 'REVIEW_OUTPUT_EXISTS', 'REVIEW_USAGE_REQUIRED', 'ESPORTS_FONT_UNAVAILABLE',
       'INVALID_ITEM_EVIDENCE', 'INVALID_ITEM_ROWS', 'ITEM_PLAYER_MISMATCH', 'INVALID_ITEM_REGION',
-      'INVALID_ITEM_IMAGE', 'ITEM_SOURCE_MISMATCH'];
+      'INVALID_ITEM_IMAGE', 'ITEM_SOURCE_MISMATCH', 'INVALID_LOGO_EVIDENCE', 'LOGO_TEAM_MISMATCH',
+      'INVALID_LOGO_REGION', 'INVALID_LOGO_IMAGE', 'LOGO_SOURCE_MISMATCH'];
     console.log(JSON.stringify({ code: allowed.includes(err.message) ? err.message : 'REVIEW_OUTPUT_FAILED', networkRequests: 0 }));
     process.exitCode = 1;
   });

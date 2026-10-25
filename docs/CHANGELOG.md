@@ -7,6 +7,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Developer tooling
 
+- Added source-pinned team-logo evidence to offline scoreboard previews, with correct-side/aspect-ratio checks,
+  neutral initials for explicitly absent logos, and responsive header spacing. The existing computed gold gap is
+  now visible above the comparison bar. No logo-name search, inference, publication or production changes.
+  Full offline suite: 978/978; focused review/lab: 29/29. Product version remains 1.83.0.
 - Polished offline scoreboard previews with clearer team outcomes, alternating rows, the existing Hengs mascot
   and optional six-slot item rows from explicitly reviewed source-image crops. Exact PNG hash/dimensions and
   roster associations are checked; unknown item names and purchase order are never invented. No automatic

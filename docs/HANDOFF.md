@@ -2,6 +2,32 @@
 
 Updated: 2026-10-25
 
+## Hengs Discord v1.83.0 source-pinned team logo previews (not pushed, not deployed) - 2026-10-25
+
+- Henry requested Falcon/Aurora and other team logos plus further visual improvement. No team-logo assets existed
+  in the repository. Reused the marks visible in his already supplied public scoreboard for this local preview;
+  no new image generation, remote download, inference request, bot action or deployment.
+- Added `scripts/esports-team-logos.js`: optional, operator-reviewed PNG evidence with exact image hash/dimensions
+  and two team-name-bound regions. Uses the existing bounded PNG decoder. Source bytes and team associations
+  cannot silently change. Missing logos use neutral initials; declared but broken sources stop the export.
+- Renderer contains each mark in a light plaque without stretching/recoloring, adjusts name spacing for both
+  layouts, and displays the existing computed gold difference above the comparison bar. Stats and item evidence
+  are unchanged by a JSON comparison against the previous preview. Impeccable polish kept the existing palette/type.
+- Source remains `flcn-rora-user-scoreboard.png`. Logo regions: FLCN (180,42,43,43), RORA (1134,42,43,43).
+  These are match-source marks, not proof of current team branding or permission to redistribute. Source resolution
+  limits sharpness. No team-logo catalogue or name-based lookup exists yet.
+- Ignored input: `.cloud/evals/youtube-observer-2026-10-25/flcn-rora-review-branded.input.json`.
+  Final artifacts: adjacent `flcn-rora-team-logos-final/`, two PNGs plus Markdown/JSON. Prior previews remain intact.
+- QA: 978/978 full offline tests, zero failures/skips; focused review/lab 29/29. Both final layouts visually inspected.
+  Added explicit tests for source/region/team validation, no affiliation claims, missing/change failures, correct
+  side, aspect ratio, one missing logo, and combined logo/item export. Transcript: `team-logos-full-suite.tap`.
+- Security review: no URL or arbitrary file input beyond reviewed local eval PNGs, size/hash checks before decode,
+  no link components, no output on invalid logo input, no secrets read, and untrusted/non-publishable output retained.
+- Next: optional verified higher-resolution team assets and source-correction/acceptance, not automatic Coach trust.
+  Keep provider attempts stopped. No new watcher, external write, import or daily publishing authorized here.
+- Runtime version remains 1.83.0; push/deploy held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add source-pinned team logo previews`.
+
 ## Hengs Discord v1.83.0 source-item scoreboard polish (not pushed, not deployed) - 2026-10-25
 
 - Henry requested better visuals and item visibility, then explicitly authorized code crops from his original

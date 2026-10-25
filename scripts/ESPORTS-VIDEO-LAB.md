@@ -89,6 +89,23 @@ The report retains source hash/regions and `identification: "UNVERIFIED"`. The P
 crops, not the full source image or unrelated faces/account UI. Use only reviewed non-private sources; local
 preview permission does not establish publication or redistribution rights. No provider or runtime is involved.
 
+### Optional team marks
+
+`teamLogoEvidence` is independent of the item evidence and follows the same reviewed-PNG source fields and limits.
+Its `teams` array has two entries, in observation order, each with an exact `teamName` and a `region` rectangle
+(`x`, `y`, `width`, `height`). Regions must be inside the source and 16 through 512 pixels per edge. A `null` region
+means that team's logo is unavailable. Missing evidence uses neutral team initials; it does not invent a logo.
+
+The operator must inspect the source and confirm which mark belongs to which team for that match. Changed names,
+team order or image bytes fail validation. Logos are contained without stretching, recoloring or removing their
+source background. The two optional sources may refer to the same reviewed image. A declared but missing/broken
+logo source fails rather than silently displaying initials; absence must be explicit.
+
+JSON retains `association: "OPERATOR_MARKED"` and `brandVersion: "SOURCE_MATCH_ONLY"`. This is not a verified
+current-logo catalogue, automatic team-name search, official affiliation or publication permission. The example
+uses 43x43 regions from Henry's original scoreboard; enlarged marks are limited by that source resolution.
+No remote logo request, provider inference or brand asset is added to the production bundle.
+
 ## Supervised public-video trial
 
 `esports-video-trial.js` is an operator-only experiment, never a background worker. Importing it does not read

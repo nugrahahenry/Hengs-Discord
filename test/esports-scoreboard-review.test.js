@@ -7,6 +7,7 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { createReview, renderReviewMarkdown, renderReviewCard, writeReviewBundle, DIMENSIONS, ITEM_DIMENSIONS } = require('../scripts/esports-scoreboard-review');
 const { decodeItemSource } = require('../scripts/esports-item-evidence');
+const { decodeLogoSource } = require('../scripts/esports-team-logos');
 
 const fixture = () => ({ evidenceKind: 'manual_transcription', observation: {
   sourceUrl: 'https://www.youtube.com/watch?v=8cDtD3-6Qrc', videoOffsetSeconds: null,
@@ -211,14 +212,91 @@ test('bundle reads only the pinned local item source; a hash mismatch writes no 
   const tmp = fs.mkdtempSync(path.join(evalRoot, 'review-items-test-'));
   t.after(() => { assert.equal(path.dirname(tmp), evalRoot); assert.ok(path.basename(tmp).startsWith('review-items-test-')); fs.rmSync(tmp, { recursive: true, force: true }); });
   const { input, bytes } = itemFixture(); const inputPath = path.join(tmp, 'input.json');
+  input.teamLogoEvidence = { ...input.itemEvidence, teams: input.observation.teams.map((team, index) =>
+    ({ teamName: team.name, region: input.itemEvidence.rows[index][0].slots[0] })) };
   const imagePath = path.join(tmp, 'source.png'); fs.writeFileSync(inputPath, JSON.stringify(input)); fs.writeFileSync(imagePath, bytes);
   const output = path.join(tmp, 'preview');
   await writeReviewBundle(inputPath, output);
   const report = JSON.parse(fs.readFileSync(path.join(output, 'review.json'), 'utf8'));
   assert.equal(report.itemEvidence.identification, 'UNVERIFIED');
+  assert.equal(report.teamLogoEvidence.association, 'OPERATOR_MARKED');
   assert.equal(report.networkRequests, 0);
   input.itemEvidence.imageSha256 = '0'.repeat(64); fs.writeFileSync(inputPath, JSON.stringify(input));
   const bad = path.join(tmp, 'bad');
   await assert.rejects(writeReviewBundle(inputPath, bad), /ITEM_SOURCE_MISMATCH/);
   assert.equal(fs.existsSync(bad), false);
+  input.itemEvidence.imageSha256 = createHash('sha256').update(bytes).digest('hex');
+  input.teamLogoEvidence.imageSha256 = '0'.repeat(64); fs.writeFileSync(inputPath, JSON.stringify(input));
+  await assert.rejects(writeReviewBundle(inputPath, bad), /LOGO_SOURCE_MISMATCH/);
+  assert.equal(fs.existsSync(bad), false);
+});
+
+function logoFixture() {
+  const input = fixture(); const { createCanvas } = require('@napi-rs/canvas');
+  const image = createCanvas(100, 50); const ctx = image.getContext('2d');
+  ctx.fillStyle = 'rgb(60,120,220)'; ctx.fillRect(0, 0, 40, 20);
+  ctx.fillStyle = 'rgb(200,160,80)'; ctx.fillRect(50, 0, 40, 20);
+  const bytes = image.toBuffer('image/png');
+  input.teamLogoEvidence = { kind: 'manual_screenshot_crops', manuallyReviewed: true,
+    imageFile: 'logos.png', imageSha256: createHash('sha256').update(bytes).digest('hex'), width: 100, height: 50,
+    teams: input.observation.teams.map((team, index) => ({ teamName: team.name,
+      region: { x: index * 50, y: 0, width: 40, height: 20 } })) };
+  return { input, bytes };
+}
+
+test('team logos are optional, explicitly paired evidence, never a claim of current branding or affiliation', () => {
+  assert.equal(createReview(fixture()).teamLogoEvidence, null);
+  const { input } = logoFixture(); const original = structuredClone(input);
+  input.teamLogoEvidence.officialSponsor = true;
+  const review = createReview(input);
+  assert.equal(review.teamLogoEvidence.association, 'OPERATOR_MARKED');
+  assert.equal(review.teamLogoEvidence.brandVersion, 'SOURCE_MATCH_ONLY');
+  assert.doesNotMatch(JSON.stringify(review), /officialSponsor/);
+  assert.equal(review.publishable, false); assert.equal(review.trustedForCoach, false);
+  assert.match(renderReviewMarkdown(input), /Bukan klaim logo terbaru/);
+  delete input.teamLogoEvidence.officialSponsor; assert.deepEqual(input, original);
+  input.teamLogoEvidence.teams[1].region = null;
+  assert.equal(createReview(input).teamLogoEvidence.teams[1].region, null);
+});
+
+test('logo manifests reject unsafe sources, mismatched teams and rectangles outside the reviewed image', () => {
+  for (const patch of [{ manuallyReviewed: false }, { imageFile: '../logos.png' },
+    { imageFile: 'https://example.com/logo.png' }, { width: 99999 }, { width: 4096, height: 4096 },
+    { imageSha256: 'wrong' }, { teams: [] }]) {
+    const { input } = logoFixture(); Object.assign(input.teamLogoEvidence, patch);
+    assert.throws(() => createReview(input), /INVALID_LOGO_EVIDENCE/);
+  }
+  const { input } = logoFixture(); input.teamLogoEvidence.teams.reverse();
+  assert.throws(() => createReview(input), /LOGO_TEAM_MISMATCH/);
+  for (const region of [undefined, {}, { x: -1, y: 0, width: 40, height: 20 },
+    { x: 0, y: 0, width: 101, height: 20 }, { x: 0, y: 49, width: 40, height: 20 }]) {
+    const { input } = logoFixture(); input.teamLogoEvidence.teams[0].region = region;
+    assert.throws(() => createReview(input), /INVALID_LOGO_REGION/);
+  }
+});
+
+test('declared logos fail on missing or changed pixels rather than silently falling back to initials', async () => {
+  const { input, bytes } = logoFixture(); const evidence = createReview(input).teamLogoEvidence;
+  await assert.rejects(renderReviewCard(input), /INVALID_LOGO_IMAGE/);
+  await assert.rejects(decodeLogoSource(Buffer.from('invalid'), evidence), /INVALID_LOGO_IMAGE/);
+  await assert.rejects(decodeLogoSource(bytes, { ...evidence, imageSha256: '0'.repeat(64) }), /LOGO_SOURCE_MISMATCH/);
+  await assert.rejects(decodeLogoSource(bytes, { ...evidence, width: 99 }), /LOGO_SOURCE_MISMATCH/);
+});
+
+test('team logo placement preserves source aspect ratio and correct side in both card layouts', async () => {
+  const { input, bytes } = logoFixture(); const { createCanvas, loadImage } = require('@napi-rs/canvas');
+  for (const layout of ['wide', 'portrait']) {
+    const buffer = await renderReviewCard(input, { layout, logoSourceBytes: bytes });
+    const [w, h] = DIMENSIONS[layout]; const canvas = createCanvas(w, h); const ctx = canvas.getContext('2d');
+    ctx.drawImage(await loadImage(buffer), 0, 0);
+    const size = layout === 'wide' ? 82 : 56; const margin = layout === 'wide' ? 80 : 64;
+    const y = layout === 'wide' ? 214 : 224;
+    assert.deepEqual([...ctx.getImageData(margin + size / 2, y + size / 2, 1, 1).data], [60, 120, 220, 255]);
+    assert.deepEqual([...ctx.getImageData(w - margin - size / 2, y + size / 2, 1, 1).data], [200, 160, 80, 255]);
+    // A 2:1 mark is contained, not stretched to fill the square plaque.
+    assert.deepEqual([...ctx.getImageData(margin + size / 2, y + 8, 1, 1).data], [241, 245, 244, 255]);
+  }
+  input.teamLogoEvidence.teams[1].region = null;
+  const mixed = await renderReviewCard(input, { layout: 'portrait', logoSourceBytes: bytes });
+  assert.equal(mixed.readUInt32BE(16), 900);
 });
