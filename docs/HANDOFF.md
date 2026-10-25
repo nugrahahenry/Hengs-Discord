@@ -5,7 +5,8 @@ Updated: 2026-10-25
 ## Hengs Gemini access setup (local only, not connected to runtime) - 2026-10-25
 
 - Henry selected existing Google project LabQ and requested one general-purpose key named exactly Hengs, not a
-  Coach-only credential. The project display name remains LabQ; its displayed tier remains Free tier.
+  Coach-only credential. On 25 October, at Henry's request, its project display name was also changed to Hengs.
+  The same project ID, existing key and local credential remain in use; the displayed tier remains Free tier.
 - The first newly created key was exposed in a tool output because its auth-key format was not handled by the
   initial redaction. With Henry's action-time approval, that key was deleted; the empty LabQ key list was verified
   before one replacement was created. The replacement is named Hengs, and the exposed key name is absent.
@@ -15,11 +16,15 @@ Updated: 2026-10-25
 - Key transferred directly from the approved browser UI into the importer through private stdin, not command-line
   arguments or clipboard. Verification printed only status booleans: valid environment-file format, private ACL,
   ignored by Git, no temporary residue. Access is limited to the current Windows user, SYSTEM and administrators.
-- No billing change, provider request, video analysis, cloud transfer, runtime restart or deployment occurred.
-  Credential-format/storage checks do not prove model access or available quota. The video lab remains offline.
-- Next: verify the selected model's free-tier access and quota, identify a known scoreboard interval, then obtain
-  a bounded trial plan before the first inference. Private scrim/chat data must not enter a public-video trial.
+- The Hengs-selected Rate Limit page shows Free tier: Gemini 2.5 Flash and Gemini 3 Flash each have limits of
+  5 RPM, 250K TPM and 20 RPD; Gemini 2.5 Flash Lite shows 10 RPM, 250K TPM and 20 RPD. Verified 25 October.
+  These are displayed project limits, not a promise of successful authentication or inference; quotas can change.
+- No billing change, model API request, video analysis, cloud transfer, runtime restart or deployment occurred.
+  The video lab remains offline; the stored credential was not opened or changed during the project rename.
+- Next: verify the exact model/API clipping contract, identify a known scoreboard interval, then prepare one
+  capped public-video trial. Private scrim/chat data must not enter that trial; no paid fallback or automatic retry.
 - Setup-only documentation checkpoint; product version remains 1.83.0. Push remains held with the batched work.
+- Rename/quota checkpoint subject: `docs(esports): Hengs Discord v1.83.0 - record project rename and free-tier limits`.
 
 ## Hengs Discord v1.83.0 offline esports video lab (not pushed, not deployed) - 2026-10-25
 
