@@ -2,6 +2,32 @@
 
 Updated: 2026-10-26
 
+## Hall of Fame Double Winner update - 2026-10-26
+
+- Henry confirmed Juara 2 has the same Hengs Family X SYN team, Anti Squad Organizer event,
+  25 October 2026 date and five-player roster as the published Juara 1. He requested updating
+  the existing message, grouping both results as Double Winner, without another mention ping.
+- One exact-message REST PATCH succeeded with HALL_DOUBLE_WINNER_UPDATED_VERIFIED. The caption
+  uses separate placement and roster bullets. One Double Winner poster and both original
+  certificates appear as three embeds. All three uploaded image hashes were independently
+  verified from Discord CDN; both certificates remain 1600x1131 and byte-for-byte unchanged.
+- The five mention tokens remain beside player names. PATCH allowed_mentions explicitly sets
+  parse/users/roles empty and replied_user false. No second message, new role or permission change.
+  Original content and images were verified before editing, a second read checked for concurrent
+  edits, and the original message snapshot plus an exclusive attempt receipt were retained.
+- An initial precondition stopped before PATCH because Discord returns embed-only images outside
+  the attachments array. Read-only evidence confirmed this representation and no edit attempt.
+  Verification now uses each embed image. Exactly one PATCH occurred, with no automatic retry.
+- Temporary remote staging was removed and cleanup verified. Discord remained CONNECTED/OK/fresh
+  on cloud v1.71.0 and WA stayed active. No gateway login, restart, deployment or runtime change.
+- Ignored `.cloud/automation/hall-20261026/` holds the updated poster, original certificates,
+  update plan/operator and verified receipt including the unchanged message URL. The previous
+  publication receipt remains intact. Humanizer guided the concise caption without adding claims.
+- No production code/schema/dependency changes or version bump from this operator. It used the
+  committed v1.84.1 renderer. Separate in-progress status-board/community work is preparing
+  v1.85.0 and is excluded from this documentation-only checkpoint. Push remains held.
+  Subject `docs(handoff): Hengs Discord v1.84.1 - record double winner post update`.
+
 ## Authorized Hall of Fame publication - 2026-10-26
 
 - Henry confirmed one Juara 1 MLBB post for Hengs Family X SYN, Anti Squad Organizer,
@@ -9,7 +35,8 @@ Updated: 2026-10-26
   resolved uniquely and rechecked before sending. The roster uses one bullet and one mention
   per player. No role/everyone mentions or optional MLBB positions were inferred.
 - The local v1.84.1 renderer supplied the poster. Henry's original Juara 1 certificate was
-  attached unchanged. The other Juara 2 certificate was not published. Readback verified five
+  attached unchanged. Juara 2 was not included in that initial publication and was later added
+  by the confirmed Double Winner update above. Initial readback verified five
   mentions, both images, author/content and the original certificate SHA-256.
 - One REST-only operator publication completed with HALL_PUBLISHED_VERIFIED. An exclusive
   attempt marker and receipt prevent accidental reruns. Temporary remote staging was removed
