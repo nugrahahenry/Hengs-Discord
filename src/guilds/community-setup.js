@@ -12,8 +12,9 @@ const CATEGORIES = Object.freeze({
   hengs: { emoji: '🤖', label: 'Hengs', aliases: ['hengs', 'bot center', 'bot'] },
   creator: { emoji: '🎬', label: 'Creator Studio', aliases: ['creator studio', 'creator'] },
   voice: { emoji: '🔊', label: 'Voice', aliases: ['voice', 'voice channels'] },
+  admin: { emoji: '🔒', label: 'Admin', aliases: ['admin', 'private', 'privat', 'staff', 'mod', 'bot admin'] },
 });
-const ORDER = ['lobby', 'komunitas', 'gaming', 'hengs', 'creator', 'voice'];
+const ORDER = ['lobby', 'komunitas', 'gaming', 'hengs', 'creator', 'voice', 'admin'];
 
 // kind: read (members read and react), chat (server defaults), tanya/analis/news/memes/scrim (Hengs' own), voice.
 const PACKAGES = Object.freeze([
@@ -25,6 +26,9 @@ const PACKAGES = Object.freeze([
   { key: 'tim', label: 'Tim scrim', about: 'hasil-scrim, privat Hengs Family', category: 'hengs', channels: [['📸', 'hasil-scrim', 'scrim']] },
   { key: 'creator', label: 'Creator', about: 'live-stream, showcase', category: 'creator', channels: [['🎥', 'live-stream', 'chat'], ['✨', 'showcase', 'chat']] },
   { key: 'voice', label: 'Voice', about: 'Lounge, AFK', category: 'voice', channels: [['🔊', 'Lounge', 'voice'], ['💤', 'AFK', 'voice']] },
+  // Owner channels (2026-10-26): decisions in bot-settings, failure notes in bot-log, online notices and status in bot-status.
+  { key: 'admin', label: 'Admin Hengs', about: 'bot-settings, bot-log, bot-status (privat)', category: 'admin',
+    channels: [['⚙️', 'bot-settings', 'admin'], ['📋', 'bot-log', 'admin'], ['📡', 'bot-status', 'admin']] },
 ]);
 const EXTRAS = Object.freeze({ news: ['📰', 'hengs-news', 'news'], memes: ['😂', 'hengs-memes', 'memes'] });
 
@@ -111,8 +115,9 @@ const TOPICS = Object.freeze({
   scrim: 'Hasil scrim tim, privat untuk Hengs Family. Kirim lewat /scrim hasil atau mention Hengs di sini.',
 });
 
-// Channels only Hengs posts in. An existing one is reused but gets the same permissions a new one would.
-const HENGS_OWNED = Object.freeze(['analis', 'news', 'memes', 'scrim']);
+// Channels only Hengs posts in, plus the owner channels. An existing one is reused but gets the same @everyone and Hengs
+// overwrites a new one would.
+const HENGS_OWNED = Object.freeze(['analis', 'news', 'memes', 'scrim', 'admin']);
 
 // Writes the plan: new categories, new channels with permissions by kind, permissions on reused Hengs channels, then
 // the renames. Each write checks the lease first; a failed write is recorded and skipped, never retried; a lost lease
@@ -135,6 +140,8 @@ async function applyPlan(guild, plan, { assertLease = async () => {}, postChatGu
       return [[everyone, [P.ViewChannel, P.ReadMessageHistory, P.AddReactions],
         [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads]], [me.id, bot, []]];
     }
+    // Owner channels: hidden from members; server admins see them through Administrator.
+    if (kind === 'admin') return [[everyone, [], [P.ViewChannel]], [me.id, bot, []]];
     if (kind !== 'scrim') return [[me.id, bot, []]];
     // The role carries no server permissions; it only opens hasil-scrim. Scrim results must not leak (2026-10-20).
     teamRole = teamRole || await findTeamRole(guild) || await guild.roles.create({ name: ROLE_NAME, permissions: [], mentionable: false,

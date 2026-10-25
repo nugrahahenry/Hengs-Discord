@@ -5,6 +5,28 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.85.0] - 2026-10-26
+
+### Added
+
+- `bot-status`: after every start Hengs posts an online notice with how long it was down, whether the previous run
+  was stopped cleanly or abruptly (from the runtime health snapshot the previous process left), and the new version
+  when it changed. The owner or an Ops editor can write `status`, `status?` or `cek status` there for uptime,
+  connection and ping, the last news and meme, the last Analis check and the failure count since the start.
+- `/admin setup` package **Admin Hengs**: `bot-settings`, `bot-log` and `bot-status` in a private `🔒 Admin`
+  category (hidden from members, open to Hengs). An existing bot-settings is reused; only its `@everyone` and Hengs
+  overwrites are set.
+
+### Changed
+
+- Failure notes (welcome, leave, boost, news, memes, Analis) now go to `bot-log`. The voice auto-rejoin note goes to
+  `bot-status`, its failure to `bot-log`. Without those channels everything still goes to `bot-settings`.
+
+### Verification
+
+- Full offline suite passed 1016/1016 on Node 22.23.3 (0 skipped). Focused status, failure, setup and wizard tests
+  passed 41/41.
+
 ## [1.84.1] - 2026-10-26
 
 ### Fixed

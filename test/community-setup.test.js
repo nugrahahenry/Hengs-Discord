@@ -17,7 +17,7 @@ const inventory = [
 ];
 
 test('the packages match the approved list', () => {
-  assert.deepEqual(PACKAGES.map(p => p.key), ['lobby', 'komunitas', 'gaming', 'hengs', 'tim', 'creator', 'voice']);
+  assert.deepEqual(PACKAGES.map(p => p.key), ['lobby', 'komunitas', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'admin']);
 });
 
 test('a plan reuses categories and channels by slug, puts new channels in their package category and renames nothing', () => {
@@ -170,4 +170,24 @@ test('apply records a hasil-scrim failure when the team role is ambiguous, and c
   const result = await applyPlan(r.guild, plan, { logger: { error() {} } });
   assert.deepEqual(result.failed, ['📸・hasil-scrim']); assert.equal(r.roleMade.length, 0);
   assert.equal(r.created.length, 0);
+});
+
+test('Admin Hengs puts bot-settings, bot-log and bot-status in a private Admin category and reuses what exists', async () => {
+  const items = [...inventory, { id: 'p1', name: '🔒 PRIVATE', type: 4, position: 9 },
+    { id: 's1', name: '⚙️︱bot-settings', type: 0, parentId: 'p1', position: 0 }];
+  const plan = buildPlan({ inventory: items, packages: ['admin'], extras: {}, theme: themeById('dot') });
+  assert.deepEqual(plan.categories.map(c => [c.key, c.id]), [['admin', 'p1']]);
+  assert.deepEqual(plan.channels.map(c => [c.slug, c.id, c.kind]), [['bot-settings', 's1', 'admin'], ['bot-log', null, 'admin'],
+    ['bot-status', null, 'admin']]);
+  const r = guildRig({ items });
+  const result = await applyPlan(r.guild, plan, {});
+  assert.deepEqual(r.created.map(c => [c.name, c.parent]), [['📋・bot-log', 'p1'], ['📡・bot-status', 'p1']]);
+  for (const made of r.created) {
+    assert(made.permissionOverwrites.find(o => o.id === 'g1').deny.includes(P.ViewChannel), made.name);
+    assert(made.permissionOverwrites.find(o => o.id === 'me').allow.includes(P.SendMessages), made.name);
+  }
+  // The existing bot-settings keeps its other overwrites; only @everyone and Hengs are set.
+  assert.deepEqual(result.tightened.map(c => c.id), ['s1']);
+  assert.deepEqual(r.edits.map(([channel, id, bits]) => [channel, id, bits.ViewChannel]), [['s1', 'g1', false], ['s1', 'me', true]]);
+  assert.deepEqual(result.failed, []);
 });

@@ -2,7 +2,10 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.84.0 adds optional PNG/JPEG certificates to appreciation drafts through
+**Current checkpoint:** Hengs Discord v1.85.0 splits the owner channels: failure notes go to `bot-log`, an online
+notice after every start (how long Hengs was down, a tidy or an abrupt stop, a new version) and the `status` reply go
+to `bot-status`, and `bot-settings` keeps only what needs a decision. `/admin setup` gains the **Admin Hengs**
+package. Builds on v1.84.0, which adds optional PNG/JPEG certificates to appreciation drafts through
 a native upload button, with private review and unchanged original bytes on publication. Team names stay literal,
 guidance uses short bullets, and certificates can be replaced or unlinked before publishing. Local checkpoint,
 not a deployment claim. Builds on v1.83.0 - an appreciation for a win that leaves out the tournament, the date or
@@ -45,6 +48,19 @@ situations first. Hengs adds 😂 😐 💀 as real reactions under every meme (
 is one tap; on Hengs memes 😐 counts against in the taste store. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
 game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
+
+Owner channels (home server, v1.85.0):
+- `bot-settings`: what needs your decision (drafts, setup previews, review queues).
+- `bot-log`: failure notes (welcome, leave, boost, news, memes, Analis) with the missing permission named, at most
+  once per 6 hours per failure, and a failed voice auto-rejoin.
+- `bot-status`: after every start Hengs posts how long it was down and whether it was stopped cleanly or abruptly
+  (and a new version when there is one). Write `status`, `status?` or `cek status` there (owner or Ops editor) for
+  uptime, connection and ping, the last news and meme, the last Analis check and the failure count since the start.
+- Without `bot-log` or `bot-status` those notes go to `bot-settings`. Create them with `/admin setup` > **Admin
+  Hengs** (private `🔒 Admin` category; an existing bot-settings is reused), or by hand next to bot-settings with
+  synced permissions.
+- Hengs cannot report while it is down; it reports how long it was gone once it is back. A live down alert needs an
+  outside watcher (a separate feature).
 
 Chat mode (home server, phase 1): mention Hengs in its own `🤖・tanya-hengs` or in `bot-settings` to chat.
 `/admin setup` with the Hengs package creates the channel in the Hengs category (an existing `BOT CENTER` counts),

@@ -2,6 +2,24 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.85.0 bot-log and bot-status (committed locally, not pushed, not deployed) - 2026-10-26
+
+- Henry: everything landed in bot-settings; he wants bot-log for failures (like a missed welcome) and bot-status for
+  "online lagi" notices and asking the bot's status. Spec `docs/superpowers/specs/2026-10-26-hengs-bot-log-status-design.md`,
+  plan `docs/superpowers/plans/2026-10-26-hengs-bot-log-status.md` (both ignored).
+- `findBotChannel(guild, 'log' | 'status')` in `src/utils/failure-report.js` matches by slug and falls back to
+  bot-settings; the reporter posts to bot-log and counts its notes (`reportFailure.count()`).
+- `src/runtime/status-board.js`: `readHealthSnapshot` (read in index.js before `runtimeHealth.start()` overwrites the
+  file), `onlineNotice`, `statusReport`, `handleStatusMessage`. The ready hook posts the notice to bot-status of each
+  home guild; `status` in bot-status is answered before the mention check, for the owner or an Ops editor.
+- `/admin setup` package `admin` (Admin Hengs) creates the three owner channels in `🔒 Admin`; emojis ⚙️ 📋 📡 🔒 are in
+  the bundled twemoji set.
+- QA: full offline suite 1016/1016 on Node 22.23.3, 0 skipped; focused 41/41.
+- After deploy Henry runs `/admin setup` > Admin Hengs (or creates bot-log and bot-status by hand), then writes
+  `status` in bot-status to see it work. The first notice after a graceful service stop says "dimatikan dengan rapi".
+- Next: Liga Tebak v1.86.0 (spec `2026-10-26-hengs-liga-tebak-design.md`, waits for Henry's spec review), then the
+  voice hub with varied rooms. Push held with the batched release.
+
 ## Hall of Fame Double Winner update - 2026-10-26
 
 - Henry confirmed Juara 2 has the same Hengs Family X SYN team, Anti Squad Organizer event,

@@ -24,9 +24,11 @@ const { AttachmentBuilder, escapeMarkdown } = require('discord.js');
 const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
 const { assignMemberRole, buildWelcomeEmbed, findOnboardingChannel } = require('./utils/member-onboarding');
-const { createFailureReporter, findBotSettings, missingPermissions } = require('./utils/failure-report');
-// Failed sends (welcome, leave, boost, news, memes, analyst cards) are reported in bot-settings.
+const { createFailureReporter, findBotChannel, missingPermissions } = require('./utils/failure-report');
+// Failed sends (welcome, leave, boost, news, memes, analyst cards) are reported in bot-log (bot-settings without one).
 const reportFailure = createFailureReporter();
+const { readHealthSnapshot, onlineNotice, statusReport, handleStatusMessage } = require('./runtime/status-board');
+const { isEditor } = require('./ops/permissions');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
@@ -90,6 +92,8 @@ try {
   throw error;
 }
 const runtimeHealth = createRuntimeHealth({ version: packageMetadata.version });
+// Read before start() overwrites it: the online notice in bot-status tells how the last run ended.
+const previousHealth = readHealthSnapshot(runtimeHealth.filePath);
 runtimeHealth.start();
 process.on('exit', () => {
   runtimeHealth.stop();
@@ -234,12 +238,20 @@ async function updateServerStats(guild) {
   }
 }
 
-// ── Kirim status ke channel bot-settings (log/kontrol Hengs) ─────────────────
-async function postBotSettings(guild, content) {
+// ── Owner channels: status notices to bot-status, failures to bot-log (both fall back to bot-settings) ──
+async function postBotChannel(guild, kind, content) {
   try {
-    const ch = findBotSettings(guild);
-    if (ch) await ch.send(content);
-  } catch (e) { console.error('⚠️ postBotSettings error:', e.message); }
+    const ch = findBotChannel(guild, kind);
+    if (ch) await ch.send({ content, allowedMentions: { parse: [] } });
+  } catch { console.error(`[bot-channels] ${kind.toUpperCase()}_POST_FAILED`); }
+}
+
+// What the status reply in bot-status reads; all of it is already in memory or on local disk.
+function statusSources(guild) {
+  const health = runtimeHealth.snapshot();
+  return { version: packageMetadata.version, startedAt: Date.parse(health.processStartedAt), connection: health.connection.status,
+    ping: client.ws.ping, newsRow: newsService.getSettings(guild.id), analisCheck: esportsPages.lastCheck(),
+    failures: reportFailure.count(), logChannel: findBotChannel(guild, 'log') };
 }
 
 // ── Ready ────────────────────────────────────────────────────────────────────
@@ -267,6 +279,13 @@ client.once(Events.ClientReady, async (c) => {
   });
 
   waRecoveryAlerts.start();
+
+  // bot-status: how the last run ended and how long Hengs was gone (owner request, 2026-10-26).
+  const notice = onlineNotice({ previous: previousHealth, version: packageMetadata.version,
+    startedAt: Date.parse(runtimeHealth.snapshot().processStartedAt) });
+  for (const guild of c.guilds.cache.values()) {
+    if (guildAccess.isHome(guild.id)) await postBotChannel(guild, 'status', notice);
+  }
 
   // Update server stats sekali saat bot nyala
   for (const guild of c.guilds.cache.values()) {
@@ -322,10 +341,10 @@ client.once(Events.ClientReady, async (c) => {
         }
       });
       console.log(`🔊 Auto-rejoined voice: ${channel.name}`);
-      await postBotSettings(guild, `🔊 **Auto-rejoin voice**. Hengs balik ke **${channel.name}**, siap nemenin lagi! 💪`);
+      await postBotChannel(guild, 'status', `🔊 **Auto-rejoin voice**. Hengs balik ke **${channel.name}**, siap nemenin lagi! 💪`);
     } catch (e) {
       console.error('⚠️ Auto-rejoin voice gagal:', e.message);
-      await postBotSettings(guild, `⚠️ Gagal auto-rejoin voice **${channel.name}**: \`${e.message}\``);
+      await postBotChannel(guild, 'log', `⚠️ Gagal auto-rejoin voice **${channel.name}**: \`${e.message}\``);
     }
   }
 });
@@ -513,6 +532,13 @@ client.on(Events.MessageCreate, async (msg) => {
   if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
   // Keep the gallery quiet, including administrator mentions. Its pinned guide points to tanya-hengs.
   if (messageScope.kind === 'home' && require('./community-help').isHallGallery(msg.channel)) return;
+  // "status" in bot-status from the owner or an Ops editor, no mention needed (owner request, 2026-10-26).
+  if (messageScope.kind === 'home') {
+    try {
+      if (await handleStatusMessage(msg, { canAsk: m => isEditor({ user: m.author, member: m.member }),
+        report: () => statusReport(statusSources(msg.guild)) })) return;
+    } catch { console.error('[status] STATUS_REPLY_FAILED'); return; }
+  }
   // @everyone, @here and role pings are not a question to Hengs; a reply to Hengs still is.
   if (!msg.mentions.has(client.user, { ignoreEveryone: true, ignoreRoles: true })) return;
   // Home server: Hengs chats in tanya-hengs (or bot-commands) and bot-settings, coaches in hasil-scrim, and only waves

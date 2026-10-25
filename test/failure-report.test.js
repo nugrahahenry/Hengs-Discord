@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { PermissionsBitField, PermissionFlagsBits: P } = require('discord.js');
-const { createFailureReporter, failureNote, findBotSettings, missingPermissions } = require('../src/utils/failure-report');
+const { createFailureReporter, failureNote, findBotChannel, findBotSettings, missingPermissions } = require('../src/utils/failure-report');
 
 function guildWith({ granted = [P.ViewChannel, P.EmbedLinks], settings = true, fail = false } = {}) {
   const notes = [];
@@ -69,4 +69,24 @@ test('welcome, leave and boost handlers report through the one reporter; the wel
   assert.match(source, /reportFailure\(g, \{ feature: 'Ucapan boost'/);
   assert.match(source, /createEsportsService\(\{ guildAccess, reportFailure,/);
   assert.match(source, /countReactions: countMemeReactions \}\), reportFailure \}\);/);
+});
+
+test('failures go to bot-log when it exists, and the reporter counts the notes it sent', async () => {
+  const report = createFailureReporter({ logger: { error() {} } });
+  const { guild, welcome, notes } = guildWith();
+  const logNotes = [];
+  const botLog = { id: '423456789012345680', name: '📋・bot-log', isTextBased: () => true, async send(payload) { logNotes.push(payload); } };
+  guild.channels.cache.set(botLog.id, botLog);
+  assert.equal(findBotChannel(guild, 'log').name, '📋・bot-log');
+  assert.equal(findBotChannel(guild, 'status').name, '⚙️︱bot-settings'); // no bot-status: bot-settings
+  assert.equal(report.count(), 0);
+  assert.equal(await report(guild, { feature: 'Welcome', channel: welcome, who: '<@1>' }), true);
+  assert.equal(logNotes.length, 1); assert.equal(notes.length, 0); assert.equal(report.count(), 1);
+});
+
+test('bot-log and bot-status match by name, decorated or not, and nothing merely similar', () => {
+  const ch = name => ({ id: name, name, isTextBased: () => true });
+  const guild = { channels: { cache: new Map([['a', ch('bot-logs-archive')], ['b', ch('⚙️ bot-settings')], ['c', ch('BOT-STATUS')]]) } };
+  assert.equal(findBotChannel(guild, 'log').name, '⚙️ bot-settings');
+  assert.equal(findBotChannel(guild, 'status').name, 'BOT-STATUS');
 });
