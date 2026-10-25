@@ -5,7 +5,7 @@
 const crypto = require('node:crypto');
 const { wibDate } = require('./card');
 const { record, heroPool, statsOf, tag } = require('./schedule');
-const { shareRight, topGuessers } = require('./predictions');
+const { shareRight } = require('./predictions');
 const { heroes } = require('../scrim/mlbb-heroes.json');
 
 const HERO_NAMES = heroes.map(hero => hero.name);
@@ -50,15 +50,22 @@ function compactData(matches, day, featuredIds) {
 }
 const compactCaption = (matches, day) => `**Jadwal ${dayLabel(day)}**: ${matches.length} laga. Tombol tebakan ada di kartu laga unggulan di bawah.`;
 
-function dayRecapData(matches, day, votesByMatch) {
+// A Liga Tebak standings row: rank, display name (no ping), points and right guesses.
+const standingLine = (row, names) => `${row.rank}. ${names[row.user] || 'Anggota'} · ${row.points} poin (${row.right} benar dari ${row.votes})`;
+
+// hot: the day's Laga Panas ids; tables: [{ event, rows }] of ranked Liga Tebak rows (league.js), shown top 5.
+function dayRecapData(matches, day, votesByMatch, { hot = new Set(), tables = [], names = {} } = {}) {
   const finished = matches.filter(done);
   const s = statsOf(finished);
   const result = m => {
     const share = shareRight(votesByMatch[m.id], m.winner);
     return `${tag(m.teams[0])} ${m.score[0]}-${m.score[1]} ${tag(m.teams[1])}${share.voters ? ` · ${share.share}% nebak bener (${share.voters} orang)` : ''}`;
   };
+  const hotLines = matches.filter(m => hot.has(m.id)).map(m =>
+    `Laga Panas: ${tag(m.teams[0])} vs ${tag(m.teams[1])} (${Object.keys(votesByMatch[m.id] || {}).length} penebak, poin dobel)`);
   const sections = [
-    { heading: 'Hasil', lines: [...finished.map(result), ...matches.filter(m => !done(m)).map(m => `${tag(m.teams[0])} vs ${tag(m.teams[1])} · belum selesai`)] },
+    { heading: 'Hasil', lines: [...finished.map(result), ...matches.filter(m => !done(m)).map(m => `${tag(m.teams[0])} vs ${tag(m.teams[1])} · belum selesai`),
+      ...hotLines] },
     { heading: 'Angka hari ini', lines: [
       s.picks[0] ? `Hero terlaris: ${s.picks[0].name} (${s.picks[0].count} dari ${s.games} game)` : null,
       s.bans[0] ? `Ban terbanyak: ${s.bans[0].name} (${s.bans[0].count} kali)` : null,
@@ -66,18 +73,20 @@ function dayRecapData(matches, day, votesByMatch) {
       s.sides.decided ? `Sisi biru menang ${s.sides.blue}, sisi merah menang ${s.sides.red}` : null,
     ].filter(Boolean) },
     { heading: 'MVP', lines: s.mvps.map(x => `${x.mvp} (${tag(x.match.teams[x.match.winner - 1])})`) },
+    ...tables.map(t => ({ heading: `Klasemen sementara ${t.event}`, lines: t.rows.slice(0, 5).map(row => standingLine(row, names)) })),
   ].filter(section => section.lines.length);
   return { title: `Rekap hari ini · ${leagues(matches)}`, date: dayLabel(day), sections };
 }
 const dayCaption = (matches, day, line = null) => `**Rekap ${dayLabel(day)}**: ${line || `${matches.filter(done)
   .map(m => `${tag(m.teams[m.winner - 1])} menang ${Math.max(...m.score)}-${Math.min(...m.score)}`).join(', ')}.`}`;
 
-function eventRecapData(state, event, votesByMatch, names) {
+// table: the event's ranked Liga Tebak rows (league.js), shown top 10 under the champions.
+function eventRecapData(state, event, { table = [], names = {} } = {}) {
   const { final, matches } = state;
   const s = statsOf(matches, { top: 5 });
   const winner = final.teams[final.winner - 1]; const loser = final.teams[2 - final.winner];
   const game = x => `${tag(x.match.teams[0])} vs ${tag(x.match.teams[1])} game ${x.number} (${x.length})`;
-  const guessers = topGuessers(votesByMatch, matches);
+  const champs = table.filter(row => row.rank === 1).map(row => names[row.user] || 'Anggota');
   return {
     title: `Rekap event · ${event}`, date: dayLabel(new Date(final.startAt + 7 * 3_600_000).toISOString().slice(0, 10)),
     headline: `${winner.name} juara!`,
@@ -90,11 +99,13 @@ function eventRecapData(state, event, votesByMatch, names) {
         s.shortest ? `Game tercepat: ${game(s.shortest)}` : null,
         s.sides.decided ? `Sisi biru menang ${s.sides.blue}, sisi merah menang ${s.sides.red}` : null,
       ].filter(Boolean) },
-      { heading: 'Penebak paling jitu', lines: guessers.map((x, i) => `${i + 1}. ${names[x.user] || 'Anggota'} · ${x.right} benar dari ${x.votes} tebakan`) },
+      { heading: 'Klasemen final Liga Tebak', lines: table.length
+        ? [`Juara Liga Tebak: ${champs.join(' dan ')}`, ...table.slice(0, 10).map(row => standingLine(row, names))] : [] },
     ].filter(section => section.lines.length),
   };
 }
-const eventCaption = (state, event, line = null) => `**${state.final.teams[state.final.winner - 1].name} juara ${event}!** ${line || 'Rekap lengkapnya ada di kartu.'}`;
+const eventCaption = (state, event, line = null, champions = []) => `**${state.final.teams[state.final.winner - 1].name} juara ${event}!** `
+  + `${line || 'Rekap lengkapnya ada di kartu.'}${champions.length ? `\nJuara Liga Tebak: ${champions.join(' dan ')} 🏆` : ''}`;
 
 // The facts a caption may use: exactly the lines on the card.
 function factsOf(data) {

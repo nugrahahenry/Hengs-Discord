@@ -2,7 +2,8 @@
 
 // Hengs Analis: watches Liquipedia pages, posts one card per finished series in #hengs-analis, keeps the card in step
 // with Liquipedia for 72 hours and tells the server owner when a member flags it with ⚠️. On match days it also posts
-// a morning preview per match with member predictions, a night recap and, after the grand final, an event recap.
+// a morning preview per match with member predictions, a night recap and, after the grand final, an event recap. The
+// predictions feed Liga Tebak: points per event, standings in the recaps, and a champion with a role and a card draft.
 const fs = require('node:fs');
 const path = require('node:path');
 const { ChannelType, MessageFlags } = require('discord.js');
@@ -12,10 +13,12 @@ const { parseMatches, matchHash } = require('./wikitext');
 const { renderSeriesCard } = require('./card');
 const { renderPreviewCard, renderListCard } = require('./daily-cards');
 const { draftData, draftable, renderDraftCard } = require('./draft-card');
-const { seriesPayload, guidePayload, previewPayload, listPayload, pageUrl, REACTIONS, isWarning, VOTE_PREFIX } = require('./presentation');
+const { seriesPayload, guidePayload, previewPayload, listPayload, ligaRows, pageUrl, REACTIONS, isWarning, VOTE_PREFIX,
+  LIGA_PREFIX } = require('./presentation');
 const { WATCH, DISCOVER, discoveredEntries } = require('./watch');
 const { wibDay, wibMinutes, previousDay, matchesOf, dayMatches, featured, eventState } = require('./schedule');
-const { voteKey, topGuessers } = require('./predictions');
+const { voteKey } = require('./predictions');
+const { hotMatchIds, pointsFor, standings, champions, rankOf, championCard } = require('./league');
 const { wibTime, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption, dayRecapData, dayCaption,
   eventRecapData, eventCaption, factsOf, analisCard } = require('./daily');
 
@@ -35,7 +38,8 @@ async function defaultBanner() {
 function createEsportsService({ guildAccess, store = createEsportsStore(), liquipedia = createLiquipedia(),
   render = renderSeriesCard, renderPreview = renderPreviewCard, renderList = renderListCard, renderDraft = renderDraftCard,
   now = Date.now, logger = console,
-  watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {}, commentator = null } = {}) {
+  watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {}, commentator = null,
+  draftAppreciation = null } = {}) {
   let client = null; let running = false; let timer = null;
   const watchlist = () => (discover ? [...watch, ...store.discovered()] : watch);
   const leagueOf = page => watchlist().find(w => w.title === page)?.league || '';
@@ -207,17 +211,26 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     if (finished.length < list.length && !late) return;
     store.claimDaily(guild.id, key);
     const votes = store.allVotes(guild.id);
+    // Liga Tebak so far for the day's events (at most two), top 5 by display name, and the day's Laga Panas.
+    const tables = [...new Set(list.map(m => m.event).filter(Boolean))].slice(0, 2)
+      .map(event => ({ event, key: voteKey(event), rows: standings(store.league(guild.id, event)?.users) })).filter(t => t.rows.length);
+    const names = await memberNames(guild, [...new Set(tables.flatMap(t => t.rows.slice(0, 5).map(row => row.user)))]);
+    const hot = hotMatchIds(list.filter(m => m.startAt <= now()), votes);
     await send(guild, channel, 'Rekap harian Analis', key, async () => {
-      const data = dayRecapData(list, day, votes);
-      return listPayload(await renderList(data), `Rekap ${day}`, dayCaption(list, day, await line('day', data, all)));
+      const data = dayRecapData(list, day, votes, { hot, tables, names });
+      return listPayload(await renderList(data), `Rekap ${day}`, dayCaption(list, day, await line('day', data, all)), ligaRows(tables));
     });
   }
 
+  async function fetchMembers(guild, ids) {
+    if (!ids.length) return new Map();
+    const found = await guild.members.fetch({ user: ids });
+    return new Map([...found.values()].map(m => [m.id, m]));
+  }
+
   async function memberNames(guild, ids) {
-    if (!ids.length) return {};
     try {
-      const members = await guild.members.fetch({ user: ids });
-      return Object.fromEntries([...members.values()].map(m => [m.id, cleanName(m.displayName)]));
+      return Object.fromEntries([...(await fetchMembers(guild, ids)).values()].map(m => [m.id, cleanName(m.displayName)]));
     } catch { return {}; }
   }
 
@@ -227,12 +240,82 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     const state = eventState(all, event);
     if (!state.complete || !state.final.startAt || now() - state.final.startAt > POST_WINDOW) return;
     store.claimDaily(guild.id, key);
-    const votes = store.allVotes(guild.id);
-    const names = await memberNames(guild, topGuessers(votes, state.matches).map(x => x.user));
+    const table = standings(store.league(guild.id, event)?.users);
+    const names = await memberNames(guild, table.slice(0, 10).map(row => row.user));
     await send(guild, channel, 'Rekap event Analis', key, async () => {
-      const data = eventRecapData(state, event, votes, names);
-      return listPayload(await renderList(data), `Rekap ${event}`, eventCaption(state, event, await line('event', data, all)));
+      const data = eventRecapData(state, event, { table, names });
+      const winners = champions(table).map(row => names[row.user] || 'Anggota');
+      return listPayload(await renderList(data), `Rekap ${event}`, eventCaption(state, event, await line('event', data, all), winners),
+        ligaRows(table.length ? [{ event, key: voteKey(event) }] : []));
     });
+    await crown(guild, event, table, names);
+  }
+
+  // Liga Tebak: each finished match is scored once, after every match of its WIB day has started (all guesses closed),
+  // so the day's Laga Panas is final. A match that finishes after the 23:30 recap is scored on a later tick.
+  // ponytail: a Liquipedia correction after scoring is not re-scored; recount from the votes while they last if needed.
+  function scoreFinished(guild, all) {
+    const votes = store.allVotes(guild.id);
+    const voted = m => m.finished && m.valid && m.event && m.startAt && Object.keys(votes[m.id] || {}).length;
+    for (const day of new Set(all.filter(voted).map(m => wibDay(m.startAt)))) {
+      const list = dayMatches(all, day);
+      if (list.some(m => m.startAt > now())) continue;
+      const hot = hotMatchIds(list, votes);
+      for (const m of list.filter(voted)) {
+        if (store.league(guild.id, m.event)?.scored?.[m.id]) continue;
+        const weight = hot.has(m.id) ? 2 : 1;
+        store.scoreLeague(guild.id, m.event, m.id, weight, pointsFor(votes[m.id], m.winner, weight));
+      }
+    }
+  }
+
+  // Once per event: the champions get an appreciation draft for the owner to review and the rotating Analis Jitu role.
+  async function crown(guild, event, table, names) {
+    const winners = champions(table);
+    const key = `liga:${event}`;
+    if (!winners.length || store.daily(guild.id, key)) return;
+    store.claimDaily(guild.id, key);
+    let present;
+    try { present = await fetchMembers(guild, winners.map(w => w.user)); } catch {
+      await reportFailure(guild, { feature: 'Juara Liga Tebak', reason: 'data anggota belum kebaca dari Discord, jadi role dan kartu juara dilewati' });
+      return;
+    }
+    const here = winners.filter(w => present.has(w.user));
+    if (here.length < winners.length) {
+      await reportFailure(guild, { feature: 'Juara Liga Tebak',
+        reason: `${winners.length - here.length} juara udah keluar dari server, jadi nggak dapet role dan kartu` });
+    }
+    if (!here.length) return;
+    const card = championCard(event, here, names, wibDay(now()));
+    if (!card) await reportFailure(guild, { feature: 'Kartu juara Liga Tebak', reason: 'nama juaranya nggak bisa dipakai di kartu' });
+    else if (draftAppreciation) {
+      try { await draftAppreciation(guild, card, `liga:${guild.id}:${voteKey(event)}`); } catch {
+        logger.error('[esports] LIGA_DRAFT_FAILED');
+        await reportFailure(guild, { feature: 'Kartu juara Liga Tebak', reason: 'draft kartu apresiasinya belum bisa dibuat' });
+      }
+    }
+    await rotateRole(guild, here.map(w => present.get(w.user)));
+  }
+
+  // Analis Jitu moves to the newest champions: created once (gold, no permissions), taken from the previous holders.
+  async function rotateRole(guild, winners) {
+    try {
+      const roles = await guild.roles.fetch();
+      const role = [...roles.values()].find(r => normalize(r.name) === 'analis jitu')
+        || await guild.roles.create({ name: 'Analis Jitu', color: 0xF1C40F, permissions: [], hoist: false, mentionable: false,
+          reason: 'Hengs Liga Tebak: role juara bergilir' });
+      if (!role.editable) throw new Error('LIGA_ROLE_ABOVE_HENGS');
+      const keep = new Set(winners.map(m => m.id));
+      for (const id of (store.leagueRole(guild.id)?.holders || []).filter(id => !keep.has(id))) {
+        try { await (await guild.members.fetch(id)).roles.remove(role, 'Liga Tebak: juara baru'); } catch { /* left or already removed */ }
+      }
+      for (const member of winners) await member.roles.add(role, 'Liga Tebak: juara event');
+      store.setLeagueRole(guild.id, { roleId: role.id, holders: [...keep] });
+    } catch {
+      logger.error('[esports] LIGA_ROLE_FAILED');
+      await reportFailure(guild, { feature: 'Role Analis Jitu',
+        reason: 'Hengs butuh izin Manage Roles, dan role Hengs Bot harus ada di atas Analis Jitu (Server Settings > Roles)' });
+    }
   }
 
   // An Analis question from #tanya-hengs, answered from the cached pages only (no Liquipedia request).
@@ -249,6 +332,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
   async function daily(guild, channel, pages) {
     const all = matchesOf(pages, watchlist());
     if (!all.length) return;
+    scoreFinished(guild, all);
     const day = wibDay(now());
     const today = dayMatches(all, day);
     if (wibMinutes(now()) >= PREVIEW_AT && today.length) await previews(guild, channel, all, today, day);
@@ -269,6 +353,24 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     store.vote(interaction.guildId, match.id, interaction.user.id, Number(team), match.event);
     await reply(`Tebakanmu: ${match.teams[Number(team) - 1].name}. Bisa diganti sampai ${wibTime(match.startAt)} WIB.`);
     return true;
+  }
+
+  // "Lihat posisiku" under a recap: the member's Liga Tebak rank for that event, privately.
+  async function handleLiga(interaction, key) {
+    const reply = content => interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+    const home = interaction.guildId && guildAccess?.classify(interaction.guildId)?.kind === 'home';
+    const event = home ? Object.keys(store.leagues(interaction.guildId)).find(e => voteKey(e) === key) : null;
+    if (!event) { await reply('Tombol klasemen ini udah nggak berlaku.'); return true; }
+    const { rank, of, entry } = rankOf(store.league(interaction.guildId, event).users, interaction.user.id);
+    await reply(rank
+      ? `Kamu peringkat ${rank} dari ${of} di ${event} · ${entry.points} poin · ${entry.right} benar dari ${entry.votes} tebakan`
+      : `Kamu belum masuk klasemen ${event}: nebak minimal 3 laga dulu ya.${entry ? ` Sejauh ini ${entry.votes} tebakan kehitung.` : ''}`);
+    return true;
+  }
+
+  async function handleButton(interaction) {
+    const id = String(interaction.customId || '');
+    return id.startsWith(LIGA_PREFIX) ? handleLiga(interaction, id.slice(LIGA_PREFIX.length)) : handleVote(interaction);
   }
 
   async function tick() {
@@ -303,11 +405,19 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     } finally { running = false; }
   }
 
-  // Posts and pins the guide unless the last one is still there. Used by /admin setup.
+  // Posts and pins the guide unless the last one is still there; a guide that is still there gets the current text (new
+  // sections such as Liga Tebak reach the pin on the next /admin setup). Used by /admin setup.
   async function ensureGuide(channel) {
     const known = store.guide(channel.guildId);
     if (known) {
-      try { await channel.messages.fetch({ message: known, force: true }); return { exists: true }; } catch { /* gone: post again */ }
+      let message = null;
+      try { message = await channel.messages.fetch({ message: known, force: true }); } catch { /* gone: post again */ }
+      if (message) {
+        try { await message.edit(guidePayload({ banner: await loadBanner() })); return { exists: true, updated: true }; } catch {
+          logger.error('[esports] ESPORTS_GUIDE_EDIT_FAILED');
+          return { exists: true, updated: false };
+        }
+      }
     }
     const message = await channel.send(guidePayload({ banner: await loadBanner() }));
     store.setGuide(channel.guildId, message.id);
@@ -325,7 +435,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
       timer = setInterval(() => { void tick(); }, 5 * MIN); timer.unref?.();
       setTimeout(() => { void tick(); }, MIN).unref?.();
     },
-    tick, ensureGuide, handleVote, answer,
+    tick, ensureGuide, handleButton, answer,
   };
 }
 

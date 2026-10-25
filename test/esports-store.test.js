@@ -72,3 +72,25 @@ test('daily claims are written once, votes keep the latest choice, and both are 
   assert.deepEqual(store.discovered().map(w => w.title), ['M8 World Championship/Wildcard']);
   assert.equal(store.lastDiscovery(), time);
 });
+
+test('Liga Tebak points are scored once per match, outlive the votes, and go a year after the last change', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-esports-liga-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  let time = Date.UTC(2026, 10, 4);
+  const store = createEsportsStore({ filePath: path.join(dir, 'state.json'), now: () => time });
+  const add = { u1: { points: 2, right: 1, votes: 1, hot: 1 }, u2: { points: 0, right: 0, votes: 1, hot: 0 } };
+  assert.equal(store.scoreLeague('g', 'E', 'm1', 2, add), true);
+  assert.equal(store.scoreLeague('g', 'E', 'm1', 2, add), false); // the same match never counts twice
+  store.scoreLeague('g', 'E', 'm2', 1, { u1: { points: 1, right: 1, votes: 1, hot: 0 } });
+  assert.deepEqual(store.league('g', 'E'), { users: { u1: { points: 3, right: 2, votes: 2, hot: 1 }, u2: { points: 0, right: 0, votes: 1, hot: 0 } },
+    scored: { m1: 2, m2: 1 }, at: time });
+  assert.deepEqual(Object.keys(store.leagues('g')), ['E']); assert.equal(store.league('g', 'F'), null);
+  store.vote('g', 'm1', 'u1', 1, 'E'); store.claimDaily('g', 'event:E');
+  time += 8 * 86_400_000; store.vote('g', 'm9', 'u9', 1, 'F');
+  assert.deepEqual(store.votes('g', 'm1'), {}); // votes of E are gone 7 days after its recap
+  assert.equal(store.league('g', 'E').users.u1.points, 3); // the points stay
+  store.setLeagueRole('g', { roleId: 'r1', holders: ['u1'] });
+  assert.deepEqual(createEsportsStore({ filePath: store.filePath }).leagueRole('g'), { roleId: 'r1', holders: ['u1'] });
+  time += 401 * 86_400_000; store.vote('g', 'm10', 'u10', 1, 'F');
+  assert.equal(store.league('g', 'E'), null);
+});

@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const d = require('../src/esports/daily');
+const { standings } = require('../src/esports/league');
 
 const HOUR = 3_600_000;
 const T = (key, ticker) => ({ key, name: key.toUpperCase(), ticker });
@@ -41,16 +42,20 @@ test('night recap data lists results with vote shares, unfinished matches and th
   assert.equal(d.dayCaption([a, b], '2026-11-04'), '**Rekap Rabu, 4 Nov 2026**: ONIC menang 2-0.');
 });
 
-test('event recap data names the champion, the final, top heroes and the top guessers by display name', () => {
+test('event recap data names the champion, the final, top heroes and the Liga Tebak table by display name', () => {
   const games = [match('a', [ONIC, RRQ], START, [1, 1]), match('b', [EVOS, RRQ], START + 3 * HOUR, [1, 1]),
     match('f', [ONIC, EVOS], START + 50 * HOUR, [2, 1, 2], { mvp: 'Branz' })];
   const state = { complete: true, matches: games, final: games[2] };
-  const votes = { a: { u1: 1, u2: 2 }, b: { u1: 1, u2: 1 }, f: { u1: 2, u2: 1 } };
-  const data = d.eventRecapData(state, 'MPL ID S18 Playoffs', votes, { u1: 'Henry' });
+  const table = standings({ u1: { points: 5, right: 3, votes: 3, hot: 2 }, u2: { points: 1, right: 1, votes: 3, hot: 0 } });
+  const data = d.eventRecapData(state, 'MPL ID S18 Playoffs', { table, names: { u1: 'Henry' } });
   assert.equal(data.headline, 'EVOS juara!');
   assert.equal(data.subline, 'Final: ONIC 1-2 EVOS · runner-up ONIC · MVP final Branz');
-  assert.deepEqual(data.sections.at(-1), { heading: 'Penebak paling jitu', lines: ['1. Henry · 3 benar dari 3 tebakan', '2. Anggota · 1 benar dari 3 tebakan'] });
+  assert.deepEqual(data.sections.at(-1), { heading: 'Klasemen final Liga Tebak',
+    lines: ['Juara Liga Tebak: Henry', '1. Henry · 5 poin (3 benar dari 3)', '2. Anggota · 1 poin (1 benar dari 3)'] });
+  assert.equal(d.eventRecapData(state, 'MPL ID S18 Playoffs').sections.length, 1); // no table: no Liga section
   assert.equal(d.eventCaption(state, 'MPL ID S18 Playoffs'), '**EVOS juara MPL ID S18 Playoffs!** Rekap lengkapnya ada di kartu.');
+  assert.equal(d.eventCaption(state, 'MPL ID S18 Playoffs', null, ['Henry', 'Dara']),
+    '**EVOS juara MPL ID S18 Playoffs!** Rekap lengkapnya ada di kartu.\nJuara Liga Tebak: Henry dan Dara 🏆');
   assert.equal(d.cleanName('🔥 Henry ✨'), 'Henry');
   for (const text of [JSON.stringify(data), d.dayCaption(games, '2026-11-04')]) assert.doesNotMatch(text, /[\u2013\u2014]/);
 });
@@ -79,4 +84,17 @@ test('fact cards list exactly what the card shows, and the Analis card covers 7 
   assert.match(asked, /Hero yang ditanya:\nLancelot: dipick 2 kali \(menang 2\), diban 0 kali dalam 7 hari terakhir\nFanny: dipick 0 kali \(menang 0\), diban 2 kali/);
   assert.doesNotMatch(card, /Hero yang ditanya/);
   assert.equal(d.analisCard([], now), '');
+});
+
+test('the night recap marks the Laga Panas and shows the Liga Tebak standings so far, top 5', () => {
+  const a = match('a', [ONIC, RRQ], START, [1, 1]);
+  const votes = { a: { u1: 1, u2: 2, u3: 1, u4: 1 } };
+  const rows = standings(Object.fromEntries(['u1', 'u2', 'u3', 'u4', 'u5', 'u6'].map((u, i) => [u, { points: 10 - i, right: 3, votes: 3, hot: 0 }])));
+  const data = d.dayRecapData([a], '2026-11-04', votes, { hot: new Set(['a']), tables: [{ event: 'MPL ID S18 Playoffs', key: 'k', rows }],
+    names: { u1: 'Henry' } });
+  assert.deepEqual(data.sections[0].lines, ['ONIC 2-0 RRQ · 75% nebak bener (4 orang)', 'Laga Panas: ONIC vs RRQ (4 penebak, poin dobel)']);
+  const table = data.sections.at(-1);
+  assert.equal(table.heading, 'Klasemen sementara MPL ID S18 Playoffs');
+  assert.deepEqual(table.lines, ['1. Henry · 10 poin (3 benar dari 3)', '2. Anggota · 9 poin (3 benar dari 3)', '3. Anggota · 8 poin (3 benar dari 3)',
+    '4. Anggota · 7 poin (3 benar dari 3)', '5. Anggota · 6 poin (3 benar dari 3)']);
 });

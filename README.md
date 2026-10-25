@@ -2,7 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.85.0 splits the owner channels: failure notes go to `bot-log`, an online
+**Current checkpoint:** Hengs Discord v1.86.0 Liga Tebak: the match-day guesses become a league per event. A right
+guess is 1 point, the day's Laga Panas (the voted match with the most voters, at least 3) is 2; members are ranked
+from 3 guesses. Every night recap shows the standings so far with a private **Lihat posisiku** button; the event
+recap shows the final table, and the champion gets an appreciation draft in bot-settings plus the rotating
+**Analis Jitu** role. The pinned Analis guide explains it (an existing guide is updated by `/admin setup`). Builds on
+v1.85.0, which splits the owner channels: failure notes go to `bot-log`, an online
 notice after every start (how long Hengs was down, a tidy or an abrupt stop, a new version) and the `status` reply go
 to `bot-status`, and `bot-settings` keeps only what needs a decision. `/admin setup` gains the **Admin Hengs**
 package. Builds on v1.84.0, which adds optional PNG/JPEG certificates to appreciation drafts through

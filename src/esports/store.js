@@ -1,23 +1,27 @@
 'use strict';
 
 // Hengs Analis state: the last parsed Liquipedia pages and, per guild, which series cards were claimed or sent, plus
-// the match-day claims (previews, recaps), member predictions and discovered stage pages. A claim is written before the
-// Discord send, so an uncertain send is never repeated.
+// the match-day claims (previews, recaps), member predictions, the Liga Tebak points and discovered stage pages. A claim
+// is written before the Discord send, so an uncertain send is never repeated.
 // ponytail: one small JSON file rewritten per change; fine for a few cards a day.
 const fs = require('node:fs');
 const path = require('node:path');
 
 const KEEP_MS = 30 * 86_400_000;
 const VOTE_KEEP_MS = 7 * 86_400_000;
+const LEAGUE_KEEP_MS = 400 * 86_400_000;
 
 function createEsportsStore({ filePath = path.join(__dirname, '..', '..', 'data', 'esports-state.json'), now = Date.now,
   fsImpl = fs } = {}) {
   function read() {
     try {
       const data = JSON.parse(fsImpl.readFileSync(filePath, 'utf8'));
-      if (data?.version === 1 && data.pages && data.guilds) return { guides: {}, daily: {}, votes: {}, discovered: [], lastDiscovery: 0, ...data };
+      if (data?.version === 1 && data.pages && data.guilds) {
+        return { guides: {}, daily: {}, votes: {}, league: {}, leagueRole: {}, discovered: [], lastDiscovery: 0, ...data };
+      }
     } catch { /* missing or broken: start empty */ }
-    return { version: 1, pages: {}, lastCheck: 0, guilds: {}, guides: {}, daily: {}, votes: {}, discovered: [], lastDiscovery: 0 };
+    return { version: 1, pages: {}, lastCheck: 0, guilds: {}, guides: {}, daily: {}, votes: {}, league: {}, leagueRole: {}, discovered: [],
+      lastDiscovery: 0 };
   }
   function write(state) {
     for (const posts of Object.values(state.guilds)) {
@@ -32,6 +36,10 @@ function createEsportsStore({ filePath = path.join(__dirname, '..', '..', 'data'
         const recap = entry.event && state.daily[guildId]?.[`event:${entry.event}`];
         if ((recap && now() - recap.at > VOTE_KEEP_MS) || now() - entry.at > KEEP_MS) delete matches[id];
       }
+    }
+    // Liga Tebak points outlive the votes: a ledger goes about a year after its last change.
+    for (const events of Object.values(state.league)) {
+      for (const [event, ledger] of Object.entries(events)) if (now() - ledger.at > LEAGUE_KEEP_MS) delete events[event];
     }
     const temp = `${filePath}.${process.pid}.tmp`;
     fsImpl.writeFileSync(temp, JSON.stringify(state), { mode: 0o600 });
@@ -93,6 +101,28 @@ function createEsportsStore({ filePath = path.join(__dirname, '..', '..', 'data'
     },
     votes: (guildId, matchId) => read().votes[guildId]?.[matchId]?.users || {},
     allVotes: guildId => Object.fromEntries(Object.entries(read().votes[guildId] || {}).map(([id, entry]) => [id, entry.users])),
+    // Adds one finished match to an event's ledger; false when that match was already counted.
+    scoreLeague(guildId, event, matchId, weight, increments) {
+      const state = read();
+      const events = state.league[guildId] || (state.league[guildId] = {});
+      const ledger = events[event] || (events[event] = { users: {}, scored: {}, at: now() });
+      if (ledger.scored[matchId]) return false;
+      for (const [user, add] of Object.entries(increments)) {
+        const row = ledger.users[user] || (ledger.users[user] = { points: 0, right: 0, votes: 0, hot: 0 });
+        for (const key of Object.keys(row)) row[key] += add[key] || 0;
+      }
+      ledger.scored[matchId] = weight; ledger.at = now();
+      write(state);
+      return true;
+    },
+    league: (guildId, event) => read().league[guildId]?.[event] || null,
+    leagues: guildId => read().league[guildId] || {},
+    leagueRole: guildId => read().leagueRole[guildId] || null,
+    setLeagueRole(guildId, value) {
+      const state = read();
+      state.leagueRole[guildId] = value;
+      write(state);
+    },
     discovered: () => read().discovered,
     lastDiscovery: () => read().lastDiscovery || 0,
     saveDiscovered(entries, at) {

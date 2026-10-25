@@ -129,11 +129,12 @@ test('a failed send is recorded and never retried', async t => {
   assert.equal(r.sent.length, 0);
 });
 
-test('the guide is posted and pinned once, and posted again only when it is gone', async t => {
+test('the guide is posted and pinned once, updated in place while it exists, and posted again only when it is gone', async t => {
   const r = rig(t, WIKI);
   assert.deepEqual(await r.service.ensureGuide(r.channel), { posted: true, pinned: true });
   assert.equal(r.sent.length, 1); assert.match(JSON.stringify(r.sent[0].components), /Hengs Analis/); assert.equal(r.pins.length, 1);
-  assert.deepEqual(await r.service.ensureGuide(r.channel), { exists: true });
+  assert.deepEqual(await r.service.ensureGuide(r.channel), { exists: true, updated: true });
+  assert.equal(r.sent.length, 1); assert.match(JSON.stringify(r.edits.at(-1).components), /Liga Tebak/);
   r.messages.clear();
   assert.deepEqual(await r.service.ensureGuide(r.channel), { posted: true, pinned: true });
   assert.equal(r.sent.length, 2);

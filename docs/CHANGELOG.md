@@ -5,6 +5,32 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.86.0] - 2026-10-26
+
+### Added
+
+- Liga Tebak: the match-day guesses become a league per event. A right guess is 1 point; the day's Laga Panas (the
+  voted match with the most voters, at least 3, ties included) is 2. Members are ranked from 3 guesses, by points, then
+  accuracy, then guesses; equal members share the rank. Each match is scored once, after every match of its WIB day
+  has started, so a late match is still counted on a later tick.
+- The night recap shows the Laga Panas and the standings so far (top 5); the event recap shows the final table
+  (top 10) and the champions. Both carry a **Lihat posisiku** button with a private rank reply.
+- The champions get one appreciation draft in bot-settings (owner review, same form as any appreciation) and the
+  rotating **Analis Jitu** role (created once, gold, no permissions, taken from the previous holders). A role Hengs
+  cannot manage, a champion who left the server, or a failed draft is reported once, never retried.
+- The points live in their own ledger (`src/esports/league.js` rules, store ledger kept about a year), so the
+  7-day vote cleanup never removes them.
+
+### Changed
+
+- The pinned Analis guide explains Liga Tebak; `/admin setup` now updates an existing guide in place.
+- The event recap's "Penebak paling jitu" list is replaced by the Liga Tebak table (`topGuessers` removed).
+- The Analis button route is `handleButton` (votes and Lihat posisiku).
+
+### Verification
+
+- Full offline suite passed 1029/1029 on Node 22.23.3 (0 skipped). Esports tests 44/44, guide and setup tests 34/34.
+
 ## [1.85.0] - 2026-10-26
 
 ### Added

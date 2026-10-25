@@ -2,6 +2,24 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.86.0 Liga Tebak (committed locally, not pushed, not deployed) - 2026-10-26
+
+- Henry chose "Seru pas MPL & M8": league per event (not weekly), Laga Panas as a double-points bonus (not a filter),
+  standings in every night recap, champion card plus rotating role. Spec
+  `docs/superpowers/specs/2026-10-26-hengs-liga-tebak-design.md`, plan `docs/superpowers/plans/2026-10-26-hengs-liga-tebak.md`
+  (both ignored).
+- `src/esports/league.js` (pure rules) and the store ledger (`scoreLeague`, `league`, `leagues`, `leagueRole`,
+  `setLeagueRole`; ledgers dropped 400 days after the last change). `scoreFinished` runs first in every daily tick.
+- `crown` runs after the event recap under the daily claim `liga:<event>`: draft through `draftAppreciation` (wired
+  in index.js to `opsHub.createDraftPanel` + `buildAppreciationDraft`, externalId `liga:<guild>:<voteKey(event)>`),
+  then `rotateRole`. Failures go through `reportFailure` (bot-log since v1.85.0).
+- Ceiling (`ponytail:` comment in service.js): a Liquipedia correction after a match was scored is not re-scored.
+- QA: full offline suite 1029/1029 on Node 22.23.3, 0 skipped. A sample night recap card with the Liga section was
+  rendered and checked (scratch, not committed).
+- After deploy: run `/admin setup` > Hengs to refresh the pinned Analis guide with the Liga Tebak section. The role
+  needs Manage Roles with the Hengs Bot role above Analis Jitu; otherwise bot-log says so after the first event.
+- First real use: MPL ID S18 playoffs (4-8 Nov) if the batch is deployed before 3 Nov.
+
 ## Hengs Discord v1.85.0 bot-log and bot-status (committed locally, not pushed, not deployed) - 2026-10-26
 
 - Henry: everything landed in bot-settings; he wants bot-log for failures (like a missed welcome) and bot-status for

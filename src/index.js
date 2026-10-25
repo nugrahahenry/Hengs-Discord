@@ -123,7 +123,11 @@ newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ 
 // Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only). The caster writes captions and
 // answers from Hengs' own numbers; without a Groq client the templates stay.
 const esportsService = createEsportsService({ guildAccess, reportFailure,
-  commentator: createCommentator({ complete: createCasterCompletion({ client: agent.groq, model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b' }) }) });
+  commentator: createCommentator({ complete: createCasterCompletion({ client: agent.groq, model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b' }) }),
+  // Liga Tebak champions: an appreciation draft in bot-settings for the owner to review (same form as any appreciation).
+  draftAppreciation: (guild, data, externalId) => opsHub.createDraftPanel(guild, {
+    ...require('./ops/appreciation').buildAppreciationDraft(data), kind: 'announcement', source: 'discord',
+    createdBy: client.user?.id || null, externalId }) });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
@@ -790,8 +794,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-analis:')) {
-    try { await esportsService.handleVote(interaction); }
-    catch { console.error('[esports] VOTE_FAILED'); }
+    try { await esportsService.handleButton(interaction); }
+    catch { console.error('[esports] BUTTON_FAILED'); }
     return;
   }
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-share:')) {
