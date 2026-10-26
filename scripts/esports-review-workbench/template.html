@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<title>Hengs Coach | Review scoreboard</title>
+<style>__STYLE__</style>
+</head>
+<body>
+<!-- THESIS: Extend the offline checklist with evidence beside each decision, not a metrics dashboard.
+OWN-WORLD: Inherit Hengs Analis navy, cool text, cyan selection and gold caution. Quiet system UI, no decorative scene.
+STORY: Choose a game, compare one field to its source, explicitly confirm, download decisions for later validation.
+FIRST VIEWPORT: Source image and magnified evidence on the left, field navigator and editor on the right. Download in header.
+FORM: Precisely scoped checklist extension, code-led. Selecting a field moves the evidence marker without animation.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->
+<a class="skip" href="#editor">Langsung ke kolom review</a>
+<header>
+  <div><h1>Hengs Coach <span>Review scoreboard</span></h1><p>Cocokkan bacaan awal dengan screenshot. Kamu yang menentukan hasilnya.</p></div>
+  <div class="file-actions"><button id="import">Buka review</button><button id="download" class="primary">Unduh sampel 1</button></div>
+  <input id="file" type="file" accept=".json,application/json" hidden>
+</header>
+<main>
+  <nav class="gamebar" aria-label="Pilih screenshot"><div id="games"></div><span class="offline">Lokal saja · Tidak terhubung ke bot</span></nav>
+  <div id="notice" class="notice" role="status" aria-live="polite">Memuat lembar pemeriksaan lokal.</div>
+  <div class="workspace">
+    <section class="evidence" aria-labelledby="source-heading">
+      <div class="section-heading"><h2 id="source-heading">Screenshot sumber</h2><a id="source-link" target="_blank" rel="noopener noreferrer">Buka waktu di YouTube</a></div>
+      <p id="source-caption" class="muted"></p>
+      <div class="scene"><img id="source-image" alt="Scoreboard pertandingan yang sedang diperiksa"><div id="highlight" aria-hidden="true"></div></div>
+      <div id="desktop-evidence"><div id="crop-block">
+        <div class="section-heading crop-heading"><h3>Area yang sedang diperiksa</h3><span id="crop-label" class="muted"></span></div>
+        <div class="crop"><canvas id="crop" aria-label="Pembesaran area bukti dari screenshot"></canvas></div>
+        <p class="tip">Kalau tulisannya masih samar, lewati dulu. Jangan isi berdasarkan perkiraan atau game lain.</p>
+      </div></div>
+      <details class="boundary"><summary>Apa yang disimpan?</summary><p>File review hanya berisi keputusan yang sudah dikonfirmasi, posisi bukti pada screenshot, dan sidik sumber. Bacaan OCR asli tidak diubah. Tidak ada unggahan, penyimpanan otomatis, atau impor ke pengetahuan Coach.</p><p>Unduh review sebelum menutup halaman. Buka lagi file itu untuk melanjutkan. Hasil lengkap tetap perlu pemeriksaan konsistensi melalui validator lokal.</p></details>
+    </section>
+    <section class="review" aria-labelledby="review-heading">
+      <div class="section-heading"><h2 id="review-heading">Periksa data</h2><span id="progress"></span></div>
+      <label for="group" class="control-label">Bagian scoreboard</label><select id="group"></select>
+      <div id="fields" class="fields" aria-label="Kolom pada bagian ini"></div>
+      <form id="editor" tabindex="-1" novalidate>
+        <div id="editor-evidence"></div>
+        <div class="field-heading"><label id="value-label" for="value"></label><span id="field-status" class="tag"></span></div>
+        <p class="original">Bacaan awal <strong id="original"></strong></p>
+        <input id="value" type="text" autocomplete="off" spellcheck="false" maxlength="80" aria-describedby="value-help field-error">
+        <p id="value-help" class="muted"></p>
+        <p id="field-error" role="alert"></p>
+        <button id="confirm" type="submit" class="primary">Konfirmasi &amp; lanjut</button>
+        <div class="secondary-actions"><button id="previous" type="button">Sebelumnya</button><button id="skip" type="button">Lewati</button><button id="reset" type="button">Reset kolom</button></div>
+      </form>
+      <p id="review-note" class="review-note" aria-live="polite"></p>
+    </section>
+  </div>
+</main>
+<footer>Review bukan hasil OCR baru, bukan izin publikasi, dan bukan tanda Coach sudah mempelajari pertandingan ini.</footer>
+<noscript>Aktifkan JavaScript untuk memeriksa data di halaman lokal ini. Tidak ada data yang dikirim ke internet.</noscript>
+<script>__SCRIPT__</script>
+</body>
+</html>

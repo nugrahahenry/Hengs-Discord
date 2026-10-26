@@ -121,6 +121,12 @@ and arithmetic conflicts still block completion after all fields are reviewed. R
 attestations, not verified human identities. Callers must verify actual image bytes and dimensions before
 using the helper. It performs no I/O or publication, never promotes trust, and does not change OCR accuracy.
 
+For a clickable offline review, use `scripts/esports-review-workbench.js`. It builds one self-contained
+HTML file with screenshot evidence, per-field confirmation, and partial review download/resume. Source
+bytes and dimensions are checked before embedding. Original OCR stays unchanged and no bot connection
+or automatic upload exists. Run its Node validator after review, since confirming every field does not
+resolve arithmetic conflicts. See the [local workbench guide](scripts/esports-review-workbench/README.md).
+
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are

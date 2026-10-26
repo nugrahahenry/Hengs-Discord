@@ -2,6 +2,41 @@
 
 Updated: 2026-10-27
 
+## Hengs Discord v1.87.2 offline scoreboard review workbench - 2026-10-27
+
+- Continued the offline checklist as a clickable, self-contained HTML workbench. No new backend, database,
+  provider call, bot connection, scheduler, model training, trusted-memory ingestion or deployment.
+- `scripts/esports-review-workbench.js` builds from an explicit local manifest and validates downloaded
+  decisions. JPEG/PNG source hashes and encoded dimensions are checked before decoding. Paths remain
+  inside the manifest directory. Inputs are bounded, outputs are exclusive-create, HTML is CSP-restricted,
+  all images are embedded and no automatic browser storage or upload exists. Script bytes normalize to LF
+  before hashing so Windows CRLF checkouts do not break the generated page.
+- UI sources and public guide live in `scripts/esports-review-workbench/`. Selecting a field highlights
+  its source rectangle and shows a crop. On mobile that crop moves next to the editor. Every confirmation
+  is explicit. Draft edits are excluded from export, originals remain separate, partial reviews can resume,
+  stale/wrong-source imports fail atomically, and each download explicitly names its selected sample.
+- Shared dependency-free `scripts/esports-scoreboard-fields.js` preserves the existing 59-field validation
+  contract for browser and Node. The Node checklist remains authoritative for arithmetic/identity checks.
+  A full UI review is still not consistency acceptance, trust promotion, publication or new OCR accuracy.
+- Local artifact `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-workbench-v2.html` embeds five frozen
+  result frames. Manifest, operator examples, browser evidence and visual record stay ignored alongside it.
+  Game 1 prior operator decisions still complete locally. Game 5 still blocks on the known 590-gold mismatch.
+  Games 2-4 remain pending. Original benchmark is unchanged at 219/295 (74.2%).
+- Verification: full Node 22 suite 1083/1083, zero skips. Focused checklist/workbench 19/19, including
+  source integrity, bounded import, unchanged originals, caller-attested reviewer kind, shared rules,
+  oversized encoded image rejection and CRLF/CSP compatibility. Desktop 1440 and mobile 390 browser QA
+  passed confirm/download/import, canonical validation, stale rejection, keyboard use, draft retention,
+  zero overflow, zero browser errors and zero HTTP requests. The design detector was degraded (optional
+  parsers absent), with only a dynamic image-src warning; loaded images were verified in the browser.
+- Independent design review requested two fixes, mobile evidence proximity and selected-sample download
+  labels. Both were scored resolved in the verdict pass. No new spec/plan created; unrelated active specs
+  were preserved. Product version stays v1.87.2 because this is offline tooling, not a live bot feature.
+- Concurrent voice/bot-log checkpoint f6b193f was preserved without modification. This checkpoint subject
+  `chore(esports): Hengs Discord v1.87.2 - add offline scoreboard review workbench`.
+- Next: use the local UI to review remaining samples, then run the Node validator on saved decisions.
+  Do not infer missing values, alter the frozen benchmark, or treat operator corrections as independent
+  validation. Autonomous capture/provider experiments remain outside this checkpoint.
+
 ## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
 
 - Henry: "Tadi bikin mabar doang terus gak hilang pas keluar. Gw coba bikin lainnya tapi tetep bikin voice mabar."

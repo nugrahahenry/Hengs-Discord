@@ -7,6 +7,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [1.87.2] - 2026-10-27
 
+### Offline tooling
+
+- Added a self-contained scoreboard review workbench with source highlighting, magnified evidence,
+  per-field corrections and downloadable partial reviews. Source-bound imports resume work without
+  changing original OCR, benchmark scores or trusted Coach knowledge. All provider and bot paths stay off.
+- Shared field rules keep the browser editor and offline validator aligned. The Node validator still
+  owns consistency checks. A completed screen is not publication approval or automatic ingestion.
+
 ### Fixed
 
 - Voice rooms: joining another door while owning an empty room closed nothing and moved the owner back into the old
