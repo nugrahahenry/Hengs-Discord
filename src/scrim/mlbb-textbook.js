@@ -51,6 +51,26 @@ const ENTRIES = Object.freeze([
       + 'di jungle dan Kimmy di mid.' },
   { match: /\bemblem\b|\btalent\b/i,
     text: 'Emblem nggak cuma ikut role, tapi tergantung hero-nya.' },
+  // Henry 2026-10-27, answer 4: macro habits.
+  { match: /\bturtle\b|\blord\b|\bobje[ck]ti[fv]e?\b|\bmakro\b|\bmacro\b/i,
+    text: 'Turtle dan Lord itu bukan tujuan utama; yang utama orangnya. Jadi call dulu mau fokus ambil Turtle atau bunuh '
+      + 'orang, Lord juga sama. Ambil Turtle pas tim menang set up dan menang hero power, atau pas EXP lawan lagi bonyok dan '
+      + 'lawan kurang orang.' },
+  { match: /\bmakro\b|\bmacro\b|\bearly\b|\bawal game\b|\btrio\b|\bturtle pertama\b/i,
+    text: 'Early game paling krusial sampai turtle pertama (sekitar menit ke-3). Kuatin trio mid dulu (mid, jungler, roamer). '
+      + 'Kalau bawa dua Fighter (Gold Laner Fighter plus EXP Laner yang memang Fighter), Gold Laner bisa ikut turtle pertama. '
+      + 'Ada juga meta EXP Laner ke mid dulu buat cepat dapat level 4 biar dekat dan langsung bisa set up turtle, karena '
+      + 'minion mid lebih cepat maju dibanding lane atas dan bawah.' },
+  { match: /\bmakro\b|\bmacro\b|\bmissing\b|\b(musuh|lawan)\s+(hilang|ilang|ngilang)\b|\b(hilang|ilang)\s+dari\s+map\b/i,
+    text: 'Musuh hilang dari map (enemy missing): langsung kasih tahu tim lewat ping atau chat, anggap dia lagi jalan ke arah '
+      + 'kamu, lalu mundur atau kumpul.' },
+  // Henry knew pos 1 is the Gold Laner; the rest is from AFK Gaming's guide (seen via web search 2026-10-27, page since
+  // removed). A community convention, so the entry says so.
+  { match: /\bpos(isi)?\s*[1-5]\b|\bposition\b|\bprioritas\s+(gold|farm)\b/i,
+    text: 'Pos itu prioritas gold atau farm, beda dari lane. Pos 1 Gold Laner (farm paling banyak buat carry late game), pos 2 '
+      + 'biasanya jungler (kalau jungler-nya utility, pos 2 bisa ke Mid atau EXP), pos 3 EXP Laner, pos 4 Mid Laner, pos 5 '
+      + 'Roamer (prioritas gold paling kecil). Ini istilah komunitas, bisa beda tiap tim (sumber: panduan komunitas AFK '
+      + 'Gaming, pos 1 dicocokkan Henry).' },
 ]);
 const HEADER = `BUKU PINTAR MLBB (ilmu dari Henry, eks pemain kompetitif; ${PATCH}; dicek ${dayLabel(CHECKED)})`;
 

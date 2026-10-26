@@ -36,6 +36,22 @@ test('jungle questions get the timers and the gold trick for reading the enemy j
   assert.doesNotMatch(textbookCard('hero apa yang sering muncul di MPL?'), /Turtle/);
 });
 
+// Henry 2026-10-27, answer 4 (macro), plus positions from a community guide (pos 1 Gold Laner matches Henry).
+test('macro questions get Henry\'s objective calls, early game plan, missing-enemy call and positions', () => {
+  const turtle = textbookCard('Kapan sebaiknya ambil turtle?');
+  assert.match(turtle, /Turtle dan Lord itu bukan tujuan utama; yang utama orangnya/);
+  assert.match(turtle, /pas EXP lawan lagi bonyok dan lawan kurang orang/);
+  const early = textbookCard('makro early game yang penting apa?');
+  assert.match(early, /Kuatin trio mid/);
+  assert.match(early, /EXP Laner ke mid dulu buat cepat dapat level 4/);
+  assert.match(textbookCard('musuh hilang dari map harus ngapain?'), /Musuh hilang dari map \(enemy missing\)/);
+  const pos = textbookCard('pos 2 itu siapa sih?');
+  assert.match(pos, /Pos 1 Gold Laner/);
+  assert.match(pos, /pos 2 biasanya jungler/);
+  assert.match(pos, /sumber: panduan komunitas AFK Gaming/);
+  assert.equal(textbookCard('semangatku hilang nih'), '');
+});
+
 // Henry 2026-10-24, answer 1: buy order per trinity, Sky Piercer timing, and which Marksmen use which trinity.
 test('build questions get the buy order for both trinity types and who uses which', () => {
   const crit = textbookCard('urutan build trinity critical gimana?');

@@ -42,6 +42,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   seconds, Turtle 02:00 and 180 seconds) and reading the enemy jungler's start from its gold (from 300: 380 red buff,
   379 blue buff, 430 beetles, 407-413 lizard), with green starts that stop a cut lane. Liquipedia has no jungle timers.
   The coach may now quote minutes or seconds written in the buku pintar, with its patch, and still no others.
+- Henry's macro answer (2026-10-27): Turtle and Lord are about the people, so call objective or kills first; take Turtle
+  after winning the setup and hero power, or when the enemy EXP laner is beaten and they are short; strengthen the mid
+  trio; early game matters most until the first Turtle; with two Fighters the Gold Laner can join the first Turtle; EXP
+  to mid for a fast level 4 near the Turtle. Plus a missing-enemy call and the community pos 1-5 convention (pos 1 Gold
+  Laner, pos 2 usually the jungler; source: AFK Gaming's guide, marked as a community term).
 
 ### Verification
 
