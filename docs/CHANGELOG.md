@@ -21,9 +21,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - `/admin setup` package **Bikin Room**: category 🎛️ Bikin Room with the seven doors (existing doors are reused).
 - Missing Manage Channels, Move Members or Manage Roles, and failed creates, moves or deletes are reported in bot-log.
 
+### Offline evaluation
+
+- Expanded the local Coach reference to five screenshot pairs, with four numerically consistent games
+  and one review-required gold discrepancy. Source values are preserved, not corrected by inference.
+  The existing cards and brief helper withhold derived statistics and coaching facts for the conflict.
+- Added synthetic regression checks for rounded gold and a 590-gold discrepancy on either side. No
+  runtime behavior, provider, extraction, trusted-memory or publication changes. Reference media stays local.
+
 ### Verification
 
 - Full offline suite passed 1053/1053 on Node 22.23.3 (0 skipped). Voice room and setup tests 51/51.
+- After offline Coach regressions, full suite passed 1055/1055 with no skips. Eight additional wide/phone
+  reference cards were inspected, including changed team sides and a letterboxed source.
 
 ## [1.86.0] - 2026-10-26
 

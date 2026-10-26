@@ -2,6 +2,35 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.87.0 five-game offline Coach reference - 2026-10-26
+
+- Henry approved the next four complete screenshot pairs. Local evaluation only, with no provider call,
+  automatic capture, cloud change, Discord upload, deployment, scheduler or trusted Coach-memory import.
+- Reused the existing renderer, validator and brief helper, without production code changes. Added game
+  2-5 packages with eight wide/phone cards, 40 player rows and 240 original item-slot crops. With game 1,
+  there are five packages, ten cards, 50 player rows and 300 slots. All eight new layouts were inspected.
+- Games 2, 3 and 4 pass numeric checks. Game 5 correctly stops with TEAM_1_GOLD_MISMATCH: RORA's displayed
+  40,200 total differs from player sum 39,610 by 590. Source-pixel enlargement confirms the transcription,
+  including Koyl 10.1K and Light 6.9K. Raw values remain unchanged. The card warns, derived statistics
+  remain unknown and the Coach brief emits no factual summary. The discrepancy's cause is unresolved.
+- Preserved source left/right swaps. Game 5's 1536x770 letterboxed result uses an explicit 84-pixel x offset
+  for the item crops, not game 1's coordinates blindly. Draft Final Changes labels remain separate from
+  final hero assignments, particularly where player/portrait pairings differ in games 2 and 5.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/coach-evaluation.md` is the gallery and combined
+  findings. The four-game raw transcription, exclusive-output operator, validation results, original
+  JPEGs, decoded PNGs, precise timestamps and per-game provenance remain local/ignored. No original
+  screenshot or prior game-1 artifact was modified. This is Codex visual transcription, not an independent
+  human gold standard or an automated-extractor accuracy measurement.
+- Added synthetic regression tests for small rounded-display differences and a 590-gold discrepancy on
+  either side. Full offline suite passed 1055/1055, zero skips, Node 22.23.3. Original source hashes and
+  all new package validation checks passed. No secret, runtime data, endpoint or dependency change.
+- Version remains v1.87.0, matching the independent voice-room checkpoint now at HEAD. Voice rooms,
+  Liga Tebak and runtime features were not touched. Push remains held with the existing batch.
+  Subject `test(esports): Hengs Discord v1.87.0 - validate five-game coach reference checks`.
+- Next: compare a bounded automatic reader with the reviewed columns, retaining game 5 as a known
+  review-required sample. Game 6 still lacks a final table. Five complete pairs are not ten. Provider
+  evaluation and additional video capture need their own scoped authorization, not an automatic retry.
+
 ## Hengs Discord v1.87.0 voice rooms (committed locally, not pushed, not deployed) - 2026-10-26
 
 - Henry: "Bikin in channel voice dong yang bisa bikin voice gitu, terus dibanyakkin buat bervariasi." He picked seven

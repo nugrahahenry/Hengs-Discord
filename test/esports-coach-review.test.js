@@ -86,3 +86,31 @@ test('model candidates remain labelled, arbitrary instructions and confidence ca
   assert.match(md, /t=900s/); assert.match(md, /t=100s/); assert.match(md, /bukan kesimpulan/);
   assert.doesNotMatch(md, /[\u2013\u2014;]/);
 });
+
+test('small display-rounding differences are retained, never rewritten to balance totals', () => {
+  const input = fixture();
+  input.observation.teams[0].players[0].gold -= 30;
+  input.observation.teams[1].players[0].gold += 60;
+  const before = structuredClone(input);
+  const brief = createCoachBrief(input);
+  assert.equal(brief.status, 'OFFLINE_BRIEF_READY_FOR_REVIEW');
+  assert.deepEqual(brief.issues, []);
+  assert.deepEqual(input, before);
+  assert.match(brief.facts.find(f => f.code === 'FINAL_GOLD').text, /sekitar 10\.000.*dibulatkan/);
+});
+
+test('590 gold discrepancy blocks coaching facts on either side without inventing a corrected value', () => {
+  for (const side of [0, 1]) {
+    const input = fixture();
+    input.observation.teams[side].players[0].gold -= 590;
+    const before = structuredClone(input);
+    const brief = createCoachBrief(input);
+    assert.equal(brief.status, 'DATA_REVIEW_REQUIRED');
+    assert.deepEqual(brief.issues, [`TEAM_${side}_GOLD_MISMATCH`]);
+    assert.deepEqual(brief.facts, []);
+    assert.equal(brief.trustedForCoach, false);
+    assert.deepEqual(input, before);
+    assert.match(renderCoachBrief(input), /Data belum cukup konsisten/);
+    assert.doesNotMatch(renderCoachBrief(input), /unggul sekitar|keterlibatan kill tertinggi/);
+  }
+});
