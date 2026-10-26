@@ -28,12 +28,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   The existing cards and brief helper withhold derived statistics and coaching facts for the conflict.
 - Added synthetic regression checks for rounded gold and a 590-gold discrepancy on either side. No
   runtime behavior, provider, extraction, trusted-memory or publication changes. Reference media stays local.
+- Added a pure 59-field extraction benchmark with exact numeric comparison, explicit missing values,
+  coverage and filled-value precision. Candidate values are never filled from the operator reference.
+  A local Windows OCR trial matched 219/295 fields, including 192/200 player numbers, but missed all
+  50 player names. Game 1 calibrated the profile. Games 2-5 matched 173/236 fields with the frozen profile.
+  This is not a blinded benchmark, production extractor or trusted-memory import. No provider was called.
 
 ### Verification
 
 - Full offline suite passed 1053/1053 on Node 22.23.3 (0 skipped). Voice room and setup tests 51/51.
 - After offline Coach regressions, full suite passed 1055/1055 with no skips. Eight additional wide/phone
   reference cards were inspected, including changed team sides and a letterboxed source.
+- After six benchmark regressions, full offline suite passed 1061/1061 with no skips on Node 22.23.3.
+  All five OCR candidates and input hashes were checked locally. Production runtime was not changed.
 
 ## [1.86.0] - 2026-10-26
 

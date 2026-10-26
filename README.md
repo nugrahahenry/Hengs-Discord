@@ -106,6 +106,12 @@ numbers and derived statistics are separate from questions that require watching
 or contradictory results produce no coaching facts. This helper makes no provider calls, does not publish
 anything, and never imports a screenshot or model candidate into trusted Coach memory automatically.
 
+`scripts/esports-scoreboard-benchmark.js` compares a candidate with a complete operator reference across
+59 fields. Missing values stay in the denominator, numeric values require exact matches, and names only
+allow trimming and case-folding. It reports coverage separately from filled-value precision. It makes no
+file or network requests, does not fix values from the reference and never marks results as trusted.
+The local Windows OCR experiment is layout-assisted developer tooling, not an automatic cloud reader.
+
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are

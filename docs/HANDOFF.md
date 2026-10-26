@@ -2,6 +2,41 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.87.0 local OCR measurement - 2026-10-26
+
+- Continued the approved bounded automatic-reader evaluation using installed Windows.Media.Ocr en-US.
+  No provider, key access, billing, source download, Discord post, bot/cloud mutation, scheduler or trusted
+  Coach-memory import. Previous Gemini failures remain stopped, without a fresh attempt ID or retry.
+- Fixed template v2 was calibrated on game 1 and frozen before processing games 2-5. Forty crop areas
+  yield 59 scored fields per image. All five candidates were saved before the evaluation operator opened
+  reference answers. No fuzzy roster matching, inferred digits, reference autofill or game-number filename
+  substitution. References were inspected in earlier turns, so this is not a blinded/independent benchmark.
+- Overall 219/295 exact (74.2%), 7 wrong and 69 missing. Player numbers 192/200 exact (96%). All 50 player
+  names missing. Games 2-5 alone 173/236 exact (73.3%) and player numbers 152/160 (95%). Filled-value
+  precision 96.9% overall must not be reported without 76.6% coverage and the lower overall exact score.
+- Game 3 gold reads 10.06K instead of reference 10.08K, counted wrong despite the small difference.
+  Two malformed KDA strings remain unknown. Game 5 copies the conflicting source numbers accurately,
+  which does not clear its known 590-gold discrepancy or promote it to trusted evidence.
+- `scripts/esports-scoreboard-benchmark.js` is the only added reusable code. Pure comparison, 59 fields,
+  positional source-side/row identity, zero numeric tolerance, bounded reference labels, no raw candidate
+  values echoed, no I/O or network. Six synthetic tests cover missing fields, exactness, swapped positions,
+  zero versus unknown, unsafe labels and incomplete references. No production behavior/schema change.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/local-ocr-v2/benchmark.md` and JSON contain the
+  measured report, five frozen candidates, source/sheet/OCR/parser/reference hashes and raw OCR words.
+  Operators `prepare-ocr-sheets.cjs`, `read-local-ocr.ps1`, `evaluate-local-ocr.cjs` stay ignored with media.
+  Original capture files and reference answers remain unchanged. Do not rerun over exclusive outputs.
+- Windows PowerShell 5.1 is required for WinRT, not pwsh 7. The restricted process could not read execution
+  policy registry, so approved normal permissions were used. No execution-policy or ACL changes. This
+  local Windows-only experiment is not portable to the Oracle Linux runtime without new implementation.
+- QA passed 1061/1061 full offline tests, zero skips, Node 22.23.3. Candidate extraction and six comparator
+  tests passed. Source boundary, ignored media and diff checked. Product metadata remains v1.87.0 because
+  this is offline tooling. Voice rooms, Liga Tebak and bot-status work were untouched. Push remains held
+  with the existing batch, no deployment. Subject
+  `test(esports): Hengs Discord v1.87.0 - measure local scoreboard OCR accuracy`.
+- Next: design the narrow review-assisted path using OCR numbers and separately evidenced identities.
+  Do not claim unattended daily capture or full gameplay analysis. Further calibration needs fresh
+  evaluation screenshots. Any provider trial requires its own permission, not continuation of failed calls.
+
 ## Hengs Discord v1.87.0 five-game offline Coach reference - 2026-10-26
 
 - Henry approved the next four complete screenshot pairs. Local evaluation only, with no provider call,
