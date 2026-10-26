@@ -9,6 +9,11 @@ const { createReview, renderReviewMarkdown, renderReviewCard, writeReviewBundle,
 const { decodeItemSource } = require('../scripts/esports-item-evidence');
 const { decodeLogoSource } = require('../scripts/esports-team-logos');
 
+// The bundle writes into the workspace's ignored .cloud/evals. Release archives do not carry it and the VM test sandbox
+// is read-only, so these run in a git workspace only, like the repository checks in cloud-release.test.js (the first
+// v1.87.0 deploy QA failed here with ENOENT).
+const workspaceOnly = { skip: !fs.existsSync(path.resolve(__dirname, '../.git')) && 'workspace only: needs the ignored .cloud/evals' };
+
 const fixture = () => ({ evidenceKind: 'manual_transcription', observation: {
   sourceUrl: 'https://www.youtube.com/watch?v=8cDtD3-6Qrc', videoOffsetSeconds: null,
   event: 'Demo event', seriesId: 'match-1', gameNumber: 1, durationSeconds: 712, winnerIndex: 0, patch: null,
@@ -112,7 +117,7 @@ test('both inherited card layouts render PNGs with fixed dimensions and accept m
   await assert.rejects(renderReviewCard(fixture(), { layout: '__proto__' }), /INVALID_REVIEW_LAYOUT/);
 });
 
-test('bundle stays inside ignored evals, creates four files, refuses overwrite and bounds input', async t => {
+test('bundle stays inside ignored evals, creates four files, refuses overwrite and bounds input', workspaceOnly, async t => {
   const evalRoot = path.resolve(__dirname, '../.cloud/evals'); fs.mkdirSync(evalRoot, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(evalRoot, 'review-test-'));
   t.after(() => { assert.equal(path.dirname(tmp), evalRoot); assert.ok(path.basename(tmp).startsWith('review-test-')); fs.rmSync(tmp, { recursive: true, force: true }); });
@@ -208,7 +213,7 @@ test('rendered item slots preserve source pixels and player/slot order in both l
   }
 });
 
-test('bundle reads only the pinned local item source; a hash mismatch writes no output', async t => {
+test('bundle reads only the pinned local item source; a hash mismatch writes no output', workspaceOnly, async t => {
   const evalRoot = path.resolve(__dirname, '../.cloud/evals'); fs.mkdirSync(evalRoot, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(evalRoot, 'review-items-test-'));
   t.after(() => { assert.equal(path.dirname(tmp), evalRoot); assert.ok(path.basename(tmp).startsWith('review-items-test-')); fs.rmSync(tmp, { recursive: true, force: true }); });

@@ -5,6 +5,14 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.87.1] - 2026-10-26
+
+### Fixed
+
+- The two scoreboard bundle tests (local esports tooling) skip outside a git workspace. They write into the ignored
+  `.cloud/evals`, which release archives do not carry, and the VM test sandbox is read-only; the first v1.87.0 deploy
+  QA stopped there with ENOENT (1056/1061, the bot untouched). No runtime change.
+
 ## [1.87.0] - 2026-10-26
 
 ### Added

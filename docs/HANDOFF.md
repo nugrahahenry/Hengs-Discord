@@ -2,6 +2,20 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.87.0 deploy blocked at QA, v1.87.1 test fix - 2026-10-26
+
+- Henry approved: "Deploy v1.87.0 sekarang pakai helper deploy-v1870, di menit 05-45. Setelah ACCEPTED, daftarin
+  command, audit, terus push main."
+- Release 1.87.0-17342900baf1 (the other agent's OCR benchmark commit landed during prep, so archive, rehearsal and
+  helpers were redone). Preflight PASS 05:09:51 UTC, staged and sealed 05:10:39, dispatched 05:10:49.
+- BLOCKED PHASE=TESTS TYPE=ASSERTIONERROR at 05:14:20: 1056 pass, 2 fail, 3 skipped. Both failures are in
+  test/esports-scoreboard-review.test.js (bundle tests) with ENOENT on mkdir `<release>/.cloud/evals`: release
+  archives do not carry `.cloud`, and the QA sandbox (ProtectSystem=strict) is read-only. The local rehearsal passed
+  because the extracted copy was writable. No OOM; the bot stayed on 1.71.0; candidate and stage were cleaned by
+  deploy.cjs. Diagnosed with the read-only `.cloud/automation/deploy-v1870/qa-diagnose.sh` (hex-encoded test lines).
+- v1.87.1: those two tests skip outside a git workspace (`workspaceOnly`), like the repository checks. Release archives
+  now skip 5 tests; derive-dc-next.cjs expects the five names.
+
 ## Hengs Discord v1.87.0 local OCR measurement - 2026-10-26
 
 - Continued the approved bounded automatic-reader evaluation using installed Windows.Media.Ocr en-US.
