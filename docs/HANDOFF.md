@@ -12,10 +12,16 @@ Updated: 2026-10-27
 - Voice room doors created over REST (no gateway login): category `🎛️ BIKIN ROOM` with the seven `<emoji>・Bikin <Tipe>`
   doors. Room posts go to `👥・lfg`. Henry's test: room `🎮 Mabar · StarGod.` created, panel posted, #lfg post, then
   room and post removed after the room emptied; no voice-room error codes.
-- Hengs server permissions already include Manage Channels, Move Members and Manage Roles. bot-status exists and got
-  the post-deploy notice; bot-log does not exist yet (failure notes still go to bot-settings).
+- Hengs server permissions already include Manage Channels, Move Members and Manage Roles. bot-status
+  (`⚙️・bot-status`, BOT CENTER) exists and got the post-deploy notice.
+- `📋・bot-log` created in 🤖 BOT CENTER next to bot-settings and bot-status (Henry's choice; Hengs cannot create
+  channels in 🔒 PRIVATE because that category hides itself from Hengs). @everyone denied View; Hengs member overwrite
+  View, Send, Embed, Attach, History; not opened to the 🤖 Bots role. Verified: @everyone, Member and Bots roles cannot
+  see it, Hengs can post (intro line posted); Administrator roles (👑 Owner and the OwO bot) see it.
+- Security note for Henry: the OwO bot's role has Administrator (sees every private channel). Left unchanged.
 - Scripts in `.cloud/automation/deploy-v1871/` (ignored): discord-inspect.sh, discord-perm-bits.sh, discord-deny-scan.sh,
-  voice-check.sh, voice-watch.sh (read-only) and discord-fix.sh (idempotent #welcome and doors fix).
+  private-inspect.sh, botlog-verify.sh, voice-check.sh, voice-watch.sh (read-only), discord-fix.sh (idempotent
+  #welcome and doors fix) and botlog-create.sh (idempotent).
 
 ## Hengs Discord v1.87.1 offline scoreboard review checklist - 2026-10-27
 
