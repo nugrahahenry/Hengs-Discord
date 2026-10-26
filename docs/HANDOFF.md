@@ -2,6 +2,22 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.87.1 deployed and accepted - 2026-10-26
+
+- Same approval as the blocked v1.87.0 attempt below. Release 1.87.1-bff542b4c18b, archive SHA-256
+  ebc794ca472e8fa6540d87495c2a0119a746af82c729b749aeff08cdafbc742c, rehearsal 1061/1056/5 skips with no file written
+  into the release tree. Helpers `.cloud/automation/deploy-v1871` (derive-dc-next.cjs now expects the five skips).
+- Preflight PASS 05:20:15 UTC, staged and sealed 05:20:36, dispatched 05:20:44, QA 05:21:14 to 05:24:16, ACCEPTED
+  05:25:01 (TESTS=1061 PASS=1056 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- Commands: COMMANDS=REGISTERED HOME_AND_GLOBAL=PUT; CMD_CHECK HOME=14 CASTER, SCRIM_HASIL, KIRIM, SCRIM_COACH and
+  SCRIM_HAPUS_TANYA all YES; DC 1.87.1 and WA 0.53.0 CONNECTED, fresh.
+- Audit PASS 05:25:35: restarts zero, staging absent, rollback to 1.71.0-e32090affdba available.
+- Live now: everything from v1.72.0 to v1.87.1 (Analis match days and caster, Coach v2, chat mode, setup v2,
+  appreciation follow-up and certificates, bot-log and bot-status, Liga Tebak, voice rooms).
+- Henry, in Discord: `/admin setup` with Admin Hengs, Bikin Room and Hengs; Hengs Bot role needs Manage Channels, Move
+  Members and Manage Roles; Send Messages in #welcome; #mabar (or info-mabar/lfg) for room posts. The first bot-status
+  notice after this deploy should say the previous run was stopped cleanly.
+
 ## Hengs Discord v1.87.0 deploy blocked at QA, v1.87.1 test fix - 2026-10-26
 
 - Henry approved: "Deploy v1.87.0 sekarang pakai helper deploy-v1870, di menit 05-45. Setelah ACCEPTED, daftarin
