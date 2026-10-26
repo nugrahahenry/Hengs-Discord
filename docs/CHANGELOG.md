@@ -7,6 +7,16 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [1.87.1] - 2026-10-26
 
+### Offline tooling - 2026-10-27
+
+- Added a 59-field scoreboard review checklist that keeps original OCR values separate from explicit
+  operator corrections. Each decision is bound to the candidate, source context and an evidence rectangle.
+  Missing values, duplicate identities and source arithmetic conflicts remain visible. Full review never
+  grants publication or trusted Coach-memory access. This does not change the live bot or OCR benchmark.
+- Two saved screenshots exercised the flow. Game 1 completed operator review. Game 5 remained blocked by
+  its known gold discrepancy after every field was checked. Media and review records remain local/ignored.
+- Eleven focused regressions and full offline suite passed 1072/1072 on Node 22.23.3 with zero skips.
+
 ### Fixed
 
 - The two scoreboard bundle tests (local esports tooling) skip outside a git workspace. They write into the ignored

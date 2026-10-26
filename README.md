@@ -112,6 +112,13 @@ allow trimming and case-folding. It reports coverage separately from filled-valu
 file or network requests, does not fix values from the reference and never marks results as trusted.
 The local Windows OCR experiment is layout-assisted developer tooling, not an automatic cloud reader.
 
+`scripts/esports-scoreboard-checklist.js` provides the offline review step. Each of the 59 fields needs
+an explicit visual-review decision with a source-image hash and in-bounds evidence rectangle. Decisions
+are bound to the original candidate and source context. Original values remain separate from corrections,
+and arithmetic conflicts still block completion after all fields are reviewed. Reviewer labels are caller
+attestations, not verified human identities. Callers must verify actual image bytes and dimensions before
+using the helper. It performs no I/O or publication, never promotes trust, and does not change OCR accuracy.
+
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are

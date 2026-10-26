@@ -1,6 +1,41 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-26
+Updated: 2026-10-27
+
+## Hengs Discord v1.87.1 offline scoreboard review checklist - 2026-10-27
+
+- Continued from clean, pushed c625480 after the other task's v1.87.1 deployment. No cloud inspection or
+  mutation, provider call, download, bot restart, Discord post or trusted-memory import in this turn.
+- Added only `scripts/esports-scoreboard-checklist.js` and its focused tests, plus docs. Pure helper, no
+  backend, database, command, scheduler or runtime schema. Reuses existing scoreboard validation.
+- Contract: candidate source SHA-256 must match declared screenshot context. Fifty-nine allowlisted fields
+  are fingerprinted with source URL, offset, dimensions and event/series context. Each explicit decision
+  has one field, bounded value, matching image hash and bounded pixel rectangle. Duplicate/unknown paths,
+  stale candidates, unsafe labels and out-of-image evidence fail. Originals remain separate from corrections.
+- A syntactically valid field stays UNREVIEWED until explicitly checked. All fields checked plus no existing
+  consistency issue gives OFFLINE_REVIEW_COMPLETE only. trustedForCoach/publishable remain false and no
+  accuracy score is recalculated. No reference file is consulted by the helper and no fuzzy autofill exists.
+- Reviewer kind is caller-attested operator_visual/human_visual, not authentication or independent human
+  acceptance. Hash bindings are integrity checks, not signatures. Caller must check actual image hashes and
+  dimensions. Helper cannot prove that a person looked at a region or that a declared correction is true.
+- Local `.cloud/evals/mpl-ph-grand-final-2026-10-25/operator-review-v1/README.md` links five initial
+  worksheets and two completed operator decision packets. Codex visually re-inspected original game 1 and 5
+  screenshots. Game 1 confirms 46 fields and corrects 13, complete locally. Game 5 confirms 45 and corrects 14,
+  but still stops on TEAM_1_GOLD_MISMATCH, 590 gold. It is not approved for Coach. Games 2-4 remain pending.
+- `.cloud/evals/mpl-ph-grand-final-2026-10-25/prepare-review-checklists.cjs` is an ignored exclusive-output
+  example runner. Source hashes checked, candidate inputs unchanged, original benchmark hash unchanged.
+  Benchmark remains 219/295 (74.2%), not a new OCR success rate from manual corrections. No new corpus,
+  independent human validation, autonomous capture or gameplay-causality analysis is claimed.
+- Scope stays offline tooling, product metadata remains v1.87.1. No new spec/plan was needed or created.
+  Unrelated active feature plans were not deleted. Subject
+  `chore(esports): Hengs Discord v1.87.1 - add evidence-bound scoreboard review checklists`.
+- Verification: eleven new regressions and full offline suite 1072/1072 passed, zero skips, Node 22.23.3.
+  Reviewed path allowlisting, bounds, unsafe-text filtering, stale source/candidate rejection, immutable
+  originals and no trust escalation. Syntax, diff and metadata checks passed. No new dependency or secret.
+  Push follows the workspace default now that the previous batch was pushed. Deployment is not authorized
+  by this local checkpoint. Release-archive acceptance has not been rerun for this new commit.
+- Next: integrate this candidate/review separation into a practical review experience, not trusted ingestion
+  or automatic daily capture. Provider experiments need fresh scope. Previous Gemini attempts remain stopped.
 
 ## Hengs Discord v1.87.1 deployed and accepted - 2026-10-26
 
