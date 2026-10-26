@@ -1,8 +1,8 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-24
+Updated: 2026-10-27
 
-## Hengs Discord v1.80.0 (provisional) coach example answers on branch coach-v2 (not deployed) - 2026-10-24
+## Hengs Discord v1.88.0 (provisional) coach examples, buku pintar and light teasing on branch coach-v2 (not deployed) - 2026-10-27
 
 - coach-v2 was fast-forwarded to main 0816cf6 (v1.79.0) after the merge, then: each coach turn gets the three closest of
   eight example answers (src/scrim/coach-examples.js, TF-IDF + cosine) after the rules. Exam v11 had shown the rules
@@ -20,6 +20,702 @@ Updated: 2026-10-24
   "muncul 75 detik" read as the respawn time, to confirm with him). Rules now allow minutes or seconds from the buku
   pintar only; exam E1 rekeyed to expect 02:00, N9 added. Still to ask: macro habits, other counters.
 - Next: coach exam on 2026-10-25 (Discord key quota), the 12 v11 scenarios plus four new unseen ones (N1-N4).
+
+## Home server fixes after v1.87.1: #welcome and voice room doors - 2026-10-27
+
+- Henry: "izin send messages khusus buat hengs bot itu gimana? ... coba lu yang benerin dan cek dah".
+- #welcome (`🌊・welcome`): @everyone denies Send Messages and thread sending/creation (members still read and react);
+  Hengs has an explicit member overwrite (View, Read History, Send, Embed, Attach). Verified: @everyone and the Member
+  role cannot send, Hengs can. The first attempts returned 50013 because @everyone denied Manage Permissions in that
+  channel (which also bound Hengs); Henry cleared it and saved, then the fix applied.
+- Voice room doors created over REST (no gateway login): category `🎛️ BIKIN ROOM` with the seven `<emoji>・Bikin <Tipe>`
+  doors. Room posts go to `👥・lfg`. Henry's test: room `🎮 Mabar · StarGod.` created, panel posted, #lfg post, then
+  room and post removed after the room emptied; no voice-room error codes.
+- Hengs server permissions already include Manage Channels, Move Members and Manage Roles. bot-status
+  (`⚙️・bot-status`, BOT CENTER) exists and got the post-deploy notice.
+- `📋・bot-log` created in 🤖 BOT CENTER next to bot-settings and bot-status (Henry's choice; Hengs cannot create
+  channels in 🔒 PRIVATE because that category hides itself from Hengs). @everyone denied View; Hengs member overwrite
+  View, Send, Embed, Attach, History; not opened to the 🤖 Bots role. Verified: @everyone, Member and Bots roles cannot
+  see it, Hengs can post (intro line posted); Administrator roles (👑 Owner and the OwO bot) see it.
+- Security note for Henry: the OwO bot's role has Administrator (sees every private channel). Left unchanged.
+- Scripts in `.cloud/automation/deploy-v1871/` (ignored): discord-inspect.sh, discord-perm-bits.sh, discord-deny-scan.sh,
+  private-inspect.sh, botlog-verify.sh, voice-check.sh, voice-watch.sh (read-only), discord-fix.sh (idempotent
+  #welcome and doors fix) and botlog-create.sh (idempotent).
+
+## Hengs Discord v1.87.1 offline scoreboard review checklist - 2026-10-27
+
+- Continued from clean, pushed c625480 after the other task's v1.87.1 deployment. No cloud inspection or
+  mutation, provider call, download, bot restart, Discord post or trusted-memory import in this turn.
+- Added only `scripts/esports-scoreboard-checklist.js` and its focused tests, plus docs. Pure helper, no
+  backend, database, command, scheduler or runtime schema. Reuses existing scoreboard validation.
+- Contract: candidate source SHA-256 must match declared screenshot context. Fifty-nine allowlisted fields
+  are fingerprinted with source URL, offset, dimensions and event/series context. Each explicit decision
+  has one field, bounded value, matching image hash and bounded pixel rectangle. Duplicate/unknown paths,
+  stale candidates, unsafe labels and out-of-image evidence fail. Originals remain separate from corrections.
+- A syntactically valid field stays UNREVIEWED until explicitly checked. All fields checked plus no existing
+  consistency issue gives OFFLINE_REVIEW_COMPLETE only. trustedForCoach/publishable remain false and no
+  accuracy score is recalculated. No reference file is consulted by the helper and no fuzzy autofill exists.
+- Reviewer kind is caller-attested operator_visual/human_visual, not authentication or independent human
+  acceptance. Hash bindings are integrity checks, not signatures. Caller must check actual image hashes and
+  dimensions. Helper cannot prove that a person looked at a region or that a declared correction is true.
+- Local `.cloud/evals/mpl-ph-grand-final-2026-10-25/operator-review-v1/README.md` links five initial
+  worksheets and two completed operator decision packets. Codex visually re-inspected original game 1 and 5
+  screenshots. Game 1 confirms 46 fields and corrects 13, complete locally. Game 5 confirms 45 and corrects 14,
+  but still stops on TEAM_1_GOLD_MISMATCH, 590 gold. It is not approved for Coach. Games 2-4 remain pending.
+- `.cloud/evals/mpl-ph-grand-final-2026-10-25/prepare-review-checklists.cjs` is an ignored exclusive-output
+  example runner. Source hashes checked, candidate inputs unchanged, original benchmark hash unchanged.
+  Benchmark remains 219/295 (74.2%), not a new OCR success rate from manual corrections. No new corpus,
+  independent human validation, autonomous capture or gameplay-causality analysis is claimed.
+- Scope stays offline tooling, product metadata remains v1.87.1. No new spec/plan was needed or created.
+  Unrelated active feature plans were not deleted. Subject
+  `chore(esports): Hengs Discord v1.87.1 - add evidence-bound scoreboard review checklists`.
+- Verification: eleven new regressions and full offline suite 1072/1072 passed, zero skips, Node 22.23.3.
+  Reviewed path allowlisting, bounds, unsafe-text filtering, stale source/candidate rejection, immutable
+  originals and no trust escalation. Syntax, diff and metadata checks passed. No new dependency or secret.
+  Push follows the workspace default now that the previous batch was pushed. Deployment is not authorized
+  by this local checkpoint. Release-archive acceptance has not been rerun for this new commit.
+- Next: integrate this candidate/review separation into a practical review experience, not trusted ingestion
+  or automatic daily capture. Provider experiments need fresh scope. Previous Gemini attempts remain stopped.
+
+## Hengs Discord v1.87.1 deployed and accepted - 2026-10-26
+
+- Same approval as the blocked v1.87.0 attempt below. Release 1.87.1-bff542b4c18b, archive SHA-256
+  ebc794ca472e8fa6540d87495c2a0119a746af82c729b749aeff08cdafbc742c, rehearsal 1061/1056/5 skips with no file written
+  into the release tree. Helpers `.cloud/automation/deploy-v1871` (derive-dc-next.cjs now expects the five skips).
+- Preflight PASS 05:20:15 UTC, staged and sealed 05:20:36, dispatched 05:20:44, QA 05:21:14 to 05:24:16, ACCEPTED
+  05:25:01 (TESTS=1061 PASS=1056 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- Commands: COMMANDS=REGISTERED HOME_AND_GLOBAL=PUT; CMD_CHECK HOME=14 CASTER, SCRIM_HASIL, KIRIM, SCRIM_COACH and
+  SCRIM_HAPUS_TANYA all YES; DC 1.87.1 and WA 0.53.0 CONNECTED, fresh.
+- Audit PASS 05:25:35: restarts zero, staging absent, rollback to 1.71.0-e32090affdba available.
+- Live now: everything from v1.72.0 to v1.87.1 (Analis match days and caster, Coach v2, chat mode, setup v2,
+  appreciation follow-up and certificates, bot-log and bot-status, Liga Tebak, voice rooms).
+- Henry, in Discord: `/admin setup` with Admin Hengs, Bikin Room and Hengs; Hengs Bot role needs Manage Channels, Move
+  Members and Manage Roles; Send Messages in #welcome; #mabar (or info-mabar/lfg) for room posts. The first bot-status
+  notice after this deploy should say the previous run was stopped cleanly.
+
+## Hengs Discord v1.87.0 deploy blocked at QA, v1.87.1 test fix - 2026-10-26
+
+- Henry approved: "Deploy v1.87.0 sekarang pakai helper deploy-v1870, di menit 05-45. Setelah ACCEPTED, daftarin
+  command, audit, terus push main."
+- Release 1.87.0-17342900baf1 (the other agent's OCR benchmark commit landed during prep, so archive, rehearsal and
+  helpers were redone). Preflight PASS 05:09:51 UTC, staged and sealed 05:10:39, dispatched 05:10:49.
+- BLOCKED PHASE=TESTS TYPE=ASSERTIONERROR at 05:14:20: 1056 pass, 2 fail, 3 skipped. Both failures are in
+  test/esports-scoreboard-review.test.js (bundle tests) with ENOENT on mkdir `<release>/.cloud/evals`: release
+  archives do not carry `.cloud`, and the QA sandbox (ProtectSystem=strict) is read-only. The local rehearsal passed
+  because the extracted copy was writable. No OOM; the bot stayed on 1.71.0; candidate and stage were cleaned by
+  deploy.cjs. Diagnosed with the read-only `.cloud/automation/deploy-v1870/qa-diagnose.sh` (hex-encoded test lines).
+- v1.87.1: those two tests skip outside a git workspace (`workspaceOnly`), like the repository checks. Release archives
+  now skip 5 tests; derive-dc-next.cjs expects the five names.
+
+## Hengs Discord v1.87.0 local OCR measurement - 2026-10-26
+
+- Continued the approved bounded automatic-reader evaluation using installed Windows.Media.Ocr en-US.
+  No provider, key access, billing, source download, Discord post, bot/cloud mutation, scheduler or trusted
+  Coach-memory import. Previous Gemini failures remain stopped, without a fresh attempt ID or retry.
+- Fixed template v2 was calibrated on game 1 and frozen before processing games 2-5. Forty crop areas
+  yield 59 scored fields per image. All five candidates were saved before the evaluation operator opened
+  reference answers. No fuzzy roster matching, inferred digits, reference autofill or game-number filename
+  substitution. References were inspected in earlier turns, so this is not a blinded/independent benchmark.
+- Overall 219/295 exact (74.2%), 7 wrong and 69 missing. Player numbers 192/200 exact (96%). All 50 player
+  names missing. Games 2-5 alone 173/236 exact (73.3%) and player numbers 152/160 (95%). Filled-value
+  precision 96.9% overall must not be reported without 76.6% coverage and the lower overall exact score.
+- Game 3 gold reads 10.06K instead of reference 10.08K, counted wrong despite the small difference.
+  Two malformed KDA strings remain unknown. Game 5 copies the conflicting source numbers accurately,
+  which does not clear its known 590-gold discrepancy or promote it to trusted evidence.
+- `scripts/esports-scoreboard-benchmark.js` is the only added reusable code. Pure comparison, 59 fields,
+  positional source-side/row identity, zero numeric tolerance, bounded reference labels, no raw candidate
+  values echoed, no I/O or network. Six synthetic tests cover missing fields, exactness, swapped positions,
+  zero versus unknown, unsafe labels and incomplete references. No production behavior/schema change.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/local-ocr-v2/benchmark.md` and JSON contain the
+  measured report, five frozen candidates, source/sheet/OCR/parser/reference hashes and raw OCR words.
+  Operators `prepare-ocr-sheets.cjs`, `read-local-ocr.ps1`, `evaluate-local-ocr.cjs` stay ignored with media.
+  Original capture files and reference answers remain unchanged. Do not rerun over exclusive outputs.
+- Windows PowerShell 5.1 is required for WinRT, not pwsh 7. The restricted process could not read execution
+  policy registry, so approved normal permissions were used. No execution-policy or ACL changes. This
+  local Windows-only experiment is not portable to the Oracle Linux runtime without new implementation.
+- QA passed 1061/1061 full offline tests, zero skips, Node 22.23.3. Candidate extraction and six comparator
+  tests passed. Source boundary, ignored media and diff checked. Product metadata remains v1.87.0 because
+  this is offline tooling. Voice rooms, Liga Tebak and bot-status work were untouched. Push remains held
+  with the existing batch, no deployment. Subject
+  `test(esports): Hengs Discord v1.87.0 - measure local scoreboard OCR accuracy`.
+- Next: design the narrow review-assisted path using OCR numbers and separately evidenced identities.
+  Do not claim unattended daily capture or full gameplay analysis. Further calibration needs fresh
+  evaluation screenshots. Any provider trial requires its own permission, not continuation of failed calls.
+
+## Hengs Discord v1.87.0 five-game offline Coach reference - 2026-10-26
+
+- Henry approved the next four complete screenshot pairs. Local evaluation only, with no provider call,
+  automatic capture, cloud change, Discord upload, deployment, scheduler or trusted Coach-memory import.
+- Reused the existing renderer, validator and brief helper, without production code changes. Added game
+  2-5 packages with eight wide/phone cards, 40 player rows and 240 original item-slot crops. With game 1,
+  there are five packages, ten cards, 50 player rows and 300 slots. All eight new layouts were inspected.
+- Games 2, 3 and 4 pass numeric checks. Game 5 correctly stops with TEAM_1_GOLD_MISMATCH: RORA's displayed
+  40,200 total differs from player sum 39,610 by 590. Source-pixel enlargement confirms the transcription,
+  including Koyl 10.1K and Light 6.9K. Raw values remain unchanged. The card warns, derived statistics
+  remain unknown and the Coach brief emits no factual summary. The discrepancy's cause is unresolved.
+- Preserved source left/right swaps. Game 5's 1536x770 letterboxed result uses an explicit 84-pixel x offset
+  for the item crops, not game 1's coordinates blindly. Draft Final Changes labels remain separate from
+  final hero assignments, particularly where player/portrait pairings differ in games 2 and 5.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/coach-evaluation.md` is the gallery and combined
+  findings. The four-game raw transcription, exclusive-output operator, validation results, original
+  JPEGs, decoded PNGs, precise timestamps and per-game provenance remain local/ignored. No original
+  screenshot or prior game-1 artifact was modified. This is Codex visual transcription, not an independent
+  human gold standard or an automated-extractor accuracy measurement.
+- Added synthetic regression tests for small rounded-display differences and a 590-gold discrepancy on
+  either side. Full offline suite passed 1055/1055, zero skips, Node 22.23.3. Original source hashes and
+  all new package validation checks passed. No secret, runtime data, endpoint or dependency change.
+- Version remains v1.87.0, matching the independent voice-room checkpoint now at HEAD. Voice rooms,
+  Liga Tebak and runtime features were not touched. Push remains held with the existing batch.
+  Subject `test(esports): Hengs Discord v1.87.0 - validate five-game coach reference checks`.
+- Next: compare a bounded automatic reader with the reviewed columns, retaining game 5 as a known
+  review-required sample. Game 6 still lacks a final table. Five complete pairs are not ten. Provider
+  evaluation and additional video capture need their own scoped authorization, not an automatic retry.
+
+## Hengs Discord v1.87.0 voice rooms (committed locally, not pushed, not deployed) - 2026-10-26
+
+- Henry: "Bikin in channel voice dong yang bisa bikin voice gitu, terus dibanyakkin buat bervariasi." He picked seven
+  types, one door per type, and #mabar announcements. Spec `docs/superpowers/specs/2026-10-26-hengs-voice-rooms-design.md`,
+  plan `docs/superpowers/plans/2026-10-26-hengs-voice-rooms.md` (both ignored).
+- `src/voice-rooms/`: `types.js` (seven types), `rules.js` (doors by slug, names, renames, next owner, post text),
+  `store.js` (`data/voice-rooms.json`), `panel.js` (`voice-room:<action>:<channelId>`), `service.js` (voice events,
+  panel, 60 s empty grace and 10 s post debounce with injected timers, restart sweep in `start`).
+- index.js: `VoiceStateUpdate` to `voiceRooms.handleVoiceState`, `voice-room:` interactions routed before the generic
+  handlers, `voiceRooms.start(c)` on ready. Setup: package `room`, kind `door` (voice, server defaults).
+- QA: full offline suite 1053/1053 on Node 22.23.3, 0 skipped; voice room and setup tests 51/51.
+- After deploy: `/admin setup` > Bikin Room, and the Hengs Bot role needs Manage Channels, Move Members and Manage Roles
+  (otherwise bot-log says which). #mabar posts need a text channel named mabar, info-mabar or lfg.
+
+## Hengs Discord v1.86.0 offline one-match Coach review - 2026-10-26
+
+- Henry approved continuing with one complete match before automated capture. No provider request,
+  deployment, Discord publication, schedule, live bot change or trusted Coach-memory import was authorized
+  or performed in this checkpoint.
+- Game 1 of the saved public grand-final capture pack pairs draft and final result from the same video,
+  series and game. The source says MATCH 8 - GAME 1. RORA wins 14-7 kills in 14:24, with displayed gold
+  48.0k versus FLCN's 40.0k. The approximately 8,000 difference preserves broadcast rounding. Player-gold
+  sums of 47,960 and 40,030 are retained, not silently changed to match the rounded totals.
+- `scripts/esports-coach-review.js` reuses scoreboard validation, pairs draft labels by exact team/player
+  identity rather than screen position, and separates observed/derived facts from gameplay-review questions.
+  Wrong-video/game/series pairs, ambiguous rosters and invalid timestamps are rejected. Inconsistent or
+  unidentified results yield no coaching facts. Candidate-model origin never becomes trusted evidence.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/game-01-coach-review/` contains wide/phone PNGs,
+  the scoreboard review, `coach-brief.md`, JSON and provenance. Original JPEG hashes are pinned. The 60
+  item slots use source pixels from a lossless PNG decode, not generated items or inferred names. Local
+  catalog logos were reused. Both layouts were visually checked with all ten player rows intact.
+- This is a Codex visual transcription/reference package, not independent human acceptance, automatic
+  YouTube extraction, an OCR/model-accuracy result or full gameplay analysis. Patch, objective chronology,
+  item names/purchase order and any hero swap after the draft frame remain unverified. The source screenshots
+  and evaluation data stay ignored and out of Git.
+- Verification: focused review/lab tests 36/36, full offline suite 1036/1036 on Node 22.23.3, zero skipped.
+  The first restricted test run hit temporary-file permission errors. The same full suite passed with
+  approved normal permissions, without ACL changes. New input handling was reviewed for bounded names,
+  exact joins, Markdown escaping and rejection of arbitrary model instructions. No new dependency or state schema.
+- Product version stays v1.86.0 because this is isolated developer tooling. Liga Tebak and bot-status work
+  remain unchanged. Push is held with the existing batch. Checkpoint subject
+  `chore(esports): Hengs Discord v1.86.0 - add evidence-bound offline coach briefs`.
+- Next: review this sample with Henry, then repeat the reference checks on the other four complete result
+  screenshots. Only afterwards propose a bounded extraction evaluation. No automatic provider call or
+  trusted-memory ingestion follows from this local result.
+
+## Hengs Discord v1.86.0 Liga Tebak (committed locally, not pushed, not deployed) - 2026-10-26
+
+- Henry chose "Seru pas MPL & M8": league per event (not weekly), Laga Panas as a double-points bonus (not a filter),
+  standings in every night recap, champion card plus rotating role. Spec
+  `docs/superpowers/specs/2026-10-26-hengs-liga-tebak-design.md`, plan `docs/superpowers/plans/2026-10-26-hengs-liga-tebak.md`
+  (both ignored).
+- `src/esports/league.js` (pure rules) and the store ledger (`scoreLeague`, `league`, `leagues`, `leagueRole`,
+  `setLeagueRole`; ledgers dropped 400 days after the last change). `scoreFinished` runs first in every daily tick.
+- `crown` runs after the event recap under the daily claim `liga:<event>`: draft through `draftAppreciation` (wired
+  in index.js to `opsHub.createDraftPanel` + `buildAppreciationDraft`, externalId `liga:<guild>:<voteKey(event)>`),
+  then `rotateRole`. Failures go through `reportFailure` (bot-log since v1.85.0).
+- Ceiling (`ponytail:` comment in service.js): a Liquipedia correction after a match was scored is not re-scored.
+- QA: full offline suite 1029/1029 on Node 22.23.3, 0 skipped. A sample night recap card with the Liga section was
+  rendered and checked (scratch, not committed).
+- After deploy: run `/admin setup` > Hengs to refresh the pinned Analis guide with the Liga Tebak section. The role
+  needs Manage Roles with the Hengs Bot role above Analis Jitu; otherwise bot-log says so after the first event.
+- First real use: MPL ID S18 playoffs (4-8 Nov) if the batch is deployed before 3 Nov.
+
+## Hengs Discord v1.85.0 bot-log and bot-status (committed locally, not pushed, not deployed) - 2026-10-26
+
+- Henry: everything landed in bot-settings; he wants bot-log for failures (like a missed welcome) and bot-status for
+  "online lagi" notices and asking the bot's status. Spec `docs/superpowers/specs/2026-10-26-hengs-bot-log-status-design.md`,
+  plan `docs/superpowers/plans/2026-10-26-hengs-bot-log-status.md` (both ignored).
+- `findBotChannel(guild, 'log' | 'status')` in `src/utils/failure-report.js` matches by slug and falls back to
+  bot-settings; the reporter posts to bot-log and counts its notes (`reportFailure.count()`).
+- `src/runtime/status-board.js`: `readHealthSnapshot` (read in index.js before `runtimeHealth.start()` overwrites the
+  file), `onlineNotice`, `statusReport`, `handleStatusMessage`. The ready hook posts the notice to bot-status of each
+  home guild; `status` in bot-status is answered before the mention check, for the owner or an Ops editor.
+- `/admin setup` package `admin` (Admin Hengs) creates the three owner channels in `🔒 Admin`; emojis ⚙️ 📋 📡 🔒 are in
+  the bundled twemoji set.
+- QA: full offline suite 1016/1016 on Node 22.23.3, 0 skipped; focused 41/41.
+- After deploy Henry runs `/admin setup` > Admin Hengs (or creates bot-log and bot-status by hand), then writes
+  `status` in bot-status to see it work. The first notice after a graceful service stop says "dimatikan dengan rapi".
+- Next: Liga Tebak v1.86.0 (spec `2026-10-26-hengs-liga-tebak-design.md`, waits for Henry's spec review), then the
+  voice hub with varied rooms. Push held with the batched release.
+
+## Hall of Fame Double Winner update - 2026-10-26
+
+- Henry confirmed Juara 2 has the same Hengs Family X SYN team, Anti Squad Organizer event,
+  25 October 2026 date and five-player roster as the published Juara 1. He requested updating
+  the existing message, grouping both results as Double Winner, without another mention ping.
+- One exact-message REST PATCH succeeded with HALL_DOUBLE_WINNER_UPDATED_VERIFIED. The caption
+  uses separate placement and roster bullets. One Double Winner poster and both original
+  certificates appear as three embeds. All three uploaded image hashes were independently
+  verified from Discord CDN; both certificates remain 1600x1131 and byte-for-byte unchanged.
+- The five mention tokens remain beside player names. PATCH allowed_mentions explicitly sets
+  parse/users/roles empty and replied_user false. No second message, new role or permission change.
+  Original content and images were verified before editing, a second read checked for concurrent
+  edits, and the original message snapshot plus an exclusive attempt receipt were retained.
+- An initial precondition stopped before PATCH because Discord returns embed-only images outside
+  the attachments array. Read-only evidence confirmed this representation and no edit attempt.
+  Verification now uses each embed image. Exactly one PATCH occurred, with no automatic retry.
+- Temporary remote staging was removed and cleanup verified. Discord remained CONNECTED/OK/fresh
+  on cloud v1.71.0 and WA stayed active. No gateway login, restart, deployment or runtime change.
+- Ignored `.cloud/automation/hall-20261026/` holds the updated poster, original certificates,
+  update plan/operator and verified receipt including the unchanged message URL. The previous
+  publication receipt remains intact. Humanizer guided the concise caption without adding claims.
+- No production code/schema/dependency changes or version bump from this operator. It used the
+  committed v1.84.1 renderer. Separate in-progress status-board/community work is preparing
+  v1.85.0 and is excluded from this documentation-only checkpoint. Push remains held.
+  Subject `docs(handoff): Hengs Discord v1.84.1 - record double winner post update`.
+
+## Authorized Hall of Fame publication - 2026-10-26
+
+- Henry confirmed one Juara 1 MLBB post for Hengs Family X SYN, Anti Squad Organizer,
+  25 October 2026, in the existing Hall of Fame channel. Five exact member usernames were
+  resolved uniquely and rechecked before sending. The roster uses one bullet and one mention
+  per player. No role/everyone mentions or optional MLBB positions were inferred.
+- The local v1.84.1 renderer supplied the poster. Henry's original Juara 1 certificate was
+  attached unchanged. Juara 2 was not included in that initial publication and was later added
+  by the confirmed Double Winner update above. Initial readback verified five
+  mentions, both images, author/content and the original certificate SHA-256.
+- One REST-only operator publication completed with HALL_PUBLISHED_VERIFIED. An exclusive
+  attempt marker and receipt prevent accidental reruns. Temporary remote staging was removed
+  and cleanup verified. No gateway login, restart, deploy, permission change or new role.
+  Discord and WA were active/enabled during preflight; Discord health was CONNECTED/OK/fresh
+  on cloud v1.71.0. This is a one-off publication, not a deployment of the local feature batch.
+- Operator files and the exact message URL are kept in ignored `.cloud/automation/hall-20261026/`.
+  Browser readback also confirmed the rendered post and the five displayed member mentions.
+  Product version stays v1.84.1. Push remains held with the existing batch.
+
+## Supervised grand-final capture pack - 2026-10-26
+
+- Henry requested screenshots from public YouTube archive PYoBI4VtshE to seed the Coach evaluation.
+  Verified Chrome Henry was reused. Capture used visible browser controls and visual inspection,
+  not a background downloader, model request, scheduled watcher or autonomous engine.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/` now contains 13 JPEGs: six Final Changes
+  drafts, five final scoreboards with item icons, one late-game-six frame and one champion banner.
+  Timestamp/source/SHA-256 metadata is in `manifest.json`; `README.md` links each frame and source time.
+  ZIP `.cloud/evals/mpl-ph-grand-final-capture-pack.zip` contains only those images and two index files.
+- The video contains six games, not ten. Game six final table was not found in inspected segments.
+  Its late-game score/gold/clock are explicitly not final statistics. No absence claim about every
+  uninspected video segment. Four other games are still needed for ten distinct games, or five
+  additional complete result tables for ten full draft/result pairs.
+- Side assignments change across games. Draft hero/player mapping can still change in Final Changes.
+  Broadcast AI predictor prose/percentages are not factual labels. Item names and per-player extraction
+  remain pending. No raw personal account UI/chat included. Third-party rights remain with their owners.
+- Validation: all 13 images decode; JPEG signatures, declared sizes and hashes match. ZIP has exactly
+  15 entries and all 13 archived image hashes match. Final game counts are six drafts/five full tables.
+  Browser crop capture occasionally timed out; later files use the working fullscreen screenshot
+  path with neutral letterboxing. No attempt was made to fill missing statistics or erase uncertainty.
+- All evidence stays untrusted for Coach ingestion, with no provider calls or model training. Previous
+  stopped Gemini trial markers remain untouched. Next: independently review/transcribe this small
+  corpus, then test draft/scoreboard scene detection and field-level extraction against its evidence.
+  Daily discovery, ten-game coverage and general gameplay coaching are not completed by this capture.
+- Documentation-only checkpoint. Version v1.84.1 unchanged, no product code/dependencies modified.
+  Push remains held with the prior batch; no deployment. Subject:
+  `docs(handoff): Hengs Discord v1.84.1 - record championship post and verified capture pack`.
+
+## Hengs Discord v1.84.1 balanced appreciation rosters (local, not deployed)
+
+- Henry requested tidy Hall of Fame/player layouts for differing counts. Impeccable layout refinement
+  preserves Crown Stage artwork, palette and fonts. One name is centered and larger, two sit side by side,
+  four become 2+2, seven become 3+2+2. Long names switch to wider columns using real glyph measurements.
+  Nicknames align below the tallest name in each row. Input order and complete names remain unchanged.
+- No state/schema, permission, certificate, channel routing or provider changes. Existing announcements
+  destination and pending-draft review remain. No new assets, image generation, dependencies or spec/plan.
+- Focused appreciation tests passed 27/27. Full offline suite passed 1007/1007, zero failures/skips,
+  using Node22.23.3 and approved normal Windows test permissions for existing symlink regressions.
+  Log `.cloud/qa-roster-final.tap`. No ACL change. Syntax, whitespace, version and scoped secret review passed.
+  Batched visual QA at 360px plus full-size layout geometry found no clipping/overlap in these fixtures.
+  Mechanical layout scan returned no findings. Asset bytes and certificate handling were not modified.
+  Synthetic zero-to-eight-player and long-name previews are in `.cloud/previews/community-cards/roster-layout/`.
+  `scripts/preview-community-cards.js --rosters` reproduces them without any external calls.
+- Push remains held with the preceding batch. No bot startup, Discord upload or deployment.
+  Subject `fix(appreciation): Hengs Discord v1.84.1 - balance player roster layouts`.
+
+## Hengs Discord v1.84.0 certificate uploads and clearer appreciation copy (local, not deployed)
+
+- Henry requested concise bullet explanations without em dashes/semicolons, optional certificate images, and
+  literal team names without a mandatory Tim prefix. Humanizer guided copy only, canonical stored text stays
+  backwards-compatible. Existing appreciation entry point and five-field form retained.
+- Added native Sertifikat/Ganti sertifikat/Lepas sertifikat controls on pending drafts. One PNG/JPEG up to
+  8 MiB, 8 million pixels and 8192px per edge. No PDF/OCR/LLM or image changes. Original stored on Discord in
+  the private review channel. Additive versioned reference in existing Ops state, no image/URL on VM.
+- Upload uses existing revision claim, actor/home/editor permission and stale checks. Publication refetches
+  exact bot-authored attachment and verifies original SHA-256/type/size. Missing/tampered receipt stops send.
+  Two concurrent bounded transfers, no custom retry. Replacement/unlink leaves prior private review messages.
+  Factual edits clear binding. Old binaries must not publish certificate-bearing drafts during rollback.
+- Native Canvas decoding of upload bytes was removed after a malformed PNG test crashed the decoder.
+  PNG signature/chunks/checksums/bounded inflation and JPEG header/end-marker checks now run without native
+  image decoding. This is structural validation, not proof of certificate authenticity or perfect JPEG decoding.
+- Tests use mocked Discord/HTTP only. First test attempt hit Windows temp atomic-rename restrictions, rerun
+  in an isolated writable `.cloud/qa-certificate-temp` directory. No ACL changes. Focused suite 63/63 passed,
+  then two final permission regressions were added. Full final offline suite 1005/1005 passed, zero failures
+  or skips on Node22.23.3 (`.cloud/qa-certificate-final.tap`). An earlier full sandbox run had one symlink
+  permission failure and one skip, so final full QA used approved normal Windows permissions, without ACL edits.
+  Both supplied 1600x1131 PNG certificates passed local structural checks with original bytes unchanged.
+  No Discord upload, bot startup, provider or cloud action. Diff/metadata/syntax and scoped secret checks passed.
+- Canonical contract updated in ignored docs/APPRECIATION-DIRECTION.md. README has click-by-click help.
+  Destination remains announcements, explicitly shown in preview/help. Hall of Fame routing is a separate
+  next feature, not silently enabled. No new spec/plan or stale temporary feature documents introduced.
+- Push remains held with the earlier batched commits until Henry requests it. Local commit subject
+  `feat(appreciation): Hengs Discord v1.84.0 - add reviewed certificate uploads and clearer guidance`.
+
+## Hengs Discord v1.83.0 reusable arena background (not pushed, not deployed) - 2026-10-25
+
+- Henry requested a less generic background that works across differing match data. Reused the existing,
+  inspected Crown Stage `arena-background.png`, not new generation or a team-specific photo. Original bytes
+  unchanged. Impeccable bolder refinement preserves the Analis fonts, palette, foreground statistics and layout.
+- New `scripts/esports-broadcast-scene.js` frames that fixed artwork in wide/portrait cover crops, with inherited
+  blue/red lighting, gold score framing and geometry-bound reading mats. No match values or random seed in the
+  layer, no selectable file path/URL. Failed asset loading stops export with a fixed code rather than silent fallback.
+- Renderer now shortens long labels with ellipses instead of squeezing them horizontally. Complete labels stay
+  in Markdown/JSON. No numeric claims, order, source pixel regions, validation or production behavior changed.
+- Final artifacts: `.cloud/evals/youtube-observer-2026-10-25/flcn-rora-arena-final/`, using the preceding catalog
+  input. Wide 1800x1240 (~1.05 MiB), item portrait 900x2280 (~0.86 MiB), Markdown/JSON, plus clearly marked
+  synthetic other-team/unknown/long-name previews. Entire review JSON equals the previous broadcast-final JSON.
+- QA: 988/988 full offline tests, zero failures/skips (`arena-full-suite.tap`); initial focused 27/27 before
+  the final label test. Four new tests cover stable scene output, supported dimensions, reading-mat contrast
+  at least 4.5:1, alternate/missing data and non-squashed labels. Existing item/logo pixel checks still pass.
+- Visual QA: batched wide/portrait and two edge cases, one label fix, one final confirmation. No observed
+  clipping/overlap for these fixtures. Layout scan empty. Final syntax, scoped secret/copy and whitespace
+  checks accompany the commit. No new spec/plan or dependencies; no runtime, inference, browser or cloud action.
+- Next: Henry's visual feedback; region-catalog expansion remains separate. All provider trial markers and
+  review-required/untrusted status preserved. This is not proof of daily extraction or gameplay analysis.
+- Version stays 1.83.0; push/deploy held. Subject:
+  `chore(esports): Hengs Discord v1.83.0 - add reusable arena backgrounds`.
+
+## Hengs Discord v1.83.0 regional logos and broadcast layout (not pushed, not deployed) - 2026-10-25
+
+- Henry requested reusable logos from the web, all regions in stages, plus a central gold comparison similar
+  to his screenshot. Phase one is complete: eight MPL Philippines S18 marks from the official teams page.
+  Indonesia and other regions are not yet bundled; verify league/season/source before each next batch.
+- Static collection in `assets/esports/teams/` pins official source, date, aliases, PNG hashes and dimensions.
+  Original CDN suffixes say WebP but verified bytes are PNG. No redraw/recolor. Three dark marks use light plates.
+  Third-party rights remain with teams; local preview only, no claim of affiliation or redistribution permission.
+- `scripts/esports-team-catalog.js` resolves exact aliases within an explicit collection; no online render-time
+  lookup or fuzzy cross-region fallback. Unknown teams use initials, unknown collections fail. Explicit manual
+  logo evidence takes priority and cannot silently fall back if its pinned source is invalid.
+- `scripts/esports-broadcast-card.js` separates presentation from review validation. Wide layout has opposing
+  rosters and neutral central duration/gold totals/bar/gap; portrait has comparison above stacked rosters.
+  Inherited Analis palette/fonts retained through Impeccable layout review. No new generated art or dependencies.
+- Final ignored input: `flcn-rora-review-catalog.input.json`; output: `flcn-rora-broadcast-final/`, inside
+  `.cloud/evals/youtube-observer-2026-10-25/`. Also `teams-ph-s18-contact-sheet-final.png`.
+  Observation, derived numbers, item evidence, checks, notes and missing fields equal the preceding preview.
+- QA: 984/984 full offline suite, zero failures/skips; earlier focused baseline 34/34 before final plate test.
+  Final full suite covers all six added catalog/geometry/contrast cases plus existing source-pixel regressions.
+  Transcript: `catalog-full-suite.tap`. Both final layouts and all eight logos inspected, one contrast fix batch.
+  Layout scan empty. Syntax, whitespace, scoped secret/long-dash and synchronized 1.83.0 metadata checks passed.
+- Security review: only fixed bundled assets, no input-controlled URLs/paths, no symlink components below repo,
+  PNG/hash/dimension bounds before decode. No secret access, provider calls, live bots, watchers or cloud writes.
+  Outputs remain manual/model-labelled, review-required, untrusted and unpublishable. Provider trials stay stopped.
+- Next: fill Indonesia from verified official season assets, then other regions in batches. Separately finish
+  correction/acceptance and reliable extraction before daily Coach ingestion; this preview is not automation.
+- Runtime version remains 1.83.0. Push/deploy held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add regional logo catalog and broadcast layout`.
+
+## Hengs Discord v1.83.0 source-pinned team logo previews (not pushed, not deployed) - 2026-10-25
+
+- Henry requested Falcon/Aurora and other team logos plus further visual improvement. No team-logo assets existed
+  in the repository. Reused the marks visible in his already supplied public scoreboard for this local preview;
+  no new image generation, remote download, inference request, bot action or deployment.
+- Added `scripts/esports-team-logos.js`: optional, operator-reviewed PNG evidence with exact image hash/dimensions
+  and two team-name-bound regions. Uses the existing bounded PNG decoder. Source bytes and team associations
+  cannot silently change. Missing logos use neutral initials; declared but broken sources stop the export.
+- Renderer contains each mark in a light plaque without stretching/recoloring, adjusts name spacing for both
+  layouts, and displays the existing computed gold difference above the comparison bar. Stats and item evidence
+  are unchanged by a JSON comparison against the previous preview. Impeccable polish kept the existing palette/type.
+- Source remains `flcn-rora-user-scoreboard.png`. Logo regions: FLCN (180,42,43,43), RORA (1134,42,43,43).
+  These are match-source marks, not proof of current team branding or permission to redistribute. Source resolution
+  limits sharpness. No team-logo catalogue or name-based lookup exists yet.
+- Ignored input: `.cloud/evals/youtube-observer-2026-10-25/flcn-rora-review-branded.input.json`.
+  Final artifacts: adjacent `flcn-rora-team-logos-final/`, two PNGs plus Markdown/JSON. Prior previews remain intact.
+- QA: 978/978 full offline tests, zero failures/skips; focused review/lab 29/29. Both final layouts visually inspected.
+  Added explicit tests for source/region/team validation, no affiliation claims, missing/change failures, correct
+  side, aspect ratio, one missing logo, and combined logo/item export. Transcript: `team-logos-full-suite.tap`.
+- Security review: no URL or arbitrary file input beyond reviewed local eval PNGs, size/hash checks before decode,
+  no link components, no output on invalid logo input, no secrets read, and untrusted/non-publishable output retained.
+- Next: optional verified higher-resolution team assets and source-correction/acceptance, not automatic Coach trust.
+  Keep provider attempts stopped. No new watcher, external write, import or daily publishing authorized here.
+- Runtime version remains 1.83.0; push/deploy held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add source-pinned team logo previews`.
+
+## Hengs Discord v1.83.0 source-item scoreboard polish (not pushed, not deployed) - 2026-10-25
+
+- Henry requested better visuals and item visibility, then explicitly authorized code crops from his original
+  public screenshot. This checkpoint is offline only, with no Gemini request, generated art, bot or cloud change.
+- Extended the existing renderer with a blue/red broadcast header, bundled Hengs mascot, clearer team outcomes
+  and alternating player rows. The Impeccable polish pass preserved the inherited Analis type/palette and data.
+- Added `scripts/esports-item-evidence.js`: opt-in manual crop manifest, exact source PNG SHA-256/dimensions,
+  4 MiB / 8 Mi pixel bounds, six regions per player, strict roster match, no names/IDs inferred from tiny icons.
+  Regions are inside the reviewed image and are rendered from pixels only. Unknown slots stay unknown; dark
+  source cells stay dark. Top-row then bottom-row display order is not an assertion about purchase order.
+- Original FLCN/RORA source remains unchanged. Input: `.cloud/evals/youtube-observer-2026-10-25/` plus
+  `flcn-rora-review-items.input.json`; final preview: `flcn-rora-items-preview-v2/`. Both ignored. Version one
+  caught a tight footer and is superseded visually by v2. Do not confuse either preview with automatic extraction.
+- Item cards are 1600x1520 and 900x2280; ordinary cards retain 1600x1200 / 900x1650. The two PNGs include only
+  permitted item crops and the existing mascot. Markdown/JSON companions retain numeric and source limitations.
+- QA: 974/974 full offline tests, zero failures/skips, including 25/25 focused review/lab checks. Six new tests
+  cover manifest/region bounds, source bytes/hash/size, wrong-player associations, unknown slots, no-output failure,
+  and first/last item pixels in both layouts. Transcript: `items-full-suite.tap` in the ignored eval folder.
+- Visual QA: both layouts inspected; one footer-spacing fix and a final wide confirmation. Item/player ordering
+  matches the manually marked source. Security pass confirmed local-only source reads, no URLs/credentials,
+  declared-image failures stop rendering, and output remains review-required/untrusted/unpublishable.
+- Next: compare the visible item row with Henry's source feedback, then define correction/acceptance and verified
+  item identification before Coach use. No retry, automatic video reading, purchase-order claim or publish step.
+- Runtime version stays 1.83.0 (isolated tooling), with push/deploy held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - polish scoreboard cards with source item icons`.
+
+## Hengs Discord v1.83.0 offline scoreboard review cards (not pushed, not deployed) - 2026-10-25
+
+- Henry approved continuing the manual-reference preview after the provider timeout. No additional Gemini request
+  was made. The provider gate remains stopped; this checkpoint does not claim automatic image/video extraction.
+- New isolated `scripts/esports-scoreboard-review.js` renders wide (1600x1200) and portrait (900x1650) cards,
+  plus a full Markdown alternative and whitelisted JSON report. It reuses existing Analis fonts/colors only;
+  no runtime/card module changes, dependencies, generated art, new UI framework or provider credentials.
+- The local example uses the original public FLCN/RORA screenshot: 17:3 game kills, gold 42600:32400, duration
+  11:52, ten player rows. KP is derived from supplied numbers, not a model insight. The exact screenshot source
+  offset is intentionally null; the old video's matching game is not asserted to be the exact same frame.
+- Preview: `.cloud/evals/youtube-observer-2026-10-25/flcn-rora-review-preview/`; input is the adjacent
+  `flcn-rora-review.input.json`. Both ignored. Actual screenshots and credentials are not bundled into previews.
+- Unknowns remain `?`; inconsistent totals/deaths or impossible participation suppress derived metrics. Missing
+  source/timestamp, patch and gameplay limitations remain separate from numeric consistency. Every output is
+  review-required, untrusted for Coach and not publishable. No approve/import action exists at this stage.
+- File boundary: explicit absolute input/output inside ignored evals, maximum 64 KiB JSON, no link components,
+  exclusive output directory/files, no overwrite, fixed CLI errors. Results never read production state or secrets.
+- QA: 968/968 full offline suite, zero failures/skips; 19/19 focused review/lab tests, syntax and diff checks.
+  Both rendered PNGs visually inspected; all rows and provenance labels visible. Transcript: `review-full-suite.tap`.
+- Next: Henry reviews the visual card, then define explicit correction/acceptance before any Coach import.
+  Keep provider diagnosis separate; no new inference, watcher, cloud change or deployment authorized here.
+- Product remains 1.83.0 (isolated tooling). Commit subject:
+  `chore(esports): Hengs Discord v1.83.0 - add offline scoreboard review cards`. Push/deploy remain held.
+
+## Hengs Discord v1.83.0 bounded scoreboard frame probe (not pushed, not deployed) - 2026-10-25
+
+- This is the latest evidence; it supersedes the next-gate/no-further-request statements below. Henry approved
+  one frame probe, then explicitly approved one additional probe with Gemini 3.8 Flash after the first failed.
+- Added frame-only input to the isolated trial runner: reviewed PNG/JPEG, maximum 4 MiB, exact SHA-256 pin,
+  safe local basename, one fixed official endpoint, no automatic fallback or retry. No bot/runtime imports.
+- Used Henry's original clean public scoreboard image, unchanged. The earlier browser screenshot includes page
+  chrome and recommendations and was NOT sent. No private chat, account UI, reference answers or video URL entered
+  the frame request. The source URL remains local provenance only; this image's exact source offset is unknown.
+- Gemini 2.5 Flash frame attempt: `PROVIDER_REJECTED`, HTTP 404, `MODEL_UNAVAILABLE`. This request contained no
+  YouTube input, so that specific result is a model-access failure, not evidence of failed URL ingestion.
+- Henry then approved exactly one Gemini 3.8 Flash frame attempt after the Hengs project UI showed Free tier and
+  model quotas. Result: `PROVIDER_TIMEOUT` at the 90-second limit. No observation or token usage returned. Timeout
+  does not establish the root cause, whether inference started, or whether quota was consumed. Do not retry.
+- The immutable `flcn-rora-frame-first` and `flcn-rora-frame-38` plan/attempt/result files remain under the ignored
+  eval folder. Combined with the earlier two video trials, there have been four individually authorized attempted
+  POSTs and zero usable model observations. Do not delete markers or create another trial ID to bypass this gate.
+- Numeric accuracy, video/live access and gameplay understanding remain unmeasured. Manual reference stats are
+  NOT model output. A future frame candidate cannot invent its source timestamp or become trusted Coach knowledge.
+- QA: full offline suite 960/960 on Node 22.23.3, zero failures/skips; focused 24/24. Security review checked fixed
+  destinations, header-only secret, exact image hash/MIME/size, local path bounds, no redirects/retries, bounded
+  output and untrusted candidate handling. Tests use synthetic inputs and fake network responses only.
+- Next: stop live requests. Use the existing manual public scoreboard reference to validate the review/import
+  experience offline; diagnose provider availability separately before another explicitly authorized trial.
+  No scheduler, billing change, key rotation/transfer, bot restart, cloud deployment or Coach knowledge write.
+- Product remains 1.83.0, experimental tooling only. Push/deploy remain held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add bounded scoreboard frame probe`.
+
+## Hengs Discord v1.83.0 supervised video trial (not pushed, not deployed) - 2026-10-25
+
+- Latest state supersedes the setup-only/no-provider-request statements in earlier checkpoint sections below.
+  Added `scripts/esports-video-trial.js` and eight regression tests. No runtime imports or dependency changes.
+- Manually located the user's scoreboard at 04:14:06 (15246 seconds) of the public MPL Philippines archive.
+  Match 5 / game 5: FLCN 17 vs RORA 3, gold 42.6k vs 32.4k, game duration 11:52. This is visual ground truth,
+  not model output. The reference fixture and screenshot remain ignored under the existing local eval folder.
+- Operator-attested plan: public archive, Free tier, one request, Gemini 2.5 Flash, 04:14:00..04:14:30.
+  Request uses the official generateContent clipping contract, max 4096 output tokens and 512 thinking tokens.
+  No prior-answer values, private scrim/chat, tool calls or credentials in prompt/URL/output.
+- First authorized attempt returned `PROVIDER_REQUEST_FAILED`. Separate no-key read-only diagnostics identified
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. Node 22.23.3 `--use-system-ca` made the endpoint reachable while preserving
+  HTTPS verification. No custom root installed and no TLS/ACL/security bypass was used.
+- Henry explicitly approved exactly one additional trial after that fix. It returned `PROVIDER_REJECTED` / HTTP
+  404; no observation or usage metadata returned. That runner discarded the provider body, so the precise cause
+  is unknown. Subsequent authenticated model-list GET succeeded and listed 2.5 Flash with generateContent support;
+  metadata access does not prove video inference availability. No third POST is authorized or was attempted.
+- Both immutable local attempt markers and result records remain. Do not erase/reset them or call a new trial ID
+  without authorization. Future failures now retain a bounded fixed-code category, never provider prose/errors.
+- Every successful candidate would still require human field-level comparison and remains `trustedForCoach:false`.
+  No claims of extraction accuracy, autonomous discovery, live coaching or model learning are justified yet.
+- Security review: fixed official HTTPS destination, header-only secret, no redirects/SDK retry, bounded response,
+  strict URL and plan window, whitelisted result fields, ignored secret/results, exclusive attempt/result creation.
+  The plan is a supervised attestation rather than an automatic pricing/metadata check; its trust boundary is local.
+- QA: full offline suite 955/955 on Node 22.23.3, zero failures/skips; final focused recheck 19/19 after hardening
+  failure-category property lookup. No real provider requests are made by these tests.
+- Next gate: separately authorize one frame-only vision probe using the public screenshot. This separates vision
+  output from YouTube URL ingestion before changing models or attempting more videos. Free-tier/quotas must be
+  checked again when executing. No billing change, cloud transfer, bot restart, deploy, scheduler or knowledge write.
+- Product remains 1.83.0 (isolated tooling only). Push remains held. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add supervised public video trial`.
+
+## Hengs Gemini access setup (local only, not connected to runtime) - 2026-10-25
+
+- Henry selected existing Google project LabQ and requested one general-purpose key named exactly Hengs, not a
+  Coach-only credential. On 25 October, at Henry's request, its project display name was also changed to Hengs.
+  The same project ID, existing key and local credential remain in use; the displayed tier remains Free tier.
+- The first newly created key was exposed in a tool output because its auth-key format was not handled by the
+  initial redaction. With Henry's action-time approval, that key was deleted; the empty LabQ key list was verified
+  before one replacement was created. The replacement is named Hengs, and the exposed key name is absent.
+- Canonical local credential file: `.cloud/credentials/hengs/gemini.env` (ignored). Reuse this configured credential
+  for approved Hengs Gemini integrations while valid; do not create redundant keys or copy it into source/client
+  bundles, documents, chat, screenshots or Git. Other projects' credentials were not read or changed.
+- Key transferred directly from the approved browser UI into the importer through private stdin, not command-line
+  arguments or clipboard. Verification printed only status booleans: valid environment-file format, private ACL,
+  ignored by Git, no temporary residue. Access is limited to the current Windows user, SYSTEM and administrators.
+- The Hengs-selected Rate Limit page shows Free tier: Gemini 2.5 Flash and Gemini 3 Flash each have limits of
+  5 RPM, 250K TPM and 20 RPD; Gemini 2.5 Flash Lite shows 10 RPM, 250K TPM and 20 RPD. Verified 25 October.
+  These are displayed project limits, not a promise of successful authentication or inference; quotas can change.
+- No billing change, model API request, video analysis, cloud transfer, runtime restart or deployment occurred.
+  The video lab remains offline; the stored credential was not opened or changed during the project rename.
+- Next: verify the exact model/API clipping contract, identify a known scoreboard interval, then prepare one
+  capped public-video trial. Private scrim/chat data must not enter that trial; no paid fallback or automatic retry.
+- Setup-only documentation checkpoint; product version remains 1.83.0. Push remains held with the batched work.
+- Rename/quota checkpoint subject: `docs(esports): Hengs Discord v1.83.0 - record project rename and free-tier limits`.
+
+## Hengs Discord v1.83.0 offline esports video lab (not pushed, not deployed) - 2026-10-25
+
+- Henry requested autonomous observations from public MLBB broadcasts for all teams. This checkpoint is an isolated
+  experiment, not a live watcher or an automatic video extractor. No bot module imports it.
+- `scripts/esports-video-lab.js` validates public video URLs, fixture metadata, bounded archive clip plans and
+  scoreboard arithmetic. Every observation remains untrusted for Coach, including consistent numeric candidates.
+- The supplied YouTube page is an archived MPL PH S18 Playoffs Day 3 broadcast, dated 23 October, duration 7:50:25.
+  Browser inspection verified metadata only. No frames, video/audio, chat, cookies or credentials were exported.
+- No project-scoped Gemini/YouTube API key was available. No model request, paid call, scheduler, bot startup,
+  cloud deployment or production state change occurred. Existing private scrim analysis is unchanged.
+- QA: full offline suite 947/947 on Node 22.23.3, zero skips/failures, including 11 lab regression tests.
+  Test-only workspace temp files and host symlink support were used; no ACL changes were needed.
+- Manual transcription of the supplied scoreboard passes numeric consistency but has no verified video offset.
+  It remains review-required and is explicitly not an automatic extraction or model-accuracy measurement.
+- Public usage/limitations: `scripts/ESPORTS-VIDEO-LAB.md`. Internal sources, architecture gate and next steps:
+  `docs/research/2026-10-25-youtube-observer.md` (ignored).
+- Product metadata stays 1.83.0 because runtime behavior is unchanged. Checkpoint subject:
+  `chore(esports): Hengs Discord v1.83.0 - add offline video observation lab`.
+- Next gate: choose provider/model and capped trial budget, securely configure a project key, then verify one known
+  short archived segment against the source screen. Live detection and live gameplay ingestion are separate gates.
+- Push remains on hold with the existing batched work until Henry requests it. No deploy authorization is implied.
+
+## Hengs Discord v1.83.0 appreciation follow-up questions (committed locally, not pushed, not deployed) - 2026-10-25
+
+- Henry: when he only says who won ("bikin apresiasi Hengs Family karena juara 1"), Hengs should ask for the
+  tournament, the date and the players, and mention that players can be tagged on the draft later.
+- `parseAppreciationPrompt` now returns `appreciation_missing` (with `data`, `missing`, `content`) for a competition
+  result missing any of those; `appreciationRows` in `src/ops/appreciation-form.js` puts **Lengkapi detail** and
+  **Bikin sekarang** under the reply on both the mention route and `/hengs ask`. The hub handles
+  `ops:appreciationfill|appreciationnow:<requester>:<key>`; the pending details live in memory for 15 minutes.
+- `TAG_TIP` (Tag anggota, up to 8, pinged only on publish) is shown in the follow-up, the form confirmation, the
+  prompt-draft confirmation and the appreciation help text.
+- QA: full offline suite 936/936 on Node 22.23.3, 0 skipped; focused checks 66/66.
+- Push held: `main` also carries the two unpushed v1.82.2 welcome commits, whose checkpoint says push is on hold at
+  Henry's request. Push them together on Henry's word.
+
+## Hengs Discord v1.82.2 welcome and leave galaxy cards (committed locally, not deployed) - 2026-10-25
+
+- Welcome and leave cards now select separate production backgrounds, each with a restrained galaxy haze overlay.
+- Optional 3D mascots are now defaulted from `assets/brand/` and placed beside a compact member badge so `#member`
+  remains readable. Explicit `backgroundPath`, `mascotPath`, and type-specific paths still override the defaults.
+- Source artwork and previews are kept under `assets/_originals/`; production-sized files are under `assets/welcome/` and
+  `assets/brand/`.
+- Code/artwork checkpoint: `3ee3a12` on `main`. Push remains on hold at Henry's request.
+- Final QA: Node 22.23.3 full suite 933/933, zero failures/skips, with test-only TEMP/TMP under
+  `.cloud/qa/welcome-v1822/temp`. The complete offline test process ran outside the Windows sandbox;
+  no ACL/owner changes, bot startup, provider requests, or cloud writes were needed.
+- The previous sandbox run on PATH Node 24 reported 223 failures. Repeating on Node 22 with workspace
+  temp reduced this to 931 pass, 1 failure, 1 skip, both remaining cases requiring symlink support.
+  The host run verified both symlink cases rather than disabling or weakening those assertions.
+- Renderer/release focused QA: 22/22. Regression checks now verify default welcome/leave asset
+  selection, generic/type-specific override precedence, missing-path fallback, galaxy toggle, and
+  transparent visible mascot pixels. These renderer checks no longer depend on draft source artwork under `_originals`.
+- QA follow-up changes tests, one stale comment, and documentation only; product version stays
+  1.82.2. Commit subject: `test(welcome): Hengs Discord v1.82.2 - verify bundled artwork and full offline suite`.
+- Concurrent appreciation edits observed after this QA run are outside this checkpoint and remain
+  unstaged. The 933/933 result does not certify those subsequent edits.
+- Next gate: explicit push/deploy instruction for the batched release, followed by private preview
+  in the bot channel. The separate Coach/Analis release gates below remain applicable.
+- No Discord deployment, command registration, or runtime state change has been performed.
+
+## Hengs Discord v1.82.0 broadcast draft cards (committed, not deployed) - 2026-10-24
+
+- Each finished pro series now posts its result card plus one draft card per game in the same gallery
+  (src/esports/draft-card.js). Henry is making a backdrop in GPT: `assets/esports/draft-bg.png`, any landscape size
+  (v1.82.1 scales it to cover; Hengs draws the panels and slots on top, so no exact positions are needed). Drop the
+  PNG in and redeploy; no code change.
+- Assets still wanted: draft-bg.png, preview-bg.png (1600x900), recap-bg.png (square).
+
+## Hengs Discord v1.81.0 Analis caster (committed, not deployed) - 2026-10-24
+
+- LLM captions on the preview, night recap and event recap, and Analis answers in #tanya-hengs, all from Hengs' own
+  numbers with a token check and a template or guide fallback. Uses the existing Groq key (GROQ_MODEL, default
+  gpt-oss-120b); without a key everything stays on templates.
+- Next here: v1.82.0 broadcast draft card for pro series (Henry: "laga pro itu bisa dikembangin sama gpt gak buat
+  template draft broadcast nya?"). Henry's GPT designs the template art to a fixed layout; Hengs writes hero names,
+  roles (Liquipedia hero dictionary), bans, score and MVP into the slots. Item, emblem and KDA cards for scrims come
+  from member screenshots through the Coach session.
+
+## Hengs Discord v1.80.1 welcome card visual polish (committed, not deployed) - 2026-10-24
+
+- Welcome and leave cards use a compact hero pill, stronger member-name underline, and a clearer v2 logo watermark.
+- Preview: `assets/_originals/welcome-card-v2-preview.png`.
+- Verification: `node --test test/member-onboarding.test.js` passed 11/11.
+- No runtime state, command schema, or deployment changed.
+
+## Hengs Discord v1.80.0 Analis match days (committed, not deployed) - 2026-10-24
+
+- Previews at 08:00 WIB with guess buttons, night recaps, event recap after the grand final; template captions. The
+  LLM caster and Analis answers in #tanya-hengs are v1.81.0 (same spec).
+- Must be deployed by 3 Nov to cover the MPL ID S18 playoffs (4 to 8 Nov). First real checks:
+  1. 4 Nov 08:00 WIB: one preview per known match in #hengs-analis, buttons answer privately.
+  2. After the day's last match: the night recap with vote shares.
+  3. 8 Nov after the grand final: the event recap.
+- Assets wanted from Henry's GPT: `assets/esports/preview-bg.png` (1600x900) and `assets/esports/recap-bg.png`
+  (square, at least 1600x1600). Without them the Aurora gradient is used.
+- Another agent (likely Henry's GPT/Codex) had uncommitted welcome-card v2 work in this checkout
+  (`src/utils/welcome-card.js`, `assets/_originals/welcome-card-v2-preview.png`); v1.80.0 left those files alone.
+
+## Hengs Discord v1.79.3 welcome logo integration (local, not deployed) - 2026-10-24
+
+- Welcome and leave card rendering now prefers `assets/brand/hengs-bot-icon-v2.png`.
+- `HENGS_LOGO_PATH` and the previous logo candidates remain as fallbacks, so rollback does not require a config change.
+- Verification: `node --test test/member-onboarding.test.js` passed 11/11.
+- Deploy remains pending Henry's approval and the existing v1.79.x command and asset gates.
+
+## Hengs Discord v1.79.2 failed sends reported in bot-settings (committed, not deployed) - 2026-10-24
+
+- Cause found live (read-only probes in .cloud/automation/deploy-v1710: welcome-check.sh, welcome-perms.sh): in
+  #welcome @everyone is denied Send Messages and Hengs has no overwrite, so 3 of 5 welcomes since 15 Oct failed with
+  Missing Permissions. The role still came first, so members got Member but no card.
+- Henry's fix in Discord (not done yet at commit time): #welcome > Edit Channel > Permissions > add role Hengs Bot >
+  allow Send Messages (plus View Channel, Embed Links, Attach Files).
+- welcome-missed.sh (owner-approved one-off) posted the 3 missed members to bot-settings; it skips if its note is
+  already there.
+- After the deploy, every failed send (welcome, leave, boost, news, memes, analyst cards) posts one note to
+  bot-settings, at most once per 6 hours for the same feature, channel, person and reason.
+
+## Hengs Discord v1.79.1 no maaf opener in Hengs chat (committed, not deployed) - 2026-10-24
+
+- Henry: "Boleh disamain, kasih aja ke chatt hengs", about the coach's rule for unsure answers.
+- Shipped: code drops a "Maaf, aku belum tahu / punya / yakin ..." opener from every model reply (`dropSorryOpener`,
+  src/agent.js). The honest game facts prompt is unchanged; the coach keeps its own rule.
+- Not shipped, with evidence in .cloud/evals/textbook-2026-10-23:
+  - Two drafts that copied the coach's "start from what you know" invented a fake hero's ultimate, a fake item's
+    passive, a "latest" MPL ID champion and Ling skill names (answers-fun, answers-fun2).
+  - A draft that only banned the maaf opener in the prompt: the fake item got invented stats 3 of 4 times, against 1
+    of 4 with the old prompt (answers-fun3, answers-abnew1-3, answers-abold1-3, answers-final).
+- Known limit, unchanged: fake spells and objectives (Phantom Step, Naga Emas) and the "Lord removed" premise still
+  get wrong answers under both prompts, and the fake item sometimes too. Chat has no data card. Follow-up idea: give
+  general chat the coach's Liquipedia hero dictionary card when a hero is named.
 
 ## Hengs Discord v1.79.0 coach v2 merged into main (not deployed) - 2026-10-24
 

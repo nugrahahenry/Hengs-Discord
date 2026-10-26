@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "collections": [
+    {
+      "id": "mpl-ph-s18",
+      "region": "PH",
+      "season": 18,
+      "verifiedAt": "2026-10-25",
+      "sourcePage": "https://ph-mpl.com/teams",
+      "sourceBase": "https://ik.imagekit.io/nloe8dhf7w/mplph/s18/teams/",
+      "rights": "Third-party trademarks. No publication or redistribution license granted by this catalog.",
+      "teams": [
+        {
+          "id": "ap-bren",
+          "name": "AP BREN",
+          "ticker": "APBR",
+          "aliases": [
+            "APBR",
+            "AP BREN",
+            "AP.BREN",
+            "BREN"
+          ],
+          "sourceFile": "apbren-400.webp",
+          "width": 400,
+          "height": 400,
+          "sha256": "6808f6d62f417469f85dae2ff74435c4be14c996f008145e9dea7b705e67d767"
+        },
+        {
+          "id": "aurora-gaming",
+          "name": "Aurora Gaming",
+          "ticker": "RORA",
+          "aliases": [
+            "RORA",
+            "AURORA",
+            "AURORA GAMING",
+            "AURORA PH"
+          ],
+          "sourceFile": "aurora-gaming-400.webp",
+          "width": 400,
+          "height": 400,
+          "sha256": "44baef242ff398b27527c237908b93a1d35d59836dcd7597e97d57c0d597046d"
+        },
+        {
+          "id": "onic-ph",
+          "name": "ONIC PH",
+          "ticker": "ONIC",
+          "aliases": [
+            "ONIC",
+            "ONIC PH",
+            "ONIC PHILIPPINES"
+          ],
+          "sourceFile": "onicph-bw-400.webp",
+          "width": 400,
+          "height": 400,
+          "sha256": "129ca04a3e5910bc588b8b70237c0ea07257fa219ed39602f06f625736682b9a",
+          "plate": "light"
+        },
+        {
+          "id": "smart-omega",
+          "name": "Smart Omega",
+          "ticker": "OMG",
+          "aliases": [
+            "OMG",
+            "OMEGA",
+            "SMART OMEGA"
+          ],
+          "sourceFile": "smart-400.webp",
+          "width": 400,
+          "height": 400,
+          "sha256": "35473ffe80372ea1ccc0962db318a4322ca89204cf5a240da14bdc146c828174",
+          "plate": "light"
+        },
+        {
+          "id": "team-falcons",
+          "name": "Team Falcons",
+          "ticker": "FLCN",
+          "aliases": [
+            "FLCN",
+            "FALCON",
+            "FALCONS",
+            "TEAM FALCONS"
+          ],
+          "sourceFile": "falcon-400.webp",
+          "width": 350,
+          "height": 350,
+          "sha256": "05090413107a8537e144436fc13e64c80f7a7635e30b9b59552ed9a1ae1f5355"
+        },
+        {
+          "id": "team-liquid-ph",
+          "name": "Team Liquid PH",
+          "ticker": "TLPH",
+          "aliases": [
+            "TLPH",
+            "TEAM LIQUID PH",
+            "TEAM LIQUID PHILIPPINES",
+            "LIQUID PH"
+          ],
+          "sourceFile": "tlph-400.webp",
+          "width": 400,
+          "height": 400,
+          "sha256": "f5c17f7ff56ffbe72ad713e156bae64eec2ad8bcfc219b19a0c7506bed6192ae"
+        },
+        {
+          "id": "tnc-pro-team",
+          "name": "TNC Pro Team",
+          "ticker": "TNC",
+          "aliases": [
+            "TNC",
+            "TNC PRO TEAM"
+          ],
+          "sourceFile": "tnc-400.webp",
+          "width": 400,
+          "height": 400,
+          "sha256": "a4e4655cae4a373e0a3bbb03f044337c810e31f74b4641f393a05e10a075c45a"
+        },
+        {
+          "id": "twisted-minds-ph",
+          "name": "Twisted Minds PH",
+          "ticker": "TWIS",
+          "aliases": [
+            "TWIS",
+            "TWISTED MINDS",
+            "TWISTED MINDS PH"
+          ],
+          "sourceFile": "twistedminds-400.webp",
+          "width": 250,
+          "height": 250,
+          "sha256": "041c7260baeed7224bfbd7bd1726173e20489ace8d3af66fb711ebbe7695c4f6",
+          "plate": "light"
+        }
+      ]
+    }
+  ]
+}

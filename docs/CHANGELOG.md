@@ -5,7 +5,7 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
-## [1.80.0] - 2026-10-24 (provisional, branch coach-v2)
+## [1.88.0] - 2026-10-27 (provisional, branch coach-v2)
 
 ### Added
 
@@ -47,6 +47,387 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Exam v11 (rules only) barely moved the answer style, which is why examples come next (sources: OpenAI accuracy
   guide, Anthropic prompting guide). The coach exam reruns on 2026-10-25 with four new unseen questions.
+## [1.87.1] - 2026-10-26
+
+### Offline tooling - 2026-10-27
+
+- Added a 59-field scoreboard review checklist that keeps original OCR values separate from explicit
+  operator corrections. Each decision is bound to the candidate, source context and an evidence rectangle.
+  Missing values, duplicate identities and source arithmetic conflicts remain visible. Full review never
+  grants publication or trusted Coach-memory access. This does not change the live bot or OCR benchmark.
+- Two saved screenshots exercised the flow. Game 1 completed operator review. Game 5 remained blocked by
+  its known gold discrepancy after every field was checked. Media and review records remain local/ignored.
+- Eleven focused regressions and full offline suite passed 1072/1072 on Node 22.23.3 with zero skips.
+
+### Fixed
+
+- The two scoreboard bundle tests (local esports tooling) skip outside a git workspace. They write into the ignored
+  `.cloud/evals`, which release archives do not carry, and the VM test sandbox is read-only; the first v1.87.0 deploy
+  QA stopped there with ENOENT (1056/1061, the bot untouched). No runtime change.
+
+## [1.87.0] - 2026-10-26
+
+### Added
+
+- Voice rooms: seven doors (🎮 Bikin Mabar, ⚔️ Bikin Scrim, 💬 Bikin Diskusi, 📚 Bikin Belajar, 🎬 Bikin Nobar,
+  🎵 Bikin Karaoke, 🔒 Bikin Privat). Joining one creates a room of that type (Mabar slot 5, Scrim 10, Belajar
+  push-to-talk, Privat locked), moves the member in and posts an owner panel in the room chat: rename (2 per 10
+  minutes, no mentions or links), slot, lock or unlock, invite up to 5.
+- The member inside longest takes over when the owner leaves; an empty room closes after 60 seconds unless someone
+  comes back. One room per member, 30 seconds between rooms, at most 20 rooms. A restart drops rooms that are gone,
+  closes empty ones and keeps the rest.
+- Mabar and Scrim rooms are announced in #mabar (no pings), with the filled slots updated at most every 10 seconds,
+  "penuh" and "dikunci" states, and the post deleted when the room closes.
+- `/admin setup` package **Bikin Room**: category 🎛️ Bikin Room with the seven doors (existing doors are reused).
+- Missing Manage Channels, Move Members or Manage Roles, and failed creates, moves or deletes are reported in bot-log.
+
+### Offline evaluation
+
+- Expanded the local Coach reference to five screenshot pairs, with four numerically consistent games
+  and one review-required gold discrepancy. Source values are preserved, not corrected by inference.
+  The existing cards and brief helper withhold derived statistics and coaching facts for the conflict.
+- Added synthetic regression checks for rounded gold and a 590-gold discrepancy on either side. No
+  runtime behavior, provider, extraction, trusted-memory or publication changes. Reference media stays local.
+- Added a pure 59-field extraction benchmark with exact numeric comparison, explicit missing values,
+  coverage and filled-value precision. Candidate values are never filled from the operator reference.
+  A local Windows OCR trial matched 219/295 fields, including 192/200 player numbers, but missed all
+  50 player names. Game 1 calibrated the profile. Games 2-5 matched 173/236 fields with the frozen profile.
+  This is not a blinded benchmark, production extractor or trusted-memory import. No provider was called.
+
+### Verification
+
+- Full offline suite passed 1053/1053 on Node 22.23.3 (0 skipped). Voice room and setup tests 51/51.
+- After offline Coach regressions, full suite passed 1055/1055 with no skips. Eight additional wide/phone
+  reference cards were inspected, including changed team sides and a letterboxed source.
+- After six benchmark regressions, full offline suite passed 1061/1061 with no skips on Node 22.23.3.
+  All five OCR candidates and input hashes were checked locally. Production runtime was not changed.
+
+## [1.86.0] - 2026-10-26
+
+### Added
+
+- Liga Tebak: the match-day guesses become a league per event. A right guess is 1 point; the day's Laga Panas (the
+  voted match with the most voters, at least 3, ties included) is 2. Members are ranked from 3 guesses, by points, then
+  accuracy, then guesses; equal members share the rank. Each match is scored once, after every match of its WIB day
+  has started, so a late match is still counted on a later tick.
+- The night recap shows the Laga Panas and the standings so far (top 5); the event recap shows the final table
+  (top 10) and the champions. Both carry a **Lihat posisiku** button with a private rank reply.
+- The champions get one appreciation draft in bot-settings (owner review, same form as any appreciation) and the
+  rotating **Analis Jitu** role (created once, gold, no permissions, taken from the previous holders). A role Hengs
+  cannot manage, a champion who left the server, or a failed draft is reported once, never retried.
+- The points live in their own ledger (`src/esports/league.js` rules, store ledger kept about a year), so the
+  7-day vote cleanup never removes them.
+
+### Changed
+
+- The pinned Analis guide explains Liga Tebak; `/admin setup` now updates an existing guide in place.
+- The event recap's "Penebak paling jitu" list is replaced by the Liga Tebak table (`topGuessers` removed).
+- The Analis button route is `handleButton` (votes and Lihat posisiku).
+
+### Developer tooling
+
+- Added offline Coach briefs with same-video/game/series draft matching and exact team/player joins.
+  Observed results and derived numbers stay separate from gameplay-review questions. Inconsistent data
+  suppresses factual summaries, while source labels and review-required status remain explicit.
+- Validated one manually transcribed match with wide and phone scorecards plus original item crops.
+  This is a local reference package, not automatic extraction, a model-accuracy measurement or gameplay
+  analysis. No provider call, publication, trusted-memory import, runtime change or version bump.
+
+### Verification
+
+- Full offline suite passed 1029/1029 on Node 22.23.3 (0 skipped). Esports tests 44/44, guide and setup tests 34/34.
+- After the offline brief helper, full suite passed 1036/1036 with zero skips. Focused review/lab tests
+  passed 36/36, and both one-match card layouts were visually checked.
+
+## [1.85.0] - 2026-10-26
+
+### Added
+
+- `bot-status`: after every start Hengs posts an online notice with how long it was down, whether the previous run
+  was stopped cleanly or abruptly (from the runtime health snapshot the previous process left), and the new version
+  when it changed. The owner or an Ops editor can write `status`, `status?` or `cek status` there for uptime,
+  connection and ping, the last news and meme, the last Analis check and the failure count since the start.
+- `/admin setup` package **Admin Hengs**: `bot-settings`, `bot-log` and `bot-status` in a private `🔒 Admin`
+  category (hidden from members, open to Hengs). An existing bot-settings is reused; only its `@everyone` and Hengs
+  overwrites are set.
+
+### Changed
+
+- Failure notes (welcome, leave, boost, news, memes, Analis) now go to `bot-log`. The voice auto-rejoin note goes to
+  `bot-status`, its failure to `bot-log`. Without those channels everything still goes to `bot-settings`.
+
+### Verification
+
+- Full offline suite passed 1016/1016 on Node 22.23.3 (0 skipped). Focused status, failure, setup and wizard tests
+  passed 41/41.
+
+## [1.84.1] - 2026-10-26
+
+### Fixed
+
+- Appreciation roster spacing now follows player count. One player is centered, two sit side by side,
+  four use two balanced rows, and larger rosters avoid a lone final player when possible.
+- Long names receive wider columns, consistent font sizes and aligned nickname rows without losing text.
+  Original artwork, certificate bytes, roster order and publication permissions remain unchanged.
+- Offline `--rosters` previews cover zero through eight players and mixed long names with DEMO labels.
+- Verification passed 1007 offline tests with no failures or skips. Local checkpoint only, not deployed.
+
+## [1.84.0] - 2026-10-26
+
+### Added
+
+- Optional native PNG/JPEG certificate upload on pending appreciation drafts. Private review retains the
+  unchanged original, and publication includes a separate certificate image. Replacement/unlink controls,
+  actor/guild/revision checks, bounded downloads and exact-byte verification guard delivery.
+- Literal team-name guidance, short bullet explanations, and no semicolons or long dashes in appreciation copy.
+  No mandatory Tim prefix. Factual edits require a fresh certificate attachment. Publication destination
+  remains announcements. No OCR, new provider, live upload, deployment or Hall of Fame routing in this checkpoint.
+- Verification covers 1005 offline tests with zero failures or skips. Actual Discord upload is not yet dogfooded.
+
+### Developer tooling
+
+- Added a reusable arena background to offline scoreboard previews using the existing Crown Stage artwork,
+  geometry-based side lighting and dark reading mats. Long labels now use ellipses instead of horizontal
+  compression; complete names remain in the report. Stats, source pixels and review JSON are unchanged.
+  Full suite: 988/988, zero failures/skips. No new image generation, external calls or runtime activation.
+- Added an offline region/season logo catalog, starting with eight officially sourced MPL Philippines S18 marks.
+  Exact aliases and pinned PNG bytes avoid fuzzy cross-region matches; unknown teams retain initials. Moved
+  duration, gold totals and gold gap into a central broadcast column, with a stacked phone layout. Item crops
+  and numeric evidence are unchanged. Full offline suite: 984/984, zero failures/skips. No runtime activation,
+  extraction, provider call or publication; product version remains 1.83.0.
+- Added source-pinned team-logo evidence to offline scoreboard previews, with correct-side/aspect-ratio checks,
+  neutral initials for explicitly absent logos, and responsive header spacing. The existing computed gold gap is
+  now visible above the comparison bar. No logo-name search, inference, publication or production changes.
+  Full offline suite: 978/978; focused review/lab: 29/29. Product version remains 1.83.0.
+- Polished offline scoreboard previews with clearer team outcomes, alternating rows, the existing Hengs mascot
+  and optional six-slot item rows from explicitly reviewed source-image crops. Exact PNG hash/dimensions and
+  roster associations are checked; unknown item names and purchase order are never invented. No automatic
+  extraction, provider call, Coach import or publication. Full offline suite: 974/974; focused checks: 25/25.
+- Added offline scoreboard review cards in wide and phone-friendly layouts with a full Markdown alternative.
+  Manual versus model provenance, ten-player K/D/A/gold, derived kill participation, missing-data markers and
+  arithmetic-conflict checks stay visible. No provider calls, automatic acceptance, publication or Coach writes.
+  Full offline suite: 968/968; focused review/lab checks: 19/19. Runtime version remains 1.83.0.
+- Added an offline esports video lab for URL validation, metadata-state fixtures, bounded clip plans and candidate
+  scoreboard consistency checks. It performs no network requests and is not connected to the bot or Coach knowledge.
+  See `scripts/ESPORTS-VIDEO-LAB.md` for limitations and the supervised provider-evaluation gate.
+- Full offline suite passed 947/947 on Node 22.23.3 with zero skips, including 11 lab tests. Product version remains
+  1.83.0; this is experimental tooling, not an activated video extraction feature.
+- Added a separate supervised public-video trial with an exclusive attempt marker, a maximum 60-second interval,
+  one provider request, bounded output and fixed-code diagnostics. It cannot publish or mark results as trusted.
+  Manual source matching succeeded; actual provider extraction remains unverified after a transport failure and
+  one separately authorized HTTP 404 result. No runtime activation, automatic retries or deployment are included.
+- Supervised-trial QA: full offline suite 955/955 on Node 22.23.3, zero failures/skips, plus final focused recheck
+  19/19 after diagnostic-category hardening. Tests use fake responses and do not establish live extraction success.
+- Added a bounded public-scoreboard image probe with PNG/JPEG size/signature checks, exact reviewed-image hash,
+  explicit source-timestamp provenance and separately selected Gemini 3.8 Flash support. No model fallback or
+  automatic retry. The two authorized image trials returned legacy-model unavailability and a 90-second timeout;
+  neither produced verified statistics. Full offline QA: 960/960; focused: 24/24. Runtime remains unchanged.
+
+## [1.83.0] - 2026-10-25
+
+### Added
+
+- An appreciation request for a competition result (juara, menang, MVP, runner-up, finalis, peringkat) that leaves out
+  the tournament, the date or the players now gets a short follow-up instead of a thin card. Hengs lists only what is
+  missing and offers two buttons: **Lengkapi detail** opens the appreciation form with the recipient and achievement
+  already filled in, and **Bikin sekarang** drafts the card with what is known. A tournament named inside the
+  achievement ("juara 1 turnamen kampus", "MPL", "Cup") counts as known. Other appreciations ("membantu komunitas")
+  still draft at once.
+- The follow-up, the form confirmation, the confirmation for appreciations drafted from a prompt and the appreciation
+  help text all say that players can be tagged on the draft with **Tag anggota** (up to 8, pinged only when published).
+
+### Notes
+
+- The known details wait in memory for 15 minutes, bound to the requester (`src/ops/appreciation-pending.js`). After a
+  restart, **Lengkapi detail** opens an empty form and **Bikin sekarang** says the session expired. Both buttons check
+  the requester, the home guild and editor access, and a double press drafts once.
+
+### Verification
+
+- Full offline suite passed 936/936 on Node 22.23.3 (0 skipped). Focused appreciation, `/hengs`, release and docs
+  checks passed 66/66. `git diff --check` passed.
+
+## [1.82.2] - 2026-10-25
+
+### Changed
+
+- Welcome and leave cards now use separate galaxy gateway backgrounds with an optional 3D Hengs mascot layer.
+- The mascot is scaled into a dedicated side slot so the member badge remains readable.
+- Added optimized production artwork under `assets/welcome/` and `assets/brand/`, with source artwork and previews under
+  `assets/_originals/`.
+
+### Verification
+
+- Full offline suite passed 933/933 on Node 22.23.3, with no skipped tests, using a workspace temp
+  directory and a Windows host test process with symlink support.
+- Focused renderer and release checks passed 22/22. Coverage includes bundled defaults, explicit
+  artwork overrides, missing-path fallback, the galaxy toggle, and mascot transparency.
+- `git diff --check` passed.
+
+## [1.82.1] - 2026-10-24
+
+### Changed
+
+- The draft card takes Henry's GPT image as a backdrop of any landscape size (scaled to cover, a light dark overlay
+  for readable text) and Hengs always draws the panels and slots on top. GPT images here come out at sizes like
+  1672x941 or 1536x1024, so a template with exact slot positions would never line up with the text. Checked with a
+  stand-in 1672x941 backdrop.
+
+### Verification
+
+- Node 22 full suite 932/932 via PowerShell (the tree also held another agent's uncommitted welcome-card test).
+
+## [1.82.0] - 2026-10-24
+
+### Added
+
+- Broadcast-style draft card per game for pro series. Henry: "laga pro itu bisa dikembangin sama gpt gak buat template
+  draft broadcast nya?" and "Bangun v1.82.0 kartu draft broadcast per game ... versi gambar kode dulu sambil gw bikin
+  template di GPT".
+  - `src/esports/draft-card.js`: 1600x960, blue side left and red side right, five pick slots per side with the
+    hero's role (Liquipedia hero dictionary) as a coloured chip, five dimmed bans per side, the series score after the
+    game, length, objective, and the winner marked MENANG. Only decided games with five picks a side get a card.
+  - Fixed `LAYOUT` shared with Henry's GPT template: `assets/esports/draft-bg.png` (1600x960). With the file Hengs
+    draws only text and chips on it; without it Hengs draws the panels and slots itself.
+  - The series card message carries the draft cards in the same gallery (result card first, then game 1 to n);
+    Liquipedia corrections re-render them with the card.
+  - No first-pick label: Liquipedia stores sides, not pick order, and blue = first pick is only inferred.
+- Item, emblem and KDA stay out of pro cards (no legal source); scrim stat cards from member screenshots are on the
+  Coach session's path.
+
+### Verification
+
+- Node 22 full suite 931/931 via PowerShell. Sample draft card rendered from mock data.
+
+## [1.81.0] - 2026-10-24
+
+### Added
+
+- Hengs Analis caster. Henry: "Gw maunya kan llm, bikin jadi LLM aja lah", then "Komentator + bisa ditanya".
+  - `src/esports/commentator.js`: Groq `openai/gpt-oss-120b` in JSON mode writes a caster-style line for the preview,
+    the night recap and the event recap, only from a fact card made of the card's own lines.
+  - The check: every number, every hero from the Liquipedia hero dictionary and every team name or ticker on the
+    watched pages that the text names must appear in the facts (for an answer, also in the question); no betting
+    words; a length cap. One retry with the rejected tokens named, then the template caption.
+  - Analis questions in #tanya-hengs (chat intent `analis`) are answered from a 7-day card (results with MVPs, today's
+    schedule, the next matches, top picks and bans, and a line for each hero the question names), with the same check.
+    No data or a failed check falls back to the guide. No Liquipedia request per question.
+- Live probe (mock matches, Groq, about 10 requests): captions and answers kept to the facts; "Lancelot menang berapa
+  kali?" got the right count once named heroes had their own line; no answer says "FAKTA" any more.
+
+### Changed
+
+- Release pins: v1.80.1 left `test/cloud-release.test.js` at 1.80.0; all pins are 1.81.0 now.
+
+### Verification
+
+- Node 22 full suite 926/926 via PowerShell.
+
+## [1.80.1] - 2026-10-24
+
+### Changed
+
+- Welcome and leave cards now use a compact hero pill, stronger member-name focus, and a clearer Hengs logo watermark.
+- Added the v2 visual preview at `assets/_originals/welcome-card-v2-preview.png` for review before deployment.
+- Verification: `node --test test/member-onboarding.test.js` passed 11/11.
+
+## [1.80.0] - 2026-10-24
+
+### Added
+
+- Hengs Analis match days. Henry chose "Per hari tanding", "jadwal dan rekor musim, kalau bisa kasih tebak juara dan
+  rekap malam yang berapa yang bener", and asked for previews that look like broadcast screens from his GPT assets.
+  Spec: docs/superpowers/specs/2026-10-24-hengs-analis-harian-design.md.
+  - Preview at 08:00 WIB on match days: one card per match with the WIB time, best-of, head-to-head this season and
+    each team's three most picked heroes, plus two buttons to guess the winner. The latest choice counts until the
+    match starts; the reply is private. A changed schedule edits the posted preview. Busy days (more than 4 matches)
+    get one schedule card plus up to 4 featured previews, Indonesian or Philippine teams first.
+  - Night recap after the day's last match (at the latest 23:30 WIB): results, most picked and most banned hero, the
+    best win rate from three picks, blue versus red, MVPs, and the share of voters who guessed right per match.
+  - Event recap once after the grand final: champion, runner-up, finals MVP, top 5 picks and bans, longest and
+    shortest game, blue versus red and the three best guessers (names without pings).
+  - Watchlist: MPL ID S18 Regular Season (season records) and Playoffs, Esports Nations Cup 2026 Group Stage and
+    Playoffs, M8 World Championship, plus a daily prefix search that adds new M8 stage pages. Titles VERIFIED with the
+    Liquipedia API on 2026-10-24; still one revisions request per check, and one fresh check from 07:30 WIB.
+  - Cards drawn by Hengs (no logos or hero art); optional backgrounds from Henry's GPT assets:
+    `assets/esports/preview-bg.png` (1600x900) and `assets/esports/recap-bg.png` (square). Captions are templates; the
+    LLM caster with a fact check is v1.81.0.
+- Modules: `src/esports/watch.js`, `schedule.js`, `predictions.js`, `daily.js`, `daily-cards.js`; the store keeps
+  daily claims (claim before send, no resend), votes (deleted 7 days after the event recap, 30 days at most) and
+  discovered pages. Failed sends go to bot-settings through the v1.79.2 reporter.
+
+### Changed
+
+- Series cards and their 72-hour upkeep still follow a fresh Liquipedia check; match-day posts run every tick from the
+  cache. `index.js` routes `hengs-analis:` buttons to the vote handler. The pinned guide explains previews and guesses.
+- Release pins: v1.79.3 bumped the package to 1.79.3 but left `test/cloud-release.test.js` at 1.79.2; both are 1.80.0
+  now.
+
+### Verification
+
+- Node 22 full suite 920/920 via PowerShell. Sample preview, night recap and event recap cards rendered from mock
+  matches.
+
+## [1.79.3] - 2026-10-24
+
+### Changed
+
+- Kartu welcome dan leave sekarang memilih `assets/brand/hengs-bot-icon-v2.png` sebagai logo utama, dengan fallback
+  ke aset lama dan override `HENGS_LOGO_PATH` tetap dipertahankan.
+
+### Verification
+
+- `node --test test/member-onboarding.test.js`: 11/11 lulus.
+
+## [1.79.2] - 2026-10-24
+
+### Fixed
+
+- Failed sends no longer fail silently. The welcome card had failed on a channel permission since mid-October (3 of
+  5 joins: @everyone was denied Send Messages in #welcome and Hengs had no overwrite) and nobody knew until Henry's
+  friend joined without a welcome. Henry: "bikin Hengs lapor ke bot-settings kalau kirim welcome gagal (sebut izin
+  yang kurang)", then "Fitur lain yang gagal kirim" too.
+  - `src/utils/failure-report.js`: one reporter posts a note to bot-settings, without pings, naming the
+    permissions Hengs lacks the way Discord's channel settings word them ("Send Messages") with the fix steps, or
+    the error code, or that the channel is gone.
+  - The same feature, channel, person and reason is noted once per 6 hours, so a failure that repeats every tick
+    does not flood bot-settings; each member's failed welcome still gets its own note.
+  - Covered: welcome (permissions checked before the card is drawn, a missing WELCOME_CHANNEL_ID channel, send
+    errors), leave card, boost message, scheduled news and memes (failed send, channel gone, missing permissions;
+    feed trouble is not a send failure) and Hengs Analis cards.
+  - `postBotSettings` finds the channel through the same `findBotSettings`.
+- One-off, owner-approved: the 3 members who missed their welcome since 15 Oct were listed in bot-settings by a
+  read-only cloud probe plus one REST post (no gateway login, no pings).
+
+### Verification
+
+- Node 22 full suite 895/895 via PowerShell.
+
+## [1.79.1] - 2026-10-24
+
+### Added
+
+- Mascot banners and a sticker set from Henry's GPT assets (commit b7ad9e9): `assets/brand/` (bot character sheet,
+  coach poses, Hengs Family crest and profile set, server, general, news and memes banners) and `assets/stickers/`
+  (8 stickers with a README). No feature uses them yet.
+
+### Changed
+
+- Hengs chat no longer opens an unsure answer with "maaf", like the coach. Henry: "Boleh disamain, kasih aja ke chatt
+  hengs". Code (`dropSorryOpener` in src/agent.js, run before the coach guard and before history) drops a "Maaf, aku
+  belum tahu / punya / yakin ..." opener and keeps the rest. Condolences ("Maaf banget dengar itu") and polite
+  refusals ("Maaf, aku nggak bisa ...") keep theirs. The prompt's honest game facts rule is unchanged.
+- Why not the coach's whole rule: chat has no data card. Live probes on 2026-10-24 where chat had to start from what
+  it knows invented a fake hero's ultimate, a fake item's passive, a "latest" MPL ID champion and Ling skill names.
+  A prompt line that only banned the maaf opener still hurt honesty: in an A/B the fake item got invented stats 3 of 4
+  times with it and 1 of 4 without it. So the tone moved into code, where it cannot change what the model claims.
+
+### Verification
+
+- Node 22 full suite 889 total, 888 pass, 1 skip in an isolated worktree with only this change (the skip is the
+  folder-name check in wa-recovery-alerts). Live: the unsure answers to textbook exam C5, C6 and C7 now start with
+  "Aku belum ..." and stay honest. Answers in .cloud/evals/textbook-2026-10-23 (answers-fun*, answers-ab*,
+  answers-final).
 
 ## [1.79.0] - 2026-10-24
 

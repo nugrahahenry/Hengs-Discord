@@ -20,10 +20,15 @@ const { createChatActions, firstImage, readKirim } = require('./chat-actions');
 const { createCoachQuota } = require('./scrim/coach');
 const state = require('./state');
 const { generateCard } = require('./utils/welcome-card');
-const { AttachmentBuilder } = require('discord.js');
+const { AttachmentBuilder, escapeMarkdown } = require('discord.js');
 const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
 const { assignMemberRole, buildWelcomeEmbed, findOnboardingChannel } = require('./utils/member-onboarding');
+const { createFailureReporter, findBotChannel, missingPermissions } = require('./utils/failure-report');
+// Failed sends (welcome, leave, boost, news, memes, analyst cards) are reported in bot-log (bot-settings without one).
+const reportFailure = createFailureReporter();
+const { readHealthSnapshot, onlineNotice, statusReport, handleStatusMessage } = require('./runtime/status-board');
+const { isEditor } = require('./ops/permissions');
 const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const opsHub = require('./ops/hub');
 const eventHub = require('./events/hub');
@@ -58,6 +63,8 @@ const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createEsportsService } = require('./esports/service');
+const { createVoiceRooms } = require('./voice-rooms/service');
+const { createCommentator, createCasterCompletion } = require('./esports/commentator');
 const { createEsportsStore } = require('./esports/store');
 const { createNewsEditor } = require('./news/editor');
 const { createMemeMaker } = require('./news/memes');
@@ -86,6 +93,8 @@ try {
   throw error;
 }
 const runtimeHealth = createRuntimeHealth({ version: packageMetadata.version });
+// Read before start() overwrites it: the online notice in bot-status tells how the last run ended.
+const previousHealth = readHealthSnapshot(runtimeHealth.filePath);
 runtimeHealth.start();
 process.on('exit', () => {
   runtimeHealth.stop();
@@ -111,9 +120,17 @@ const countMemeReactions = async ({ channelId, messageId }) => {
 };
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
   memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
-    taste: createMemeTaste(), countReactions: countMemeReactions }) });
-// Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only).
-const esportsService = createEsportsService({ guildAccess });
+    taste: createMemeTaste(), countReactions: countMemeReactions }), reportFailure });
+// Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only). The caster writes captions and
+// answers from Hengs' own numbers; without a Groq client the templates stay.
+const esportsService = createEsportsService({ guildAccess, reportFailure,
+  commentator: createCommentator({ complete: createCasterCompletion({ client: agent.groq, model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b' }) }),
+  // Liga Tebak champions: an appreciation draft in bot-settings for the owner to review (same form as any appreciation).
+  draftAppreciation: (guild, data, externalId) => opsHub.createDraftPanel(guild, {
+    ...require('./ops/appreciation').buildAppreciationDraft(data), kind: 'announcement', source: 'discord',
+    createdBy: client.user?.id || null, externalId }) });
+// Voice rooms: a "Bikin <tipe>" door makes a room of that type; failures go to bot-log.
+const voiceRooms = createVoiceRooms({ guildAccess, reportFailure });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
@@ -228,14 +245,20 @@ async function updateServerStats(guild) {
   }
 }
 
-// ── Kirim status ke channel bot-settings (log/kontrol Hengs) ─────────────────
-async function postBotSettings(guild, content) {
+// ── Owner channels: status notices to bot-status, failures to bot-log (both fall back to bot-settings) ──
+async function postBotChannel(guild, kind, content) {
   try {
-    const lc = c => c.name.toLowerCase();
-    const ch = guild.channels.cache.find(c => c.isTextBased?.() && lc(c).includes('bot-settings'))
-            || guild.channels.cache.find(c => c.isTextBased?.() && lc(c).includes('settings'));
-    if (ch) await ch.send(content);
-  } catch (e) { console.error('⚠️ postBotSettings error:', e.message); }
+    const ch = findBotChannel(guild, kind);
+    if (ch) await ch.send({ content, allowedMentions: { parse: [] } });
+  } catch { console.error(`[bot-channels] ${kind.toUpperCase()}_POST_FAILED`); }
+}
+
+// What the status reply in bot-status reads; all of it is already in memory or on local disk.
+function statusSources(guild) {
+  const health = runtimeHealth.snapshot();
+  return { version: packageMetadata.version, startedAt: Date.parse(health.processStartedAt), connection: health.connection.status,
+    ping: client.ws.ping, newsRow: newsService.getSettings(guild.id), analisCheck: esportsPages.lastCheck(),
+    failures: reportFailure.count(), logChannel: findBotChannel(guild, 'log') };
 }
 
 // ── Ready ────────────────────────────────────────────────────────────────────
@@ -264,6 +287,13 @@ client.once(Events.ClientReady, async (c) => {
 
   waRecoveryAlerts.start();
 
+  // bot-status: how the last run ended and how long Hengs was gone (owner request, 2026-10-26).
+  const notice = onlineNotice({ previous: previousHealth, version: packageMetadata.version,
+    startedAt: Date.parse(runtimeHealth.snapshot().processStartedAt) });
+  for (const guild of c.guilds.cache.values()) {
+    if (guildAccess.isHome(guild.id)) await postBotChannel(guild, 'status', notice);
+  }
+
   // Update server stats sekali saat bot nyala
   for (const guild of c.guilds.cache.values()) {
     if (!guildAccess.isHome(guild.id)) continue;
@@ -274,6 +304,7 @@ client.once(Events.ClientReady, async (c) => {
   personalAssistant.start(c);
   newsService.start(c);
   esportsService.start(c);
+  await voiceRooms.start(c).catch(() => console.error('[voice-rooms] START_FAILED'));
   try {
     await reportHub.start(c);
     console.log('  → Report Hub privat siap menerima laporan member.');
@@ -318,10 +349,10 @@ client.once(Events.ClientReady, async (c) => {
         }
       });
       console.log(`🔊 Auto-rejoined voice: ${channel.name}`);
-      await postBotSettings(guild, `🔊 **Auto-rejoin voice**. Hengs balik ke **${channel.name}**, siap nemenin lagi! 💪`);
+      await postBotChannel(guild, 'status', `🔊 **Auto-rejoin voice**. Hengs balik ke **${channel.name}**, siap nemenin lagi! 💪`);
     } catch (e) {
       console.error('⚠️ Auto-rejoin voice gagal:', e.message);
-      await postBotSettings(guild, `⚠️ Gagal auto-rejoin voice **${channel.name}**: \`${e.message}\``);
+      await postBotChannel(guild, 'log', `⚠️ Gagal auto-rejoin voice **${channel.name}**: \`${e.message}\``);
     }
   }
 });
@@ -342,7 +373,9 @@ client.on(Events.GuildMemberAdd, async (member) => {
   if (scope.kind !== 'home') return;
   // Auto-role and stats remain operational even when the welcome channel is missing.
   await updateServerStats(member.guild).catch(() => {});
-  await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
+  const role = await assignMemberRole(member, process.env.MEMBER_ROLE_ID);
+  const reportWelcome = (target, details = {}) => reportFailure(member.guild, { feature: 'Welcome', channel: target,
+    who: `<@${member.id}>`, extra: role.ok ? 'Role Member-nya tetap sudah dikasih.' : null, ...details });
 
   const channelId = process.env.WELCOME_CHANNEL_ID;
   if (!channelId) {
@@ -352,6 +385,13 @@ client.on(Events.GuildMemberAdd, async (member) => {
   const channel = member.guild.channels.cache.get(channelId);
   if (!channel) {
     console.warn('  WELCOME_CHANNEL_ID tidak ditemukan; auto-role tetap berjalan tanpa welcome card.');
+    await reportWelcome(null, { reason: 'channel dari WELCOME_CHANNEL_ID tidak ketemu. Cek ID-nya di konfigurasi bot' });
+    return;
+  }
+  // Checked before the card is drawn: a welcome that cannot go out is reported instead of failing silently.
+  if (missingPermissions(channel, member.guild.members.me).length) {
+    console.error('❌ Welcome card error: Missing Permissions');
+    await reportWelcome(channel);
     return;
   }
 
@@ -393,6 +433,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     }
   } catch (err) {
     console.error('❌ Welcome card error:', err.message);
+    await reportWelcome(channel, { code: err.code || null });
   }
 
 });
@@ -427,6 +468,8 @@ client.on(Events.GuildMemberRemove, async (member) => {
     }
   } catch (err) {
     console.error('❌ Leave card error:', err.message);
+    await reportFailure(member.guild, { feature: 'Leave card', channel, code: err.code || null,
+      who: escapeMarkdown(String(member.user?.username || 'member')) });
   }
 
   // Update stats
@@ -459,6 +502,8 @@ client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
     console.log(`💜 Boost dari ${newMember.user.username}`);
   } catch (err) {
     console.error('❌ Boost message error:', err.message);
+    await reportFailure(g, { feature: 'Ucapan boost', channel, code: err.code || null,
+      needs: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks] });
   }
 });
 
@@ -480,6 +525,11 @@ async function homeRoute(msg, text) {
   return classifyIntent(text);
 }
 
+// ── Voice rooms: joining a door creates a room, empty rooms close (owner request, 2026-10-26) ──
+client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+  voiceRooms.handleVoiceState(oldState, newState).catch(() => console.error('[voice-rooms] VOICE_STATE_FAILED'));
+});
+
 // ── AI Chat via mention ──────────────────────────────────────────────────────
 client.on(Events.MessageCreate, async (msg) => {
   if (msg.author.bot) return;
@@ -495,6 +545,13 @@ client.on(Events.MessageCreate, async (msg) => {
   if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
   // Keep the gallery quiet, including administrator mentions. Its pinned guide points to tanya-hengs.
   if (messageScope.kind === 'home' && require('./community-help').isHallGallery(msg.channel)) return;
+  // "status" in bot-status from the owner or an Ops editor, no mention needed (owner request, 2026-10-26).
+  if (messageScope.kind === 'home') {
+    try {
+      if (await handleStatusMessage(msg, { canAsk: m => isEditor({ user: m.author, member: m.member }),
+        report: () => statusReport(statusSources(msg.guild)) })) return;
+    } catch { console.error('[status] STATUS_REPLY_FAILED'); return; }
+  }
   // @everyone, @here and role pings are not a question to Hengs; a reply to Hengs still is.
   if (!msg.mentions.has(client.user, { ignoreEveryone: true, ignoreRoles: true })) return;
   // Home server: Hengs chats in tanya-hengs (or bot-commands) and bot-settings, coaches in hasil-scrim, and only waves
@@ -583,7 +640,8 @@ client.on(Events.MessageCreate, async (msg) => {
             content: result.created
               ? (promptRoute.kind === 'project_draft'
                 ? 'Rencana tugas proyek privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang menentukan langkah berikutnya.'
-                : 'Draft pengumuman privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang memutuskan publish atau jadwal.')
+                : `Draft pengumuman privat sudah masuk ke \`bot-settings\`. Review di sana, lalu owner yang memutuskan publish atau jadwal.${
+                  promptRoute.preparedDraft ? ` ${require('./ops/appreciation').TAG_TIP}` : ''}`)
               : 'Draft dari prompt ini sudah pernah dibuat.',
             allowedMentions: { parse: [] },
           });
@@ -631,8 +689,7 @@ client.on(Events.MessageCreate, async (msg) => {
         : promptRoute.content;
     await msg.reply({
       content,
-      components: promptRoute.kind === 'operation_questions' && promptRoute.operation === 'appreciation'
-        ? require('./ops/appreciation-form').appreciationFormRow(msg.author.id) : [],
+      components: require('./ops/appreciation-form').appreciationRows(promptRoute, msg.author.id),
       allowedMentions: { parse: [] },
     });
     return;
@@ -648,6 +705,14 @@ client.on(Events.MessageCreate, async (msg) => {
     if (kirim) {
       await msg.reply(chatActions.offer(msg, kirim));
       return;
+    }
+    // An Analis question gets an answer from the cached Liquipedia numbers; no data or a failed check falls back to the guide.
+    if (route.intent === 'analis') {
+      const answer = await esportsService.answer(text).catch(() => null);
+      if (answer) {
+        await msg.reply({ content: answer, allowedMentions: { parse: [] } });
+        return;
+      }
     }
     const guide = guideFor(route.intent, msg.guild);
     if (guide) {
@@ -737,6 +802,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     catch { console.error('[chat-actions] INTERACTION_FAILED'); }
     return;
   }
+  if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-analis:')) {
+    try { await esportsService.handleButton(interaction); }
+    catch { console.error('[esports] BUTTON_FAILED'); }
+    return;
+  }
   if (interaction.isButton() && String(interaction.customId || '').startsWith('hengs-share:')) {
     try { await communitySharing.handleButton(interaction); }
     catch { console.error('[community-share] INTERACTION_FAILED'); }
@@ -750,6 +820,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if ((interaction.isButton() || interaction.isUserSelectMenu()) && String(interaction.customId || '').startsWith('hengs-scrim:')) {
     try { await scrimResults.handleComponent(interaction); }
     catch { console.error('[scrim] INTERACTION_FAILED'); }
+    return;
+  }
+  if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isUserSelectMenu() || interaction.isModalSubmit())
+    && String(interaction.customId || '').startsWith('voice-room:')) {
+    try { await voiceRooms.handleInteraction(interaction); }
+    catch { console.error('[voice-rooms] INTERACTION_FAILED'); }
     return;
   }
   const interactionScope = guildAccess.classify(interaction.guildId);

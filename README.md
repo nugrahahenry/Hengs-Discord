@@ -2,7 +2,41 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.79.0 - Hengs Coach v2: one team practice target with `/scrim target` and a
+**Current checkpoint:** Hengs Discord v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
+Belajar push-to-talk, Nobar, Karaoke, Privat locked) make a room on join, with an owner panel (rename, slot, lock,
+invite), cleanup 60 seconds after the room empties, and #mabar posts for open Mabar and Scrim rooms. The
+**Bikin Room** package in `/admin setup` creates the doors. Builds on v1.86.0 Liga Tebak: the match-day guesses become a
+league per event. A right
+guess is 1 point, the day's Laga Panas (the voted match with the most voters, at least 3) is 2; members are ranked
+from 3 guesses. Every night recap shows the standings so far with a private **Lihat posisiku** button; the event
+recap shows the final table, and the champion gets an appreciation draft in bot-settings plus the rotating
+**Analis Jitu** role. The pinned Analis guide explains it (an existing guide is updated by `/admin setup`). Builds on
+v1.85.0, which splits the owner channels: failure notes go to `bot-log`, an online
+notice after every start (how long Hengs was down, a tidy or an abrupt stop, a new version) and the `status` reply go
+to `bot-status`, and `bot-settings` keeps only what needs a decision. `/admin setup` gains the **Admin Hengs**
+package. Builds on v1.84.0, which adds optional PNG/JPEG certificates to appreciation drafts through
+a native upload button, with private review and unchanged original bytes on publication. Team names stay literal,
+guidance uses short bullets, and certificates can be replaced or unlinked before publishing. Local checkpoint,
+not a deployment claim. Builds on v1.83.0 - an appreciation for a win that leaves out the tournament, the date or
+the players makes Hengs ask for just those, with **Lengkapi detail** (the form, name and achievement filled in) and
+**Bikin sekarang**, plus a note that players can be tagged on the draft with **Tag anggota**. Builds on v1.82.2
+(welcome and leave galaxy cards with an optional 3D mascot) and v1.82.0: every finished pro series also gets a
+broadcast-style draft card per
+game (blue and red side, hero roles, bans) in the same gallery, ready for Henry's GPT frame. Builds on v1.81.0: the
+Analis caster: an LLM writes caster-style lines for the match-day
+cards and answers Analis questions in #tanya-hengs, only from Hengs' own Liquipedia numbers (every number, hero and
+team it names is checked; otherwise the template or the guide). Builds on v1.80.1: welcome and leave cards now have a
+compact hero pill, stronger member
+focus, and a clearer Hengs logo watermark. Preview: `assets/_originals/welcome-card-v2-preview.png`. Builds on
+v1.80.0 Hengs Analis match days: at 08:00 WIB a broadcast-style preview card
+per match (season record, go-to heroes) with buttons to guess the winner, a night recap card (results, hero numbers,
+how many guessed right) and an event recap card after the grand final; the watchlist adds MPL ID S18, the Esports
+Nations Cup 2026 and M8. Builds on v1.79.3 (welcome and leave cards use the new Hengs bot logo with a safe legacy
+fallback), v1.79.2 (failed sends reported in bot-settings with the missing permissions named, once per 6 hours per
+failure), v1.79.1: Hengs
+chat no longer opens an unsure answer with "maaf" (code drops
+the apology; the honest game facts prompt stays). Builds on v1.79.0 Hengs Coach v2: one team practice target with
+`/scrim target` and a
 debrief nudge after the third game of a day, pro draft stats and a Liquipedia hero dictionary in the coach's data
 card, and unsure answers that start from the data instead of "gatau". Builds on v1.78.0 `/admin setup` v2 (a guided
 community setup: packages, News + Memes, a theme picked from an image board or written as a custom pattern, a
@@ -23,6 +57,19 @@ situations first. Hengs adds 😂 😐 💀 as real reactions under every meme (
 is one tap; on Hengs memes 😐 counts against in the taste store. Hengs Coach phase 1 is a scrim notebook for Hengs Family: `/scrim hasil` logs one MLBB
 game (one dropdown for the result and loss reason, lineup prefilled), `/scrim rekap` gives a private team recap
 and `/scrim statku` sends a player's own numbers by DM. Every number shows its sample size.
+
+Owner channels (home server, v1.85.0):
+- `bot-settings`: what needs your decision (drafts, setup previews, review queues).
+- `bot-log`: failure notes (welcome, leave, boost, news, memes, Analis) with the missing permission named, at most
+  once per 6 hours per failure, and a failed voice auto-rejoin.
+- `bot-status`: after every start Hengs posts how long it was down and whether it was stopped cleanly or abruptly
+  (and a new version when there is one). Write `status`, `status?` or `cek status` there (owner or Ops editor) for
+  uptime, connection and ping, the last news and meme, the last Analis check and the failure count since the start.
+- Without `bot-log` or `bot-status` those notes go to `bot-settings`. Create them with `/admin setup` > **Admin
+  Hengs** (private `🔒 Admin` category; an existing bot-settings is reused), or by hand next to bot-settings with
+  synced permissions.
+- Hengs cannot report while it is down; it reports how long it was gone once it is back. A live down alert needs an
+  outside watcher (a separate feature).
 
 Chat mode (home server, phase 1): mention Hengs in its own `🤖・tanya-hengs` or in `bot-settings` to chat.
 `/admin setup` with the Hengs package creates the channel in the Hengs category (an existing `BOT CENTER` counts),
@@ -53,6 +100,25 @@ hours; a member's ⚠️ sends the server owner one DM. Henry's backgrounds go i
 (`series-bg.png` square, at least 1600x1600, scaled to cover cards 900 to about 1600 px tall; `guide-banner.png`
 1600x500); without them the card uses the Aurora gradient.
 
+Offline Coach evaluation uses `scripts/esports-coach-review.js` to turn a validated scoreboard into a
+review brief. Optional final-draft labels must match the video, series, game and player names. Observed
+numbers and derived statistics are separate from questions that require watching the gameplay. Missing
+or contradictory results produce no coaching facts. This helper makes no provider calls, does not publish
+anything, and never imports a screenshot or model candidate into trusted Coach memory automatically.
+
+`scripts/esports-scoreboard-benchmark.js` compares a candidate with a complete operator reference across
+59 fields. Missing values stay in the denominator, numeric values require exact matches, and names only
+allow trimming and case-folding. It reports coverage separately from filled-value precision. It makes no
+file or network requests, does not fix values from the reference and never marks results as trusted.
+The local Windows OCR experiment is layout-assisted developer tooling, not an automatic cloud reader.
+
+`scripts/esports-scoreboard-checklist.js` provides the offline review step. Each of the 59 fields needs
+an explicit visual-review decision with a source-image hash and in-bounds evidence rectangle. Decisions
+are bound to the original candidate and source context. Original values remain separate from corrections,
+and arithmetic conflicts still block completion after all fields are reviewed. Reviewer labels are caller
+attestations, not verified human identities. Callers must verify actual image bytes and dimensions before
+using the helper. It performs no I/O or publication, never promotes trust, and does not change OCR accuracy.
+
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are
@@ -72,8 +138,8 @@ Appreciation drafts now use the reviewed Crown Stage artwork, with an adaptive l
 literal tournament and result text, and up to eight players with optional nicknames. Edit
 opens a prefilled form and refuses stale revisions. Review remains private before owner
 publication. The poster plus an unchanged organizer certificate were
-verified in the bot test channel. Reusable certificate ingestion remains deferred; this upload
-used a supervised one-off operator, not a new bot command.
+verified in the bot test channel during the earlier supervised publication. v1.84.0 adds reusable certificate
+intake locally. Its native upload and delivery have offline tests, not yet live Discord acceptance.
 The home server now has a Hall of Fame under Community, with the first owner-approved
 poster and original certificate published. Members can react and discuss in public threads;
 main-channel posting is limited to Hengs and administrators. Reusable Ops destination selection
@@ -396,7 +462,13 @@ Tidak perlu mendaftarkan slash command baru.
   Edit manual tetap tersedia; AI rewrite dimatikan agar fakta penghargaan tidak berubah.
   Jika format teks diubah bebas, gambar lama dihapus dan draft menjadi teks biasa.
   Logo Hengs Family dipakai untuk tim Hengs Familia/Family, penerima lain memakai ilustrasi trofi.
+  Nama tidak otomatis ditambah kata Tim. Isi `Hengs Family` atau `Hengs Family X SYN` sesuai nama sebenarnya.
+  Susunan pemain menyesuaikan jumlahnya. Satu nama di tengah, dua berdampingan, empat jadi dua baris.
+  Lima sampai delapan pemain dibagi seimbang. Nama panjang mendapat ruang lebih lebar tanpa dipotong.
+  Urutan pemain tetap mengikuti isian, dan nickname tetap opsional.
+
   Preview offline sintetis: `node scripts/preview-community-cards.js`; hasil di `.cloud/previews/`.
+  Tambahkan `--rosters` untuk membandingkan contoh nol sampai delapan pemain tanpa mengirim ke Discord.
   Hengs membuat kategori lalu menempatkan channel text dan voice yang masih kurang di dalamnya.
   Channel lama tidak di-rename, dipindah, dihapus, atau diubah permission-nya.
 - **Prompt Review privat:** tombol Tinjau sekarang membuka preview privat dengan TTL lima menit.
@@ -448,6 +520,22 @@ Tidak perlu mendaftarkan slash command baru.
   melalui `@napi-rs/canvas`
 - **Auto-assign role** Member pas join + **stats channel** auto-update (jumlah member dll)
 - **Admin tools** — `/admin ids`, `/admin webhook`, `/admin lockdown`
+
+### Sertifikat di kartu apresiasi
+
+1. Di bot-commands, mention Hengs dan tulis `bikin kartu apresiasi`.
+2. Klik **Isi kartu apresiasi**. Isi nama, pencapaian, dan detail yang sudah diketahui. Pemain satu per baris.
+3. Buka preview di bot-settings, lalu klik **Sertifikat**. Pilih satu PNG atau JPG, maksimal 8 MiB,
+   8 juta piksel, dan 8192 piksel per sisi. Sertifikat tetap opsional. PDF, GIF dan SVG belum didukung.
+4. Cek gambar asli melalui tautan pada preview. Gunakan **Ganti sertifikat** atau **Lepas sertifikat** bila perlu.
+5. Owner menekan **Publish Now** atau menjadwalkannya setelah review. Poster dan sertifikat menjadi dua gambar
+   terpisah. Tujuannya tetap channel pengumuman, belum otomatis ke Hall of Fame.
+
+Gambar tidak diedit atau dibaca oleh AI. Hengs tidak menganggap unggahan sebagai bukti yang sudah diverifikasi.
+Ruang review harus privat. Mengedit detail kartu menghapus kaitan sertifikat, jadi pasang lagi setelah cocok.
+Mengganti atau melepas lampiran tidak menghapus pesan gambar lama di ruang review. Retensinya mengikuti
+pengelolaan channel. Simpan file asli sendiri. Backup VM menyimpan referensi draft, bukan gambar di Discord.
+Jika pesan gambar di Discord terhapus atau isinya berbeda, publikasi berhenti sampai lampiran diperbaiki.
 
 ## 🛠️ Stack
 

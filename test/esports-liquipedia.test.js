@@ -84,3 +84,14 @@ test('odd replies fail closed', async () => {
   const idle = rig(() => ({}));
   assert.deepEqual(await idle.lp.revisions([]), []); assert.equal(idle.calls.length, 0);
 });
+
+test('prefix search returns page titles through the same spaced, identified client', async () => {
+  const urls = [];
+  const lp = createLiquipedia({ fetch: async url => { urls.push(url); return Buffer.from(JSON.stringify({ query: { prefixsearch: [
+    { title: 'M8 World Championship/Wildcard' }, { title: 7 }, { title: 'M8 World Championship/Swiss Stage' }] } })); },
+  now: () => 0, sleep: async () => {} });
+  assert.deepEqual(await lp.prefixSearch('M8 World Championship/'), ['M8 World Championship/Wildcard', 'M8 World Championship/Swiss Stage']);
+  assert.match(urls[0], /list=prefixsearch/); assert.match(urls[0], /pssearch=M8\+World\+Championship%2F/);
+  const broken = createLiquipedia({ fetch: async () => Buffer.from('{"query":{}}'), now: () => 0, sleep: async () => {} });
+  await assert.rejects(broken.prefixSearch('M8'), /ESPORTS_FETCH_FAILED/);
+});

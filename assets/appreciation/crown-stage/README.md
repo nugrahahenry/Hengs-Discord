@@ -19,6 +19,15 @@ No real player names, event facts or certificate are baked into the art. Other t
 the neutral trophy; an appreciation without an explicit ranking never displays an invented
 rank. Full literal details stay in the Discord embed even when the image cannot render.
 
+The offline scoreboard preview also reuses `arena-background.png` from 25 October 2026.
+Its wide/portrait renderer contains no new copy of the artwork and never changes the original bytes.
+Stage architecture is decorative, not evidence of a real MPL venue; separate reading mats protect the statistics.
+
 The 1080px-wide poster has a minimum height of 1350px and can grow for long text or up to
 eight players. It is static, not animated. Fonts and fixed art are decoded once per process;
 rendered posters and roster input are not cached or persisted by the renderer.
+
+Roster rows are centered and balanced for zero to eight players. Short names use 1, 2, 3,
+2+2, 3+2, 3+3, 3+2+2 or 3+3+2 positions. Measured long names can switch to wider two-column
+rows. A solo recipient's player name is larger. Name sizes stay consistent across the roster,
+and nicknames align below the tallest name in each row. Input order and full text are preserved.

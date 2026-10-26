@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseAppreciationPrompt } = require('./ops/appreciation');
+const { parseAppreciationPrompt, TAG_TIP } = require('./ops/appreciation');
 
 // Adapter prompt-first untuk Ops Hub dan Event Hub.
 // Modul ini hanya mem-parsing input bounded. Penyimpanan, scheduler, dan
@@ -83,13 +83,15 @@ function extractCapacity(value) {
 function buildOperationQuestions(kind = 'operation') {
   if (kind === 'appreciation') {
     return [
-      '🏆 Bisa, kita bikin kartu apresiasi dulu buat direview!',
-      'Klik tombol di bawah untuk isi nama tim/penerima, pencapaian, tanggal, dan pemain. Nickname dalam kurung boleh dikosongkan.',
-      'Atau langsung sebutkan detailnya. Contoh:',
-      '`Bikin apresiasi buat Tim Orion karena juara 1 turnamen kampus`',
-      'Kalau ada, tambahkan `; momen Campus Cup; tanggal 16 Oktober 2026`.',
-      'Pakai nama biasa, tanpa mention/link. Aku tidak menebak tanggal atau hasil lomba.',
-      'Draft masuk ke `bot-settings`. Belum diumumkan, tidak memberi role atau poin otomatis.',
+      '🏆 Yuk, bikin kartu apresiasinya. Klik **Isi kartu apresiasi** di bawah.',
+      '',
+      '• Isi nama persis yang ingin ditampilkan, misalnya **Hengs Family**. Tidak perlu ditambah kata Tim.',
+      '• Tulis pencapaian, nama turnamen, dan tanggalnya. Detail yang belum tahu boleh dikosongkan.',
+      '• Masukkan pemain satu per baris. Nickname opsional, misalnya Henry (StarGod). Maksimal 8 pemain.',
+      '• Setelah draft jadi, klik **Sertifikat** di preview untuk memilih satu PNG atau JPG, maksimal 8 MB.',
+      `• ${TAG_TIP}`,
+      '',
+      'Preview masuk ke `bot-settings` dan belum diumumkan. Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.',
     ].join('\n');
   }
   if (kind === 'project') {

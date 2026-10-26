@@ -332,6 +332,7 @@ function updatePendingDraft(id, input, userId, kind = 'edit') {
   draft.title = normalized.title;
   draft.body = normalized.body;
   delete draft.appreciationTags;
+  delete draft.appreciationCertificate;
   draft.lastRevisedAt = new Date().toISOString();
   draft.lastRevisedBy = String(userId).slice(0, 100);
   draft.lastRevisionKind = String(kind).slice(0, 30);
@@ -343,7 +344,7 @@ function updatePendingDraft(id, input, userId, kind = 'edit') {
 // AI revision membutuhkan network call. Claim sinkron mencegah Publish, Discard,
 // atau revision kedua berjalan saat model masih menyusun versi baru.
 function claimRevision(id, userId, kind) {
-  if (!['shorten', 'regenerate'].includes(kind)) {
+  if (!['shorten', 'regenerate', 'certificate'].includes(kind)) {
     throw new Error(`Jenis revisi Ops Hub tidak valid: ${kind}`);
   }
   const state = readState();
@@ -367,6 +368,7 @@ function applyRevision(id, input, userId) {
   draft.title = normalized.title;
   draft.body = normalized.body;
   delete draft.appreciationTags;
+  delete draft.appreciationCertificate;
   draft.status = 'pending';
   draft.lastRevisedAt = new Date().toISOString();
   draft.lastRevisedBy = String(userId).slice(0, 100);
@@ -466,6 +468,26 @@ function setAppreciationTags(id, memberIds, userId, expectedRevision) {
   return draft;
 }
 
+// Additive v1 metadata. Only the certificate UI can populate it, never Canox/draft JSON.
+function setAppreciationCertificate(id, reference, userId) {
+  const { validReference } = require('./appreciation-certificate');
+  const { readAppreciationDraft } = require('./appreciation');
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  if (!draft || draft.status !== 'revising' || draft.revisionKind !== 'certificate'
+    || draft.actionBy !== userId || !readAppreciationDraft(draft)) return null;
+  if (reference !== null && !validReference(reference, draft)) throw new Error('APPRECIATION_CERTIFICATE_INVALID');
+  if (reference) draft.appreciationCertificate = { ...reference };
+  else delete draft.appreciationCertificate;
+  draft.status = 'pending';
+  draft.actionBy = null;
+  draft.actionStartedAt = null;
+  draft.revisionKind = null;
+  appendAudit(state, id, reference ? 'certificate_attached' : 'certificate_unlinked', userId);
+  writeState(state);
+  return draft;
+}
+
 function getStatus() {
   const state = readState();
   return {
@@ -499,6 +521,7 @@ module.exports = {
   failScheduledPublish,
   updatePendingDraft,
   setAppreciationTags,
+  setAppreciationCertificate,
   claimRevision,
   applyRevision,
   releaseRevision,

@@ -74,7 +74,7 @@ test('explicit tag selection is private, actor-bound, member-validated and revis
   const publicPayload = await publicationPayload(interaction.guild, updated);
   assert.deepEqual(publicPayload.allowedMentions, { parse: [], users: [OTHER], repliedUser: false });
   assert.equal(publicPayload.content, `Apresiasi buat <@${OTHER}>! 🏆`);
-  assert.match(publicPayload.embeds[0].data.description, /Pemain:\n• Raka \(Sky\)\n• Dara/);
+  assert.match(publicPayload.embeds[0].data.description, /Pemain\n• Raka \(Sky\)\n• Dara/);
   assert.doesNotMatch(publicPayload.embeds[0].data.description, /;/);
   interaction.values = [OWNER];
   await handleTagSelection(interaction); // Original selector is now stale.
@@ -262,6 +262,56 @@ test('layout retains 0..8 players and full long text without overlapping text bo
   }
 });
 
+test('rosters balance 0..8 players, preserve order and center each row', async () => {
+  await renderAppreciationCard(data);
+  const { createCanvas } = require('@napi-rs/canvas');
+  const ctx = createCanvas(1080, 1350).getContext('2d');
+  const expected = [[], [1], [2], [3], [2, 2], [3, 2], [3, 3], [3, 2, 2], [3, 3, 2]];
+  const layouts = expected.map((counts, count) => {
+    const players = Array.from({ length: count }, (_, i) => `Player ${i + 1} (Nick ${i + 1})`).join('\n');
+    const layout = layoutCard(ctx, cardContent({ ...data, players }), true);
+    assert.deepEqual(layout.roster.map(row => row.count), counts);
+    assert.deepEqual(layout.roster.flatMap(row => row.names.map(block => block.lines.join(' '))),
+      Array.from({ length: count }, (_, i) => `Player ${i + 1}`));
+    const sizes = new Set(layout.roster.flatMap(row => row.names.map(block => block.size)));
+    assert.ok(sizes.size <= 1, 'players have a consistent visual weight');
+    for (const row of layout.roster) {
+      assert.equal(row.names.reduce((sum, block) => sum + block.x, 0) / row.count, 540);
+      assert.equal(new Set(row.names.map(block => block.y)).size, 1);
+      assert.equal(new Set(row.nicknames.map(block => block.y)).size, 1);
+      for (const block of [...row.names, ...row.nicknames]) {
+        assert.ok(block.x - block.width / 2 >= 60);
+        assert.ok(block.x + block.width / 2 <= 1020);
+      }
+    }
+    return layout;
+  });
+  assert.ok(layouts[1].roster[0].names[0].size > layouts[3].roster[0].names[0].size);
+  assert.ok(layouts[1].roster[0].names[0].width > layouts[3].roster[0].names[0].width);
+});
+
+test('wide names use roomy rows and aligned nicknames without empty nickname gaps', async () => {
+  await renderAppreciationCard(data);
+  const { createCanvas } = require('@napi-rs/canvas');
+  const ctx = createCanvas(1080, 1350).getContext('2d');
+  const players = ['WWWWWWWWWWWWWWWWWWWWWWWW (North)', 'Dara (Sky)', 'Bima', 'Nadia (Bulan 🌙)'];
+  const content = cardContent({ ...data, players: players.join('\n') });
+  const layout = layoutCard(ctx, content, true);
+  assert.deepEqual(layout.roster.map(row => row.count), [2, 2]);
+  const first = layout.roster[0];
+  assert.ok(first.names[0].lines.length > first.names[1].lines.length);
+  assert.equal(first.nicknames[0].y, first.nicknames[1].y);
+  assert.ok(first.nicknames[0].y >= Math.max(...first.names.map(b => b.y + b.height)));
+  assert.equal(layout.roster[1].nicknames.length, 1);
+  assert.ok(layout.roster[1].y > first.bottom);
+  const rendered = layout.roster.flatMap(row => [...row.names, ...row.nicknames])
+    .map(block => block.lines.join('')).join('').replaceAll(' ', '');
+  for (const player of content.players) {
+    assert.ok(rendered.includes(player.name.replaceAll(' ', '')));
+    assert.ok(rendered.includes(player.nick.replaceAll(' ', '')));
+  }
+});
+
 test('structured revision prefills fields, redraws privately and refuses stale or unauthorized forms', async t => {
   withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, BOT_SETTINGS_CHANNEL_ID: 'settings' });
   const { draft } = store.createDraft({ ...template });
@@ -416,4 +466,50 @@ test('scheduled publication retains graphic and exactly-once claims', async t =>
   assert.equal(sent.length, 1);
   assert.deepEqual(sent[0].payload.files[0].attachment, await renderAppreciationCard(data));
   assert.equal(store.getDraft(draft.id).status, 'published');
+});
+
+test('a competition result without tournament, date or players asks first with the tag tip; other appreciations draft at once', () => {
+  const ask = parseOperationPrompt('bikin apresiasi Hengs Family karena juara 1');
+  assert.equal(ask.kind, 'appreciation_missing'); assert.equal(ask.operation, 'appreciation');
+  assert.deepEqual(ask.missing, ['occasion', 'date', 'players']);
+  assert.deepEqual(ask.data, { recipient: 'Hengs Family', achievement: 'juara 1' });
+  for (const line of ['Nama turnamen atau acaranya apa?', 'Tanggalnya kapan?', 'Siapa aja pemainnya?', 'Tag anggota']) assert.ok(ask.content.includes(line), line);
+  assert.deepEqual(parseOperationPrompt('bikin apresiasi Tim Orion karena juara 1 turnamen kampus; tanggal 25 Oktober 2026').missing, ['players']);
+  assert.equal(parseOperationPrompt('bikin apresiasi buat Tim Orion karena membantu komunitas').kind, 'ops_draft');
+  assert.equal(parseOperationPrompt('bikin apresiasi Raka karena jadi MVP; momen Campus Cup; tanggal 1 Nov 2026; pemain Raka').kind, 'ops_draft');
+});
+
+test('pending appreciation details expire after 15 minutes and belong to one requester', () => {
+  const pending = require('../src/ops/appreciation-pending');
+  const key = pending.remember(OWNER, { recipient: 'A', achievement: 'juara 2' }, 1000);
+  assert.match(key, /^[a-f0-9]{8}$/);
+  assert.deepEqual(pending.recall(key, OWNER, 1000 + 60_000), { recipient: 'A', achievement: 'juara 2' });
+  assert.equal(pending.recall(key, OTHER, 1000 + 60_000), null);
+  assert.equal(pending.recall(key, OWNER, 1000 + 15 * 60_000), null);
+});
+
+test('Lengkapi opens the form with what Hengs already has; Bikin sekarang drafts once; both stay with the requester', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, BOT_SETTINGS_CHANNEL_ID: 'settings' });
+  const pending = require('../src/ops/appreciation-pending');
+  const { appreciationAskRow } = require('../src/ops/appreciation-form');
+  const key = pending.remember(OWNER, { recipient: 'Hengs Family', achievement: 'juara 1' });
+  const ids = appreciationAskRow(OWNER, key)[0].toJSON().components.map(c => c.custom_id);
+  assert.deepEqual(ids, [`ops:appreciationfill:${OWNER}:${key}`, `ops:appreciationnow:${OWNER}:${key}`]);
+  assert.deepEqual(appreciationAskRow(OWNER, 'nothex'), []);
+  const { interaction, sent } = fixture();
+  interaction.customId = ids[0];
+  await handleButton(interaction);
+  const form = interaction.modal.toJSON();
+  assert.equal(form.custom_id, `ops:appreciationform:${OWNER}`);
+  assert.equal(form.components[0].components[0].value, 'Hengs Family');
+  assert.equal(form.components[1].components[0].value, 'juara 1');
+  const stranger = fixture().interaction;
+  stranger.user = { id: OTHER }; stranger.customId = ids[1];
+  await handleButton(stranger);
+  assert.match(stranger.replyPayload.content, /khusus peminta/);
+  interaction.customId = ids[1];
+  await handleButton(interaction);
+  assert.equal(sent.length, 1); assert.match(interaction.editPayload.content, /Tag anggota/);
+  await handleButton(interaction);
+  assert.match(interaction.replyPayload.content, /kedaluwarsa/); assert.equal(sent.length, 1);
 });

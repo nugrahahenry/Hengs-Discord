@@ -385,23 +385,47 @@ function getLogoCandidates(options = {}) {
   return [
     options.logoPath,
     process.env.HENGS_LOGO_PATH,
+    path.resolve(__dirname, '../../assets/brand/hengs-bot-icon-v2.png'),
     path.resolve(__dirname, '../../assets/henzzz_bot_icon.png'),
     path.resolve(__dirname, '../../assets/hengs-bot-icon.png'),
     path.resolve(process.cwd(), 'assets/hengs-bot-icon.png'),
   ].filter(Boolean);
 }
 
-function getBackdropCandidates(options = {}) {
+function getBackdropCandidates(options = {}, isLeave = false) {
   return [
     options.backgroundPath,
-    process.env.HENGS_WELCOME_BACKGROUND_PATH,
+    isLeave ? options.leaveBackgroundPath : options.welcomeBackgroundPath,
+    isLeave ? process.env.HENGS_LEAVE_BACKGROUND_PATH : process.env.HENGS_WELCOME_BACKGROUND_PATH,
+    isLeave
+      ? path.resolve(__dirname, '../../assets/welcome/leave-gateway-v3.png')
+      : path.resolve(__dirname, '../../assets/welcome/welcome-gateway-v3.png'),
     path.resolve(__dirname, '../../assets/welcome/aurora-gateway-v2.png'),
     path.resolve(process.cwd(), 'assets/welcome/aurora-gateway-v2.png'),
   ].filter(Boolean);
 }
 
-async function loadOptionalBackdrop(loadImage, options = {}) {
-  for (const candidate of getBackdropCandidates(options)) {
+function getMascotCandidates(options = {}, isLeave = false) {
+  return [
+    options.mascotPath,
+    isLeave ? options.leaveMascotPath : options.welcomeMascotPath,
+    isLeave ? process.env.HENGS_LEAVE_MASCOT_PATH : process.env.HENGS_WELCOME_MASCOT_PATH,
+    isLeave
+      ? path.resolve(__dirname, '../../assets/brand/hengs-leave-mascot-v2.png')
+      : path.resolve(__dirname, '../../assets/brand/hengs-welcome-mascot-v2.png'),
+  ].filter(Boolean);
+}
+
+async function loadOptionalBackdrop(loadImage, options = {}, isLeave = false) {
+  for (const candidate of getBackdropCandidates(options, isLeave)) {
+    const image = await loadLocalImage(loadImage, candidate);
+    if (image) return image;
+  }
+  return null;
+}
+
+async function loadOptionalMascot(loadImage, options = {}, isLeave = false) {
+  for (const candidate of getMascotCandidates(options, isLeave)) {
     const image = await loadLocalImage(loadImage, candidate);
     if (image) return image;
   }
@@ -425,6 +449,66 @@ function drawCoverImage(ctx, image, x, y, width, height) {
   const sourceX = (imageWidth - sourceWidth) / 2;
   const sourceY = (imageHeight - sourceHeight) / 2;
   ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+}
+
+function drawMascot(ctx, image, theme, isLeave = false) {
+  if (!image) return;
+
+  // Keep the companion beside the member badge so the number stays readable.
+  const maxWidth = 132;
+  const maxHeight = 194;
+  const scale = Math.min(
+    maxWidth / Math.max(1, image.width || maxWidth),
+    maxHeight / Math.max(1, image.height || maxHeight),
+  );
+  const width = (image.width || maxWidth) * scale;
+  const height = (image.height || maxHeight) * scale;
+  const x = 645 + (maxWidth - width) / 2;
+  const y = 54 + (maxHeight - height) * 0.35;
+
+  ctx.save();
+  ctx.globalAlpha = isLeave ? 0.88 : 0.94;
+  ctx.shadowColor = hexToRgba(isLeave ? theme.secondary : theme.primary, 0.52);
+  ctx.shadowBlur = 18;
+  ctx.drawImage(image, x, y, width, height);
+  ctx.restore();
+}
+
+function drawGalaxyHaze(ctx, theme, isLeave = false) {
+  const centerX = isLeave ? 722 : 748;
+  const centerY = isLeave ? 112 : 118;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.24;
+
+  const haze = ctx.createRadialGradient(centerX, centerY, 12, centerX, centerY, 250);
+  haze.addColorStop(0, hexToRgba(theme.secondary, 0.38));
+  haze.addColorStop(0.35, hexToRgba(theme.tertiary, 0.18));
+  haze.addColorStop(1, hexToRgba(theme.primary, 0));
+  ctx.fillStyle = haze;
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY, 250, 108, -0.18, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = hexToRgba(theme.secondary, 0.24);
+  ctx.lineWidth = 2;
+  ctx.shadowColor = hexToRgba(theme.secondary, 0.30);
+  ctx.shadowBlur = 12;
+  for (let index = 0; index < 3; index += 1) {
+    ctx.beginPath();
+    ctx.ellipse(
+      centerX - 18,
+      centerY + index * 8,
+      168 + index * 28,
+      54 + index * 10,
+      -0.22,
+      0.18,
+      Math.PI * 1.74,
+    );
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawBaseBackground(ctx, width, height, theme) {
@@ -667,13 +751,13 @@ function drawCornerDetails(ctx, theme) {
 
 function drawLogoWatermark(ctx, logoImage, theme) {
   ctx.save();
-  ctx.globalAlpha = 0.075;
+  ctx.globalAlpha = 0.105;
   ctx.shadowColor = hexToRgba(theme.primary, 0.45);
   ctx.shadowBlur = 20;
 
   if (logoImage) {
-    const size = 116;
-    ctx.drawImage(logoImage, 596, 82, size, size);
+    const size = 128;
+    ctx.drawImage(logoImage, 590, 76, size, size);
   } else {
     ctx.strokeStyle = theme.primary;
     ctx.lineWidth = 8;
@@ -808,10 +892,11 @@ function drawPlanetOrbitBack(ctx, x, y, radius, theme) {
   ctx.restore();
 }
 
-function drawPlanet(ctx, data, theme) {
-  const x = 774;
-  const y = 140;
-  const radius = 63;
+function drawPlanet(ctx, data, theme, layout = {}) {
+  const compact = Boolean(layout.compact);
+  const x = compact ? 820 : 774;
+  const y = compact ? 132 : 140;
+  const radius = compact ? 54 : 63;
 
   ctx.save();
   const outerGlow = ctx.createRadialGradient(x, y, radius * 0.35, x, y, radius + 52);
@@ -1014,11 +1099,14 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  // Small server label above the member identity.
-  ctx.fillStyle = hexToRgba(theme.secondary, 0.95);
-  ctx.font = fontSpec(700, 11);
-  const heading = `${data.brandName.toUpperCase()} / ${data.isLeave ? 'SAMPAI JUMPA LAGI' : 'SELAMAT DATANG'}`;
-  ctx.fillText(truncateToWidth(ctx, heading, maxTextWidth), x, 40);
+  // A compact hero pill makes the card read like a welcome poster at a glance.
+  const heading = data.isLeave ? 'SAMPAI JUMPA LAGI' : 'WELCOME TO HENGS';
+  ctx.font = fontSpec(800, 10);
+  const headingWidth = Math.min(176, Math.max(128, ctx.measureText(heading).width + 24));
+  fillRoundedRect(ctx, x, 21, headingWidth, 19, 9, hexToRgba(theme.primary, 0.34));
+  strokeRoundedRect(ctx, x, 21, headingWidth, 19, 9, hexToRgba(theme.secondary, 0.58), 1);
+  ctx.fillStyle = theme.secondary;
+  ctx.fillText(truncateToWidth(ctx, heading, headingWidth - 20), x + 10, 34.5);
 
   // The member, not the brand, is the hero. The actual username stays below.
   const brand = safeString(data.displayName, data.username);
@@ -1033,6 +1121,13 @@ function drawIdentity(ctx, data, theme, options = {}) {
   ctx.shadowBlur = 14;
   ctx.fillText(truncateToWidth(ctx, brand, maxTextWidth), x, 86);
   ctx.shadowBlur = 0;
+
+  const heroLine = ctx.createLinearGradient(x, 0, x + Math.min(brandWidth, maxTextWidth), 0);
+  heroLine.addColorStop(0, hexToRgba(theme.secondary, 0.9));
+  heroLine.addColorStop(0.5, hexToRgba(theme.tertiary, 0.56));
+  heroLine.addColorStop(1, hexToRgba(theme.primary, 0));
+  ctx.fillStyle = heroLine;
+  ctx.fillRect(x, 96, Math.min(brandWidth, maxTextWidth), 2);
 
   // A stable @username distinguishes members with the same display name.
   const username = safeString(data.username, 'New Member');
@@ -1112,9 +1207,10 @@ async function generateCard(member, type = 'welcome', options = {}) {
   const { createCanvas, loadImage } = canvasLib;
   const canvas = createCanvas(CARD.width, CARD.height);
   const ctx = canvas.getContext('2d');
-  const [backdropImage, logoImage] = await Promise.all([
-    loadOptionalBackdrop(loadImage, options),
+  const [backdropImage, logoImage, mascotImage] = await Promise.all([
+    loadOptionalBackdrop(loadImage, options, data.isLeave),
     loadOptionalLogo(loadImage, options),
+    loadOptionalMascot(loadImage, options, data.isLeave),
   ]);
 
   ctx.save();
@@ -1123,11 +1219,17 @@ async function generateCard(member, type = 'welcome', options = {}) {
 
   drawBaseBackground(ctx, CARD.width, CARD.height, theme);
   drawBackdropLayer(ctx, backdropImage, CARD.width, CARD.height, theme, data.isLeave);
+  if (options.galaxyOverlay ?? Boolean(backdropImage)) {
+    drawGalaxyHaze(ctx, theme, data.isLeave);
+  }
   drawPerspectiveFloor(ctx, CARD.width, CARD.height, theme, data.isLeave);
   drawAuroraStreaks(ctx, theme);
 
   const random = createSeededRandom(`${data.id}:${normalizedType}:${data.memberNumber}`);
   drawStars(ctx, CARD.width, CARD.height, random, theme);
+
+  // Bundled mascot by default; if no image loads, the planet-only layout remains available.
+  drawMascot(ctx, mascotImage, theme, data.isLeave);
 
   drawLogoWatermark(ctx, logoImage, theme);
 
@@ -1141,7 +1243,7 @@ async function generateCard(member, type = 'welcome', options = {}) {
   await drawAvatar(ctx, loadImage, data, theme);
   drawIdentity(ctx, data, theme, options);
   drawStats(ctx, data, theme);
-  drawPlanet(ctx, data, theme);
+  drawPlanet(ctx, data, theme, { compact: Boolean(mascotImage) });
   drawCardBorder(ctx, CARD.width, CARD.height, theme);
 
   ctx.restore();

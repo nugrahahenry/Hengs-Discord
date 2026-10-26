@@ -51,7 +51,7 @@ function rig(t, options = {}) {
   const guildAccess = { classify: () => ({ kind: enabledScope ? 'home' : 'pending' }) };
   const readFeeds = options.readFeeds || (async () => ({ items: parseFeed(rss(SOURCES[0], 5, f.now()), SOURCES[0], f.now()), failures: 0 }));
   const service = createNewsService({ store: f.store, now: f.now, readFeeds, guildAccess,
-    editArticles: options.editArticles, memeMaker: options.memeMaker,
+    editArticles: options.editArticles, memeMaker: options.memeMaker, reportFailure: options.reportFailure,
     logger: { error: code => logs.push(code) } });
   t.after(() => service.stop());
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
@@ -737,4 +737,22 @@ test('outside memes get the same tap-to-vote reactions but never go to the taste
   assert.equal(r.destinations.at(-1), MEMES);
   assert.deepEqual(r.reactions, ['😂', '😐', '💀']);
   assert.deepEqual(calls, []);
+});
+
+test('a scheduled send that fails, or a channel Hengs cannot post in, is reported to bot-settings without provider text', async t => {
+  const reports = [];
+  let calls = 0; // fresh stories on every read, so the second slot has something to send
+  const r = rig(t, { reportFailure: async (guild, details) => { reports.push({ ...details, guild: guild.id, channel: details.channel?.id }); },
+    readFeeds: async topics => { calls++; return { items: [SOURCES[0], SOURCES[1], SOURCES[3]].filter(source => topics.includes(source.topic))
+      .flatMap(source => parseFeed(rss(source, 3, r.now()).replaceAll('Update', `${source.id}-${calls}`), source, r.now())), failures: 0 }; } });
+  let row = r.store.save(GUILD, 0, { ...settings(), count: 2 });
+  row = r.store.claim(GUILD, row.revision, '2026-10-12', [], 'claimed');
+  row = r.store.finish(GUILD, row.revision, '2026-10-12', 'sent');
+  r.advance(DAY);
+  r.store.enable(GUILD, row.revision);
+  r.failSend(); r.service.start(r.client); await r.service.tick();
+  assert.deepEqual(reports.map(x => [x.guild, x.feature, x.channel, x.code, x.needs.length]), [[GUILD, 'Berita harian', CHANNEL, null, 3]]);
+  r.deny(); r.advance(CADENCE); await r.service.tick();
+  assert.equal(reports.length, 2); assert.equal(reports[1].channel, CHANNEL);
+  assert.ok(!JSON.stringify(reports.map(({ needs, ...rest }) => rest)).includes('PRIVATE'));
 });
