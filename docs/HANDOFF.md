@@ -2,6 +2,21 @@
 
 Updated: 2026-10-27
 
+## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
+
+- Henry: "Tadi bikin mabar doang terus gak hilang pas keluar. Gw coba bikin lainnya tapi tetep bikin voice mabar."
+  Cause: leaving the room for another door left it empty but still owned (60 s grace), and openRoom moved the owner
+  back into it. Now the same door brings the owner back, another door closes the empty old room (and its #lfg post) and
+  opens the new type, a room with people stays with them, and inside the 30 s gap the owner is moved back with a note.
+- Henry: "bot log kok ada 2? ... mending di bot logs yang udah ada aja." The server already had `📋・bot-logs` (BOT
+  CENTER, @everyone hidden, 🤖 Bots view, empty). findBotChannel now prefers `bot-logs` (bot-log still counts) and the
+  Admin Hengs package uses `bot-logs`. After this release is live, delete the `📋・bot-log` channel made on 27 Oct (it
+  only holds Hengs' intro line); until then failure notes still land in it.
+- Checked: the live welcome card already uses the v1.82.2 galaxy and mascot art (no welcome change after it). The
+  room owner can change the slot from the panel; other members cannot.
+- QA: full suite 1075/1075 on Node 22.23.3, 0 skipped; focused 61/61. Deploy needs Henry's approval (new archive,
+  rehearsal and helpers for 1.87.2).
+
 ## Home server fixes after v1.87.1: #welcome and voice room doors - 2026-10-27
 
 - Henry: "izin send messages khusus buat hengs bot itu gimana? ... coba lu yang benerin dan cek dah".

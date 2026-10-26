@@ -47,18 +47,32 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
     if (busy.has(member.id)) return;
     busy.add(member.id);
     try {
-      const own = roomsOf(guild.id).find(([, room]) => room.ownerId === member.id)?.[0];
-      if (own) {
-        const channel = guild.channels.cache.get(own);
-        if (channel) { await member.voice.setChannel(channel).catch(() => {}); return; }
-        await closeRoom(guild, own, null); // deleted by someone else
-      }
+      const own = roomsOf(guild.id).find(([, room]) => room.ownerId === member.id);
+      const ownChannel = own ? guild.channels.cache.get(own[0]) || null : null;
+      if (own && !ownChannel) await closeRoom(guild, own[0], null); // deleted by someone else
+      // The same door brings the owner back to their room; another door swaps it for the new type (owner report,
+      // 2026-10-27: "Gw coba bikin lainnya tapi tetep bikin voice mabar").
+      const back = async () => { if (ownChannel) await member.voice.setChannel(ownChannel).catch(() => {}); };
+      if (ownChannel && own[1].type === type.key) { await back(); return; }
       if (now() - (lastCreated.get(member.id) || 0) < GAP) {
+        await back();
         await note(door, `${member.displayName}, tunggu 30 detik dulu sebelum bikin room lagi ya.`); return;
       }
-      if (roomsOf(guild.id).length >= MAX_ROOMS) { await note(door, `Room voice lagi penuh (${MAX_ROOMS}). Coba lagi nanti ya.`); return; }
+      if (roomsOf(guild.id).length - (ownChannel ? 1 : 0) >= MAX_ROOMS) {
+        await back();
+        await note(door, `Room voice lagi penuh (${MAX_ROOMS}). Coba lagi nanti ya.`); return;
+      }
       if (!guild.members.me?.permissions?.has(NEEDS)) {
+        await back();
         await report(guild, 'Hengs butuh izin Manage Channels, Move Members dan Manage Roles buat bikin room voice'); return;
+      }
+      if (ownChannel) {
+        // The old room stays with whoever is still inside, or closes now when it is empty.
+        const inside = humans(ownChannel).map(m => m.id).filter(id => id !== member.id);
+        if (inside.length) {
+          store.update(own[0], { ownerId: nextOwner(Object.fromEntries(inside.map(id => [id, joins.get(own[0])?.[id] || now()]))) });
+          await refreshPanel(guild, own[0]);
+        } else await closeRoom(guild, own[0], ownChannel);
       }
       let room;
       try {

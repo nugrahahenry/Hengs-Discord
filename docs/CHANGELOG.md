@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.87.2] - 2026-10-27
+
+### Fixed
+
+- Voice rooms: joining another door while owning an empty room closed nothing and moved the owner back into the old
+  room, so every door made "Mabar" (Henry's report). Now the same door still brings the owner back, another door closes
+  the empty old room (its #lfg post too) and opens the new type, and an old room with people stays with them. Inside
+  the 30-second gap the owner goes back to the old room with the usual note.
+
+### Changed
+
+- Failure notes go to `bot-logs` when the server has it (an existing `bot-log` still counts; bot-logs wins), and the
+  Admin Hengs setup package creates or reuses `bot-logs`.
+
+### Verification
+
+- Full offline suite passed 1075/1075 on Node 22.23.3 (0 skipped). Voice room, failure report and setup tests 61/61.
+
 ## [1.87.1] - 2026-10-26
 
 ### Offline tooling - 2026-10-27

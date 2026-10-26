@@ -217,3 +217,29 @@ test('index routes voice events and voice-room interactions to the service and t
   assert.match(index, /startsWith\('voice-room:'\)\) \{\n\s+try \{ await voiceRooms\.handleInteraction\(interaction\); \}/);
   assert.match(index, /await voiceRooms\.start\(c\)/);
 });
+
+// Henry, 2026-10-27: "Gw coba bikin lainnya tapi tetep bikin voice mabar."
+test('another door closes the empty old room and opens the new type; the same door brings you back', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-mabar'); const mabar = r.where.get('u1');
+  await r.voice('u1', 'door-mabar');
+  assert.equal(r.where.get('u1'), mabar); assert.equal(r.created.length, 1); // same door: back to the own room
+  r.clock.now += 31 * SEC;
+  await r.voice('u1', 'door-diskusi');
+  const diskusi = r.where.get('u1');
+  assert.notEqual(diskusi, mabar); assert.deepEqual(r.deleted, [mabar]); assert.equal(r.store.get(mabar), null);
+  assert.equal(r.created.at(-1).name, '💬 Diskusi · Raka'); assert.equal(r.store.get(diskusi).type, 'diskusi');
+  assert.equal(r.posts[0].deleted, true); // the Mabar post went with its room
+});
+
+test('switching within 30 seconds keeps the old room, and a room with people stays with them', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-mabar'); const mabar = r.where.get('u1');
+  await r.voice('u1', 'door-scrim');
+  assert.equal(r.where.get('u1'), mabar); assert.equal(r.created.length, 1); assert.deepEqual(r.deleted, []);
+  assert.match(r.cache.get('door-scrim').sent.at(-1).payload.content, /tunggu 30 detik/);
+  r.clock.now += SEC; await r.voice('u2', mabar);
+  r.clock.now += 31 * SEC; await r.voice('u1', 'door-scrim');
+  assert.equal(r.store.get(mabar).ownerId, 'u2'); assert.deepEqual(r.deleted, []); // u2 keeps the Mabar room
+  assert.equal(r.store.get(r.where.get('u1')).type, 'scrim');
+});

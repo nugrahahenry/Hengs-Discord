@@ -2,7 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
+**Current checkpoint:** Hengs Discord v1.87.2: joining another door while you own an empty room closes it and opens the
+new type (the same door still brings you back; a room with people stays with them), and failure notes go to an existing
+`bot-logs` channel. Builds on v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
 Belajar push-to-talk, Nobar, Karaoke, Privat locked) make a room on join, with an owner panel (rename, slot, lock,
 invite), cleanup 60 seconds after the room empties, and #mabar posts for open Mabar and Scrim rooms. The
 **Bikin Room** package in `/admin setup` creates the doors. Builds on v1.86.0 Liga Tebak: the match-day guesses become a
@@ -60,12 +62,12 @@ and `/scrim statku` sends a player's own numbers by DM. Every number shows its s
 
 Owner channels (home server, v1.85.0):
 - `bot-settings`: what needs your decision (drafts, setup previews, review queues).
-- `bot-log`: failure notes (welcome, leave, boost, news, memes, Analis) with the missing permission named, at most
+- `bot-logs` (an existing `bot-log` also works): failure notes (welcome, leave, boost, news, memes, Analis) with the missing permission named, at most
   once per 6 hours per failure, and a failed voice auto-rejoin.
 - `bot-status`: after every start Hengs posts how long it was down and whether it was stopped cleanly or abruptly
   (and a new version when there is one). Write `status`, `status?` or `cek status` there (owner or Ops editor) for
   uptime, connection and ping, the last news and meme, the last Analis check and the failure count since the start.
-- Without `bot-log` or `bot-status` those notes go to `bot-settings`. Create them with `/admin setup` > **Admin
+- Without `bot-logs` or `bot-status` those notes go to `bot-settings`. Create them with `/admin setup` > **Admin
   Hengs** (private `🔒 Admin` category; an existing bot-settings is reused), or by hand next to bot-settings with
   synced permissions.
 - Hengs cannot report while it is down; it reports how long it was gone once it is back. A live down alert needs an
