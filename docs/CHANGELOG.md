@@ -27,9 +27,20 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - The event recap's "Penebak paling jitu" list is replaced by the Liga Tebak table (`topGuessers` removed).
 - The Analis button route is `handleButton` (votes and Lihat posisiku).
 
+### Developer tooling
+
+- Added offline Coach briefs with same-video/game/series draft matching and exact team/player joins.
+  Observed results and derived numbers stay separate from gameplay-review questions. Inconsistent data
+  suppresses factual summaries, while source labels and review-required status remain explicit.
+- Validated one manually transcribed match with wide and phone scorecards plus original item crops.
+  This is a local reference package, not automatic extraction, a model-accuracy measurement or gameplay
+  analysis. No provider call, publication, trusted-memory import, runtime change or version bump.
+
 ### Verification
 
 - Full offline suite passed 1029/1029 on Node 22.23.3 (0 skipped). Esports tests 44/44, guide and setup tests 34/34.
+- After the offline brief helper, full suite passed 1036/1036 with zero skips. Focused review/lab tests
+  passed 36/36, and both one-match card layouts were visually checked.
 
 ## [1.85.0] - 2026-10-26
 

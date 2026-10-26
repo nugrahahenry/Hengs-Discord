@@ -2,6 +2,38 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.86.0 offline one-match Coach review - 2026-10-26
+
+- Henry approved continuing with one complete match before automated capture. No provider request,
+  deployment, Discord publication, schedule, live bot change or trusted Coach-memory import was authorized
+  or performed in this checkpoint.
+- Game 1 of the saved public grand-final capture pack pairs draft and final result from the same video,
+  series and game. The source says MATCH 8 - GAME 1. RORA wins 14-7 kills in 14:24, with displayed gold
+  48.0k versus FLCN's 40.0k. The approximately 8,000 difference preserves broadcast rounding. Player-gold
+  sums of 47,960 and 40,030 are retained, not silently changed to match the rounded totals.
+- `scripts/esports-coach-review.js` reuses scoreboard validation, pairs draft labels by exact team/player
+  identity rather than screen position, and separates observed/derived facts from gameplay-review questions.
+  Wrong-video/game/series pairs, ambiguous rosters and invalid timestamps are rejected. Inconsistent or
+  unidentified results yield no coaching facts. Candidate-model origin never becomes trusted evidence.
+- Ignored `.cloud/evals/mpl-ph-grand-final-2026-10-25/game-01-coach-review/` contains wide/phone PNGs,
+  the scoreboard review, `coach-brief.md`, JSON and provenance. Original JPEG hashes are pinned. The 60
+  item slots use source pixels from a lossless PNG decode, not generated items or inferred names. Local
+  catalog logos were reused. Both layouts were visually checked with all ten player rows intact.
+- This is a Codex visual transcription/reference package, not independent human acceptance, automatic
+  YouTube extraction, an OCR/model-accuracy result or full gameplay analysis. Patch, objective chronology,
+  item names/purchase order and any hero swap after the draft frame remain unverified. The source screenshots
+  and evaluation data stay ignored and out of Git.
+- Verification: focused review/lab tests 36/36, full offline suite 1036/1036 on Node 22.23.3, zero skipped.
+  The first restricted test run hit temporary-file permission errors. The same full suite passed with
+  approved normal permissions, without ACL changes. New input handling was reviewed for bounded names,
+  exact joins, Markdown escaping and rejection of arbitrary model instructions. No new dependency or state schema.
+- Product version stays v1.86.0 because this is isolated developer tooling. Liga Tebak and bot-status work
+  remain unchanged. Push is held with the existing batch. Checkpoint subject
+  `chore(esports): Hengs Discord v1.86.0 - add evidence-bound offline coach briefs`.
+- Next: review this sample with Henry, then repeat the reference checks on the other four complete result
+  screenshots. Only afterwards propose a bounded extraction evaluation. No automatic provider call or
+  trusted-memory ingestion follows from this local result.
+
 ## Hengs Discord v1.86.0 Liga Tebak (committed locally, not pushed, not deployed) - 2026-10-26
 
 - Henry chose "Seru pas MPL & M8": league per event (not weekly), Laga Panas as a double-points bonus (not a filter),

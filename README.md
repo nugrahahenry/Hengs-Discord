@@ -96,6 +96,12 @@ hours; a member's ⚠️ sends the server owner one DM. Henry's backgrounds go i
 (`series-bg.png` square, at least 1600x1600, scaled to cover cards 900 to about 1600 px tall; `guide-banner.png`
 1600x500); without them the card uses the Aurora gradient.
 
+Offline Coach evaluation uses `scripts/esports-coach-review.js` to turn a validated scoreboard into a
+review brief. Optional final-draft labels must match the video, series, game and player names. Observed
+numbers and derived statistics are separate from questions that require watching the gameplay. Missing
+or contradictory results produce no coaching facts. This helper makes no provider calls, does not publish
+anything, and never imports a screenshot or model candidate into trusted Coach memory automatically.
+
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).
 Hengs-made memes come from everyday situations only and must pass a second Groq judge before they are
