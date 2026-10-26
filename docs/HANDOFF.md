@@ -2,6 +2,21 @@
 
 Updated: 2026-10-27
 
+## Home server fixes after v1.87.1: #welcome and voice room doors - 2026-10-27
+
+- Henry: "izin send messages khusus buat hengs bot itu gimana? ... coba lu yang benerin dan cek dah".
+- #welcome (`🌊・welcome`): @everyone denies Send Messages and thread sending/creation (members still read and react);
+  Hengs has an explicit member overwrite (View, Read History, Send, Embed, Attach). Verified: @everyone and the Member
+  role cannot send, Hengs can. The first attempts returned 50013 because @everyone denied Manage Permissions in that
+  channel (which also bound Hengs); Henry cleared it and saved, then the fix applied.
+- Voice room doors created over REST (no gateway login): category `🎛️ BIKIN ROOM` with the seven `<emoji>・Bikin <Tipe>`
+  doors. Room posts go to `👥・lfg`. Henry's test: room `🎮 Mabar · StarGod.` created, panel posted, #lfg post, then
+  room and post removed after the room emptied; no voice-room error codes.
+- Hengs server permissions already include Manage Channels, Move Members and Manage Roles. bot-status exists and got
+  the post-deploy notice; bot-log does not exist yet (failure notes still go to bot-settings).
+- Scripts in `.cloud/automation/deploy-v1871/` (ignored): discord-inspect.sh, discord-perm-bits.sh, discord-deny-scan.sh,
+  voice-check.sh, voice-watch.sh (read-only) and discord-fix.sh (idempotent #welcome and doors fix).
+
 ## Hengs Discord v1.87.1 offline scoreboard review checklist - 2026-10-27
 
 - Continued from clean, pushed c625480 after the other task's v1.87.1 deployment. No cloud inspection or
