@@ -63,6 +63,7 @@ const packageMetadata = require('../package.json');
 const personalAssistant = createPersonalAssistant();
 const { createNewsService } = require('./news/service');
 const { createEsportsService } = require('./esports/service');
+const { createVoiceRooms } = require('./voice-rooms/service');
 const { createCommentator, createCasterCompletion } = require('./esports/commentator');
 const { createEsportsStore } = require('./esports/store');
 const { createNewsEditor } = require('./news/editor');
@@ -128,6 +129,8 @@ const esportsService = createEsportsService({ guildAccess, reportFailure,
   draftAppreciation: (guild, data, externalId) => opsHub.createDraftPanel(guild, {
     ...require('./ops/appreciation').buildAppreciationDraft(data), kind: 'announcement', source: 'discord',
     createdBy: client.user?.id || null, externalId }) });
+// Voice rooms: a "Bikin <tipe>" door makes a room of that type; failures go to bot-log.
+const voiceRooms = createVoiceRooms({ guildAccess, reportFailure });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
 const publicTrafficGuard = createPublicTrafficGuard();
@@ -301,6 +304,7 @@ client.once(Events.ClientReady, async (c) => {
   personalAssistant.start(c);
   newsService.start(c);
   esportsService.start(c);
+  await voiceRooms.start(c).catch(() => console.error('[voice-rooms] START_FAILED'));
   try {
     await reportHub.start(c);
     console.log('  → Report Hub privat siap menerima laporan member.');
@@ -520,6 +524,11 @@ async function homeRoute(msg, text) {
   if (!exempt) homeChatQuota.spend(msg.author.id);
   return classifyIntent(text);
 }
+
+// ── Voice rooms: joining a door creates a room, empty rooms close (owner request, 2026-10-26) ──
+client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+  voiceRooms.handleVoiceState(oldState, newState).catch(() => console.error('[voice-rooms] VOICE_STATE_FAILED'));
+});
 
 // ── AI Chat via mention ──────────────────────────────────────────────────────
 client.on(Events.MessageCreate, async (msg) => {
@@ -811,6 +820,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if ((interaction.isButton() || interaction.isUserSelectMenu()) && String(interaction.customId || '').startsWith('hengs-scrim:')) {
     try { await scrimResults.handleComponent(interaction); }
     catch { console.error('[scrim] INTERACTION_FAILED'); }
+    return;
+  }
+  if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isUserSelectMenu() || interaction.isModalSubmit())
+    && String(interaction.customId || '').startsWith('voice-room:')) {
+    try { await voiceRooms.handleInteraction(interaction); }
+    catch { console.error('[voice-rooms] INTERACTION_FAILED'); }
     return;
   }
   const interactionScope = guildAccess.classify(interaction.guildId);

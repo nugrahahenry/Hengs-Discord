@@ -5,6 +5,26 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.87.0] - 2026-10-26
+
+### Added
+
+- Voice rooms: seven doors (🎮 Bikin Mabar, ⚔️ Bikin Scrim, 💬 Bikin Diskusi, 📚 Bikin Belajar, 🎬 Bikin Nobar,
+  🎵 Bikin Karaoke, 🔒 Bikin Privat). Joining one creates a room of that type (Mabar slot 5, Scrim 10, Belajar
+  push-to-talk, Privat locked), moves the member in and posts an owner panel in the room chat: rename (2 per 10
+  minutes, no mentions or links), slot, lock or unlock, invite up to 5.
+- The member inside longest takes over when the owner leaves; an empty room closes after 60 seconds unless someone
+  comes back. One room per member, 30 seconds between rooms, at most 20 rooms. A restart drops rooms that are gone,
+  closes empty ones and keeps the rest.
+- Mabar and Scrim rooms are announced in #mabar (no pings), with the filled slots updated at most every 10 seconds,
+  "penuh" and "dikunci" states, and the post deleted when the room closes.
+- `/admin setup` package **Bikin Room**: category 🎛️ Bikin Room with the seven doors (existing doors are reused).
+- Missing Manage Channels, Move Members or Manage Roles, and failed creates, moves or deletes are reported in bot-log.
+
+### Verification
+
+- Full offline suite passed 1053/1053 on Node 22.23.3 (0 skipped). Voice room and setup tests 51/51.
+
 ## [1.86.0] - 2026-10-26
 
 ### Added

@@ -2,6 +2,20 @@
 
 Updated: 2026-10-26
 
+## Hengs Discord v1.87.0 voice rooms (committed locally, not pushed, not deployed) - 2026-10-26
+
+- Henry: "Bikin in channel voice dong yang bisa bikin voice gitu, terus dibanyakkin buat bervariasi." He picked seven
+  types, one door per type, and #mabar announcements. Spec `docs/superpowers/specs/2026-10-26-hengs-voice-rooms-design.md`,
+  plan `docs/superpowers/plans/2026-10-26-hengs-voice-rooms.md` (both ignored).
+- `src/voice-rooms/`: `types.js` (seven types), `rules.js` (doors by slug, names, renames, next owner, post text),
+  `store.js` (`data/voice-rooms.json`), `panel.js` (`voice-room:<action>:<channelId>`), `service.js` (voice events,
+  panel, 60 s empty grace and 10 s post debounce with injected timers, restart sweep in `start`).
+- index.js: `VoiceStateUpdate` to `voiceRooms.handleVoiceState`, `voice-room:` interactions routed before the generic
+  handlers, `voiceRooms.start(c)` on ready. Setup: package `room`, kind `door` (voice, server defaults).
+- QA: full offline suite 1053/1053 on Node 22.23.3, 0 skipped; voice room and setup tests 51/51.
+- After deploy: `/admin setup` > Bikin Room, and the Hengs Bot role needs Manage Channels, Move Members and Manage Roles
+  (otherwise bot-log says which). #mabar posts need a text channel named mabar, info-mabar or lfg.
+
 ## Hengs Discord v1.86.0 offline one-match Coach review - 2026-10-26
 
 - Henry approved continuing with one complete match before automated capture. No provider request,

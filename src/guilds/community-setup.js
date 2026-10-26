@@ -4,6 +4,7 @@
 // rename), work out which categories and channels to create or reuse and, when asked, which decorated names to
 // rename. Pure, so the preview image and the apply step use exactly the same plan.
 const { slugOf, firstEmoji, labelOf } = require('./channel-style');
+const { TYPES: ROOM_TYPES } = require('../voice-rooms/types');
 
 const CATEGORIES = Object.freeze({
   lobby: { emoji: '🚪', label: 'Lobby', aliases: ['lobby', 'welcome', 'get started', 'start here'] },
@@ -12,9 +13,10 @@ const CATEGORIES = Object.freeze({
   hengs: { emoji: '🤖', label: 'Hengs', aliases: ['hengs', 'bot center', 'bot'] },
   creator: { emoji: '🎬', label: 'Creator Studio', aliases: ['creator studio', 'creator'] },
   voice: { emoji: '🔊', label: 'Voice', aliases: ['voice', 'voice channels'] },
+  room: { emoji: '🎛️', label: 'Bikin Room', aliases: ['bikin room', 'room', 'voice room', 'room voice'] },
   admin: { emoji: '🔒', label: 'Admin', aliases: ['admin', 'private', 'privat', 'staff', 'mod', 'bot admin'] },
 });
-const ORDER = ['lobby', 'komunitas', 'gaming', 'hengs', 'creator', 'voice', 'admin'];
+const ORDER = ['lobby', 'komunitas', 'gaming', 'hengs', 'creator', 'voice', 'room', 'admin'];
 
 // kind: read (members read and react), chat (server defaults), tanya/analis/news/memes/scrim (Hengs' own), voice.
 const PACKAGES = Object.freeze([
@@ -26,6 +28,9 @@ const PACKAGES = Object.freeze([
   { key: 'tim', label: 'Tim scrim', about: 'hasil-scrim, privat Hengs Family', category: 'hengs', channels: [['📸', 'hasil-scrim', 'scrim']] },
   { key: 'creator', label: 'Creator', about: 'live-stream, showcase', category: 'creator', channels: [['🎥', 'live-stream', 'chat'], ['✨', 'showcase', 'chat']] },
   { key: 'voice', label: 'Voice', about: 'Lounge, AFK', category: 'voice', channels: [['🔊', 'Lounge', 'voice'], ['💤', 'AFK', 'voice']] },
+  // Doors of the voice rooms (2026-10-26): joining one makes a room of that type (src/voice-rooms).
+  { key: 'room', label: 'Bikin Room', about: 'pintu room voice: Mabar, Scrim, Diskusi, Belajar, Nobar, Karaoke, Privat', category: 'room',
+    channels: ROOM_TYPES.map(type => [type.emoji, `Bikin ${type.label}`, 'door']) },
   // Owner channels (2026-10-26): decisions in bot-settings, failure notes in bot-log, online notices and status in bot-status.
   { key: 'admin', label: 'Admin Hengs', about: 'bot-settings, bot-log, bot-status (privat)', category: 'admin',
     channels: [['⚙️', 'bot-settings', 'admin'], ['📋', 'bot-log', 'admin'], ['📡', 'bot-status', 'admin']] },
@@ -71,7 +76,7 @@ function buildPlan({ inventory = [], packages = [], extras = {}, theme, rename =
     const defs = chosen.filter(p => p.category === key).flatMap(p => p.channels);
     if (key === 'hengs') defs.push(...wanted.map(extra => EXTRAS[extra]));
     for (const [emoji, label, kind] of defs) {
-      const type = kind === 'voice' ? 'voice' : 'text';
+      const type = kind === 'voice' || kind === 'door' ? 'voice' : 'text';
       const slug = slugOf(label);
       const existing = channelsIn.filter(c => (type === 'voice' ? VOICE_TYPES : TEXT_TYPES).includes(c.type) && slugOf(c.name) === slug)
         .sort(byPosition)[0];
@@ -135,7 +140,7 @@ async function applyPlan(guild, plan, { assertLease = async () => {}, postChatGu
   let teamRole = null;
   // Overwrites by kind as [id, allow, deny]. Voice and chat channels keep the server defaults for members.
   async function rules(kind) {
-    if (kind === 'voice') return null;
+    if (kind === 'voice' || kind === 'door') return null;
     if (['read', 'analis', 'news', 'memes'].includes(kind)) {
       return [[everyone, [P.ViewChannel, P.ReadMessageHistory, P.AddReactions],
         [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads]], [me.id, bot, []]];

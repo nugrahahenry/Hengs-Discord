@@ -17,7 +17,7 @@ const inventory = [
 ];
 
 test('the packages match the approved list', () => {
-  assert.deepEqual(PACKAGES.map(p => p.key), ['lobby', 'komunitas', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'admin']);
+  assert.deepEqual(PACKAGES.map(p => p.key), ['lobby', 'komunitas', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'room', 'admin']);
 });
 
 test('a plan reuses categories and channels by slug, puts new channels in their package category and renames nothing', () => {
@@ -190,4 +190,17 @@ test('Admin Hengs puts bot-settings, bot-log and bot-status in a private Admin c
   assert.deepEqual(result.tightened.map(c => c.id), ['s1']);
   assert.deepEqual(r.edits.map(([channel, id, bits]) => [channel, id, bits.ViewChannel]), [['s1', 'g1', false], ['s1', 'me', true]]);
   assert.deepEqual(result.failed, []);
+});
+
+test('Bikin Room plans the seven voice doors in their own category and reuses a door that exists', () => {
+  const items = [...inventory, { id: 'd1', name: '🎮 bikin-mabar', type: 2, parentId: 'c3', position: 1 }];
+  const plan = buildPlan({ inventory: items, packages: ['room'], extras: {}, theme: themeById('dot') });
+  assert.deepEqual(plan.categories.map(c => [c.key, c.id, c.name]), [['room', null, plan.categories[0].name]]);
+  assert.deepEqual(plan.channels.map(c => [c.slug, c.type, c.kind, c.id]), [['bikin mabar', 'voice', 'door', null], ['bikin scrim', 'voice', 'door', null],
+    ['bikin diskusi', 'voice', 'door', null], ['bikin belajar', 'voice', 'door', null], ['bikin nobar', 'voice', 'door', null],
+    ['bikin karaoke', 'voice', 'door', null], ['bikin privat', 'voice', 'door', null]]);
+  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar');
+  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 }],
+    packages: ['room'], extras: {}, theme: themeById('dot') });
+  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.counts.channels, 6);
 });

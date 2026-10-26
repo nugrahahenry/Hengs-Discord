@@ -2,7 +2,11 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.86.0 Liga Tebak: the match-day guesses become a league per event. A right
+**Current checkpoint:** Hengs Discord v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
+Belajar push-to-talk, Nobar, Karaoke, Privat locked) make a room on join, with an owner panel (rename, slot, lock,
+invite), cleanup 60 seconds after the room empties, and #mabar posts for open Mabar and Scrim rooms. The
+**Bikin Room** package in `/admin setup` creates the doors. Builds on v1.86.0 Liga Tebak: the match-day guesses become a
+league per event. A right
 guess is 1 point, the day's Laga Panas (the voted match with the most voters, at least 3) is 2; members are ranked
 from 3 guesses. Every night recap shows the standings so far with a private **Lihat posisiku** button; the event
 recap shows the final table, and the champion gets an appreciation draft in bot-settings plus the rotating
