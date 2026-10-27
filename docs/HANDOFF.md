@@ -2,6 +2,26 @@
 
 Updated: 2026-10-28
 
+## Hengs Discord v1.88.0 deployed and accepted - 2026-10-28
+
+- Henry: "Deploy dan hapus dong file yang udah gak diperlukan kayak arhcive archive tersebut".
+- Release 1.88.0-6487567fe179, archive SHA-256 3c59be5cd4b07667c773a6882179e6e6d3ea11bc1e24b9a58f86d16289acc568
+  (57 MB), rehearsal 1100/1095/5 skips with no file written into the release tree, `node --check` clean. Helpers
+  `.cloud/automation/deploy-v1880` from the new `derive-dc-from-1872.cjs` (the one-off bot-log scripts not carried).
+- Preflight PASS 19:37:54 UTC, staged and sealed 19:38:35, dispatched 19:38:37, QA 19:39:10 to 19:42:10, ACCEPTED
+  19:43:19 (TESTS=1100 PASS=1095 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- No command changes, so no registration; CMD_CHECK HOME=14 with CASTER, SCRIM_HASIL, KIRIM, SCRIM_COACH and
+  SCRIM_HAPUS_TANYA YES; DC 1.88.0 and WA 0.53.0 connected, fresh. Audit PASS 19:43:41 on the first run: restarts zero,
+  staging absent, rollback to 1.87.2-da0f880d9b07 available.
+- Live now: Belajar Pomodoro, belajar-bareng room posts and the Rajin Belajar board (first one Monday 2 Nov 07:00 WIB
+  for 26 Oct to 1 Nov; a week where nobody reached 25 minutes posts nothing). `📚・belajar-bareng` does not exist yet:
+  `/admin setup` > Bikin Room creates it. Without it, room posts are skipped and Monday leaves one bot-logs note.
+- Cleanup (Recycle Bin, not emptied): all local release archives and checksums (1.70.0 to 1.88.0), the five rehearsal
+  folders, deploy helpers v1610 to v1872, derive-dc-next.cjs and derive-dc-from-1871.cjs, about 570 MB. Kept:
+  deploy-v1880 (status, audit, ops probes), derive-dc-from-1872.cjs as the pattern for the next derive (its source
+  folder is gone, so the next one derives from deploy-v1880), news-*, appreciation and hall helpers, the QA temp
+  folders with test links, evals.
+
 ## Hengs Discord v1.88.0 Belajar rooms with Pomodoro (committed locally, not pushed, not deployed) - 2026-10-28
 
 - Henry picked this over automatic Nobar: "Room Belajar + Pomodoro dulu, Nobar nanti aja." Chosen in the brainstorm:
