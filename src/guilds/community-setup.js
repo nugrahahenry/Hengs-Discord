@@ -28,12 +28,13 @@ const PACKAGES = Object.freeze([
   { key: 'tim', label: 'Tim scrim', about: 'hasil-scrim, privat Hengs Family', category: 'hengs', channels: [['📸', 'hasil-scrim', 'scrim']] },
   { key: 'creator', label: 'Creator', about: 'live-stream, showcase', category: 'creator', channels: [['🎥', 'live-stream', 'chat'], ['✨', 'showcase', 'chat']] },
   { key: 'voice', label: 'Voice', about: 'Lounge, AFK', category: 'voice', channels: [['🔊', 'Lounge', 'voice'], ['💤', 'AFK', 'voice']] },
-  // Doors of the voice rooms (2026-10-26): joining one makes a room of that type (src/voice-rooms).
-  { key: 'room', label: 'Bikin Room', about: 'pintu room voice: Mabar, Scrim, Diskusi, Belajar, Nobar, Karaoke, Privat', category: 'room',
-    channels: ROOM_TYPES.map(type => [type.emoji, `Bikin ${type.label}`, 'door']) },
-  // Owner channels (2026-10-26): decisions in bot-settings, failure notes in bot-log, online notices and status in bot-status.
-  { key: 'admin', label: 'Admin Hengs', about: 'bot-settings, bot-log, bot-status (privat)', category: 'admin',
-    channels: [['⚙️', 'bot-settings', 'admin'], ['📋', 'bot-log', 'admin'], ['📡', 'bot-status', 'admin']] },
+  // Doors of the voice rooms (2026-10-26): joining one makes a room of that type (src/voice-rooms). belajar-bareng
+  // (2026-10-28) carries the Belajar room posts and the weekly Rajin Belajar board, and members chat there.
+  { key: 'room', label: 'Bikin Room', about: 'pintu room voice: Mabar, Scrim, Diskusi, Belajar, Nobar, Karaoke, Privat, plus belajar-bareng',
+    category: 'room', channels: [...ROOM_TYPES.map(type => [type.emoji, `Bikin ${type.label}`, 'door']), ['📚', 'belajar-bareng', 'chat']] },
+  // Owner channels (2026-10-26): decisions in bot-settings, failure notes in bot-logs, online notices and status in bot-status.
+  { key: 'admin', label: 'Admin Hengs', about: 'bot-settings, bot-logs, bot-status (privat)', category: 'admin',
+    channels: [['⚙️', 'bot-settings', 'admin'], ['📋', 'bot-logs', 'admin'], ['📡', 'bot-status', 'admin']] },
 ]);
 const EXTRAS = Object.freeze({ news: ['📰', 'hengs-news', 'news'], memes: ['😂', 'hengs-memes', 'memes'] });
 

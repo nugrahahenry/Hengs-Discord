@@ -1,6 +1,6 @@
 'use strict';
 
-// Failed sends go to bot-log (bot-settings when there is none), so a broken feature never fails silently for days: the
+// Failed sends go to bot-logs (bot-settings when there is none), so a broken feature never fails silently for days: the
 // welcome card failed on a channel permission from mid-October until a member noticed (owner request, 2026-10-24). One
 // note per feature, channel, person and reason within the window, so a failure that repeats every tick does not flood.
 const { PermissionFlagsBits: P } = require('discord.js');
@@ -14,12 +14,17 @@ function findBotSettings(guild) {
   return text.find(c => c.name.toLowerCase().includes('bot-settings')) || text.find(c => c.name.toLowerCase().includes('settings')) || null;
 }
 
-// Owner channels by job (owner request, 2026-10-26: bot-settings is for decisions only): failure notes go to bot-log,
-// status notices to bot-status. Either falls back to bot-settings, so nothing is lost on servers without them.
+// Owner channels by job (owner request, 2026-10-26: bot-settings is for decisions only): failure notes go to bot-logs
+// (bot-log also counts; an existing bot-logs wins, owner request 2026-10-27), status notices to bot-status. Either
+// falls back to bot-settings, so nothing is lost on servers without them.
 function findBotChannel(guild, kind) {
-  const slug = { log: 'bot-log', status: 'bot-status' }[kind];
+  const slugs = { log: ['bot-logs', 'bot-log'], status: ['bot-status'] }[kind] || [];
   const text = [...(guild?.channels?.cache?.values?.() || [])].filter(c => c.isTextBased?.());
-  return (slug && text.find(c => slugOf(c.name) === slug)) || findBotSettings(guild);
+  for (const slug of slugs) {
+    const found = text.find(c => slugOf(c.name) === slug);
+    if (found) return found;
+  }
+  return findBotSettings(guild);
 }
 
 // Permissions Hengs lacks in a channel, worded as in Discord's channel settings ("Send Messages"). Unknown (no

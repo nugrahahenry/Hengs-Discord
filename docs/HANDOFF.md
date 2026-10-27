@@ -1,6 +1,6 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-27
+Updated: 2026-10-28
 
 ## Hengs Discord v1.89.0 (provisional) coach examples, buku pintar and light teasing on branch coach-v2 (not deployed) - 2026-10-28
 
@@ -23,7 +23,182 @@ Updated: 2026-10-27
   is in the buku pintar (objective calls, early game, mid trio, EXP to mid for level 4) plus a missing-enemy call and
   pos 1-5 from a community guide; exam N10 added (36 scenarios). Henry asked for the rest of the macro and the SS to be
   researched or sourced by us; he gets a context prompt for GPT to gather the 10 screenshots.
-- Next: coach exam on 2026-10-25 (Discord key quota), the 12 v11 scenarios plus four new unseen ones (N1-N4).
+- 2026-10-28 exams (run when Henry said the bot was quiet; local, .cloud/evals/coach-2026-10-23): v12 on 22 questions
+  scored 32/44 (the 12 shared with v11 went 16/24 to 20/24, dodge openers 5 to 1); f649823 fixed its five findings;
+  retest v13 scored 16/20 with nothing invented (the seven failed questions 4/14 to 11/14); 714b122 fixed the three
+  leftovers (refusal maaf, rank feelings, a guard for game times not in the card). Report: discord-bot
+  docs/research/2026-10-23-hengs-coach-exam.md.
+- Then main v1.88.0 (7e7642a) was merged into coach-v2, so main can take it as a fast-forward. Henry: "Benerin dulu tiga
+  sisanya ..., baru gabung ke main." Not deployed; deploying it needs the usual archive and rehearsal, and still his
+  calls on parental consent for under-18 members.
+
+## Hengs Discord v1.88.0 deployed and accepted - 2026-10-28
+
+- Henry: "Deploy dan hapus dong file yang udah gak diperlukan kayak arhcive archive tersebut".
+- Release 1.88.0-6487567fe179, archive SHA-256 3c59be5cd4b07667c773a6882179e6e6d3ea11bc1e24b9a58f86d16289acc568
+  (57 MB), rehearsal 1100/1095/5 skips with no file written into the release tree, `node --check` clean. Helpers
+  `.cloud/automation/deploy-v1880` from the new `derive-dc-from-1872.cjs` (the one-off bot-log scripts not carried).
+- Preflight PASS 19:37:54 UTC, staged and sealed 19:38:35, dispatched 19:38:37, QA 19:39:10 to 19:42:10, ACCEPTED
+  19:43:19 (TESTS=1100 PASS=1095 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- No command changes, so no registration; CMD_CHECK HOME=14 with CASTER, SCRIM_HASIL, KIRIM, SCRIM_COACH and
+  SCRIM_HAPUS_TANYA YES; DC 1.88.0 and WA 0.53.0 connected, fresh. Audit PASS 19:43:41 on the first run: restarts zero,
+  staging absent, rollback to 1.87.2-da0f880d9b07 available.
+- Live now: Belajar Pomodoro, belajar-bareng room posts and the Rajin Belajar board (first one Monday 2 Nov 07:00 WIB
+  for 26 Oct to 1 Nov; a week where nobody reached 25 minutes posts nothing).
+- `📚・belajar-bareng` created over REST at 19:54 UTC (Henry: "Bikinin 📚・belajar-bareng lewat REST di kategori BIKIN
+  ROOM, member bisa ngobrol dan Hengs bisa kirim. Terus cek.") with `deploy-v1880/belajar-bareng-create.sh`: in
+  `🎛️ BIKIN ROOM`, the category had no overwrites to copy, Hengs has an explicit member overwrite (View, History, Send,
+  Embed, Attach, Reactions). Checked with `belajar-bareng-check.sh`: @everyone, the Member role and Hengs can view,
+  read history and send.
+- Cleanup (Recycle Bin, not emptied): all local release archives and checksums (1.70.0 to 1.88.0), the five rehearsal
+  folders, deploy helpers v1610 to v1872, derive-dc-next.cjs and derive-dc-from-1871.cjs, about 570 MB. Kept:
+  deploy-v1880 (status, audit, ops probes), derive-dc-from-1872.cjs as the pattern for the next derive (its source
+  folder is gone, so the next one derives from deploy-v1880), news-*, appreciation and hall helpers, the QA temp
+  folders with test links, evals.
+
+## Hengs Discord v1.88.0 Belajar rooms with Pomodoro (committed locally, not pushed, not deployed) - 2026-10-28
+
+- Henry picked this over automatic Nobar: "Room Belajar + Pomodoro dulu, Nobar nanti aja." Chosen in the brainstorm:
+  timer plus a weekly board with a rotating role, minutes only from focus phases, a new `📚・belajar-bareng` channel.
+  Spec and plan (ignored docs): `docs/superpowers/specs/2026-10-28-hengs-belajar-pomodoro-design.md`,
+  `docs/superpowers/plans/2026-10-28-hengs-belajar-pomodoro.md`.
+- New: `src/voice-rooms/pomodoro.js` (presets, phase order, credit, texts), `study-stats.js` (`data/study-stats.json`,
+  12 weeks), `study-board.js` (ranks, board, Menitku), `src/utils/rotating-role.js` (also used by Analis Jitu). The
+  room record gains `pomodoro`; the service runs one phase timer per room and the Monday tick (every 5 minutes, board
+  claimed once per week). No new slash command, so no command registration at deploy.
+- Checked over REST on 2026-10-28 (read-only scripts in `.cloud/automation/deploy-v1872/`: channels-list.sh,
+  afk-check.sh, nobar-check.sh): no study channel existed; no inactive (AFK) channel is set, so quiet study members
+  are not moved out; the server is not a Community server (59 members, no boost), so Stage channels are not available;
+  the bot's data folder is 72 KB with about 30 GB free on the VM.
+- For the later Nobar design (Henry asked): bots have no official way to Go Live or send video (only feature requests
+  on Discord's forum; streaming libraries use a user token, against the terms), so screen sharing stays with a human
+  host. Options to decide then: Stage (needs Community), a "mode siaran" panel toggle in a normal room, or normal.
+- QA: full suite 1100/1100 on Node 22.23.3, 0 skipped; the suite writes no study file into the checkout. Version
+  note: the Coach Buku Pintar work on `coach-v2` also used a provisional v1.88.0 and takes the next number on merge.
+- Deploy needs Henry's approval: new archive and rehearsal, helpers derived from deploy-v1872 (the derive script must
+  learn the 1.87.2 template). After deploy: `/admin setup` > Bikin Room adds `📚・belajar-bareng` (or a REST create with
+  Henry's OK).
+
+## Hengs Discord v1.87.2 deployed and accepted - 2026-10-27
+
+- Henry: "Deploy v1.87.2 sekarang (archive, rehearsal, helper baru, menit 05-45). Setelah ACCEPTED dan audit lolos, hapus
+  channel 📋・bot-log yang baru dan push main."
+- Release 1.87.2-da0f880d9b07 (room switching and bot-logs f6b193f plus the offline review workbench da0f880), archive
+  SHA-256 d61b5cf43855ad3e2b1a0277ff9de235c860bd420519ad051036fb2fd05a7e8f, rehearsal 1083/1078/5 skips with no file
+  written into the release tree. Helpers `.cloud/automation/deploy-v1872`, derived by the new
+  `.cloud/automation/derive-dc-from-1871.cjs` (derive-dc-next.cjs only knows the 1.71.0 template). Docs-only 43a66a4
+  came after the pinned commit.
+- Preflight PASS 08:17:07 UTC, staged and sealed 08:18:03, dispatched 08:18:06, QA 08:18:38 to 08:21:45, ACCEPTED
+  08:22:30 (TESTS=1083 PASS=1078 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- Audit: the first run at 08:24:34 stopped at the remote output filter (REMOTE_CHECK=FAILED; the filtered line is not
+  kept, so the cause is unknown). The rerun at 12:46 passed: restarts zero, staging absent, rollback to
+  1.87.1-bff542b4c18b available. No command changes since 1.87.1, so no registration; CMD_CHECK HOME=14 with CASTER,
+  SCRIM_HASIL, KIRIM, SCRIM_COACH and SCRIM_HAPUS_TANYA YES; DC 1.87.2 and WA 0.53.0 connected, fresh.
+- `📋・bot-log` deleted at 12:49 by `deploy-v1872/botlog-delete.sh` (exactly one bot-logs and one bot-log; bot-log held
+  only Hengs' intro line). Only `📋・bot-logs` remains in 🤖 BOT CENTER: @everyone hidden, 🤖 Bots role can view, Hengs
+  sees it and can post, still empty. No voice rooms open.
+- Henry, in Discord: retry the door switch (Bikin Mabar, then Bikin Diskusi: the empty mabar room should close and a
+  diskusi room open).
+
+## Hengs Discord v1.87.2 offline scoreboard review workbench - 2026-10-27
+
+- Continued the offline checklist as a clickable, self-contained HTML workbench. No new backend, database,
+  provider call, bot connection, scheduler, model training, trusted-memory ingestion or deployment.
+- `scripts/esports-review-workbench.js` builds from an explicit local manifest and validates downloaded
+  decisions. JPEG/PNG source hashes and encoded dimensions are checked before decoding. Paths remain
+  inside the manifest directory. Inputs are bounded, outputs are exclusive-create, HTML is CSP-restricted,
+  all images are embedded and no automatic browser storage or upload exists. Script bytes normalize to LF
+  before hashing so Windows CRLF checkouts do not break the generated page.
+- UI sources and public guide live in `scripts/esports-review-workbench/`. Selecting a field highlights
+  its source rectangle and shows a crop. On mobile that crop moves next to the editor. Every confirmation
+  is explicit. Draft edits are excluded from export, originals remain separate, partial reviews can resume,
+  stale/wrong-source imports fail atomically, and each download explicitly names its selected sample.
+- Shared dependency-free `scripts/esports-scoreboard-fields.js` preserves the existing 59-field validation
+  contract for browser and Node. The Node checklist remains authoritative for arithmetic/identity checks.
+  A full UI review is still not consistency acceptance, trust promotion, publication or new OCR accuracy.
+- Local artifact `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-workbench-v2.html` embeds five frozen
+  result frames. Manifest, operator examples, browser evidence and visual record stay ignored alongside it.
+  Games 1-4 have complete local operator packets. Game 5 still blocks on the known 590-gold mismatch.
+  Original benchmark is unchanged at 219/295 (74.2%).
+- Verification: full Node 22 suite 1083/1083, zero skips. Focused checklist/workbench 19/19, including
+  source integrity, bounded import, unchanged originals, caller-attested reviewer kind, shared rules,
+  oversized encoded image rejection and CRLF/CSP compatibility. Desktop 1440 and mobile 390 browser QA
+  passed confirm/download/import, canonical validation, stale rejection, keyboard use, draft retention,
+  zero overflow, zero browser errors and zero HTTP requests. The design detector was degraded (optional
+  parsers absent), with only a dynamic image-src warning; loaded images were verified in the browser.
+- Independent design review requested two fixes, mobile evidence proximity and selected-sample download
+  labels. Both were scored resolved in the verdict pass. No new spec/plan created; unrelated active specs
+  were preserved. Product version stays v1.87.2 because this is offline tooling, not a live bot feature.
+- Concurrent voice/bot-log checkpoint f6b193f was preserved without modification. This checkpoint subject
+  `chore(esports): Hengs Discord v1.87.2 - add offline scoreboard review workbench`.
+- Next: use the local UI to review remaining samples, then run the Node validator on saved decisions.
+  Do not infer missing values, alter the frozen benchmark, or treat operator corrections as independent
+  validation. Autonomous capture/provider experiments remain outside this checkpoint.
+
+## Offline sample 2 review and Match Center direction - 2026-10-27
+
+- Game 2 of the frozen MPL PH S18 Grand Finals frame was re-inspected against the source image. The saved
+  decision packet covers all 59 fields: 47 confirmed values and 12 corrections. Corrections are the game
+  number, the left team label `RORA`, and the ten visible player names. The numeric OCR values were retained
+  because they matched the screenshot. The Node validator returns `OFFLINE_REVIEW_COMPLETE`, zero issues,
+  `trustedForCoach: false`, `publishable: false`, and provider calls zero.
+- This is operator visual review, not an independent second reviewer and not a new OCR accuracy result.
+  The original candidate and benchmark remain unchanged. The decisions and rendered review stay under the
+  ignored local corpus. Games 3 and 4 were pending at the time of this checkpoint, and game 5 still has its
+  known gold mismatch.
+- The HTML workbench remains an internal evidence tool. A later public-facing surface should be a separate
+  `Hengs Match Center`, inspired by readable esports media patterns without copying Liquipedia. Proposed
+  sections are Overview, Draft, Player stats, Timeline, and Sources. It must render only validated offline
+  packets, keep source links visible, label derived observations, and never turn OCR guesses into Coach memory.
+  This is a future design direction, not a live command, API, database or deployment change in this checkpoint.
+- Local runner `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-game2.cjs` records the exact source-bound
+  operator table and refuses to overwrite an existing packet. Checkpoint remains offline-only, with no new
+  provider, bot, scheduler or cloud action.
+
+## Offline samples 3 and 4 review - 2026-10-27
+
+- Game 3 was visually checked against the frozen source image. All 59 fields are complete with 38 confirmed
+  values and 21 corrections. Corrections cover the game number, winner, both team labels and totals, plus the
+  ten visible player names. The OCR numeric values matched the screenshot, so they were retained. The validator
+  returns `OFFLINE_REVIEW_COMPLETE`, zero issues, `trustedForCoach: false`, `publishable: false`, and provider calls zero.
+- Game 4 was visually checked against the frozen source image. All 59 fields are complete with 44 confirmed
+  values and 15 corrections. Corrections cover the game number, winner, both team labels and totals, the ten
+  visible player names, and the missing 4,800 gold value for the right-side third player. The validator returns
+  `OFFLINE_REVIEW_COMPLETE`, zero issues, `trustedForCoach: false`, `publishable: false`, and provider calls zero.
+- Both packets are source-bound to the original screenshot hash and keep the candidate OCR and benchmark unchanged.
+  The one-off local runner `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-game3-4.cjs` refuses to overwrite
+  existing packets. No provider, bot, scheduler, cloud, or Match Center action was performed.
+- Match Center remains deferred until the frozen sample set is stable and Henry explicitly starts that product
+  surface. The next offline gate is the known game 5 gold mismatch, followed by the remaining sample coverage.
+
+## Offline sample 5 blocker confirmation - 2026-10-27
+
+- Game 5 was rechecked from the original screenshot and the enlarged gold crop. The right team total visibly
+  reads 40.2K, while the five visible player values are 5.83K, 10.1K, 6.34K, 6.9K, and 10.44K. Their displayed
+  sum is 39.61K, leaving a 590 gold conflict that cannot be explained safely by the visible rounding alone.
+- The validator therefore remains `REVIEW_REQUIRED` with `TEAM_1_GOLD_MISMATCH`. The packet has all 59 fields
+  reviewed, but `trustedForCoach` and `publishable` remain false. No value was changed to force arithmetic
+  consistency, and the original screenshot and candidate remain untouched.
+- Closing this gate requires a clearer authentic source frame or a separate reliable match record for Game 5.
+  An inferred 6.93K replacement or any other guessed value is explicitly out of scope. No provider, bot,
+  scheduler, cloud, or Match Center action was performed.
+- The local `mpl-ph-grand-final-capture-pack.zip` was checked read-only. It contains only the same Game 5 result
+  frame and no alternate scoreboard capture, so the current corpus cannot resolve this conflict by itself.
+
+## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
+
+- Henry: "Tadi bikin mabar doang terus gak hilang pas keluar. Gw coba bikin lainnya tapi tetep bikin voice mabar."
+  Cause: leaving the room for another door left it empty but still owned (60 s grace), and openRoom moved the owner
+  back into it. Now the same door brings the owner back, another door closes the empty old room (and its #lfg post) and
+  opens the new type, a room with people stays with them, and inside the 30 s gap the owner is moved back with a note.
+- Henry: "bot log kok ada 2? ... mending di bot logs yang udah ada aja." The server already had `📋・bot-logs` (BOT
+  CENTER, @everyone hidden, 🤖 Bots view, empty). findBotChannel now prefers `bot-logs` (bot-log still counts) and the
+  Admin Hengs package uses `bot-logs`. After this release is live, delete the `📋・bot-log` channel made on 27 Oct (it
+  only holds Hengs' intro line); until then failure notes still land in it.
+- Checked: the live welcome card already uses the v1.82.2 galaxy and mascot art (no welcome change after it). The
+  room owner can change the slot from the panel; other members cannot.
+- QA: full suite 1075/1075 on Node 22.23.3, 0 skipped; focused 61/61. Deploy needs Henry's approval (new archive,
+  rehearsal and helpers for 1.87.2).
 
 ## Home server fixes after v1.87.1: #welcome and voice room doors - 2026-10-27
 
@@ -63,9 +238,10 @@ Updated: 2026-10-27
   acceptance. Hash bindings are integrity checks, not signatures. Caller must check actual image hashes and
   dimensions. Helper cannot prove that a person looked at a region or that a declared correction is true.
 - Local `.cloud/evals/mpl-ph-grand-final-2026-10-25/operator-review-v1/README.md` links five initial
-  worksheets and two completed operator decision packets. Codex visually re-inspected original game 1 and 5
-  screenshots. Game 1 confirms 46 fields and corrects 13, complete locally. Game 5 confirms 45 and corrects 14,
-  but still stops on TEAM_1_GOLD_MISMATCH, 590 gold. It is not approved for Coach. Games 2-4 remain pending.
+  worksheets and five operator decision packets. Codex visually re-inspected original game 1 through 5
+  screenshots. Game 1 confirms 46 fields and corrects 13, game 2 confirms 47 and corrects 12, game 3 confirms
+  38 and corrects 21, and game 4 confirms 44 and corrects 15. Game 5 confirms 45 and corrects 14, but still
+  stops on TEAM_1_GOLD_MISMATCH, 590 gold. It is not approved for Coach.
 - `.cloud/evals/mpl-ph-grand-final-2026-10-25/prepare-review-checklists.cjs` is an ignored exclusive-output
   example runner. Source hashes checked, candidate inputs unchanged, original benchmark hash unchanged.
   Benchmark remains 219/295 (74.2%), not a new OCR success rate from manual corrections. No new corpus,

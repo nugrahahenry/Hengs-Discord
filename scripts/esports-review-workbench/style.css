@@ -1,0 +1,98 @@
+:root { color-scheme: dark; --bg: #101628; --panel: #172035; --line: #34445d; --text: #f7f8ff; --muted: #b8c2da; --accent: #35d9ff; --caution: #ffe7b0; --good: #98e3bb; --error: #ffb7c5; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+::selection { background: var(--accent); color: var(--bg); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+a { color: var(--accent); text-underline-offset: 4px; }
+a:hover { color: var(--text); }
+button, input, select { font: inherit; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--panel); }
+button { min-height: 44px; padding: 9px 14px; cursor: pointer; }
+button:hover:not(:disabled) { background: #263751; border-color: #7285a6; }
+button:active:not(:disabled) { background: #34445d; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.primary { color: #09202c; background: var(--accent); border-color: transparent; font-weight: 700; }
+button.primary:hover:not(:disabled) { background: #8aeaff; }
+input, select { width: 100%; min-height: 44px; padding: 9px 12px; caret-color: var(--accent); }
+input[aria-invalid="true"] { border-color: var(--error); }
+select { cursor: pointer; }
+header { display: flex; gap: 24px; align-items: center; justify-content: space-between; padding: 24px 32px; border-bottom: 1px solid var(--line); }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 22px; line-height: 1.3; letter-spacing: -.02em; }
+h1 span { font-weight: 400; color: var(--muted); margin-left: 12px; }
+header p { color: var(--muted); margin-top: 6px; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+.file-actions, .secondary-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.file-actions { flex-shrink: 0; }
+main { max-width: 1800px; margin: auto; padding: 0 32px 24px; }
+.gamebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; }
+#games { display: flex; flex-wrap: wrap; gap: 6px; }
+#games button[aria-pressed="true"] { border-color: var(--accent); background: #20435a; }
+.offline { color: var(--muted); font-size: 13px; }
+.notice { color: var(--caution); margin: 12px 0 22px; min-height: 23px; }
+.notice.error { color: var(--error); }
+.workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr); gap: 30px; align-items: start; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 8px; }
+.section-heading a { font-size: 13px; }
+.muted, .tip { color: var(--muted); }
+#source-caption { margin-bottom: 12px; font-size: 13px; }
+.scene { position: relative; background: #070b12; overflow: hidden; }
+.scene img { display: block; width: 100%; height: auto; }
+#highlight { position: absolute; border: 2px solid var(--accent); background: #35d9ff20; pointer-events: none; }
+.crop-heading { margin-top: 22px; }
+.crop { display: flex; align-items: center; justify-content: center; min-height: 116px; background: #070b12; padding: 16px; overflow: hidden; }
+.crop canvas { display: block; max-width: 100%; height: auto; }
+.tip { font-size: 13px; margin-top: 10px; max-width: 70ch; }
+.boundary { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 14px; max-width: 70ch; color: var(--muted); }
+.boundary summary { cursor: pointer; color: var(--text); }
+.boundary p { margin-top: 10px; }
+.review { border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--panel); min-width: 0; }
+#progress { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.control-label { display: block; font-size: 13px; color: var(--muted); margin-top: 16px; margin-bottom: 6px; }
+.fields { margin-top: 10px; display: grid; gap: 2px; }
+.fields button { border: 1px solid transparent; border-radius: 5px; text-align: left; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; padding: 7px 10px; min-height: 38px; }
+.fields button[aria-current="true"] { border-color: var(--accent); background: #20435a; }
+.fields .field-value { font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; max-width: 60%; }
+.fields .done { color: var(--good); }
+.fields .pending { color: var(--caution); }
+#editor { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 18px; }
+#editor-evidence #crop-block { margin-bottom: 20px; }
+#editor-evidence .crop-heading { margin-top: 0; }
+.field-heading { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+#value-label { font-size: 17px; font-weight: 700; }
+.tag { color: var(--caution); font-size: 12px; }
+.tag.done { color: var(--good); }
+.original { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+.original strong { color: var(--text); font-weight: 500; margin-left: 8px; overflow-wrap: anywhere; }
+#value { font-size: 20px; font-variant-numeric: tabular-nums; background: var(--bg); }
+#value-help { font-size: 12px; margin-top: 6px; }
+#field-error { color: var(--error); font-size: 13px; min-height: 22px; margin-top: 6px; }
+#confirm { width: 100%; margin-top: 4px; }
+.secondary-actions { margin-top: 10px; justify-content: space-between; }
+.secondary-actions button { padding: 8px 10px; font-size: 13px; }
+.review-note { color: var(--muted); margin-top: 14px; font-size: 12px; }
+footer { border-top: 1px solid var(--line); padding: 18px 32px; color: var(--muted); font-size: 12px; }
+.skip { position: absolute; left: 12px; top: -100px; padding: 10px; background: var(--bg); z-index: 2; }
+.skip:focus { top: 10px; }
+@media (max-width: 900px) {
+  header { padding: 20px; flex-wrap: wrap; gap: 14px; }
+  main { padding: 0 20px 20px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .evidence { min-width: 0; }
+  .scene { max-width: 900px; }
+  .boundary { margin-top: 12px; }
+  footer { padding: 18px 20px; }
+}
+@media (max-width: 480px) {
+  body { font-size: 14px; }
+  header, footer { padding: 16px; }
+  main { padding: 0 16px 20px; }
+  h1 span { display: block; margin: 4px 0 0; font-size: 18px; }
+  header p { max-width: 38ch; }
+  .file-actions { width: 100%; }
+  .file-actions button { flex: 1; }
+  #games { width: 100%; }
+  #games button { flex: 1; padding: 7px; }
+  .review { padding: 16px; }
+  .section-heading { align-items: flex-start; }
+}

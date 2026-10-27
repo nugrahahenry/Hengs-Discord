@@ -2,7 +2,14 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
+**Current checkpoint:** Hengs Discord v1.88.0: Belajar rooms get a Pomodoro timer on the owner panel (Klasik 25/5 with
+a 15-minute break after every 4th round, 8 rounds; Panjang 50/10, 4 rounds). Each phase change mentions only the members
+inside, and the panel's end time counts down by itself. Focus minutes (only time inside during a focus phase) feed the
+weekly **Rajin Belajar** board in the new `📚・belajar-bareng`: Monday 07:00 WIB, the top 10 from 25 minutes, a private
+**Menitku** button and the rotating Rajin Belajar role. Open Belajar rooms are posted there too, and the **Bikin Room**
+package creates the channel. Local checkpoint, not deployed. Builds on v1.87.2: joining another door while you own an empty room closes it and opens the
+new type (the same door still brings you back; a room with people stays with them), and failure notes go to an existing
+`bot-logs` channel. Builds on v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
 Belajar push-to-talk, Nobar, Karaoke, Privat locked) make a room on join, with an owner panel (rename, slot, lock,
 invite), cleanup 60 seconds after the room empties, and #mabar posts for open Mabar and Scrim rooms. The
 **Bikin Room** package in `/admin setup` creates the doors. Builds on v1.86.0 Liga Tebak: the match-day guesses become a
@@ -60,12 +67,12 @@ and `/scrim statku` sends a player's own numbers by DM. Every number shows its s
 
 Owner channels (home server, v1.85.0):
 - `bot-settings`: what needs your decision (drafts, setup previews, review queues).
-- `bot-log`: failure notes (welcome, leave, boost, news, memes, Analis) with the missing permission named, at most
+- `bot-logs` (an existing `bot-log` also works): failure notes (welcome, leave, boost, news, memes, Analis) with the missing permission named, at most
   once per 6 hours per failure, and a failed voice auto-rejoin.
 - `bot-status`: after every start Hengs posts how long it was down and whether it was stopped cleanly or abruptly
   (and a new version when there is one). Write `status`, `status?` or `cek status` there (owner or Ops editor) for
   uptime, connection and ping, the last news and meme, the last Analis check and the failure count since the start.
-- Without `bot-log` or `bot-status` those notes go to `bot-settings`. Create them with `/admin setup` > **Admin
+- Without `bot-logs` or `bot-status` those notes go to `bot-settings`. Create them with `/admin setup` > **Admin
   Hengs** (private `🔒 Admin` category; an existing bot-settings is reused), or by hand next to bot-settings with
   synced permissions.
 - Hengs cannot report while it is down; it reports how long it was gone once it is back. A live down alert needs an
@@ -118,6 +125,12 @@ are bound to the original candidate and source context. Original values remain s
 and arithmetic conflicts still block completion after all fields are reviewed. Reviewer labels are caller
 attestations, not verified human identities. Callers must verify actual image bytes and dimensions before
 using the helper. It performs no I/O or publication, never promotes trust, and does not change OCR accuracy.
+
+For a clickable offline review, use `scripts/esports-review-workbench.js`. It builds one self-contained
+HTML file with screenshot evidence, per-field confirmation, and partial review download/resume. Source
+bytes and dimensions are checked before embedding. Original OCR stays unchanged and no bot connection
+or automatic upload exists. Run its Node validator after review, since confirming every field does not
+resolve arithmetic conflicts. See the [local workbench guide](scripts/esports-review-workbench/README.md).
 
 News and meme channels are read-only for members, who send memes and links with `/kirim meme` and
 `/kirim berita` in bot-commands (private preview, own confirmation, images checked by the vision model).

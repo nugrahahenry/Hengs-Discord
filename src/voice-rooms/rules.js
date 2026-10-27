@@ -28,11 +28,12 @@ const renameAllowed = (renames = [], now) => renames.filter(at => now - at < REN
 // joins: { userId: joinedAt }; the member inside longest owns the room next.
 const nextOwner = joins => Object.entries(joins).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
 
-function postText({ type, ownerName, channelId, count, limit, locked = false }) {
+// status: the Pomodoro phase of a Belajar room, shown while the room is open to join.
+function postText({ type, ownerName, channelId, count, limit, locked = false, status = null }) {
   const head = `${type.emoji} **${escapeMarkdown(clean(ownerName) || 'Anggota')}** buka room ${type.label}`;
   if (locked) return `${head} · 🔒 dikunci`;
   if (limit && count >= limit) return `${head} · penuh ${count}/${limit}`;
-  return `${head} · ${count}${limit ? `/${limit}` : ' orang'} · gas join: <#${channelId}>`;
+  return `${head} · ${count}${limit ? `/${limit}` : ' orang'}${status ? ` · ${status}` : ''} · gas join: <#${channelId}>`;
 }
 
-module.exports = { RENAME_WINDOW, doorType, roomName, renamed, renameAllowed, nextOwner, postText };
+module.exports = { RENAME_WINDOW, clean, doorType, roomName, renamed, renameAllowed, nextOwner, postText };

@@ -172,16 +172,16 @@ test('apply records a hasil-scrim failure when the team role is ambiguous, and c
   assert.equal(r.created.length, 0);
 });
 
-test('Admin Hengs puts bot-settings, bot-log and bot-status in a private Admin category and reuses what exists', async () => {
+test('Admin Hengs puts bot-settings, bot-logs and bot-status in a private Admin category and reuses what exists', async () => {
   const items = [...inventory, { id: 'p1', name: '🔒 PRIVATE', type: 4, position: 9 },
     { id: 's1', name: '⚙️︱bot-settings', type: 0, parentId: 'p1', position: 0 }];
   const plan = buildPlan({ inventory: items, packages: ['admin'], extras: {}, theme: themeById('dot') });
   assert.deepEqual(plan.categories.map(c => [c.key, c.id]), [['admin', 'p1']]);
-  assert.deepEqual(plan.channels.map(c => [c.slug, c.id, c.kind]), [['bot-settings', 's1', 'admin'], ['bot-log', null, 'admin'],
+  assert.deepEqual(plan.channels.map(c => [c.slug, c.id, c.kind]), [['bot-settings', 's1', 'admin'], ['bot-logs', null, 'admin'],
     ['bot-status', null, 'admin']]);
   const r = guildRig({ items });
   const result = await applyPlan(r.guild, plan, {});
-  assert.deepEqual(r.created.map(c => [c.name, c.parent]), [['📋・bot-log', 'p1'], ['📡・bot-status', 'p1']]);
+  assert.deepEqual(r.created.map(c => [c.name, c.parent]), [['📋・bot-logs', 'p1'], ['📡・bot-status', 'p1']]);
   for (const made of r.created) {
     assert(made.permissionOverwrites.find(o => o.id === 'g1').deny.includes(P.ViewChannel), made.name);
     assert(made.permissionOverwrites.find(o => o.id === 'me').allow.includes(P.SendMessages), made.name);
@@ -192,15 +192,15 @@ test('Admin Hengs puts bot-settings, bot-log and bot-status in a private Admin c
   assert.deepEqual(result.failed, []);
 });
 
-test('Bikin Room plans the seven voice doors in their own category and reuses a door that exists', () => {
+test('Bikin Room plans the seven voice doors and belajar-bareng in their own category and reuses what exists', () => {
   const items = [...inventory, { id: 'd1', name: '🎮 bikin-mabar', type: 2, parentId: 'c3', position: 1 }];
   const plan = buildPlan({ inventory: items, packages: ['room'], extras: {}, theme: themeById('dot') });
   assert.deepEqual(plan.categories.map(c => [c.key, c.id, c.name]), [['room', null, plan.categories[0].name]]);
   assert.deepEqual(plan.channels.map(c => [c.slug, c.type, c.kind, c.id]), [['bikin mabar', 'voice', 'door', null], ['bikin scrim', 'voice', 'door', null],
     ['bikin diskusi', 'voice', 'door', null], ['bikin belajar', 'voice', 'door', null], ['bikin nobar', 'voice', 'door', null],
-    ['bikin karaoke', 'voice', 'door', null], ['bikin privat', 'voice', 'door', null]]);
-  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar');
-  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 }],
-    packages: ['room'], extras: {}, theme: themeById('dot') });
-  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.counts.channels, 6);
+    ['bikin karaoke', 'voice', 'door', null], ['bikin privat', 'voice', 'door', null], ['belajar-bareng', 'text', 'chat', null]]);
+  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar'); assert.equal(plan.channels.at(-1).name, '📚・belajar-bareng');
+  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 },
+    { id: 't1', name: '📚・belajar-bareng', type: 0, parentId: 'c3', position: 2 }], packages: ['room'], extras: {}, theme: themeById('dot') });
+  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.channels.at(-1).id, 't1'); assert.equal(reused.counts.channels, 6);
 });

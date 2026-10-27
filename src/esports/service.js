@@ -30,6 +30,7 @@ const MAX_POSTS_PER_TICK = 3;
 const PREP_AT = 7 * 60 + 30; const PREVIEW_AT = 8 * 60; const RECAP_LATEST = 23 * 60 + 30;
 const BANNER = path.join(__dirname, '../../assets/esports/guide-banner.png');
 const { slugOf: normalize } = require('../guilds/channel-style');
+const { rotateRole } = require('../utils/rotating-role');
 
 async function defaultBanner() {
   try { return fs.statSync(BANNER).isFile() ? fs.readFileSync(BANNER) : null; } catch { return null; }
@@ -294,23 +295,14 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
         await reportFailure(guild, { feature: 'Kartu juara Liga Tebak', reason: 'draft kartu apresiasinya belum bisa dibuat' });
       }
     }
-    await rotateRole(guild, here.map(w => present.get(w.user)));
+    await rotateLeagueRole(guild, here.map(w => present.get(w.user)));
   }
 
-  // Analis Jitu moves to the newest champions: created once (gold, no permissions), taken from the previous holders.
-  async function rotateRole(guild, winners) {
+  // Analis Jitu (gold) moves to the newest champions.
+  async function rotateLeagueRole(guild, winners) {
     try {
-      const roles = await guild.roles.fetch();
-      const role = [...roles.values()].find(r => normalize(r.name) === 'analis jitu')
-        || await guild.roles.create({ name: 'Analis Jitu', color: 0xF1C40F, permissions: [], hoist: false, mentionable: false,
-          reason: 'Hengs Liga Tebak: role juara bergilir' });
-      if (!role.editable) throw new Error('LIGA_ROLE_ABOVE_HENGS');
-      const keep = new Set(winners.map(m => m.id));
-      for (const id of (store.leagueRole(guild.id)?.holders || []).filter(id => !keep.has(id))) {
-        try { await (await guild.members.fetch(id)).roles.remove(role, 'Liga Tebak: juara baru'); } catch { /* left or already removed */ }
-      }
-      for (const member of winners) await member.roles.add(role, 'Liga Tebak: juara event');
-      store.setLeagueRole(guild.id, { roleId: role.id, holders: [...keep] });
+      store.setLeagueRole(guild.id, await rotateRole({ guild, name: 'Analis Jitu', color: 0xF1C40F,
+        reason: 'Hengs Liga Tebak: role juara bergilir', previous: store.leagueRole(guild.id)?.holders || [], winners }));
     } catch {
       logger.error('[esports] LIGA_ROLE_FAILED');
       await reportFailure(guild, { feature: 'Role Analis Jitu',

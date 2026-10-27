@@ -25,7 +25,7 @@ const roleStore = require('./utils/role-store');
 const voiceStore = require('./utils/voice-store');
 const { assignMemberRole, buildWelcomeEmbed, findOnboardingChannel } = require('./utils/member-onboarding');
 const { createFailureReporter, findBotChannel, missingPermissions } = require('./utils/failure-report');
-// Failed sends (welcome, leave, boost, news, memes, analyst cards) are reported in bot-log (bot-settings without one).
+// Failed sends (welcome, leave, boost, news, memes, analyst cards) are reported in bot-logs (bot-settings without one).
 const reportFailure = createFailureReporter();
 const { readHealthSnapshot, onlineNotice, statusReport, handleStatusMessage } = require('./runtime/status-board');
 const { isEditor } = require('./ops/permissions');
@@ -129,7 +129,7 @@ const esportsService = createEsportsService({ guildAccess, reportFailure,
   draftAppreciation: (guild, data, externalId) => opsHub.createDraftPanel(guild, {
     ...require('./ops/appreciation').buildAppreciationDraft(data), kind: 'announcement', source: 'discord',
     createdBy: client.user?.id || null, externalId }) });
-// Voice rooms: a "Bikin <tipe>" door makes a room of that type; failures go to bot-log.
+// Voice rooms: a "Bikin <tipe>" door makes a room of that type; failures go to bot-logs.
 const voiceRooms = createVoiceRooms({ guildAccess, reportFailure });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
   reviewImage: agent.reviewMemeImage });
@@ -245,7 +245,7 @@ async function updateServerStats(guild) {
   }
 }
 
-// ── Owner channels: status notices to bot-status, failures to bot-log (both fall back to bot-settings) ──
+// ── Owner channels: status notices to bot-status, failures to bot-logs (both fall back to bot-settings) ──
 async function postBotChannel(guild, kind, content) {
   try {
     const ch = findBotChannel(guild, kind);

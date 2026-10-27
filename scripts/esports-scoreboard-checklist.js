@@ -4,12 +4,10 @@
 const { createHash } = require('node:crypto');
 const { canonicalVideoUrl } = require('./esports-video-lab');
 const { createReview } = require('./esports-scoreboard-review');
+const { fields: FIELDS, label, integer, valid } = require('./esports-scoreboard-fields');
 const record = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 const hash = x => createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const sha = x => typeof x === 'string' && /^[a-f0-9]{64}$/.test(x);
-const label = x => typeof x === 'string' && x.trim().length > 0 && x.length <= 80
-  && /^[\p{L}\p{N} ._'()-]+$/u.test(x) && !/(?:AIza|AQ\.)[A-Za-z0-9._-]{15}/.test(x);
-const integer = (x, max, min = 0) => Number.isSafeInteger(x) && x >= min && x <= max;
 const fail = code => { throw new Error(code); };
 const get = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
 // Paths only ever come from the fixed field list, not from arbitrary input keys.
@@ -17,29 +15,6 @@ const set = (object, path, value) => {
   const keys = path.split('.'), last = keys.pop();
   keys.reduce((current, key) => current[key], object)[last] = value;
 };
-function fieldDefinitions() {
-  const fields = [];
-  const add = (path, title, max, min = 0) => fields.push({ path, title, max, min });
-  add('gameNumber', 'Nomor game', 99, 1);
-  add('durationSeconds', 'Durasi dalam detik', 10800, 1);
-  add('winnerIndex', 'Pemenang, 0 kiri atau 1 kanan', 1);
-  for (let side = 0; side < 2; side++) {
-    const base = `teams.${side}`, title = side ? 'Kanan' : 'Kiri';
-    add(`${base}.name`, `Nama tim ${title.toLowerCase()}`);
-    add(`${base}.kills`, `Kill tim ${title.toLowerCase()}`, 200);
-    add(`${base}.gold`, `Gold tim ${title.toLowerCase()}`, 1000000);
-    for (let row = 0; row < 5; row++) {
-      const player = `${base}.players.${row}`, prefix = `${title} pemain ${row + 1}`;
-      add(`${player}.name`, `${prefix} nama`);
-      for (const [key, text] of [['kills', 'kill'], ['deaths', 'death'], ['assists', 'assist'], ['gold', 'gold']]) {
-        add(`${player}.${key}`, `${prefix} ${text}`, key === 'gold' ? 200000 : 200);
-      }
-    }
-  }
-  return fields;
-}
-const FIELDS = fieldDefinitions();
-const valid = (value, field) => field.max === undefined ? label(value) : integer(value, field.max, field.min);
 const missing = x => x === null || x === undefined || (typeof x === 'string' && !x.trim());
 
 function reviewSource(source, candidate) {

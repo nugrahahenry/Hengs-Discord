@@ -90,3 +90,9 @@ test('bot-log and bot-status match by name, decorated or not, and nothing merely
   assert.equal(findBotChannel(guild, 'log').name, '⚙️ bot-settings');
   assert.equal(findBotChannel(guild, 'status').name, 'BOT-STATUS');
 });
+
+test('the existing bot-logs channel wins over bot-log, so a server keeps the log channel it already has', () => {
+  const ch = name => ({ id: name, name, isTextBased: () => true });
+  const guild = { channels: { cache: new Map([['a', ch('📋・bot-log')], ['b', ch('📋・bot-logs')], ['c', ch('🎛️・bot-settings')]]) } };
+  assert.equal(findBotChannel(guild, 'log').name, '📋・bot-logs');
+});

@@ -11,7 +11,9 @@ test('the seven types keep the approved slots and specials', () => {
   assert.deepEqual(TYPES.map(t => [t.key, t.emoji, t.limit]), [['mabar', '🎮', 5], ['scrim', '⚔️', 10], ['diskusi', '💬', 0],
     ['belajar', '📚', 0], ['nobar', '🎬', 0], ['karaoke', '🎵', 0], ['privat', '🔒', 0]]);
   assert.equal(typeOf('belajar').pushToTalk, true); assert.equal(typeOf('privat').locked, true);
-  assert.deepEqual(TYPES.filter(t => t.announce).map(t => t.key), ['mabar', 'scrim']);
+  assert.deepEqual(TYPES.filter(t => t.announce).map(t => [t.key, t.postSlugs || null]),
+    [['mabar', null], ['scrim', null], ['belajar', ['belajar-bareng']]]);
+  assert.deepEqual(TYPES.filter(t => t.pomodoro).map(t => t.key), ['belajar']);
   assert.equal(typeOf('nope'), null);
 });
 
@@ -56,4 +58,5 @@ test('the #mabar post shows open slots, full and locked rooms, without em dashes
   assert.equal(postText({ ...base, count: 2, locked: true }), '🎮 **Raka** buka room Mabar · 🔒 dikunci');
   assert.equal(postText({ ...base, limit: 0, count: 7 }), '🎮 **Raka** buka room Mabar · 7 orang · gas join: <#42>');
   assert.equal(postText({ ...base, ownerName: '**x**', count: 1 }), '🎮 **\\*\\*x\\*\\*** buka room Mabar · 1/5 · gas join: <#42>');
+  assert.equal(postText({ ...base, limit: 0, count: 3, status: '☕ istirahat' }), '🎮 **Raka** buka room Mabar · 3 orang · ☕ istirahat · gas join: <#42>');
 });
