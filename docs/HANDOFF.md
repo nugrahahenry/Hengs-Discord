@@ -14,8 +14,12 @@ Updated: 2026-10-28
   SCRIM_HAPUS_TANYA YES; DC 1.88.0 and WA 0.53.0 connected, fresh. Audit PASS 19:43:41 on the first run: restarts zero,
   staging absent, rollback to 1.87.2-da0f880d9b07 available.
 - Live now: Belajar Pomodoro, belajar-bareng room posts and the Rajin Belajar board (first one Monday 2 Nov 07:00 WIB
-  for 26 Oct to 1 Nov; a week where nobody reached 25 minutes posts nothing). `📚・belajar-bareng` does not exist yet:
-  `/admin setup` > Bikin Room creates it. Without it, room posts are skipped and Monday leaves one bot-logs note.
+  for 26 Oct to 1 Nov; a week where nobody reached 25 minutes posts nothing).
+- `📚・belajar-bareng` created over REST at 19:54 UTC (Henry: "Bikinin 📚・belajar-bareng lewat REST di kategori BIKIN
+  ROOM, member bisa ngobrol dan Hengs bisa kirim. Terus cek.") with `deploy-v1880/belajar-bareng-create.sh`: in
+  `🎛️ BIKIN ROOM`, the category had no overwrites to copy, Hengs has an explicit member overwrite (View, History, Send,
+  Embed, Attach, Reactions). Checked with `belajar-bareng-check.sh`: @everyone, the Member role and Hengs can view,
+  read history and send.
 - Cleanup (Recycle Bin, not emptied): all local release archives and checksums (1.70.0 to 1.88.0), the five rehearsal
   folders, deploy helpers v1610 to v1872, derive-dc-next.cjs and derive-dc-from-1871.cjs, about 570 MB. Kept:
   deploy-v1880 (status, audit, ops probes), derive-dc-from-1872.cjs as the pattern for the next derive (its source
