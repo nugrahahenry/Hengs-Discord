@@ -41,8 +41,8 @@ Updated: 2026-10-27
   A full UI review is still not consistency acceptance, trust promotion, publication or new OCR accuracy.
 - Local artifact `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-workbench-v2.html` embeds five frozen
   result frames. Manifest, operator examples, browser evidence and visual record stay ignored alongside it.
-  Game 1 prior operator decisions still complete locally. Game 5 still blocks on the known 590-gold mismatch.
-  Games 2-4 remain pending. Original benchmark is unchanged at 219/295 (74.2%).
+  Games 1-4 have complete local operator packets. Game 5 still blocks on the known 590-gold mismatch.
+  Original benchmark is unchanged at 219/295 (74.2%).
 - Verification: full Node 22 suite 1083/1083, zero skips. Focused checklist/workbench 19/19, including
   source integrity, bounded import, unchanged originals, caller-attested reviewer kind, shared rules,
   oversized encoded image rejection and CRLF/CSP compatibility. Desktop 1440 and mobile 390 browser QA
@@ -67,7 +67,8 @@ Updated: 2026-10-27
   `trustedForCoach: false`, `publishable: false`, and provider calls zero.
 - This is operator visual review, not an independent second reviewer and not a new OCR accuracy result.
   The original candidate and benchmark remain unchanged. The decisions and rendered review stay under the
-  ignored local corpus. Games 3 and 4 are still pending, and game 5 still has its known gold mismatch.
+  ignored local corpus. Games 3 and 4 were pending at the time of this checkpoint, and game 5 still has its
+  known gold mismatch.
 - The HTML workbench remains an internal evidence tool. A later public-facing surface should be a separate
   `Hengs Match Center`, inspired by readable esports media patterns without copying Liquipedia. Proposed
   sections are Overview, Draft, Player stats, Timeline, and Sources. It must render only validated offline
@@ -76,6 +77,22 @@ Updated: 2026-10-27
 - Local runner `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-game2.cjs` records the exact source-bound
   operator table and refuses to overwrite an existing packet. Checkpoint remains offline-only, with no new
   provider, bot, scheduler or cloud action.
+
+## Offline samples 3 and 4 review - 2026-10-27
+
+- Game 3 was visually checked against the frozen source image. All 59 fields are complete with 38 confirmed
+  values and 21 corrections. Corrections cover the game number, winner, both team labels and totals, plus the
+  ten visible player names. The OCR numeric values matched the screenshot, so they were retained. The validator
+  returns `OFFLINE_REVIEW_COMPLETE`, zero issues, `trustedForCoach: false`, `publishable: false`, and provider calls zero.
+- Game 4 was visually checked against the frozen source image. All 59 fields are complete with 44 confirmed
+  values and 15 corrections. Corrections cover the game number, winner, both team labels and totals, the ten
+  visible player names, and the missing 4,800 gold value for the right-side third player. The validator returns
+  `OFFLINE_REVIEW_COMPLETE`, zero issues, `trustedForCoach: false`, `publishable: false`, and provider calls zero.
+- Both packets are source-bound to the original screenshot hash and keep the candidate OCR and benchmark unchanged.
+  The one-off local runner `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-game3-4.cjs` refuses to overwrite
+  existing packets. No provider, bot, scheduler, cloud, or Match Center action was performed.
+- Match Center remains deferred until the frozen sample set is stable and Henry explicitly starts that product
+  surface. The next offline gate is the known game 5 gold mismatch, followed by the remaining sample coverage.
 
 ## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
 
@@ -130,9 +147,10 @@ Updated: 2026-10-27
   acceptance. Hash bindings are integrity checks, not signatures. Caller must check actual image hashes and
   dimensions. Helper cannot prove that a person looked at a region or that a declared correction is true.
 - Local `.cloud/evals/mpl-ph-grand-final-2026-10-25/operator-review-v1/README.md` links five initial
-  worksheets and two completed operator decision packets. Codex visually re-inspected original game 1 and 5
-  screenshots. Game 1 confirms 46 fields and corrects 13, complete locally. Game 5 confirms 45 and corrects 14,
-  but still stops on TEAM_1_GOLD_MISMATCH, 590 gold. It is not approved for Coach. Games 2-4 remain pending.
+  worksheets and five operator decision packets. Codex visually re-inspected original game 1 through 5
+  screenshots. Game 1 confirms 46 fields and corrects 13, game 2 confirms 47 and corrects 12, game 3 confirms
+  38 and corrects 21, and game 4 confirms 44 and corrects 15. Game 5 confirms 45 and corrects 14, but still
+  stops on TEAM_1_GOLD_MISMATCH, 590 gold. It is not approved for Coach.
 - `.cloud/evals/mpl-ph-grand-final-2026-10-25/prepare-review-checklists.cjs` is an ignored exclusive-output
   example runner. Source hashes checked, candidate inputs unchanged, original benchmark hash unchanged.
   Benchmark remains 219/295 (74.2%), not a new OCR success rate from manual corrections. No new corpus,
