@@ -37,6 +37,25 @@ Updated: 2026-10-27
   Do not infer missing values, alter the frozen benchmark, or treat operator corrections as independent
   validation. Autonomous capture/provider experiments remain outside this checkpoint.
 
+## Offline sample 2 review and Match Center direction - 2026-10-27
+
+- Game 2 of the frozen MPL PH S18 Grand Finals frame was re-inspected against the source image. The saved
+  decision packet covers all 59 fields: 47 confirmed values and 12 corrections. Corrections are the game
+  number, the left team label `RORA`, and the ten visible player names. The numeric OCR values were retained
+  because they matched the screenshot. The Node validator returns `OFFLINE_REVIEW_COMPLETE`, zero issues,
+  `trustedForCoach: false`, `publishable: false`, and provider calls zero.
+- This is operator visual review, not an independent second reviewer and not a new OCR accuracy result.
+  The original candidate and benchmark remain unchanged. The decisions and rendered review stay under the
+  ignored local corpus. Games 3 and 4 are still pending, and game 5 still has its known gold mismatch.
+- The HTML workbench remains an internal evidence tool. A later public-facing surface should be a separate
+  `Hengs Match Center`, inspired by readable esports media patterns without copying Liquipedia. Proposed
+  sections are Overview, Draft, Player stats, Timeline, and Sources. It must render only validated offline
+  packets, keep source links visible, label derived observations, and never turn OCR guesses into Coach memory.
+  This is a future design direction, not a live command, API, database or deployment change in this checkpoint.
+- Local runner `.cloud/evals/mpl-ph-grand-final-2026-10-25/review-game2.cjs` records the exact source-bound
+  operator table and refuses to overwrite an existing packet. Checkpoint remains offline-only, with no new
+  provider, bot, scheduler or cloud action.
+
 ## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
 
 - Henry: "Tadi bikin mabar doang terus gak hilang pas keluar. Gw coba bikin lainnya tapi tetep bikin voice mabar."
