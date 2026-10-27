@@ -2,7 +2,7 @@
 
 Updated: 2026-10-27
 
-## Hengs Discord v1.88.0 (provisional) coach examples, buku pintar and light teasing on branch coach-v2 (not deployed) - 2026-10-27
+## Hengs Discord v1.89.0 (provisional) coach examples, buku pintar and light teasing on branch coach-v2 (not deployed) - 2026-10-28
 
 - coach-v2 was fast-forwarded to main 0816cf6 (v1.79.0) after the merge, then: each coach turn gets the three closest of
   eight example answers (src/scrim/coach-examples.js, TF-IDF + cosine) after the rules. Exam v11 had shown the rules
@@ -19,7 +19,7 @@ Updated: 2026-10-27
   441-byte stub), so buff timings came from Henry (answer 3: timers plus the gold trick for the enemy jungler's start;
   "muncul 75 detik" read as the respawn time, to confirm with him). Rules now allow minutes or seconds from the buku
   pintar only; exam E1 rekeyed to expect 02:00, N9 added. Still to ask: macro habits, other counters.
-- 2026-10-27: merged main v1.87.1 into coach-v2 (e9115be; this work is now provisional v1.88.0). Henry's macro answer
+- 2026-10-27: merged main v1.87.1 into coach-v2 (e9115be; this work became provisional v1.88.0, renumbered to v1.89.0 on 2026-10-28 because main took v1.88.0 for Belajar Pomodoro). Henry's macro answer
   is in the buku pintar (objective calls, early game, mid trio, EXP to mid for level 4) plus a missing-enemy call and
   pos 1-5 from a community guide; exam N10 added (36 scenarios). Henry asked for the rest of the macro and the SS to be
   researched or sourced by us; he gets a context prompt for GPT to gather the 10 screenshots.

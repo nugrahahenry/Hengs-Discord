@@ -5,7 +5,7 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
-## [1.88.0] - 2026-10-27 (provisional, branch coach-v2)
+## [1.89.0] - 2026-10-28 (provisional, branch coach-v2; main took 1.88.0 for Belajar Pomodoro)
 
 ### Added
 
