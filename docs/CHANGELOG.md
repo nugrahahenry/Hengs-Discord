@@ -53,6 +53,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   is being teased by teammates (talk to the team or captain, an adult if it keeps happening; N6). The opponent hint
   asks for the score, the one-focus push asks for a play habit instead of a result, and the reminder allows only times
   written exactly in the buku pintar.
+- Leftovers from the retest (v13: 16/20, the seven failed questions 4/14 to 11/14), at Henry's request: the coach drops
+  "Maaf" before a refusal (general chat keeps it), the rank line asks to answer the feeling first, and a time guard
+  keeps a game time in a reply only when the data card holds the same time; any other moment (00:30, menit 0, detik
+  30-45) becomes "awal game" and a span in seconds becomes "sebentar", while minute durations ("10 menit") stay.
 
 ### Verification
 

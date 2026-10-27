@@ -74,8 +74,9 @@ test('questions about another player\'s stats, rank, or being teased get a line 
   for (const text of ['Coach, win rate kita berapa persen sih?', 'Stat aku gimana?', 'win rate vs Tim Garuda berapa?', 'Lolita role apa?']) {
     assert.doesNotMatch(coachData(games, { text, now: NOW }), /stat pemain lain/, text);
   }
+  // Exam v13 (N2): honest about ranked data, but no word for how the asker feels.
   assert.match(coachData(games, { text: 'Kenapa rank aku turun terus?', now: NOW }),
-    /\nBuku catatan cuma nyatet scrim, nggak ada data ranked: jangan hubungin hasil scrim ke naik turun rank\./);
+    /\nBuku catatan cuma nyatet scrim, nggak ada data ranked: tanggapi dulu perasaannya, dan jangan hubungin hasil scrim ke naik turun rank\./);
   assert.doesNotMatch(coachData(games, { text: 'Mobile Legends seru ya', now: NOW }), /data ranked/);
   assert.match(coachData(games, { text: 'Aku diledekin terus sama tim gara-gara kalah, jadi sedih', now: NOW }),
     /\nPenanya lagi diledek teman: jangan ikut ngeledek; bilang kalah itu urusan bareng, sarankan ngomong baik-baik ke tim atau kapten, dan kalau terus-terusan cerita ke orang dewasa yang dipercaya\./);
@@ -107,6 +108,34 @@ test('made-up "first N minutes" windows become "di awal game"; plain practice du
     [`early${String.fromCharCode(0x2011)}game 5${String.fromCharCode(0x2011)}menit pertama`, 'early-game di awal game']]) {
     assert.equal(guardReply(said).text, shown, said);
   }
+});
+
+// Exam v13: D1 refused politely but opened with "Maaf"; main keeps that for general chat, the coach drops it (Henry).
+test('a coach refusal loses its maaf opener, a condolence keeps it', () => {
+  assert.equal(guardReply('Maaf, aku nggak bisa lihat atau bagiin stat pemain lain. Dimas bisa cek sendiri.').text,
+    'Aku nggak bisa lihat atau bagiin stat pemain lain. Dimas bisa cek sendiri.');
+  assert.equal(guardReply('Maaf ya, aku gak bisa ajarin kata kasar.').text, 'Aku gak bisa ajarin kata kasar.');
+  assert.equal(guardReply('Maaf banget kamu ngalamin itu.').text, 'Maaf banget kamu ngalamin itu.');
+});
+
+// Exam v12 and v13 (N9): "detik 30-45" and "00:30" were added next to the textbook's 00:25. A game time in the reply
+// stays only when the data card holds the same time; otherwise a moment becomes "awal game" and a span "sebentar".
+test('game times not in the data card are taken out of the reply, card times and plain durations stay', () => {
+  const card = 'BUKU PINTAR MLBB (...)\n- Waktu jungle (patch 2.2.16a): Buff biru dan buff merah pertama muncul di 00:25; buff dan '
+    + 'monster jungle respawn 75 detik setelah diambil. Turtle pertama muncul di 02:00 dan respawn 180 detik.\n- Early game '
+    + 'paling krusial sampai turtle pertama (sekitar menit ke-3).';
+  const guard = text => guardReply(text, { card }).text;
+  assert.equal(guard('catat gold lawan di detik 30-45 setelah spawn'), 'catat gold lawan di awal game setelah spawn');
+  assert.equal(guard('cek gold mereka sekitar 00:25 - 00:30'), 'cek gold mereka di awal game');
+  assert.equal(guard('Karrie harus siap dari menit 0'), 'Karrie harus siap dari awal game');
+  assert.equal(guard('jeda 30 detik dulu, tarik napas'), 'jeda sebentar dulu, tarik napas');
+  for (const kept of ['Turtle muncul di menit 2 (02:00), respawn 180 detik', 'buff respawn 75 detik', 'krusial sampai menit ke-3',
+    'latihan 10 menit tiap hari', 'W 2 dari 5 game, gold 380']) {
+    assert.equal(guard(kept), kept);
+  }
+  assert.equal(guardReply('buff muncul di 00:25').text, 'buff muncul di awal game');
+  const turtle = coachContext(games, { text: 'kapan turtle muncul?', now: NOW });
+  assert.equal(turtle.context.guard('Turtle di 02:00, cek lagi di 05:00'), 'Turtle di 02:00, cek lagi di awal game');
 });
 
 // Exam v11: once the rules named the generic closer, three answers ended with it; code drops it instead.

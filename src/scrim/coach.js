@@ -60,7 +60,8 @@ const SELF_OR_TEAM = /\b(aku|saya|gue|gua|gw|kita|tim|team|statku)\b/i;
 const OTHER_STATS = 'Pertanyaan ini minta stat pemain lain: stat pribadi cuma bisa dibuka pemiliknya sendiri lewat /scrim statku, '
   + 'dan statku nggak bisa dipakai buat lihat stat orang lain. Tolak santai karena privasi, jangan bilang datanya nggak ada.';
 const RANKED = /\brank(ed)?\b|\bmythic(al)?\b/i;
-const NO_RANKED = 'Buku catatan cuma nyatet scrim, nggak ada data ranked: jangan hubungin hasil scrim ke naik turun rank.';
+const NO_RANKED = 'Buku catatan cuma nyatet scrim, nggak ada data ranked: tanggapi dulu perasaannya, dan jangan hubungin hasil '
+  + 'scrim ke naik turun rank.';
 const TEASED = /\b(diledek\w*|dikatain|dikata-katain|diejek\w*)\b/i;
 const TEASED_LINE = 'Penanya lagi diledek teman: jangan ikut ngeledek; bilang kalah itu urusan bareng, sarankan ngomong baik-baik '
   + 'ke tim atau kapten, dan kalau terus-terusan cerita ke orang dewasa yang dipercaya.';
@@ -99,6 +100,28 @@ const WINDOW = /(?:\b(?:di|pada|selama|dalam)\s+)?\b\d+(?:\s*-\s*\d+)?\s*-?\s*(?
 // rules no longer name it; code drops a last sentence about "hal lain" or "pertanyaan lain" unless it is the whole reply.
 const CLOSER = /(^|[.!?\p{Extended_Pictographic}]\s+)(?:kalau|kalo|jika|ada)\b[^.!?]*\b(?:hal|pertanyaan)\s+lain\b[^.!?]*[.!?]*[\s\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Variation_Selector}\p{Join_Control}]*$/iu;
 const dropCloser = text => text.replace(CLOSER, '$1').trim() || text;
+// Exam v13: main keeps "Maaf" before a polite refusal in general chat; Henry wants the coach without it.
+const SORRY_REFUSAL = /^\s*(?:mohon\s+)?maaf(?:\s+ya)?[\s,!.]*(?=(?:aku|saya)\s+(?:nggak|ngga|gak|ga|tidak|belum)\s+(?:bisa|boleh|mau)\b)/i;
+const dropSorry = text => {
+  const rest = text.replace(SORRY_REFUSAL, '');
+  return rest === text ? text : rest.charAt(0).toUpperCase() + rest.slice(1);
+};
+// Exams v12 and v13: game times the model added itself ("detik 30-45" next to the textbook's 00:25). A moment (00:30,
+// menit 2, detik 30) or a span in seconds stays only when the data card holds the same time; otherwise a moment becomes
+// "awal game" and a span "sebentar". "10 menit" stays: minutes as a duration are not game timing.
+const MOMENT = /(\b(?:di|pada|sekitar|dalam)\s+)?(\b\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\b|\b(?:detik|menit)\s+(?:ke-?\s*)?\d+(?:\s*-\s*\d+)?\b)/gi;
+const SPAN = /\b\d+(?:\s*-\s*\d+)?\s*detik\b/gi;
+const secondsOf = time => {
+  const clock = [...time.matchAll(/(\d{1,2}):(\d{2})/g)].map(([, minutes, seconds]) => Number(minutes) * 60 + Number(seconds));
+  return clock.length ? clock : [...time.matchAll(/\d+/g)].map(([value]) => Number(value) * (/menit/i.test(time) ? 60 : 1));
+};
+function dropUnknownTimes(text, card) {
+  const known = new Set([...String(card).matchAll(MOMENT)].flatMap(([, , time]) => secondsOf(time))
+    .concat([...String(card).matchAll(SPAN)].flatMap(([time]) => secondsOf(time))));
+  const ok = time => secondsOf(time).every(value => known.has(value));
+  return text.replace(MOMENT, (whole, by, time) => (ok(time) ? whole : `${by ? 'di ' : ''}awal game`))
+    .replace(SPAN, time => (ok(time) ? time : 'sebentar'));
+}
 
 const scrubIds = text => String(text ?? '').replace(/<@&\d{17,20}>/g, '(role)').replace(/<#\d{17,20}>/g, '(channel)')
   .replace(/<@!?\d{17,20}>/g, '(anggota)').replace(/\b\d{17,20}\b/g, '(anggota)');
@@ -165,10 +188,11 @@ function debriefText(games, { target = null } = {}) {
 }
 
 // Masking keeps the advice (and a crisis reply) instead of dropping the whole answer over one quoted word.
-function guardReply(reply, { question = '' } = {}) {
+function guardReply(reply, { question = '', card = '' } = {}) {
   const raw = String(reply ?? '').trim();
   const unmarked = raw.replace(MARKER, '').trim();
-  const { text, masked } = mask(dropCloser(unmarked.replace(NB_HYPHEN, '-').replace(WINDOW, 'di awal game')));
+  const timed = dropUnknownTimes(dropSorry(unmarked).replace(NB_HYPHEN, '-').replace(WINDOW, 'di awal game'), card);
+  const { text, masked } = mask(dropCloser(timed));
   if (unmarked === raw && !CRISIS.test(question)) return { text, masked };
   return { text: `${cutUnits(text, MAX_REPLY - BANTUAN_TEXT.length - 2)}\n\n${BANTUAN_TEXT}`, masked };
 }
@@ -185,12 +209,14 @@ function coachContext(games, { text = '', userId = null, now = Date.now(), targe
   // Exam v8: the model kept dropping the pro-pattern caveat, so code puts it under the reply with the credit. The textbook
   // is Henry's own knowledge, so only the two Liquipedia cards need the credit.
   const credit = pro || hero ? `${LIQUIPEDIA_CREDIT}${pro ? '. Pola draft pro belum tentu cocok buat tim sendiri.' : ''}` : '';
+  const data = coachData(games, { text: question, userId, now, target, extras });
   // Exam v11: rules alone barely moved the answer style, so the three closest example answers follow them.
   return { question, credit, context: { kind: 'home', visibility: 'coach',
     system: `${COACH_RULES}\n${examplesBlock(question)}`, temperature: COACH_TEMPERATURE, maxTokens: COACH_MAX_TOKENS,
-    data: coachData(games, { text: question, userId, now, target, extras }), ...(userId ? { stateless: true } : {}),
+    data, ...(userId ? { stateless: true } : {}),
     guard(answer) {
-      const checked = guardReply(answer, { question });
+      // The card is the only source of game times the reply may keep.
+      const checked = guardReply(answer, { question, card: data });
       onGuard(answer, checked);
       return checked.text;
     } } };
