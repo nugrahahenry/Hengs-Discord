@@ -94,6 +94,18 @@ Updated: 2026-10-27
 - Match Center remains deferred until the frozen sample set is stable and Henry explicitly starts that product
   surface. The next offline gate is the known game 5 gold mismatch, followed by the remaining sample coverage.
 
+## Offline sample 5 blocker confirmation - 2026-10-27
+
+- Game 5 was rechecked from the original screenshot and the enlarged gold crop. The right team total visibly
+  reads 40.2K, while the five visible player values are 5.83K, 10.1K, 6.34K, 6.9K, and 10.44K. Their displayed
+  sum is 39.61K, leaving a 590 gold conflict that cannot be explained safely by the visible rounding alone.
+- The validator therefore remains `REVIEW_REQUIRED` with `TEAM_1_GOLD_MISMATCH`. The packet has all 59 fields
+  reviewed, but `trustedForCoach` and `publishable` remain false. No value was changed to force arithmetic
+  consistency, and the original screenshot and candidate remain untouched.
+- Closing this gate requires a clearer authentic source frame or a separate reliable match record for Game 5.
+  An inferred 6.93K replacement or any other guessed value is explicitly out of scope. No provider, bot,
+  scheduler, cloud, or Match Center action was performed.
+
 ## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
 
 - Henry: "Tadi bikin mabar doang terus gak hilang pas keluar. Gw coba bikin lainnya tapi tetep bikin voice mabar."
