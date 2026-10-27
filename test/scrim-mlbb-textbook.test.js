@@ -63,4 +63,7 @@ test('build questions get the buy order for both trinity types and who uses whic
   assert.match(karrie, /Karrie, Moskov, Hanabi, Wanwan, Melissa, Claude/);
   assert.match(textbookCard('sky piercer kapan dibeli?'), /setelah Corrosion Scythe kalau lagi menang/);
   assert.doesNotMatch(textbookCard('build mm yang paling gacor apa?'), /belum ada di buku/);
+  // Exam v12 (N8): "beli" was not a build word, the card stayed out and the model invented a crit build for Karrie.
+  assert.match(textbookCard('Lawan banyak tank tebel, Karrie mending beli apa dulu?'), /Demon Hunter Sword dulu baru Golden Staff/);
+  assert.match(textbookCard('MM beliin item apa duluan?'), /Urutan trinity critical/);
 });

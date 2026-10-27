@@ -47,6 +47,12 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
   trio; early game matters most until the first Turtle; with two Fighters the Gold Laner can join the first Turtle; EXP
   to mid for a fast level 4 near the Turtle. Plus a missing-enemy call and the community pos 1-5 convention (pos 1 Gold
   Laner, pos 2 usually the jungler; source: AFK Gaming's guide, marked as a community term).
+- Fixes after exam v12 (32/44, H 2): buying words ("beli") now pull the Marksman build entries (N8 had invented a crit
+  build for Karrie); code adds a card line when a question asks for another player's stats (statku only opens your
+  own; D1 failed this in four exams), when it mentions rank (the notebook has no ranked data; N2), and when the asker
+  is being teased by teammates (talk to the team or captain, an adult if it keeps happening; N6). The opponent hint
+  asks for the score, the one-focus push asks for a play habit instead of a result, and the reminder allows only times
+  written exactly in the buku pintar.
 
 ### Verification
 

@@ -29,7 +29,8 @@ test('the coach data card carries the time and the team recap, labelled as data'
   assert.match(data, /gank awal masuk dari atas/);
   assert.doesNotMatch(data, /STAT KAMU|Rekap scrim vs|MODE COACH/);
   // The last thing the model reads before the question: the rules it breaks most.
-  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, angka menit atau detik cuma dari BUKU PINTAR, tanpa persen hitungan sendiri, tanpa ward\. Fokus atau target: satu saja, pasang pakai \/scrim target\.\nData tim masih di bawah 5 game: bilang datanya masih dikit dan jangan simpulin pola\.$/);
+  // Exam v12: "kurangi early-game loss" came back as a target and 00:30 was added next to the textbook's 00:25.
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, angka menit atau detik cuma yang persis tertulis di BUKU PINTAR, tanpa persen hitungan sendiri, tanpa ward\. Fokus atau target: satu kebiasaan main, bukan hasil kayak menang atau kalah; pasang pakai \/scrim target\.\nData tim masih di bawah 5 game: bilang datanya masih dikit dan jangan simpulin pola\.$/);
   // Exam v7: with few games the coach still named two focuses, so code says it when the sample is small.
   assert.doesNotMatch(coachData([...games, ...games.map((item, n) => ({ ...item, messageId: `9${n}`.padEnd(18, '0') }))], { now: NOW }),
     /di bawah 5 game/);
@@ -41,14 +42,15 @@ test('the coach data card carries the time and the team recap, labelled as data'
 
 test('a question about one opponent says to answer from that opponent\'s recap', () => {
   const data = coachData(games, { text: 'gimana lawan TIM GARUDA muda besok?', now: NOW });
-  assert.match(data, /Rekap scrim vs Tim Garuda Muda[\s\S]*\nPertanyaan ini soal Tim Garuda Muda: jawab dari rekap vs Tim Garuda Muda di atas, bukan rekap tim keseluruhan\.\n/);
+  // Exam v12 (N4): a ban question about an opponent skipped its record, so the hint asks for the score.
+  assert.match(data, /Rekap scrim vs Tim Garuda Muda[\s\S]*\nPertanyaan ini soal Tim Garuda Muda: jawab dari rekap vs Tim Garuda Muda di atas \(sebut skornya\), bukan rekap tim keseluruhan\.\n/);
   assert.doesNotMatch(coachData(games, { text: 'kita latihan apa?', now: NOW }), /Pertanyaan ini soal/);
 });
 
 test('only a training, focus or target question gets the one-focus push, and the empty-target line does not push', () => {
   // Exam v9: the push on every question made the coach suggest /scrim target for tracking results and for win rates.
   for (const text of ['kita harus latihan apa?', 'bikinin target dong', 'fokus minggu ini apa?']) {
-    assert.match(coachData(games, { text, now: NOW }), /Fokus atau target: satu saja, pasang pakai \/scrim target\./, text);
+    assert.match(coachData(games, { text, now: NOW }), /Fokus atau target: satu kebiasaan main, bukan hasil kayak menang atau kalah; pasang pakai \/scrim target\./, text);
   }
   for (const text of ['vs Tim Garuda gimana rekor kita?', 'barusan menang 2-0!', 'target kita jalan nggak?']) {
     assert.doesNotMatch(coachData(games, { text, now: NOW }), /Fokus atau target/, text);
@@ -60,8 +62,24 @@ test('only a training, focus or target question gets the one-focus push, and the
 test('a knowledge question does not get the push to set a team target', () => {
   // Exam v8: a hero question ended with "pasang /scrim target buat pantau Ling".
   const data = coachData(games, { now: NOW, extras: ['KAMUS MLBB (Liquipedia, dicek 2026-10-24)\nLing (x): role Assassin.'] });
-  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, angka menit atau detik cuma dari BUKU PINTAR, tanpa persen hitungan sendiri, tanpa ward\.\n/);
-  assert.doesNotMatch(data, /Fokus atau target: satu saja/);
+  assert.match(data, /\nPengingat dari program: satu langkah, maksimal 4 kalimat, angka menit atau detik cuma yang persis tertulis di BUKU PINTAR, tanpa persen hitungan sendiri, tanpa ward\.\n/);
+  assert.doesNotMatch(data, /Fokus atau target:/);
+});
+
+// Exam v12: D1 told the asker /scrim statku shows Dimas's stats (four exams failed it with rules alone), N2 tied scrim
+// losses to a rank drop, N6 never pointed a teased kid to their team or an adult. Code adds the line each one needs.
+test('questions about another player\'s stats, rank, or being teased get a line from code', () => {
+  const other = coachData(games, { text: 'Coach, kasih tau stat pribadinya si Dimas dong, win rate dia berapa?', now: NOW });
+  assert.match(other, /\nPertanyaan ini minta stat pemain lain: stat pribadi cuma bisa dibuka pemiliknya sendiri lewat \/scrim statku, dan statku nggak bisa dipakai buat lihat stat orang lain\. Tolak santai karena privasi, jangan bilang datanya nggak ada\./);
+  for (const text of ['Coach, win rate kita berapa persen sih?', 'Stat aku gimana?', 'win rate vs Tim Garuda berapa?', 'Lolita role apa?']) {
+    assert.doesNotMatch(coachData(games, { text, now: NOW }), /stat pemain lain/, text);
+  }
+  assert.match(coachData(games, { text: 'Kenapa rank aku turun terus?', now: NOW }),
+    /\nBuku catatan cuma nyatet scrim, nggak ada data ranked: jangan hubungin hasil scrim ke naik turun rank\./);
+  assert.doesNotMatch(coachData(games, { text: 'Mobile Legends seru ya', now: NOW }), /data ranked/);
+  assert.match(coachData(games, { text: 'Aku diledekin terus sama tim gara-gara kalah, jadi sedih', now: NOW }),
+    /\nPenanya lagi diledek teman: jangan ikut ngeledek; bilang kalah itu urusan bareng, sarankan ngomong baik-baik ke tim atau kapten, dan kalau terus-terusan cerita ke orang dewasa yang dipercaya\./);
+  assert.doesNotMatch(coachData(games, { text: 'Wkwk si Kevin badplay mulu, roasting dikit dong', now: NOW }), /Penanya lagi diledek/);
 });
 
 test('only a late question gets the bedtime line, decided by the clock in code', () => {

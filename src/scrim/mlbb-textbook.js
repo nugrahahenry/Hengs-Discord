@@ -10,8 +10,10 @@ const CHECKED = '2026-10-24';
 const PATCH = 'patch 2.2.16a rilis 14 Okt 2026, season 42';
 // A Marksman build question: trinity words, or build/item next to "mm" or one of the Marksmen Henry named.
 const MM = 'mm|marksman|irithel|miya|obsidia|layla|bruno|moskov|hanabi|karrie|wanwan|melissa|claude';
-const MM_BUILD = new RegExp(`\\btrinity\\b|\\bsky piercer\\b|\\bcrit(ical)?\\b|\\b(build|item|core|inti)\\b[^.?!]*\\b(${MM})\\b`
-  + `|\\b(${MM})\\b[^.?!]*\\b(build|item)\\b`, 'i');
+// Exam v12 (N8): "Karrie mending beli apa dulu?" missed the card, so buying words count too.
+const BUY = 'build|item|core|inti|beli|beliin|dibeli';
+const MM_BUILD = new RegExp(`\\btrinity\\b|\\bsky piercer\\b|\\bcrit(ical)?\\b|\\b(${BUY})\\b[^.?!]*\\b(${MM})\\b`
+  + `|\\b(${MM})\\b[^.?!]*\\b(${BUY})\\b`, 'i');
 // Questions about where the enemy jungler starts or rotates (an anti-gank question counts too).
 const JUNGLE_START = /\bbuff\b|\brotasi\b|\bgank\b|\bjungler?\b.*\b(mulai|start|awal)\b/i;
 // Item names checked against Liquipedia page titles on 2026-10-24.
