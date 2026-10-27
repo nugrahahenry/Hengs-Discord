@@ -1,6 +1,29 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-27
+Updated: 2026-10-28
+
+## Hengs Discord v1.88.0 Belajar rooms with Pomodoro (committed locally, not pushed, not deployed) - 2026-10-28
+
+- Henry picked this over automatic Nobar: "Room Belajar + Pomodoro dulu, Nobar nanti aja." Chosen in the brainstorm:
+  timer plus a weekly board with a rotating role, minutes only from focus phases, a new `📚・belajar-bareng` channel.
+  Spec and plan (ignored docs): `docs/superpowers/specs/2026-10-28-hengs-belajar-pomodoro-design.md`,
+  `docs/superpowers/plans/2026-10-28-hengs-belajar-pomodoro.md`.
+- New: `src/voice-rooms/pomodoro.js` (presets, phase order, credit, texts), `study-stats.js` (`data/study-stats.json`,
+  12 weeks), `study-board.js` (ranks, board, Menitku), `src/utils/rotating-role.js` (also used by Analis Jitu). The
+  room record gains `pomodoro`; the service runs one phase timer per room and the Monday tick (every 5 minutes, board
+  claimed once per week). No new slash command, so no command registration at deploy.
+- Checked over REST on 2026-10-28 (read-only scripts in `.cloud/automation/deploy-v1872/`: channels-list.sh,
+  afk-check.sh, nobar-check.sh): no study channel existed; no inactive (AFK) channel is set, so quiet study members
+  are not moved out; the server is not a Community server (59 members, no boost), so Stage channels are not available;
+  the bot's data folder is 72 KB with about 30 GB free on the VM.
+- For the later Nobar design (Henry asked): bots have no official way to Go Live or send video (only feature requests
+  on Discord's forum; streaming libraries use a user token, against the terms), so screen sharing stays with a human
+  host. Options to decide then: Stage (needs Community), a "mode siaran" panel toggle in a normal room, or normal.
+- QA: full suite 1100/1100 on Node 22.23.3, 0 skipped; the suite writes no study file into the checkout. Version
+  note: the Coach Buku Pintar work on `coach-v2` also used a provisional v1.88.0 and takes the next number on merge.
+- Deploy needs Henry's approval: new archive and rehearsal, helpers derived from deploy-v1872 (the derive script must
+  learn the 1.87.2 template). After deploy: `/admin setup` > Bikin Room adds `📚・belajar-bareng` (or a REST create with
+  Henry's OK).
 
 ## Hengs Discord v1.87.2 deployed and accepted - 2026-10-27
 

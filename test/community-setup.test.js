@@ -192,15 +192,15 @@ test('Admin Hengs puts bot-settings, bot-logs and bot-status in a private Admin 
   assert.deepEqual(result.failed, []);
 });
 
-test('Bikin Room plans the seven voice doors in their own category and reuses a door that exists', () => {
+test('Bikin Room plans the seven voice doors and belajar-bareng in their own category and reuses what exists', () => {
   const items = [...inventory, { id: 'd1', name: '🎮 bikin-mabar', type: 2, parentId: 'c3', position: 1 }];
   const plan = buildPlan({ inventory: items, packages: ['room'], extras: {}, theme: themeById('dot') });
   assert.deepEqual(plan.categories.map(c => [c.key, c.id, c.name]), [['room', null, plan.categories[0].name]]);
   assert.deepEqual(plan.channels.map(c => [c.slug, c.type, c.kind, c.id]), [['bikin mabar', 'voice', 'door', null], ['bikin scrim', 'voice', 'door', null],
     ['bikin diskusi', 'voice', 'door', null], ['bikin belajar', 'voice', 'door', null], ['bikin nobar', 'voice', 'door', null],
-    ['bikin karaoke', 'voice', 'door', null], ['bikin privat', 'voice', 'door', null]]);
-  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar');
-  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 }],
-    packages: ['room'], extras: {}, theme: themeById('dot') });
-  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.counts.channels, 6);
+    ['bikin karaoke', 'voice', 'door', null], ['bikin privat', 'voice', 'door', null], ['belajar-bareng', 'text', 'chat', null]]);
+  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar'); assert.equal(plan.channels.at(-1).name, '📚・belajar-bareng');
+  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 },
+    { id: 't1', name: '📚・belajar-bareng', type: 0, parentId: 'c3', position: 2 }], packages: ['room'], extras: {}, theme: themeById('dot') });
+  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.channels.at(-1).id, 't1'); assert.equal(reused.counts.channels, 6);
 });

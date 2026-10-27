@@ -4,29 +4,42 @@
 // room, moves the member in and posts the owner panel in the room's text chat. The member inside longest takes over
 // when the owner leaves; an empty room goes after 60 seconds. Mabar and Scrim rooms are announced in #mabar. Humans
 // only: bots never open, own or keep a room.
-const { ChannelType, MessageFlags, OverwriteType, PermissionFlagsBits: P } = require('discord.js');
+// Belajar rooms (2026-10-28: "Room Belajar + Pomodoro dulu") are announced in belajar-bareng and carry a Pomodoro timer
+// on the owner panel. Focus minutes feed the weekly Rajin Belajar board there, posted from Monday 07:00 WIB, with a
+// role for last week's best.
+const { ChannelType, MessageFlags, OverwriteType, PermissionFlagsBits: P, escapeMarkdown } = require('discord.js');
 const { slugOf } = require('../guilds/channel-style');
+const { rotateRole } = require('../utils/rotating-role');
 const { typeOf } = require('./types');
-const { doorType, roomName, renamed, renameAllowed, nextOwner, postText, RENAME_WINDOW } = require('./rules');
-const { SLOTS, panelPayload, renameModal } = require('./panel');
+const { clean, doorType, roomName, renamed, renameAllowed, nextOwner, postText, RENAME_WINDOW } = require('./rules');
+const { SLOTS, panelPayload, renameModal, boardRow } = require('./panel');
 const { createVoiceRoomStore } = require('./store');
+const { PRESETS, begin, next, credit, alertText, statusText, summaryText } = require('./pomodoro');
+const { createStudyStats, weekOf } = require('./study-stats');
+const { ranked, boardText, myMinutesText } = require('./study-board');
 
 const EMPTY_GRACE = 60_000; const POST_EVERY = 10_000; const GAP = 30_000; const MAX_ROOMS = 20;
+const WEEK = 7 * 86_400_000; const TICK_EVERY = 5 * 60_000;
 const NEEDS = [P.ManageChannels, P.MoveMembers, P.ManageRoles];
 const POST_SLUGS = ['mabar', 'info-mabar', 'lfg'];
+const BOARD_SLUG = 'belajar-bareng';
+const ROLE_REASON = 'Hengs butuh izin Manage Roles, dan role Hengs Bot harus ada di atas Rajin Belajar (Server Settings > Roles)';
 
-function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportFailure = async () => {}, logger = console,
-  now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
-  const joins = new Map(); const emptyTimers = new Map(); const postTimers = new Map(); const lastCreated = new Map();
-  const busy = new Set();
+function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats = createStudyStats(), reportFailure = async () => {},
+  logger = console, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, repeat = setInterval } = {}) {
+  const joins = new Map(); const emptyTimers = new Map(); const postTimers = new Map(); const phaseTimers = new Map();
+  const lastCreated = new Map(); const busy = new Set();
 
   const isHome = guild => Boolean(guild) && guildAccess?.classify(guild.id)?.kind === 'home';
   const report = (guild, reason, code = null) => reportFailure(guild, { feature: 'Room voice', reason, code });
   const roomsOf = guildId => Object.entries(store.all()).filter(([, room]) => room.guildId === guildId);
   const humans = channel => [...(channel?.members?.values?.() || [])].filter(m => !m.user?.bot);
-  const postChannel = guild => [...guild.channels.cache.values()]
-    .find(c => c.type === ChannelType.GuildText && POST_SLUGS.includes(slugOf(c.name)));
+  const textChannel = (guild, slugs) => [...guild.channels.cache.values()]
+    .find(c => c.type === ChannelType.GuildText && slugs.includes(slugOf(c.name)));
+  const postChannel = (guild, type) => textChannel(guild, type?.postSlugs || POST_SLUGS);
   const note = (door, content) => door?.send?.({ content, allowedMentions: { parse: [] } }).catch(() => {});
+  const panelOf = (guild, channelId, room) => panelPayload({ type: typeOf(room.type), ownerId: room.ownerId, channelId,
+    limit: room.limit, locked: room.locked, pomodoro: room.pomodoro || null, boardId: textChannel(guild, [BOARD_SLUG])?.id || null });
 
   async function handleVoiceState(oldState, newState) {
     const guild = newState.guild || oldState.guild;
@@ -95,7 +108,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
         await report(guild, 'member belum bisa dipindah ke room barunya', error?.code || null); return;
       }
       try {
-        const panel = await room.send(panelPayload({ type, ownerId: member.id, channelId: room.id, limit: type.limit, locked: Boolean(type.locked) }));
+        const panel = await room.send(panelOf(guild, room.id, store.get(room.id)));
         store.update(room.id, { panelId: panel.id });
       } catch { logger.error('[voice-rooms] PANEL_FAILED'); }
       if (type.announce) await syncPost(guild, room.id);
@@ -131,6 +144,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
   }
 
   async function leftRoom(guild, channelId, userId) {
+    creditFocus(guild, channelId, [userId], now()); // before the join time is dropped
     const map = joins.get(channelId) || {};
     delete map[userId]; joins.set(channelId, map);
     const channel = guild.channels.cache.get(channelId);
@@ -164,11 +178,11 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
   async function closeRoom(guild, channelId, channel) {
     const room = store.get(channelId);
     if (!room) return;
-    store.remove(channelId); joins.delete(channelId); cancelEmpty(channelId);
+    store.remove(channelId); joins.delete(channelId); cancelEmpty(channelId); disarm(channelId);
     const timer = postTimers.get(channelId);
     if (timer) { clearTimer(timer); postTimers.delete(channelId); }
     if (room.postId) {
-      try { await (await postChannel(guild)?.messages.fetch(room.postId))?.delete(); } catch { /* already gone */ }
+      try { await (await postChannel(guild, typeOf(room.type))?.messages.fetch(room.postId))?.delete(); } catch { /* already gone */ }
     }
     if (!channel) return;
     try { await channel.delete('Hengs: room kosong'); } catch (error) {
@@ -177,7 +191,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
     }
   }
 
-  // #mabar: the first post goes out at once; later changes are folded into one edit at most every 10 seconds.
+  // Room posts: the first goes out at once; later changes are folded into one edit at most every 10 seconds.
   function schedulePost(guild, channelId) {
     if (postTimers.has(channelId)) return;
     postTimers.set(channelId, setTimer(() => { postTimers.delete(channelId); return syncPost(guild, channelId); }, POST_EVERY));
@@ -185,10 +199,10 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
 
   async function syncPost(guild, channelId) {
     const room = store.get(channelId); const type = room && typeOf(room.type);
-    const target = postChannel(guild); const channel = guild.channels.cache.get(channelId);
+    const target = postChannel(guild, type); const channel = guild.channels.cache.get(channelId);
     if (!type?.announce || !target || !channel) return;
     const content = postText({ type, ownerName: guild.members.cache.get(room.ownerId)?.displayName, channelId,
-      count: humans(channel).length, limit: room.limit, locked: room.locked });
+      count: humans(channel).length, limit: room.limit, locked: room.locked, status: room.pomodoro ? statusText(room.pomodoro) : null });
     try {
       if (room.postId) await (await target.messages.fetch(room.postId)).edit({ content, allowedMentions: { parse: [] } });
       else store.update(channelId, { postId: (await target.send({ content, allowedMentions: { parse: [] } })).id });
@@ -198,15 +212,134 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
   async function refreshPanel(guild, channelId) {
     const room = store.get(channelId); const channel = guild.channels.cache.get(channelId);
     if (!room?.panelId || !channel) return;
+    try { await (await channel.messages.fetch(room.panelId)).edit(panelOf(guild, channelId, room)); } catch { logger.error('[voice-rooms] PANEL_EDIT_FAILED'); }
+  }
+
+  // Pomodoro. Focus credit for `ids` up to `until`, into the session tally and the weekly board, one write each.
+  function creditFocus(guild, channelId, ids, until) {
+    const state = store.get(channelId)?.pomodoro;
+    if (state?.phase !== 'fokus') return state;
+    const map = joins.get(channelId) || {};
+    const credits = Object.fromEntries(ids.map(id => [id, credit(map[id] ?? until, state.phaseStart, until)]).filter(([, s]) => s > 0));
+    if (!Object.keys(credits).length) return state;
+    const tally = { ...state.tally };
+    for (const [id, seconds] of Object.entries(credits)) tally[id] = (tally[id] || 0) + seconds;
+    store.update(channelId, { pomodoro: { ...state, tally } });
+    try { stats.add(guild.id, credits, until); } catch { logger.error('[voice-rooms] STUDY_STATS_FAILED'); }
+    return { ...state, tally };
+  }
+
+  function arm(guild, channelId, state) {
+    disarm(channelId);
+    phaseTimers.set(channelId, setTimer(() => { phaseTimers.delete(channelId); return phaseEnded(guild, channelId); },
+      Math.max(0, state.endsAt - now())));
+  }
+
+  function disarm(channelId) {
+    const timer = phaseTimers.get(channelId);
+    if (timer) { clearTimer(timer); phaseTimers.delete(channelId); }
+  }
+
+  async function phaseEnded(guild, channelId) {
+    const channel = guild.channels.cache.get(channelId); let state = store.get(channelId)?.pomodoro;
+    if (!state || !channel) return;
+    if (state.phase === 'fokus') state = creditFocus(guild, channelId, humans(channel).map(m => m.id), state.endsAt);
+    await enter(guild, channelId, next(state));
+  }
+
+  // A new phase: store, timer, panel, one message that mentions only the members inside, and the room post.
+  async function enter(guild, channelId, state, lead = '') {
+    if (state.phase === 'selesai') { await finish(guild, channelId, state); return; }
+    store.update(channelId, { pomodoro: state });
+    arm(guild, channelId, state);
+    await refreshPanel(guild, channelId);
+    const channel = guild.channels.cache.get(channelId); const ids = humans(channel).map(m => m.id);
+    await channel?.send({ content: `${lead}${alertText(state, ids)}`, allowedMentions: { users: ids } })
+      .catch(() => logger.error('[voice-rooms] POMODORO_ALERT_FAILED'));
+    schedulePost(guild, channelId);
+  }
+
+  async function finish(guild, channelId, state) {
+    disarm(channelId);
+    store.update(channelId, { pomodoro: null });
+    await refreshPanel(guild, channelId);
+    const names = Object.entries(state.tally).sort((a, b) => b[1] - a[1])
+      .map(([id, seconds]) => [escapeMarkdown(clean(guild.members.cache.get(id)?.displayName) || 'Anggota'), seconds]);
+    await guild.channels.cache.get(channelId)?.send({ content: summaryText(state, names), allowedMentions: { parse: [] } })
+      .catch(() => logger.error('[voice-rooms] POMODORO_SUMMARY_FAILED'));
+    schedulePost(guild, channelId);
+  }
+
+  // After a restart: a phase still running keeps its end; one that ended while Hengs was down moves on from now.
+  async function resume(guild, channelId, state) {
+    if (state.endsAt > now()) arm(guild, channelId, state);
+    else await enter(guild, channelId, next({ ...state, endsAt: now() }), 'Hengs sempat restart, timer lanjut. ');
+  }
+
+  // The weekly board, from Monday 07:00 WIB: claimed first so a failure never repeats; the role moves before the post,
+  // which names the new holders only when that worked.
+  async function boardTick(client) {
+    const at = now();
+    if (at < Date.parse(`${weekOf(at)}T07:00:00+07:00`)) return;
+    const monday = weekOf(at - WEEK);
+    for (const guild of client.guilds.cache.values()) {
+      if (isHome(guild) && stats.claimBoard(guild.id, monday)) await postBoard(guild, monday);
+    }
+  }
+
+  async function postBoard(guild, monday) {
+    const totals = stats.week(guild.id, monday);
+    const total = Object.values(totals).reduce((sum, seconds) => sum + seconds, 0);
+    const eligible = ranked(totals).map(row => row.user);
+    let present = new Map();
+    if (eligible.length) {
+      try { present = await guild.members.fetch({ user: eligible }); } catch {
+        await reportFailure(guild, { feature: 'Papan Rajin Belajar', reason: 'data anggota belum kebaca dari Discord, jadi papan minggu ini dilewati' });
+        return;
+      }
+    }
+    const rows = ranked(Object.fromEntries(Object.entries(totals).filter(([id]) => present.has(id))));
+    const winners = rows.filter(row => row.rank === 1).map(row => present.get(row.user));
+    const previous = stats.role(guild.id)?.holders || [];
+    let roleTo = [];
+    if (winners.length || previous.length) {
+      try {
+        const result = await rotateRole({ guild, name: 'Rajin Belajar', color: 0x2ECC71, reason: 'Hengs: papan Rajin Belajar mingguan',
+          previous, winners });
+        stats.setRole(guild.id, result); roleTo = result.holders;
+      } catch {
+        logger.error('[voice-rooms] STUDY_ROLE_FAILED');
+        await reportFailure(guild, { feature: 'Role Rajin Belajar', reason: ROLE_REASON });
+      }
+    }
+    if (!rows.length) return;
+    const target = textChannel(guild, [BOARD_SLUG]);
+    if (!target) {
+      await reportFailure(guild, { feature: 'Papan Rajin Belajar', reason: 'channel 📚・belajar-bareng belum ada. Jalanin /admin setup > Bikin Room' });
+      return;
+    }
     try {
-      await (await channel.messages.fetch(room.panelId)).edit(panelPayload({ type: typeOf(room.type), ownerId: room.ownerId, channelId,
-        limit: room.limit, locked: room.locked }));
-    } catch { logger.error('[voice-rooms] PANEL_EDIT_FAILED'); }
+      await target.send({ content: boardText({ monday, rows, total, roleTo }), components: [boardRow(guild.id)], allowedMentions: { parse: [] } });
+    } catch (error) {
+      logger.error('[voice-rooms] BOARD_FAILED');
+      await reportFailure(guild, { feature: 'Papan Rajin Belajar', reason: 'papan minggu ini belum bisa dikirim', code: error?.code || null });
+    }
+  }
+
+  function myMinutes(guildId, userId) {
+    const at = now(); const mine = stats.week(guildId, weekOf(at)); const rows = ranked(mine);
+    return myMinutesText({ seconds: mine[userId] || 0, rank: rows.find(row => row.user === userId)?.rank || null, count: rows.length,
+      lastSeconds: stats.week(guildId, weekOf(at - WEEK))[userId] || 0 });
   }
 
   async function handleInteraction(interaction) {
     const [, action, channelId] = String(interaction.customId || '').split(':');
     const reply = content => interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+    // The Menitku button under the weekly board carries the server id, not a room.
+    if (action === 'menitku') {
+      await reply(channelId === interaction.guildId ? myMinutes(channelId, interaction.user.id) : 'Tombol ini udah nggak berlaku.');
+      return true;
+    }
     const guild = interaction.guild; const room = store.get(channelId); const channel = guild?.channels.cache.get(channelId);
     if (!room || !channel || room.guildId !== interaction.guildId) { await reply('Room ini udah tutup.'); return true; }
     if (interaction.user.id !== room.ownerId) { await reply('Panel ini khusus pemilik room.'); return true; }
@@ -261,11 +394,27 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
       await reply(`${ids.length} anggota diundang.`);
       return true;
     }
+    if (action === 'pomodoro') {
+      if (!type.pomodoro) { await reply('Pomodoro cuma ada di room Belajar.'); return true; }
+      if (room.pomodoro) { await reply('Pomodoro udah jalan. Stop dulu kalau mau ganti preset.'); return true; }
+      const state = begin(interaction.values?.[0], now());
+      if (!state) { await reply('Pilihan preset nggak dikenal.'); return true; }
+      await enter(guild, channelId, state);
+      await reply(`Pomodoro ${PRESETS[state.preset].label} jalan.`);
+      return true;
+    }
+    if (action === 'pomodoro-stop') {
+      if (!room.pomodoro) { await reply('Pomodoro lagi nggak jalan.'); return true; }
+      await finish(guild, channelId, creditFocus(guild, channelId, humans(channel).map(m => m.id), now()));
+      await reply('Pomodoro dihentiin.');
+      return true;
+    }
     await reply('Tombol ini udah nggak berlaku.');
     return true;
   }
 
-  // After a restart: rooms whose channel is gone are dropped, empty rooms close, the rest go on with an owner inside.
+  // After a restart: rooms whose channel is gone are dropped, empty rooms close, the rest go on with an owner inside and
+  // their Pomodoro. Then the weekly board check, every 5 minutes from here.
   async function start(client) {
     for (const [channelId, room] of Object.entries(store.all())) {
       const guild = client.guilds.cache.get(room.guildId);
@@ -278,8 +427,12 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), reportF
         store.update(channelId, { ownerId: nextOwner(joins.get(channelId)) });
         await refreshPanel(guild, channelId);
       }
+      if (room.pomodoro) await resume(guild, channelId, room.pomodoro);
       if (typeOf(room.type)?.announce) await syncPost(guild, channelId);
     }
+    const tick = () => boardTick(client).catch(() => logger.error('[voice-rooms] BOARD_TICK_FAILED'));
+    await tick();
+    repeat(tick, TICK_EVERY)?.unref?.();
   }
 
   return { handleVoiceState, handleInteraction, start };

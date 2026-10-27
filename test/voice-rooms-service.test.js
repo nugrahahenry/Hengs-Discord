@@ -5,21 +5,24 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { ChannelType, PermissionFlagsBits: P } = require('discord.js');
+const { ChannelType, MessageFlags, PermissionFlagsBits: P } = require('discord.js');
 const { createVoiceRooms } = require('../src/voice-rooms/service');
 const { createVoiceRoomStore } = require('../src/voice-rooms/store');
+const { createStudyStats, weekOf } = require('../src/voice-rooms/study-stats');
 
 const GUILD = '223456789012345678';
-const SEC = 1000;
+const SEC = 1000; const MIN = 60 * SEC;
 const PEOPLE = { u1: 'Raka', u2: 'Dara', u3: 'Sky', u4: 'Budi', u5: 'Eko', u6: 'Fajar' };
 const home = { classify: () => ({ kind: 'home' }) };
 
-function rig(t, { perms = true, failMove = false } = {}) {
+function rig(t, { perms = true, failMove = false, board = true } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-voice-rooms-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const store = createVoiceRoomStore({ filePath: path.join(dir, 'rooms.json') });
   const clock = { now: Date.UTC(2026, 10, 4, 12) };
-  const timers = []; const reports = []; const created = []; const deleted = []; const posts = [];
+  const stats = createStudyStats({ filePath: path.join(dir, 'study.json'), now: () => clock.now });
+  const timers = []; const reports = []; const created = []; const deleted = []; const posts = []; const boardPosts = [];
+  const repeats = []; const roleList = []; const rolesMade = []; const roleLog = [];
   const cache = new Map(); const where = new Map(); const people = new Map();
   let rooms = 0; let messages = 0;
   const messageIn = (list, payload) => {
@@ -32,7 +35,7 @@ function rig(t, { perms = true, failMove = false } = {}) {
       people.set(id, { id, displayName: PEOPLE[id] || id, user: { bot: id.startsWith('bot') }, voice: { async setChannel(channel) {
         if (failMove) throw Object.assign(new Error('private-provider'), { code: 50013 });
         await voice(id, channel.id);
-      } } });
+      } }, roles: { async add(role) { roleLog.push(['add', id, role.id]); }, async remove(role) { roleLog.push(['remove', id, role.id]); } } });
     }
     return people.get(id);
   }
@@ -55,15 +58,26 @@ function rig(t, { perms = true, failMove = false } = {}) {
     ['belajar', 'Belajar', '📚'], ['privat', 'Privat', '🔒']]) voiceChannel(`door-${key}`, `${emoji}・Bikin ${label}`, { parentId: 'cat', parent: category });
   cache.set('mabar-text', { id: 'mabar-text', type: ChannelType.GuildText, name: '🎮・mabar',
     async send(payload) { return messageIn(posts, payload); }, messages: { fetch: fetchFrom(posts) } });
-  const guild = { id: GUILD, roles: { everyone: { id: GUILD } },
+  if (board) {
+    cache.set('board-text', { id: 'board-text', type: ChannelType.GuildText, name: '📚・belajar-bareng',
+      async send(payload) { return messageIn(boardPosts, payload); }, messages: { fetch: fetchFrom(boardPosts) } });
+  }
+  const guild = { id: GUILD,
+    roles: { everyone: { id: GUILD }, async fetch() { return new Map(roleList.map(role => [role.id, role])); },
+      async create(options) { const role = { id: `role${rolesMade.length + 1}`, name: options.name, editable: true }; rolesMade.push(options); roleList.push(role); return role; } },
     channels: { cache, async create(options) {
       const room = voiceChannel(`room${++rooms}`, options.name, { parentId: options.parent, userLimit: options.userLimit });
       created.push(options); return room;
     } },
-    members: { me: { id: 'hengs', permissions: { has: () => perms } }, cache: people } };
-  const service = createVoiceRooms({ guildAccess: home, store, now: () => clock.now, logger: { error() {} },
+    // Members whose id starts with "left" have left the server.
+    members: { me: { id: 'hengs', permissions: { has: () => perms } }, cache: people,
+      async fetch(options) { return new Map(options.user.filter(id => !id.startsWith('left')).map(id => [id, member(id)])); } } };
+  // A fresh service on the same fakes, as after a restart.
+  const make = () => createVoiceRooms({ guildAccess: home, store, stats, now: () => clock.now, logger: { error() {} },
     setTimer: (fn, ms) => { const timer = { fn, at: clock.now + ms }; timers.push(timer); return timer; },
-    clearTimer: timer => { timer.cleared = true; }, reportFailure: async (g, details) => { reports.push(details); } });
+    clearTimer: timer => { timer.cleared = true; }, reportFailure: async (g, details) => { reports.push(details); },
+    repeat: fn => { repeats.push(fn); return {}; } });
+  const service = make();
   // A voice move as the gateway reports it: the cache changes first, then the event.
   async function voice(userId, channelId) {
     const before = where.get(userId) || null;
@@ -75,7 +89,8 @@ function rig(t, { perms = true, failMove = false } = {}) {
     clock.now += ms;
     for (const timer of timers.filter(x => !x.cleared && !x.ran && x.at <= clock.now)) { timer.ran = true; await timer.fn(); }
   }
-  return { service, store, clock, guild, cache, created, deleted, posts, reports, voice, advance, where };
+  return { service, make, store, stats, clock, guild, cache, created, deleted, posts, boardPosts, reports, voice, advance, where,
+    timers, repeats, roleList, rolesMade, roleLog };
 }
 
 function press(r, user, action, channelId, extra = {}) {
@@ -137,9 +152,7 @@ test('a restart drops rooms that are gone, closes empty ones and keeps the rest 
   await r.voice('u3', 'door-belajar'); const empty = r.where.get('u3'); await r.voice('u3', null);
   await r.voice('u4', 'door-scrim'); const gone = r.where.get('u4'); const post = r.posts.find(p => p.id === r.store.get(gone).postId);
   r.cache.delete(gone); r.where.delete('u4'); r.where.delete('u1'); // while Hengs was down
-  const fresh = createVoiceRooms({ guildAccess: home, store: r.store, now: () => r.clock.now, logger: { error() {} },
-    setTimer: () => ({}), clearTimer: () => {}, reportFailure: async () => {} });
-  await fresh.start({ guilds: { cache: new Map([[GUILD, r.guild]]) } });
+  await r.make().start({ guilds: { cache: new Map([[GUILD, r.guild]]) } });
   assert.equal(r.store.get(gone), null); assert.equal(post.deleted, true);
   assert.equal(r.store.get(empty), null); assert.ok(r.deleted.includes(empty));
   assert.equal(r.store.get(kept).ownerId, 'u2');
@@ -242,4 +255,130 @@ test('switching within 30 seconds keeps the old room, and a room with people sta
   r.clock.now += 31 * SEC; await r.voice('u1', 'door-scrim');
   assert.equal(r.store.get(mabar).ownerId, 'u2'); assert.deepEqual(r.deleted, []); // u2 keeps the Mabar room
   assert.equal(r.store.get(r.where.get('u1')).type, 'scrim');
+});
+
+// Pomodoro in Belajar rooms and the weekly Rajin Belajar board (2026-10-28).
+const unix = at => Math.floor(at / 1000);
+const lastRow = message => message.payload.components.at(-1).toJSON().components[0].custom_id;
+const startAt = r => r.make().start({ guilds: { cache: new Map([[GUILD, r.guild]]) } });
+
+test('the Belajar owner starts Pomodoro from the panel, and each phase mentions only the members inside', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-belajar'); const id = r.where.get('u1'); const room = r.cache.get(id); const panel = room.sent[0];
+  await r.voice('u2', id);
+  assert.match(panel.payload.content, /Pomodoro belum jalan/);
+  assert.match(panel.payload.content, /papan Rajin Belajar mingguan di <#board-text>\.$/);
+  assert.equal(lastRow(panel), `voice-room:pomodoro:${id}`);
+  assert.match((await press(r, 'u2', 'pomodoro', id, { values: ['klasik'] })).replies[0].content, /khusus pemilik room/);
+  const started = r.clock.now;
+  assert.match((await press(r, 'u1', 'pomodoro', id, { values: ['klasik'] })).replies[0].content, /Klasik 25\/5 jalan/);
+  assert.equal(room.sent.at(-1).payload.content, `🍅 <@u1> <@u2> Fokus putaran 1/8 mulai. Selesai <t:${unix(started + 25 * MIN)}:t>.`);
+  assert.deepEqual(room.sent.at(-1).payload.allowedMentions, { users: ['u1', 'u2'] });
+  assert.match(panel.payload.content, /🍅 Fokus putaran 1\/8 · selesai <t:\d+:t> \(<t:\d+:R>\)/);
+  assert.equal(lastRow(panel), `voice-room:pomodoro-stop:${id}`);
+  assert.match((await press(r, 'u1', 'pomodoro', id, { values: ['panjang'] })).replies[0].content, /udah jalan/);
+  await r.advance(10 * SEC);
+  assert.equal(r.boardPosts[0].payload.content,
+    `📚 **Raka** buka room Belajar · 2 orang · 🍅 fokus putaran 1/8 sampai <t:${unix(started + 25 * MIN)}:t> · gas join: <#${id}>`);
+  await r.advance(25 * MIN);
+  assert.equal(room.sent.at(-1).payload.content, `☕ <@u1> <@u2> Istirahat 5 menit. Fokus lagi <t:${unix(started + 30 * MIN)}:t>.`);
+  assert.deepEqual(r.store.get(id).pomodoro.tally, { u1: 1500, u2: 1500 });
+  assert.deepEqual(r.stats.week(GUILD, weekOf(r.clock.now)), { u1: 1500, u2: 1500 });
+  await r.advance(5 * MIN);
+  assert.match(room.sent.at(-1).payload.content, /^🍅 <@u1> <@u2> Fokus putaran 2\/8 mulai\./);
+});
+
+test('leaving mid-focus keeps the minutes inside, and Stop posts the summary and brings back the start select', async t => {
+  const r = rig(t);
+  await r.voice('u3', 'door-mabar'); const mabar = r.where.get('u3');
+  assert.match((await press(r, 'u3', 'pomodoro', mabar, { values: ['klasik'] })).replies[0].content, /cuma ada di room Belajar/);
+  await r.voice('u1', 'door-belajar'); const id = r.where.get('u1'); const room = r.cache.get(id);
+  await r.voice('u2', id);
+  await press(r, 'u1', 'pomodoro', id, { values: ['klasik'] });
+  await r.advance(10 * MIN); await r.voice('u2', null);
+  await r.advance(5 * MIN);
+  assert.match((await press(r, 'u1', 'pomodoro-stop', id)).replies[0].content, /dihentiin/);
+  const summary = '✅ Sesi Pomodoro selesai: 0 putaran fokus. Raka 15 menit, Dara 10 menit.';
+  assert.equal(room.sent.at(-1).payload.content, summary); assert.deepEqual(room.sent.at(-1).payload.allowedMentions, { parse: [] });
+  assert.equal(r.store.get(id).pomodoro, null); assert.equal(lastRow(room.sent[0]), `voice-room:pomodoro:${id}`);
+  assert.deepEqual(r.stats.week(GUILD, weekOf(r.clock.now)), { u1: 900, u2: 600 });
+  assert.match((await press(r, 'u1', 'pomodoro-stop', id)).replies[0].content, /lagi nggak jalan/);
+  await r.advance(30 * MIN);
+  assert.equal(room.sent.at(-1).payload.content, summary); // the stopped timer never fires
+});
+
+test('a session stops by itself after the last round', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-belajar'); const id = r.where.get('u1'); const room = r.cache.get(id);
+  await press(r, 'u1', 'pomodoro', id, { values: ['panjang'] });
+  for (const minutes of [50, 10, 50, 10, 50, 10, 50]) await r.advance(minutes * MIN);
+  assert.equal(room.sent.at(-1).payload.content, '✅ Sesi Pomodoro selesai: 4 putaran fokus. Raka 200 menit.');
+  assert.equal(r.store.get(id).pomodoro, null);
+  assert.deepEqual(r.stats.week(GUILD, weekOf(r.clock.now)), { u1: 12000 });
+});
+
+test('after a restart a running phase keeps its end, and one that ended while Hengs was down moves on from now', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-belajar'); const id = r.where.get('u1'); const room = r.cache.get(id);
+  const started = r.clock.now;
+  await press(r, 'u1', 'pomodoro', id, { values: ['klasik'] });
+  for (const timer of r.timers) timer.cleared = true; // Hengs restarts: its timers are gone
+  await startAt(r);
+  await r.advance(25 * MIN);
+  assert.equal(room.sent.at(-1).payload.content, `☕ <@u1> Istirahat 5 menit. Fokus lagi <t:${unix(started + 30 * MIN)}:t>.`);
+  for (const timer of r.timers) timer.cleared = true;
+  r.clock.now = started + 35 * MIN; // down past the end of the break
+  await startAt(r);
+  assert.equal(room.sent.at(-1).payload.content,
+    `Hengs sempat restart, timer lanjut. 🍅 <@u1> Fokus putaran 2/8 mulai. Selesai <t:${unix(started + 60 * MIN)}:t>.`);
+});
+
+test('an empty Belajar room closes with its timer and its belajar-bareng post', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-belajar'); const id = r.where.get('u1'); const room = r.cache.get(id);
+  await press(r, 'u1', 'pomodoro', id, { values: ['klasik'] });
+  await r.voice('u1', null); await r.advance(60 * SEC);
+  assert.deepEqual(r.deleted, [id]); assert.equal(r.boardPosts[0].deleted, true);
+  const sent = room.sent.length; await r.advance(30 * MIN);
+  assert.equal(room.sent.length, sent);
+});
+
+test('the Monday board posts once with the members still here, moves the role, and Menitku answers privately', async t => {
+  const r = rig(t);
+  r.stats.add(GUILD, { u1: 9000, u2: 3000, u3: 600, left1: 20000 }, Date.parse('2026-11-04T20:00:00+07:00'));
+  r.clock.now = Date.parse('2026-11-09T06:59:00+07:00');
+  await startAt(r);
+  assert.equal(r.boardPosts.length, 0); // not before 07:00 WIB
+  r.clock.now = Date.parse('2026-11-09T07:00:00+07:00');
+  await r.repeats.at(-1)(); await r.repeats.at(-1)();
+  assert.equal(r.boardPosts.length, 1);
+  const board = r.boardPosts[0].payload;
+  assert.equal(board.content, ['📚 **Rajin Belajar** · 2-8 Nov', '🥇 <@u1> · 2 jam 30 menit', '🥈 <@u2> · 50 menit',
+    'Total server: 9 jam 3 menit fokus bareng.', 'Role **Rajin Belajar** pindah ke <@u1>.'].join('\n'));
+  assert.deepEqual(board.allowedMentions, { parse: [] });
+  assert.equal(board.components[0].toJSON().components[0].custom_id, `voice-room:menitku:${GUILD}`);
+  assert.deepEqual(r.rolesMade.map(o => [o.name, o.color, o.permissions]), [['Rajin Belajar', 0x2ECC71, []]]);
+  assert.deepEqual(r.roleLog, [['add', 'u1', 'role1']]); assert.deepEqual(r.stats.role(GUILD), { roleId: 'role1', holders: ['u1'] });
+  r.stats.add(GUILD, { u2: 4500, u3: 600 }, r.clock.now);
+  const ask = (user, id = GUILD) => press(r, user, 'menitku', id).then(x => x.replies[0]);
+  assert.equal((await ask('u2')).content, 'Minggu ini: 1 jam 15 menit fokus (peringkat 1 dari 1). Minggu lalu: 50 menit.');
+  assert.equal((await ask('u3')).content, 'Minggu ini: 10 menit fokus. Belum masuk papan, minimal 25 menit. Minggu lalu: 10 menit.');
+  assert.equal((await ask('u2')).flags, MessageFlags.Ephemeral);
+  assert.match((await ask('u1', 'another-server')).content, /udah nggak berlaku/);
+});
+
+test('without belajar-bareng the board is skipped with one note, and a role above Hengs is reported', async t => {
+  const r = rig(t, { board: false });
+  r.stats.add(GUILD, { u1: 3000 }, Date.parse('2026-11-04T20:00:00+07:00'));
+  r.clock.now = Date.parse('2026-11-09T08:00:00+07:00');
+  await startAt(r); await r.repeats.at(-1)();
+  assert.deepEqual(r.reports.map(x => x.feature), ['Papan Rajin Belajar']); assert.match(r.reports[0].reason, /belajar-bareng belum ada/);
+  assert.deepEqual(r.roleLog, [['add', 'u1', 'role1']]);
+  const s = rig(t);
+  s.roleList.push({ id: 'r9', name: '🌱 Rajin Belajar', editable: false });
+  s.stats.add(GUILD, { u1: 3000 }, Date.parse('2026-11-04T20:00:00+07:00'));
+  s.clock.now = Date.parse('2026-11-09T08:00:00+07:00');
+  await startAt(s);
+  assert.deepEqual(s.reports.map(x => x.feature), ['Role Rajin Belajar']); assert.match(s.reports[0].reason, /Manage Roles/);
+  assert.doesNotMatch(s.boardPosts[0].payload.content, /pindah ke/);
 });

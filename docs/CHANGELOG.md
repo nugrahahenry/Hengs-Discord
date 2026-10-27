@@ -5,6 +5,29 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.88.0] - 2026-10-28
+
+### Added
+
+- Belajar rooms: a Pomodoro timer on the owner panel (Henry: "Room Belajar + Pomodoro dulu"). Presets Klasik 25/5
+  (15-minute break after every 4th round, stops after 8 rounds) and Panjang 50/10 (stops after 4). Each phase change
+  posts one message in the room that mentions only the members inside, and the panel shows the phase end as a Discord
+  timestamp that counts down by itself. Stop or the last round posts a summary. After a restart a running phase keeps
+  its end; one that ended while Hengs was down moves on from now with a short note.
+- Weekly Rajin Belajar board in the new `📚・belajar-bareng` (created by the Bikin Room package): Monday from 07:00 WIB,
+  the top 10 members with at least 25 focus minutes last week (only time inside a room during a focus phase counts),
+  the server total, a private **Menitku** button, and the Rajin Belajar role for rank 1 (ties share). Open Belajar
+  rooms are posted there like Mabar rooms in #lfg. Data: member ids and seconds per week, 12 weeks, on the VM only.
+
+### Changed
+
+- Liga Tebak's Analis Jitu role and the new Rajin Belajar role share one rotating-role helper.
+
+### Verification
+
+- Full offline suite passed 1100/1100 on Node 22.23.3 (0 skipped). Voice room, Pomodoro, study board and rotating-role
+  tests 35/35; the suite writes no `data/study-stats.json` into the checkout.
+
 ## [1.87.2] - 2026-10-27
 
 ### Offline tooling

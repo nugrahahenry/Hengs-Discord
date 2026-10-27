@@ -2,7 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.87.2: joining another door while you own an empty room closes it and opens the
+**Current checkpoint:** Hengs Discord v1.88.0: Belajar rooms get a Pomodoro timer on the owner panel (Klasik 25/5 with
+a 15-minute break after every 4th round, 8 rounds; Panjang 50/10, 4 rounds). Each phase change mentions only the members
+inside, and the panel's end time counts down by itself. Focus minutes (only time inside during a focus phase) feed the
+weekly **Rajin Belajar** board in the new `📚・belajar-bareng`: Monday 07:00 WIB, the top 10 from 25 minutes, a private
+**Menitku** button and the rotating Rajin Belajar role. Open Belajar rooms are posted there too, and the **Bikin Room**
+package creates the channel. Local checkpoint, not deployed. Builds on v1.87.2: joining another door while you own an empty room closes it and opens the
 new type (the same door still brings you back; a room with people stays with them), and failure notes go to an existing
 `bot-logs` channel. Builds on v1.87.0 voice rooms: seven "Bikin" doors (Mabar 5 slots, Scrim 10, Diskusi,
 Belajar push-to-talk, Nobar, Karaoke, Privat locked) make a room on join, with an owner panel (rename, slot, lock,
