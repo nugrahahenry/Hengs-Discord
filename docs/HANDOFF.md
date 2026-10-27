@@ -2,6 +2,27 @@
 
 Updated: 2026-10-27
 
+## Hengs Discord v1.87.2 deployed and accepted - 2026-10-27
+
+- Henry: "Deploy v1.87.2 sekarang (archive, rehearsal, helper baru, menit 05-45). Setelah ACCEPTED dan audit lolos, hapus
+  channel 📋・bot-log yang baru dan push main."
+- Release 1.87.2-da0f880d9b07 (room switching and bot-logs f6b193f plus the offline review workbench da0f880), archive
+  SHA-256 d61b5cf43855ad3e2b1a0277ff9de235c860bd420519ad051036fb2fd05a7e8f, rehearsal 1083/1078/5 skips with no file
+  written into the release tree. Helpers `.cloud/automation/deploy-v1872`, derived by the new
+  `.cloud/automation/derive-dc-from-1871.cjs` (derive-dc-next.cjs only knows the 1.71.0 template). Docs-only 43a66a4
+  came after the pinned commit.
+- Preflight PASS 08:17:07 UTC, staged and sealed 08:18:03, dispatched 08:18:06, QA 08:18:38 to 08:21:45, ACCEPTED
+  08:22:30 (TESTS=1083 PASS=1078 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- Audit: the first run at 08:24:34 stopped at the remote output filter (REMOTE_CHECK=FAILED; the filtered line is not
+  kept, so the cause is unknown). The rerun at 12:46 passed: restarts zero, staging absent, rollback to
+  1.87.1-bff542b4c18b available. No command changes since 1.87.1, so no registration; CMD_CHECK HOME=14 with CASTER,
+  SCRIM_HASIL, KIRIM, SCRIM_COACH and SCRIM_HAPUS_TANYA YES; DC 1.87.2 and WA 0.53.0 connected, fresh.
+- `📋・bot-log` deleted at 12:49 by `deploy-v1872/botlog-delete.sh` (exactly one bot-logs and one bot-log; bot-log held
+  only Hengs' intro line). Only `📋・bot-logs` remains in 🤖 BOT CENTER: @everyone hidden, 🤖 Bots role can view, Hengs
+  sees it and can post, still empty. No voice rooms open.
+- Henry, in Discord: retry the door switch (Bikin Mabar, then Bikin Diskusi: the empty mabar room should close and a
+  diskusi room open).
+
 ## Hengs Discord v1.87.2 offline scoreboard review workbench - 2026-10-27
 
 - Continued the offline checklist as a clickable, self-contained HTML workbench. No new backend, database,
