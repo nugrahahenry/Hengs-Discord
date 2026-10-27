@@ -105,6 +105,8 @@ Updated: 2026-10-27
 - Closing this gate requires a clearer authentic source frame or a separate reliable match record for Game 5.
   An inferred 6.93K replacement or any other guessed value is explicitly out of scope. No provider, bot,
   scheduler, cloud, or Match Center action was performed.
+- The local `mpl-ph-grand-final-capture-pack.zip` was checked read-only. It contains only the same Game 5 result
+  frame and no alternate scoreboard capture, so the current corpus cannot resolve this conflict by itself.
 
 ## Hengs Discord v1.87.2 room switching and bot-logs (committed locally, not pushed, not deployed) - 2026-10-27
 
