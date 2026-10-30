@@ -2,6 +2,26 @@
 
 Updated: 2026-10-30
 
+## Hengs Discord v1.90.0 deployed and accepted - 2026-10-30
+
+- Henry: "Deploy v1.90.0". Release 1.90.0-1b8eda23cc3b, archive SHA-256
+  37e14a6b55138e564aee018a14c0f8c59d8d69d9c5161976b15728bcc4d855aa (57 MB), rehearsal 1124/1119/5 skips with no file
+  written into the release tree, `node --check` clean. Helpers `.cloud/automation/deploy-v1900` from
+  `derive-dc-from-1890.cjs` (the one-off server scripts of 30 Oct not carried). No command, env or dependency changes.
+- The first try at 13:43 UTC sat at the edge of the minute 05-45 window, so it waited for the next one. Preflight PASS
+  14:05:35 UTC, staged and sealed 14:06:09, dispatched 14:06:11, QA 14:06:44 to 14:09:47, ACCEPTED 14:10:55
+  (TESTS=1124 PASS=1119 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- CMD_CHECK HOME=14 with every check YES; DC 1.90.0 and WA 0.53.0 connected, fresh. Audit PASS 14:11:12 on the first run:
+  restarts zero, staging absent, rollback to 1.89.0-e3998c28b8f4 available.
+- Checked live 14:11 UTC (`deploy-v1900/analis-guide-check.sh`, read-only): the Analis guide posted itself in
+  #hengs-analis with the Nobar paragraph; not pinned (the Hengs Bot role still lacks Pin Messages, Henry's step).
+  No series cards there yet: nothing on the watchlist finished in the last 36 hours.
+- Live now: kickoff reminders with the 🔔 Nobar role, mode siaran in Nobar rooms, the Akademik setup package. First
+  reminder expected 4 Nov around 12:45 to 12:50 WIB for Alter Ego vs ONIC.
+- Cleanup (Recycle Bin, not emptied): the 1.90.0 archive and checksum, rehearsal-1900, deploy-v1890 and
+  derive-dc-from-1880.cjs, about 120 MB. Kept: deploy-v1900 and derive-dc-from-1890.cjs (the pattern; the next derive
+  starts from deploy-v1900). Main not pushed.
+
 ## Hengs Discord v1.90.0 light Nobar for the playoffs (committed locally, not pushed, not deployed) - 2026-10-30
 
 - Henry picked "Siapin playoff" and delegated server setup: "Lu bisa jalankan semua admin setup sendiri nantinya."
