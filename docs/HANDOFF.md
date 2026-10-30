@@ -1,6 +1,26 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-28
+Updated: 2026-10-30
+
+## Hengs Discord v1.89.0 deployed and accepted - 2026-10-30
+
+- Henry: "Gabungin coach-v2 ke main (fast-forward), jalanin full suite. Jangan push, jangan deploy." Main went 7e7642a
+  to e3998c2 (full suite 1114/1114). Then "Siapin rilis v1.89.0" and "Deploy v1.89.0 sekarang pakai deploy-v1890 di
+  menit 05-45. Setelah ACCEPTED dan audit lolos, hapus archive, rehearsal dan helper lama yang udah nggak dipakai."
+  The first try on 28 Oct missed the window and the background waiter died with the app; "Silahkan lanjutkan" on 30
+  Oct resumed it with the checkout and the VM unchanged.
+- Release 1.89.0-e3998c28b8f4, archive SHA-256 4687a886903caf551610515ccbba4a6c29abb9c99e0ccaea4ae73ad21389d215
+  (57 MB), rehearsal 1114/1109/5 skips with no file written into the release tree, `node --check` clean. Helpers
+  `.cloud/automation/deploy-v1890` from `derive-dc-from-1880.cjs`. No command, env or dependency changes.
+- Preflight PASS 08:05:28 UTC, staged and sealed 08:06:22, dispatched 08:06:25, QA 08:06:39 to 08:10:07, ACCEPTED
+  08:10:53 (TESTS=1114 PASS=1109 CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- CMD_CHECK HOME=14 with CASTER, SCRIM_HASIL, KIRIM, SCRIM_COACH and SCRIM_HAPUS_TANYA YES; DC 1.89.0 and WA 0.53.0
+  connected, fresh. Audit PASS 08:11:14 on the first run: restarts zero, staging absent, rollback to 1.88.0-6487567fe179
+  available.
+- Live now: Coach Buku Pintar (examples, MLBB textbook, light teasing rules, the three v13 fixes) on top of v1.88.0.
+- Cleanup (Recycle Bin, not emptied): the 1.89.0 archive and checksum, rehearsal-1890 and deploy-v1880, about 120 MB.
+  Kept: deploy-v1890 for status, audit and the ops probes; derive-dc-from-1880.cjs as the pattern for the next derive
+  (its source folder is gone, so the next one derives from deploy-v1890).
 
 ## Hengs Discord v1.89.0 (provisional) coach examples, buku pintar and light teasing on branch coach-v2 (not deployed) - 2026-10-28
 
