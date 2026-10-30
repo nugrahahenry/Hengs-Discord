@@ -35,19 +35,20 @@ test('member reactions count everyone but Hengs itself, and a meh face counts ag
 test('reactions are read between 2 hours and 3 days after posting, then kept as totals', async t => {
   const clock = { now: NOW };
   const taste = store(t, clock);
-  const counts = { m1: 6, m2: 0 };
+  const counts = { m1: 6, m2: 0, m3: 6, m4: 0, m5: 6, m6: 0 };
   const reads = [];
   const count = async ({ messageId }) => { reads.push(messageId); return counts[messageId]; };
-  taste.remember(GUILD, { messageId: 'm1', channelId: 'c', template: 'fa', situation: 'begadang sebelum UAS' });
-  taste.remember(GUILD, { messageId: 'm2', channelId: 'c', template: 'drake', situation: 'hujan pas mau berangkat' });
+  for (const [id, template, situation] of [['m1', 'fa', 'begadang sebelum UAS'], ['m2', 'drake', 'hujan pas mau berangkat'],
+    ['m3', 'fa', 'begadang sebelum UAS'], ['m4', 'drake', 'hujan pas mau berangkat'], ['m5', 'fa', 'begadang sebelum UAS'],
+    ['m6', 'drake', 'hujan pas mau berangkat']]) taste.remember(GUILD, { messageId: id, channelId: 'c', template, situation });
   await taste.refresh(GUILD, count);
   assert.deepEqual(reads, []); // too fresh
   clock.now += 3 * HOUR;
   await taste.refresh(GUILD, count);
-  assert.deepEqual(reads.sort(), ['m1', 'm2']);
+  assert.deepEqual(reads.sort(), ['m1', 'm2', 'm3', 'm4', 'm5', 'm6']);
   let scores = taste.weights(GUILD);
-  assert.ok(scores.templates.get('fa') > scores.templates.get('drake'));
-  assert.ok(scores.situations.get('begadang sebelum UAS') > scores.situations.get('hujan pas mau berangkat'));
+  assert.deepEqual([...scores.templates.keys()], ['fa']); assert.deepEqual([...scores.situations.keys()], ['begadang sebelum UAS']);
+  assert.deepEqual(taste.recent(GUILD, 'template', 2), ['drake', 'fa']); // newest first
   // After three days the counts are final: no more reads, totals stay, a vanished message keeps its last count.
   counts.m1 = null;
   clock.now += 72 * HOUR;
@@ -56,9 +57,20 @@ test('reactions are read between 2 hours and 3 days after posting, then kept as 
   await taste.refresh(GUILD, count);
   assert.deepEqual(reads, []);
   scores = taste.weights(GUILD);
-  assert.ok(scores.templates.get('fa') > scores.templates.get('drake'));
+  assert.deepEqual([...scores.templates.keys()], ['fa']);
   // Persisted: a fresh store over the same file sees the same taste.
-  assert.deepEqual([...createMemeTaste({ filePath: taste.filePath, now: () => clock.now }).weights(GUILD).templates.keys()].sort(), ['drake', 'fa']);
+  assert.deepEqual([...createMemeTaste({ filePath: taste.filePath, now: () => clock.now }).weights(GUILD).templates.keys()], ['fa']);
+});
+
+// Owner report, 2026-10-30: three templates on repeat because zero reactions counted as liked.
+test('zero reactions are never liked: a key needs 3 settled posts, net +2 and more reactions per post than average', async t => {
+  const clock = { now: NOW };
+  const taste = store(t, clock);
+  const plan = [['gb', 0], ['gb', 0], ['gb', 0], ['gb', 0], ['gb', 0], ['fa', 2], ['fa', 2], ['fa', 2], ['drake', 5], ['drake', 5]];
+  plan.forEach(([template], i) => taste.remember(GUILD, { messageId: `m${i}`, channelId: 'c', template, situation: `situasi ${template}` }));
+  clock.now += 3 * HOUR;
+  await taste.refresh(GUILD, async ({ messageId }) => plan[Number(messageId.slice(1))][1]);
+  assert.deepEqual([...taste.weights(GUILD).templates.keys()], ['fa']); // gb has no laughs, drake only two posts
 });
 
 test('a broken taste file or a failing read never stops memes', async t => {
@@ -69,25 +81,30 @@ test('a broken taste file or a failing read never stops memes', async t => {
   taste.remember(GUILD, { messageId: 'm1', channelId: 'c', template: 'fa', situation: 'x situasi' });
   clock.now += 3 * HOUR;
   await taste.refresh(GUILD, async () => { throw new Error('synthetic discord failure'); });
-  assert.equal(taste.weights(GUILD).templates.has('fa'), true);
+  assert.deepEqual(taste.recent(GUILD, 'template', 6), ['fa']); assert.equal(taste.weights(GUILD).templates.size, 0);
 });
 
-test('the best-liked templates are offered first; the rest keeps rotating', () => {
-  const scores = new Map([['fa', 9], ['midwit', 7], ['drake', 5], ['ds', 0.2]]);
-  const offered = offerTemplates(TEMPLATES, DAYKEY, 2, scores).map(row => row.id);
+test('liked templates are offered first, the templates of the last six Hengs memes sit out, the rest keeps rotating', () => {
+  const liked = new Map([['fa', 9], ['midwit', 7], ['drake', 5], ['ds', 0.2]]);
+  const offered = offerTemplates(TEMPLATES, DAYKEY, 2, liked).map(row => row.id);
   assert.equal(offered.length, 6); assert.equal(new Set(offered).size, 6);
   assert.deepEqual(offered.slice(0, 3), ['fa', 'midwit', 'drake']);
   assert.deepEqual(offerTemplates(TEMPLATES, DAYKEY, 2, new Map()), offerTemplates(TEMPLATES, DAYKEY, 2));
+  const recent = ['gb', 'dbg', 'midwit', 'gb', 'dbg', 'fa', 'drake'];
+  const rested = offerTemplates(TEMPLATES, DAYKEY, 2, liked, recent).map(row => row.id);
+  for (const id of ['gb', 'dbg', 'midwit', 'fa']) assert.ok(!rested.includes(id), id); // six newest: gb dbg midwit gb dbg fa
+  assert.equal(rested[0], 'drake'); // seventh back, so liked and offered again
 });
 
-test('the first Hengs slot of the day reuses the best-liked situation unless it ran today or yesterday', () => {
+test('the first Hengs slot reuses the best-liked situation unless it ran in the last 14 days', () => {
   const row = { seen: [], receipts: [] };
   const best = EVERGREEN[5];
-  const scores = new Map([[best, 8], [EVERGREEN[6], 1]]);
-  assert.equal(pickTopic(row, DAYKEY, 0, scores).title, best);
-  // Later slots keep exploring the rotation.
-  assert.equal(pickTopic(row, DAYKEY, 2, scores).title, pickTopic(row, DAYKEY, 2).title);
+  const liked = new Map([[best, 8], [EVERGREEN[6], 1]]);
+  assert.equal(pickTopic(row, DAYKEY, 0, liked).title, best);
+  // Later slots keep walking the themes.
+  assert.equal(pickTopic(row, DAYKEY, 2, liked).title, pickTopic(row, DAYKEY, 2).title);
   const { memeHash } = require('../src/news/memes');
-  const ranYesterday = { seen: [{ hash: memeHash(`evergreen:${best}:2026-10-20`), at: NOW - 20 * HOUR }], receipts: [] };
-  assert.notEqual(pickTopic(ranYesterday, DAYKEY, 0, scores).title, best);
+  const ran = days => ({ seen: [{ hash: memeHash(`evergreen:${best}:${new Date(NOW - days * 24 * HOUR).toISOString().slice(0, 10)}`), at: NOW }], receipts: [] });
+  assert.notEqual(pickTopic(ran(10), DAYKEY, 0, liked).title, best);
+  assert.equal(pickTopic(ran(15), DAYKEY, 0, liked).title, best);
 });

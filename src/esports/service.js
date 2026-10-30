@@ -41,7 +41,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
   render = renderSeriesCard, renderPreview = renderPreviewCard, renderList = renderListCard, renderDraft = renderDraftCard,
   now = Date.now, logger = console,
   watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {}, commentator = null,
-  draftAppreciation = null, nobarRooms = () => [] } = {}) {
+  draftAppreciation = null, nobarRooms = () => [], onResult = null } = {}) {
   let client = null; let running = false; let timer = null;
   const watchlist = () => (discover ? [...watch, ...store.discovered()] : watch);
   const leagueOf = page => watchlist().find(w => w.title === page)?.league || '';
@@ -129,6 +129,25 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     store.finish(guild.id, match.id, { status: 'sent', messageId: message.id, channelId: channel.id });
     for (const emoji of REACTIONS) {
       try { await message.react(emoji); } catch { logger.error('[esports] ESPORTS_REACT_FAILED'); break; }
+    }
+    await notable(guild, match);
+  }
+
+  // A notable finished MPL or M-series result becomes meme material for Hengs Memes (owner request, 2026-10-30: "kalau
+  // menang atau kalah ada memes nya"): a sweep, an upset against most Liga Tebak guesses, a grand final, or a comeback
+  // from 0-2. Team names only; the meme writer has its own rules.
+  async function notable(guild, match) {
+    const entry = watchlist().find(w => w.title === match.page);
+    if (!onResult || !entry?.event || !/^(MPL\/|M\d)/.test(entry.family || '') || ![1, 2].includes(match.winner)) return;
+    const [winner, loser] = match.winner === 2 ? [match.teams[1], match.teams[0]] : match.teams;
+    const [won, lost] = match.winner === 2 ? [match.score[1], match.score[0]] : match.score;
+    const votes = Object.values(store.votes(guild.id, match.id));
+    const flags = { sweep: lost === 0, upset: votes.length >= 3 && votes.filter(team => team !== match.winner).length / votes.length > 0.6,
+      final: /grand final/i.test(match.stage || ''), comeback: (match.games || []).length >= 3
+        && match.games.slice(0, 2).every(game => game.winner && game.winner !== match.winner) };
+    if (!Object.values(flags).some(Boolean)) return;
+    try { await onResult(guild, { id: match.id, event: entry.league, winner: winner.name, loser: loser.name, score: [won, lost], flags }); } catch {
+      logger.error('[esports] RESULT_MEME_FAILED');
     }
   }
 

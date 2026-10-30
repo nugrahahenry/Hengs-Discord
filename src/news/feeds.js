@@ -24,9 +24,34 @@ const SOURCES = Object.freeze([
   Object.freeze({ id: 'antara', topic: 'tech', name: 'ANTARA', url: 'https://www.antaranews.com/rss/tekno.xml', hosts: ['www.antaranews.com'], ...noImage }),
   Object.freeze({ id: 'gamebrott', topic: 'gaming', name: 'Gamebrott', url: 'https://gamebrott.com/feed/', hosts: ['gamebrott.com'], ...noImage }),
   Object.freeze({ id: 'jagatplay', topic: 'gaming', name: 'Jagat Play', url: 'https://jagatplay.com/feed/', hosts: ['jagatplay.com'], ...noImage }),
-  Object.freeze({ id: 'esportsnesia', topic: 'gaming', name: 'Esportsnesia', url: 'https://esportsnesia.com/feed/', hosts: ['esportsnesia.com'], ...noImage }),
-  Object.freeze({ id: 'revivaltv', topic: 'gaming', name: 'Revival TV', url: 'https://revivaltv.id/feed/', hosts: ['revivaltv.id'], ...noImage }),
+  Object.freeze({ id: 'esportsnesia', topic: 'gaming', desk: 'esports', name: 'Esportsnesia', url: 'https://esportsnesia.com/feed/', hosts: ['esportsnesia.com'], ...noImage }),
+  Object.freeze({ id: 'revivaltv', topic: 'gaming', desk: 'esports', name: 'Revival TV', url: 'https://revivaltv.id/feed/', hosts: ['revivaltv.id'], ...noImage }),
+  // More desks (owner request, 2026-10-30; feeds and link hosts probed from the VM). The settings topic gates a desk: tech
+  // gates gadget, gaming gates esports; pop culture and kampus run whenever News is on. Headline, own summary and link only.
+  Object.freeze({ id: 'dafunda', topic: 'gaming', name: 'Dafunda', url: 'https://dafunda.com/feed/', hosts: ['dafunda.com'], ...noImage }),
+  Object.freeze({ id: 'hybrid', topic: 'gaming', desk: 'esports', name: 'Hybrid', url: 'https://hybrid.co.id/feed/', hosts: ['hybrid.co.id'], ...noImage }),
+  Object.freeze({ id: 'gizmologi', topic: 'tech', desk: 'gadget', name: 'Gizmologi', url: 'https://gizmologi.id/feed/', hosts: ['gizmologi.id'], ...noImage }),
+  Object.freeze({ id: 'selular', topic: 'tech', desk: 'gadget', name: 'Selular.ID', url: 'https://selular.id/feed/', hosts: ['selular.id'], ...noImage }),
+  Object.freeze({ id: 'jagatreview', topic: 'tech', desk: 'gadget', name: 'Jagat Review', url: 'https://www.jagatreview.com/feed/',
+    hosts: ['www.jagatreview.com', 'gadget.jagatreview.com'], ...noImage }),
+  Object.freeze({ id: 'cnnhiburan', topic: 'popculture', name: 'CNN Indonesia Hiburan', url: 'https://www.cnnindonesia.com/hiburan/rss',
+    hosts: ['www.cnnindonesia.com'], only: 'popculture', ...noImage }),
+  Object.freeze({ id: 'liputan6showbiz', topic: 'popculture', name: 'Liputan6 Showbiz', url: 'https://feed.liputan6.com/rss/showbiz',
+    hosts: ['www.liputan6.com'], only: 'popculture', ...noImage }),
+  Object.freeze({ id: 'cnnedukasi', topic: 'kampus', name: 'CNN Indonesia Edukasi', url: 'https://www.cnnindonesia.com/edukasi/rss', hosts: ['www.cnnindonesia.com'], ...noImage }),
+  Object.freeze({ id: 'republika', topic: 'kampus', name: 'Republika', url: 'https://www.republika.co.id/rss/pendidikan',
+    hosts: ['news.republika.co.id', 'www.republika.co.id'], ...noImage }),
+  Object.freeze({ id: 'indbeasiswa', topic: 'kampus', name: 'IndBeasiswa', url: 'https://indbeasiswa.com/feed/', hosts: ['indbeasiswa.com'], ...noImage }),
 ]);
+// Desks that do not need a settings topic, and the desk of a source (its topic unless it names another).
+const ALWAYS_ON = Object.freeze(['popculture', 'kampus']);
+const deskOf = source => source?.desk || source?.topic || null;
+// The topics to read: the chosen News topics plus the always-on desks (memes alone stay memes).
+const deskTopics = topics => (topics.some(topic => topic !== 'memes') ? [...new Set([...topics, ...ALWAYS_ON])] : [...topics]);
+// Pop culture items must be about films, series, music or anime, never celebrity gossip (on top of SENSITIVE).
+const POP_CULTURE = /\b(?:film|movie|anime|manga|webtoon|series|serial|drakor|drama korea|k-?pop|musik|lagu|album|single|konser|tur dunia|trailer|netflix|disney|bioskop|sinopsis|episode|soundtrack|ost|festival musik|game of the year)\b/i;
+const GOSSIP = /\b(?:cerai|perceraian|selingkuh|gugat|hamil|pacaran|nikah|menikah|mantan|skandal|dilaporkan|polisi|sidang|ditangkap|tersangka|rumah tangga|kekasih|asmara)\b/i;
+const onlyFits = (source, text) => source?.only !== 'popculture' || (POP_CULTURE.test(text) && !GOSSIP.test(text));
 const MAX_FEED_BYTES = 1024 * 1024;
 const AI_TITLE = /\b(?:ai|llms?|gpt|openai|anthropic|claude|gemini|deepseek|mistral|llama|neural|machine learning|models?)\b/i;
 for (const source of SOURCES) Object.freeze(source.hosts);
@@ -191,4 +216,5 @@ function createFeedReader({ fetchFeed = readFeed, readTrends = null, now = Date.
   };
 }
 
-module.exports = { SOURCES, MAX_FEED_BYTES, publicIPv4, readFeed, plain, articleUrl, imageUrl, parseFeed, parseHn, createFeedReader };
+module.exports = { SOURCES, ALWAYS_ON, MAX_FEED_BYTES, publicIPv4, readFeed, plain, articleUrl, imageUrl, parseFeed, parseHn, createFeedReader,
+  deskOf, deskTopics, onlyFits };

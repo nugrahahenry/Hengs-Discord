@@ -2,12 +2,15 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.90.0 (local, not deployed): for the MPL ID S18 playoffs (4 to 8 Nov), Hengs
-Analis posts a kickoff reminder 10 to 15 minutes before every previewed match (guess link, open Nobar rooms, the
-official live link) and pings the members who took the opt-in **Nobar** role with the 🔔 Ingetin aku button (on the
-reminder and the 08:00 preview). Nobar rooms get **📢 Mode siaran**: only the owner and up to 5 members given a mic
-can talk and share screen. The Analis guide posts itself once in a new #hengs-analis, and `/admin setup` gains the
-**Akademik** package (belajar-bareng plus the Belajar door). v1.89.0 added Coach Buku Pintar. Builds on v1.88.0: Belajar rooms get a Pomodoro timer on the owner panel (Klasik 25/5 with
+**Current checkpoint:** Hengs Discord v1.91.0 (local, not deployed): more variety in Hengs News and Memes, steered by
+the reactions members leave. Memes walk 10 themes in a shuffled daily order with 14 days of topic memory, the 6 newest
+templates rest, a judge tie goes to the least used template, and a template with zero reactions no longer counts as
+liked. A notable MPL result from Hengs Analis (sweep, upset, final, comeback) becomes a meme in the next meme slot (team
+names only), a word at least 3 members used in public chat within 24 hours can become the third meme's topic (counted in
+memory only), and lemmy.world memes join with a stricter image check. News spreads over desks (tech, AI, gadget, gaming,
+esports, pop culture, kampus) with 10 new Indonesian feeds: one slot per desk a day, a lift for a desk missing for three
+days, and 🔥 menarik / 😴 biasa under every news post feeding a per-desk taste. v1.90.0 added the playoff kickoff
+reminders with the 🔔 Nobar role, 📢 Mode siaran in Nobar rooms and the **Akademik** setup package. v1.89.0 added Coach Buku Pintar. Builds on v1.88.0: Belajar rooms get a Pomodoro timer on the owner panel (Klasik 25/5 with
 a 15-minute break after every 4th round, 8 rounds; Panjang 50/10, 4 rounds). Each phase change mentions only the members
 inside, and the panel's end time counts down by itself. Focus minutes (only time inside during a focus phase) feed the
 weekly **Rajin Belajar** board in the new `📚・belajar-bareng`: Monday 07:00 WIB, the top 10 from 25 minutes, a private

@@ -29,7 +29,7 @@ function series(key, startAt, winners, mvp = '') {
 }}`;
 }
 
-function rig(t, wiki, { guide = true } = {}) {
+function rig(t, wiki, { guide = true, onResult = null, watch = [{ title: PAGE, league: 'MPL PH S18 Playoffs' }, { title: 'Missing/Page', league: 'Other' }] } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-esports-svc-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const clock = { now: NOW };
@@ -59,7 +59,7 @@ function rig(t, wiki, { guide = true } = {}) {
     async fetchOwner() { return { async send(p) { dms.push(p); } }; } };
   const service = createEsportsService({ guildAccess: { classify: () => ({ kind: 'home' }) }, store, liquipedia,
     render: async () => Buffer.from('png'), now: () => clock.now, logger: { error: code => logs.push(code) },
-    watch: [{ title: PAGE, league: 'MPL PH S18 Playoffs' }, { title: 'Missing/Page', league: 'Other' }], loadBanner: async () => null,
+    watch, loadBanner: async () => null, onResult,
     reportFailure: async (g, details) => { reports.push(details); } });
   service.attach({ guilds: { cache: new Map([[GUILD, guild]]) } });
   return { service, store, clock, lp, sent, reacts, edits, dms, logs, pins, messages, channel, reports };
@@ -148,4 +148,20 @@ test('the guide is posted and pinned once, updated in place while it exists, and
   r.messages.clear();
   assert.deepEqual(await r.service.ensureGuide(r.channel), { posted: true, pinned: true });
   assert.equal(r.sent.length, 2);
+});
+
+// Owner request, 2026-10-30: memes when big teams win or lose.
+test('a notable finished MPL series is handed to Hengs Memes once, with team names and what made it notable', async t => {
+  const results = [];
+  const event = { title: PAGE, league: 'MPL PH S18 Playoffs', family: 'MPL/Philippines/Season 18', event: 'MPL PH S18 Playoffs' };
+  const r = rig(t, WIKI, { watch: [event], onResult: async (g, info) => { results.push(info); } });
+  await r.service.tick(); r.clock.now += 25 * MIN; await r.service.tick();
+  assert.equal(results.length, 1); // R1M1 is a 3-0, posted once
+  assert.deepEqual({ ...results[0], id: undefined }, { id: undefined, event: 'MPL PH S18 Playoffs', winner: 'Team Falcons PH',
+    loser: 'Aurora Gaming PH', score: [3, 0], flags: { sweep: true, upset: false, final: false, comeback: false } });
+  const plain = rig(t, WIKI, { onResult: async (g, info) => { results.push(info); } }); // a watch entry without an event
+  await plain.service.tick();
+  assert.equal(results.length, 1);
+  const index = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
+  assert.match(index, /onResult: \(guild, info\) => newsService\.queueResult\(guild\.id, info\)/);
 });

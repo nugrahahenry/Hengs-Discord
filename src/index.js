@@ -69,6 +69,8 @@ const { createEsportsStore } = require('./esports/store');
 const { createNewsEditor } = require('./news/editor');
 const { createMemeMaker } = require('./news/memes');
 const { createMemeTaste, memberReactions } = require('./news/meme-taste');
+const { createNewsTaste, memberReactions: netReactions } = require('./news/taste');
+const { createChatTrends } = require('./news/chat-trends');
 const { createCommunitySharing } = require('./news/sharing');
 const { createCaster } = require('./caster/service');
 const { createScrimResults } = require('./scrim/service');
@@ -113,14 +115,19 @@ const guildAccess = createGuildAccess({
   homeGuildId: process.env.DISCORD_GUILD_ID,
   store: guildConfigStore,
 });
-// Members' reactions on a posted Hengs meme (REST read; Hengs' own reaction is not counted).
-const countMemeReactions = async ({ channelId, messageId }) => {
+// Members' reactions on a posted Hengs meme or news post (REST read; Hengs' own reaction is not counted).
+const reactionCounter = count => async ({ channelId, messageId }) => {
   const channel = await client.channels.fetch(channelId);
-  return memberReactions(await channel?.messages?.fetch(messageId));
+  return count(await channel?.messages?.fetch(messageId));
 };
+const countMemeReactions = reactionCounter(memberReactions);
+const countNewsReactions = reactionCounter(message => netReactions(message, '😴'));
+// What the home server talks about, as meme material (counts in memory only, see src/news/chat-trends.js).
+const chatTrends = createChatTrends();
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
   memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
-    taste: createMemeTaste(), countReactions: countMemeReactions }), reportFailure });
+    taste: createMemeTaste(), countReactions: countMemeReactions, trendOf: () => chatTrends.trend() }), reportFailure,
+  newsTaste: createNewsTaste(), countNewsReactions });
 // Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only). The caster writes captions and
 // answers from Hengs' own numbers; without a Groq client the templates stay.
 const esportsService = createEsportsService({ guildAccess, reportFailure,
@@ -130,7 +137,9 @@ const esportsService = createEsportsService({ guildAccess, reportFailure,
     ...require('./ops/appreciation').buildAppreciationDraft(data), kind: 'announcement', source: 'discord',
     createdBy: client.user?.id || null, externalId }),
   // Kickoff reminders list the open Nobar rooms (2026-10-30); voiceRooms is defined below and only read at reminder time.
-  nobarRooms: guild => voiceRooms.openRooms(guild, 'nobar') });
+  nobarRooms: guild => voiceRooms.openRooms(guild, 'nobar'),
+  // Notable MPL results become meme material for the next meme slot (2026-10-31).
+  onResult: (guild, info) => newsService.queueResult(guild.id, info) });
 // Voice rooms: a "Bikin <tipe>" door makes a room of that type; failures go to bot-logs.
 const voiceRooms = createVoiceRooms({ guildAccess, reportFailure });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),
@@ -543,6 +552,7 @@ client.on(Events.MessageCreate, async (msg) => {
     } catch (error) {
       console.error('[moderation] message failed:', { code: error.code || 'MESSAGE_FAILED' });
     }
+    try { chatTrends.observe(msg); } catch { console.error('[news] CHAT_TRENDS_FAILED'); }
   }
   if (messageScope.kind !== 'home' && messageScope.kind !== 'public') return;
   // Keep the gallery quiet, including administrator mentions. Its pinned guide points to tanya-hengs.

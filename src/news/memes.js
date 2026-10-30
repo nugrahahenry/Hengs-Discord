@@ -11,7 +11,17 @@ const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const PROFANITY = /\b(?:anjing|bangsat|kontol|memek|ngentot|goblok|tolol|babi|kampret|bajingan|fuck\w*|shit\w*|bitch\w*|retard\w*)\b/i;
 const LEMMY_URL = 'https://programming.dev/api/v3/post/list?community_name=programmer_humor&sort=Hot&limit=20';
 const IMAGE_HOSTS = Object.freeze(['programming.dev', 'lemmy.world', 'sh.itjust.works', 'lemmy.ca', 'lemmy.ml', 'lemmy.today', 'slrpnk.net']);
-const DAILY_CAP = Object.freeze({ 'hengs-meme': 5, lemmy: 3, xkcd: 1 });
+// Outside meme feeds (lemmy.world memes added 2026-10-31, probed: mostly hosted images, no NSFW). Its posts get the strict
+// image review because that community leans on news and politics.
+const LEMMY_SOURCES = Object.freeze({
+  lemmy: Object.freeze({ url: LEMMY_URL, host: 'programming.dev', source: 'Lemmy programmer_humor', post: 'https://programming.dev/post/', strict: false }),
+  'lemmy-memes': Object.freeze({ url: 'https://lemmy.world/api/v3/post/list?community_name=memes&sort=Hot&limit=20', host: 'lemmy.world',
+    source: 'Lemmy memes', post: 'https://lemmy.world/post/', strict: true }),
+});
+const DAILY_CAP = Object.freeze({ 'hengs-meme': 5, 'mpl-meme': 2, lemmy: 3, 'lemmy-memes': 1, xkcd: 1 });
+const COOLDOWN = 6; // templates of the last six Hengs memes sit out (2026-10-31: the same three kept winning)
+const DAYS_BACK = 14; // a situation does not come back within two weeks
+const TREND_SLOT = 2; // the middle Hengs slot may take what the server talks about today
 // memegen template ids, their Imgflip names (for popularity), what each line means (from memegen examples)
 // and one worked example in the voice the community actually posts in.
 const TEMPLATES = Object.freeze([
@@ -73,20 +83,42 @@ const TEMPLATES = Object.freeze([
   { id: 'rollsafe', imgflip: 'Roll Safe Think About It', lines: 2, hint: 'baris 1 masalah, baris 2 "solusi" yang logis tapi ngaco',
     example: ['Nggak bisa telat masuk kelas', 'Kalau nggak masuk kelas'] },
 ].map(template => Object.freeze({ ...template, example: Object.freeze(template.example) })));
-// Situations the server lives in. Hengs memes start here, never from news headlines.
-const EVERGREEN = Object.freeze([
-  'tugas numpuk H-1 deadline', 'begadang sebelum UAS', 'grup tugas yang cuma satu orang kerja',
-  'dosen bilang sebentar lagi tapi kelas lewat jam', 'kelas pagi jam 7 padahal rumah jauh', 'presentasi kelompok tapi slide belum jadi',
-  'nilai keluar dan IPK turun', 'wifi kampus lemot pas upload tugas', 'revisi laporan yang nggak ada habisnya',
-  'kuis dadakan pas nggak belajar', 'nanya tugas di grup kelas tapi nggak ada yang jawab', 'ranked MLBB solo queue',
-  'ping merah pas team fight', 'patch baru bikin hero andalan kena nerf', 'scrim jam 9 tapi baru kumpul jam 10',
-  'teammate pick hero yang belum pernah dipakai di ranked', 'tinggal satu bintang lagi naik rank', 'main satu game lagi terus tidur',
-  'download update game yang lama banget', 'clutch di Valorant tapi tangan gemeteran', 'main Roblox bareng adik yang lebih jago',
-  'charger ketinggalan pas baterai sekarat', 'niat tidur cepat tapi scroll sampai subuh', 'uang jajan akhir bulan tinggal receh',
-  'hujan pas mau berangkat', 'nunggu ojol yang muter-muter', 'grup WA kelas rame jam 2 pagi',
-  'janjian nongkrong jam 7 tapi semua baru jalan jam 8', 'bangun kesiangan padahal udah pasang 5 alarm',
-  'makan mie instan tiga hari berturut-turut', 'chat panjang cuma dibales wkwk', 'niat diet tapi temen ngajak makan',
-]);
+// Situations the server lives in, by theme (owner request, 2026-10-30: MLBB and MPL, ngoding, anak kos, organisasi, pop
+// culture, keluarga, pertemanan). Hengs memes start here, never from news headlines; the day's five Hengs slots take five
+// different themes.
+const THEMES = Object.freeze([
+  { key: 'kampus', situations: ['tugas numpuk H-1 deadline', 'begadang sebelum UAS', 'grup tugas yang cuma satu orang kerja',
+    'dosen bilang sebentar lagi tapi kelas lewat jam', 'kelas pagi jam 7 padahal rumah jauh', 'presentasi kelompok tapi slide belum jadi',
+    'nilai keluar dan IPK turun', 'wifi kampus lemot pas upload tugas', 'revisi laporan yang nggak ada habisnya',
+    'kuis dadakan pas nggak belajar', 'nanya tugas di grup kelas tapi nggak ada yang jawab'] },
+  { key: 'game', situations: ['ping merah pas team fight', 'main satu game lagi terus tidur', 'download update game yang lama banget',
+    'clutch di Valorant tapi tangan gemeteran', 'main Roblox bareng adik yang lebih jago', 'game diskon tapi nggak ada waktu main',
+    'akun dipinjem temen terus rank turun'] },
+  { key: 'mlbb', situations: ['ranked MLBB solo queue', 'patch baru bikin hero andalan kena nerf', 'scrim jam 9 tapi baru kumpul jam 10',
+    'teammate pick hero yang belum pernah dipakai di ranked', 'tinggal satu bintang lagi naik rank', 'nobar MPL tapi tim jagoan kalah',
+    'tebakan Liga Tebak salah terus', 'draft lawan ngebaca semua hero andalan', 'lord dicuri lawan di detik terakhir',
+    'musim baru dan rank turun lagi'] },
+  { key: 'ngoding', situations: ['bug yang cuma muncul jam 2 pagi', 'kode jalan pas didemoin tapi error pas dikumpul',
+    'AI nulis kode yakin banget tapi salah', 'deploy hari Jumat sore', 'lupa save file sebelum laptop mati',
+    'commit message fix yang kesepuluh', 'nyari titik koma yang hilang sejam'] },
+  { key: 'kos', situations: ['uang jajan akhir bulan tinggal receh', 'makan mie instan tiga hari berturut-turut', 'token listrik bunyi tengah malam',
+    'gajian part-time langsung habis buat jajan', 'masak nasi tapi lupa colokin', 'galon habis pas lagi haus', 'ongkir lebih mahal dari barangnya'] },
+  { key: 'organisasi', situations: ['rapat jam 7 baru mulai jam 9', 'proker numpuk pas UTS', 'divisi yang kerjanya cuma ikut foto',
+    'LPJ dikerjain H-1', 'grup panitia rame cuma pas bagi konsumsi', 'ketua bilang santai aja padahal deadline besok'] },
+  { key: 'popculture', situations: ['nunggu episode baru tiap minggu', 'kena spoiler pas belum nonton', 'war tiket konser',
+    'nonton anime satu episode aja tapi sampai subuh', 'lagu favorit tiba-tiba viral dan diputer semua orang', 'trailer lebih seru dari filmnya'] },
+  { key: 'keluarga', situations: ['ditanya kapan lulus pas kumpul keluarga', 'disuruh beli garam pas lagi push rank',
+    'grup WA keluarga isinya broadcast pesan berantai', 'ortu nanya kok main HP terus', 'dibandingin sama sepupu terus', 'pulang kampung ditanya IPK'] },
+  { key: 'pertemanan', situations: ['chat panjang cuma dibales wkwk', 'janjian nongkrong jam 7 tapi semua baru jalan jam 8',
+    'temen ngilang pas diajak kerja kelompok', 'gebetan bales chat besok pagi', 'nongkrong batal satu jam sebelum', 'temen chat cuma pas butuh bantuan'] },
+  { key: 'keseharian', situations: ['charger ketinggalan pas baterai sekarat', 'niat tidur cepat tapi scroll sampai subuh', 'hujan pas mau berangkat',
+    'nunggu ojol yang muter-muter', 'grup WA kelas rame jam 2 pagi', 'bangun kesiangan padahal udah pasang 5 alarm', 'niat diet tapi temen ngajak makan'] },
+].map(theme => Object.freeze({ key: theme.key, situations: Object.freeze(theme.situations) })));
+const EVERGREEN = Object.freeze(THEMES.flatMap(theme => theme.situations));
+// MPL result memes (owner request, 2026-10-30: "kalau menang atau kalah ada memes nya"): team names only, never people.
+const RESULT_RULES = `Meme ini soal hasil laga MPL atau turnamen MLBB dari data. Boleh menyebut nama tim yang ada di data.
+Dilarang nama pemain, pelatih atau caster. Dilarang mengejek tim yang kalah atau fansnya (tanpa kata beban, noob, ampas atau
+hinaan apa pun). Bercandanya ringan, kayak fans yang nonton bareng.`;
 const MEME_SYSTEM = `Kamu penulis meme Hengs untuk server Discord teman-teman Henry: mahasiswa Indonesia dan gamer
 (MLBB, Valorant, Roblox). Targetnya meme yang bikin mereka bilang "ini gw banget", bukan meme garing.
 Cara nulis:
@@ -145,48 +177,78 @@ function validOptions(raw, templates) {
   return Array.isArray(data?.options) ? data.options.slice(0, 5).map(option => validMeme(option, templates)).filter(Boolean) : [];
 }
 
-// The judge scores every option. Henry wants no dry memes, so humour needs 8; fit and language need 7.
+// The judge scores every option. Henry wants no dry memes, so humour needs 8; fit and language need 7. On a tie the template
+// used least recently wins (recent: newest first).
 const PASS = Object.freeze({ nyambung: 7, lucu: 8, bahasa: 7 });
 const JUDGED = Object.keys(PASS);
-function judgedBest(raw, options) {
+function judgedBest(raw, options, recent = []) {
   let scores;
   try { scores = JSON.parse(raw)?.scores; } catch { return null; }
   if (!Array.isArray(scores) || scores.length !== options.length || !scores.every(row => row && typeof row === 'object'
     && JUDGED.every(key => Number.isInteger(row[key]) && row[key] >= 1 && row[key] <= 10))) return null;
+  const age = template => { const index = recent.indexOf(template); return index < 0 ? Infinity : index; };
   let best = null; let bestSum = 0;
   scores.forEach((row, index) => {
     const sum = JUDGED.reduce((total, key) => total + row[key], 0);
-    if (JUDGED.every(key => row[key] >= PASS[key]) && sum > bestSum) { best = options[index]; bestSum = sum; }
+    if (!JUDGED.every(key => row[key] >= PASS[key])) return;
+    if (sum > bestSum || (sum === bestSum && age(options[index].template) > age(best.template))) { best = options[index]; bestSum = sum; }
   });
   return best;
 }
 
-// Six templates per writer call: the three this server laughed at most (when reactions exist), then the
-// rest walking the whole ranked list by day and slot, so less popular formats still get turns.
-function offerTemplates(ranked, day, slot, scores = null) {
+// Six templates per writer call: liked ones first (only with real evidence, see ./taste), then the rest walking the
+// ranked list by day and slot; templates of the last six Hengs memes sit out.
+function offerTemplates(ranked, day, slot, liked = null, recent = []) {
+  const resting = new Set(recent.slice(0, COOLDOWN));
+  const pool = ranked.filter(row => !resting.has(row.id));
+  const list = pool.length >= 6 ? pool : ranked;
   const turn = Math.floor(Date.parse(`${day}T00:00:00Z`) / DAY) * 5 + slot;
-  const rotation = Array.from({ length: ranked.length }, (_, i) => ranked[(turn * 6 + i) % ranked.length]);
-  const liked = scores?.size ? ranked.filter(row => scores.has(row.id))
-    .sort((a, b) => scores.get(b.id) - scores.get(a.id)).slice(0, 3) : [];
-  return [...liked, ...rotation.filter(row => !liked.includes(row))].slice(0, Math.min(6, ranked.length));
+  const rotation = Array.from({ length: list.length }, (_, i) => list[(turn * 6 + i) % list.length]);
+  const top = liked?.size ? list.filter(row => liked.has(row.id)).sort((a, b) => liked.get(b.id) - liked.get(a.id)).slice(0, 3) : [];
+  return [...top, ...rotation.filter(row => !top.includes(row))].slice(0, Math.min(6, list.length));
 }
 
-function pickTopic(row, day, slot, scores = null) {
-  const seen = new Set((row?.seen || []).map(x => x.hash));
-  const ran = (theme, onDay) => seen.has(memeHash(`evergreen:${theme}:${onDay}`));
-  // The first Hengs slot of the day reuses the best-liked situation, unless it ran today or yesterday.
-  if (slot === 0 && scores?.size) {
-    const yesterday = new Date(Date.parse(`${day}T00:00:00Z`) - DAY).toISOString().slice(0, 10);
-    const best = EVERGREEN.filter(theme => scores.has(theme) && !ran(theme, day) && !ran(theme, yesterday))
-      .sort((a, b) => scores.get(b) - scores.get(a))[0];
-    if (best) return { key: `evergreen:${best}:${day}`, title: best, url: null };
+// The day's theme order: a fixed shuffle per WIB day, so the five Hengs slots walk five different themes.
+function themeOrder(day) {
+  const bytes = crypto.createHash('sha256').update(`hengs-themes:${day}`).digest();
+  const order = [...THEMES];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = bytes[i % bytes.length] % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
   }
-  const start = (Number(day.replaceAll('-', '')) + slot) % EVERGREEN.length;
-  for (let step = 0; step < EVERGREEN.length; step++) {
-    const theme = EVERGREEN[(start + step) % EVERGREEN.length];
-    if (!ran(theme, day)) return { key: `evergreen:${theme}:${day}`, title: theme, url: null };
+  return order;
+}
+
+// liked: situations with evidence (slot 0 may reuse the best); trend: what the server talks about today (TREND_SLOT).
+function pickTopic(row, day, slot, liked = null, trend = null) {
+  const seen = new Set((row?.seen || []).map(x => x.hash));
+  const days = Array.from({ length: DAYS_BACK }, (_, i) => new Date(Date.parse(`${day}T00:00:00Z`) - i * DAY).toISOString().slice(0, 10));
+  const fresh = situation => !days.some(onDay => seen.has(memeHash(`evergreen:${situation}:${onDay}`)));
+  const topic = situation => ({ key: `evergreen:${situation}:${day}`, title: situation, url: null });
+  if (slot === 0 && liked?.size) {
+    const best = [...liked].filter(([situation]) => EVERGREEN.includes(situation) && fresh(situation)).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (best) return topic(best);
+  }
+  if (slot === TREND_SLOT && trend && !seen.has(memeHash(`trend:${trend}:${day}`))) {
+    return { key: `trend:${trend}:${day}`, title: `lagi rame di server: ${trend}`, url: null };
+  }
+  const order = themeOrder(day);
+  for (let step = 0; step < order.length; step++) {
+    const theme = order[(slot + step) % order.length];
+    const offset = Number(day.replaceAll('-', '')) % theme.situations.length;
+    for (let i = 0; i < theme.situations.length; i++) {
+      const situation = theme.situations[(offset + i) % theme.situations.length];
+      if (fresh(situation)) return topic(situation);
+    }
   }
   return null;
+}
+
+// result: { id, event, winner, loser, score: [won, lost], flags: { sweep, upset, final, comeback } } from Hengs Analis.
+function resultSituation(result) {
+  const notes = [result.flags?.final && 'di grand final', result.flags?.sweep && 'tanpa kehilangan satu game pun',
+    result.flags?.comeback && 'setelah tertinggal 0-2', result.flags?.upset && `padahal mayoritas nebak ${result.loser}`].filter(Boolean);
+  return plain(`${result.winner} menang ${result.score[0]}-${result.score[1]} atas ${result.loser} di ${result.event}${notes.length ? `, ${notes.join(', ')}` : ''}`, 150);
 }
 
 function lemmyImage(raw) {
@@ -198,7 +260,7 @@ function lemmyImage(raw) {
   } catch { return null; }
 }
 
-function parseLemmy(body, now = Date.now()) {
+function parseLemmy(body, now = Date.now(), config = LEMMY_SOURCES.lemmy) {
   let data;
   try { data = JSON.parse(body); } catch { throw new Error('NEWS_MEMES_INVALID'); }
   if (!Array.isArray(data?.posts)) throw new Error('NEWS_MEMES_INVALID');
@@ -213,9 +275,9 @@ function parseLemmy(body, now = Date.now()) {
       || post.featured_community || post.featured_local || !Number.isSafeInteger(score) || score < 100
       || !Number.isSafeInteger(comments) || !Number.isFinite(publishedAt) || publishedAt > now
       || now - publishedAt > 72 * HOUR || SENSITIVE.test(title)) continue;
-    const url = `https://programming.dev/post/${id}`;
+    const url = `${config.post}${id}`;
     // Reddit's open-source "hot": every 10x score is worth 12.5 hours of freshness.
-    rows.push({ title, url, imageUrl, publishedAt, score, comments, source: 'Lemmy programmer_humor', topic: 'memes',
+    rows.push({ title, url, imageUrl, publishedAt, score, comments, source: config.source, topic: 'memes',
       hot: Math.log10(Math.max(score, 1)) + publishedAt / 1000 / 45000, hash: crypto.createHash('sha256').update(url).digest('hex') });
   }
   return rows.sort((a, b) => b.hot - a.hot);
@@ -266,21 +328,30 @@ function createTemplateRanker({ fetchJson = url => fetchBounded(url, { hosts: ['
   };
 }
 
+// trendOf(guildId): today's chat trend word or null (./chat-trends, memory only).
 function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = null, fetchBytes = fetchBounded,
-  rankTemplates = createTemplateRanker(), taste = null, countReactions = null, now = Date.now, logger = console } = {}) {
-  let writes = []; let reviews = []; let lemmyCache = null;
+  rankTemplates = createTemplateRanker(), taste = null, countReactions = null, trendOf = () => null, now = Date.now,
+  logger = console } = {}) {
+  let writes = []; let reviews = []; const lemmyCache = new Map(); const results = new Map();
   function allow(list, max) {
     const fresh = list.filter(at => now() - at < HOUR);
     if (fresh.length >= max) return null;
     fresh.push(now()); return fresh;
   }
-  function readLemmy() {
-    if (lemmyCache && now() - lemmyCache.at < 30 * 60_000) return lemmyCache.promise;
+  function readLemmy(key) {
+    const config = LEMMY_SOURCES[key]; const cached = lemmyCache.get(key);
+    if (cached && now() - cached.at < 30 * 60_000) return cached.promise;
     const promise = Promise.resolve()
-      .then(() => fetchBytes(LEMMY_URL, { hosts: ['programming.dev'], types: ['application/json'], maxBytes: 512 * 1024 }))
-      .then(body => parseLemmy(body.toString('utf8'), now())).catch(() => []);
-    lemmyCache = { at: now(), promise };
+      .then(() => fetchBytes(config.url, { hosts: [config.host], types: ['application/json'], maxBytes: 512 * 1024 }))
+      .then(body => parseLemmy(body.toString('utf8'), now(), config)).catch(() => []);
+    lemmyCache.set(key, { at: now(), promise });
     return promise;
+  }
+  // Notable MPL results wait up to a day for the next meme slot; the oldest goes first.
+  function nextResult(guildId) {
+    const queue = (results.get(guildId) || []).filter(entry => now() - entry.at < DAY);
+    results.set(guildId, queue);
+    return queue.shift() || null;
   }
   // What this server laughed at so far; a failed read only means no taste this time.
   async function tasteFor(row) {
@@ -290,39 +361,46 @@ function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = 
       return taste.weights(row.guildId);
     } catch { logger.warn('[news] NEWS_MEME_TASTE_FAILED'); return null; }
   }
-  async function hengs(row, slot) {
-    if (!completeMeme || !judgeMeme || usedToday(row, 'hengs-meme', now()) >= DAILY_CAP['hengs-meme']) return null;
+  // A Hengs meme about today's situation, or about a queued MPL result (publisher mpl-meme, its own cap and rules).
+  async function hengs(row, slot, result = null) {
+    const publisher = result ? 'mpl-meme' : 'hengs-meme';
+    if (!completeMeme || !judgeMeme || usedToday(row, publisher, now()) >= DAILY_CAP[publisher]) return null;
     const scores = await tasteFor(row);
     const day = wibClock(now()).day;
-    const topic = pickTopic(row, day, slot, scores?.situations);
+    const seen = new Set((row?.seen || []).map(x => x.hash));
+    const topic = result ? (seen.has(memeHash(`mpl:${result.id}`)) ? null : { key: `mpl:${result.id}`, title: resultSituation(result), url: null })
+      : pickTopic(row, day, slot, scores?.situations, slot === TREND_SLOT ? trendOf(row?.guildId) : null);
     const quota = topic && allow(writes, 10);
     if (!quota) return null;
     writes = quota;
     try {
-      const offered = offerTemplates(await rankTemplates(), day, slot, scores?.templates);
+      const recent = typeof taste?.recent === 'function' && row?.guildId ? taste.recent(row.guildId, 'template', COOLDOWN) : [];
+      const offered = offerTemplates(await rankTemplates(), day, slot, scores?.templates, recent);
       const situasi = plain(topic.title, 150);
-      const raw = await withTimeout(signal => completeMeme([{ role: 'system', content: MEME_SYSTEM }, { role: 'user', content: JSON.stringify({
+      const system = result ? `${MEME_SYSTEM}\n${RESULT_RULES}` : MEME_SYSTEM;
+      const raw = await withTimeout(signal => completeMeme([{ role: 'system', content: system }, { role: 'user', content: JSON.stringify({
         situasi, templates: offered.map(({ id, lines, hint, example }) => ({ id, lines, arti: hint, contoh: example })) }) }], { signal }), 30_000);
       const options = validOptions(raw, offered);
       if (!options.length) { logger.warn('[news] NEWS_MEME_REJECTED'); return null; }
       const verdict = await withTimeout(signal => judgeMeme([{ role: 'system', content: MEME_JUDGE }, { role: 'user', content: JSON.stringify({
         situasi, options: options.map(({ template, lines }) => ({ template, arti: offered.find(row => row.id === template).hint, lines })) }) }],
       { signal }), 30_000);
-      const best = judgedBest(verdict, options);
+      const best = judgedBest(verdict, options, recent);
       if (!best) { logger.warn('[news] NEWS_MEME_WEAK'); return null; }
       const data = await fetchBytes(memegenUrl(best.template, best.lines), { hosts: ['api.memegen.link'], types: ['image/png'],
         maxBytes: 3 * 1024 * 1024, timeoutMs: 15_000 });
       if (imageKind(data) !== 'png') return null;
-      return { kind: 'hengs', publisher: 'hengs-meme', topic: 'memes', source: 'Hengs', template: best.template, lines: best.lines,
+      return { kind: 'hengs', publisher, topic: 'memes', source: 'Hengs', template: best.template, lines: best.lines,
         title: plain(best.lines.join(' / '), 150), topicTitle: plain(topic.title, 120), topicUrl: topic.url,
         alt: plain(`Meme ${best.template}: ${best.lines.join(' / ')}`, 900), file: { name: 'hengs-meme.png', data },
         hash: memeHash(topic.key), publishedAt: now() };
     } catch { logger.warn('[news] NEWS_MEME_FAILED'); return null; }
   }
-  async function lemmy(row) {
-    if (!reviewImage || usedToday(row, 'lemmy', now()) >= DAILY_CAP.lemmy) return null;
+  async function lemmy(row, key) {
+    const config = LEMMY_SOURCES[key];
+    if (!reviewImage || usedToday(row, key, now()) >= DAILY_CAP[key]) return null;
     const seen = new Set((row?.seen || []).map(x => x.hash));
-    for (const post of (await readLemmy()).filter(post => !seen.has(post.hash)).slice(0, 3)) {
+    for (const post of (await readLemmy(key)).filter(post => !seen.has(post.hash)).slice(0, 3)) {
       const quota = allow(reviews, 6);
       if (!quota) return null;
       reviews = quota;
@@ -332,20 +410,28 @@ function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = 
         const ext = imageKind(data);
         if (!ext) continue;
         // What the model checked is exactly what gets posted.
-        const verdict = await withTimeout(signal => reviewImage({ data, type: ext === 'jpg' ? 'image/jpeg' : `image/${ext}` }, { signal }), 20_000);
+        const verdict = await withTimeout(signal => reviewImage({ data, type: ext === 'jpg' ? 'image/jpeg' : `image/${ext}` },
+          { signal, strict: config.strict }), 20_000);
         if (!safeVerdict(verdict)) continue;
-        return { ...post, kind: 'lemmy', publisher: 'lemmy', alt: plain(`Meme dari Lemmy: ${post.title}`, 900),
+        return { ...post, kind: 'lemmy', publisher: key, alt: plain(`Meme dari Lemmy: ${post.title}`, 900),
           file: { name: `lemmy-meme.${ext}`, data } };
       } catch { logger.warn('[news] NEWS_MEME_REVIEW_FAILED'); }
     }
     return null;
   }
+  // xkcd first, then one general Lemmy meme a day, then programmer humour.
   async function external(row, xkcdItems) {
     if (xkcdItems?.length && usedToday(row, 'xkcd', now()) < DAILY_CAP.xkcd) return xkcdItems[0];
-    return lemmy(row);
+    return (await lemmy(row, 'lemmy-memes')) || lemmy(row, 'lemmy');
   }
   return {
     async make({ row, slot, xkcdItems = [] }) {
+      // A queued MPL result goes first; a weak or failed one is dropped, the slot carries on as usual.
+      const result = row?.guildId ? nextResult(row.guildId) : null;
+      if (result) {
+        const item = await hengs(row, slot, result.result);
+        if (item) return item;
+      }
       const order = slot % 2 === 1 ? [() => external(row, xkcdItems), () => hengs(row, slot)]
         : [() => hengs(row, slot), () => external(row, xkcdItems)];
       for (const step of order) {
@@ -353,6 +439,11 @@ function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = 
         if (item) return item;
       }
       return null;
+    },
+    // From Hengs Analis: a notable finished series becomes meme material for the next slot (memory only, at most 5 waiting).
+    queueResult(guildId, result) {
+      if (!guildId || !result?.id || !result.winner || !result.loser) return;
+      results.set(guildId, [...(results.get(guildId) || []), { result, at: now() }].slice(-5));
     },
     // Private sample: same writer and budget, ignores the daily cap, never stored.
     preview({ row }) { return hengs({ ...row, receipts: [] }, 0); },
@@ -363,5 +454,6 @@ function createMemeMaker({ completeMeme = null, judgeMeme = null, reviewImage = 
   };
 }
 
-module.exports = { TEMPLATES, EVERGREEN, DAILY_CAP, LEMMY_URL, IMAGE_HOSTS, MEME_SYSTEM, MEME_JUDGE, memeHash, memegenUrl, validMeme,
-  validOptions, judgedBest, offerTemplates, pickTopic, parseLemmy, safeVerdict, imageKind, createTemplateRanker, createMemeMaker };
+module.exports = { TEMPLATES, THEMES, EVERGREEN, DAILY_CAP, LEMMY_URL, LEMMY_SOURCES, IMAGE_HOSTS, MEME_SYSTEM, MEME_JUDGE, RESULT_RULES,
+  COOLDOWN, TREND_SLOT, memeHash, memegenUrl, validMeme, validOptions, judgedBest, offerTemplates, themeOrder, pickTopic, resultSituation,
+  parseLemmy, safeVerdict, imageKind, createTemplateRanker, createMemeMaker };

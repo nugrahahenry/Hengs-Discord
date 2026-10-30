@@ -1,6 +1,28 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-10-30
+Updated: 2026-10-31
+
+## Hengs Discord v1.91.0 News and Memes variety (committed locally, not pushed, not deployed) - 2026-10-31
+
+- Henry: develop Hengs Memes and News from the reaction data so it is not "terlalu template", with more variety and
+  more sources; then "Oke, bikin" on the spec. Spec and research (ignored docs):
+  `docs/superpowers/specs/2026-10-31-hengs-news-memes-variety-design.md`,
+  `docs/research/2026-10-31-news-memes-sources.md`. Live data read over REST before the design
+  (`deploy-v1900/memes-news-data.sh`): 39 memes, 1 😂 and 4 😐 in total; zero-reaction templates counted as liked,
+  which kept three templates on repeat; topics walked a grouped list in order (kampus clusters).
+- Henry's picks: memes first then news; all themes; a chat trend may be meme material, but members' posts are not
+  shared or reposted yet (the server is still quiet); all four news topic areas; 🔥 menarik and 😴 biasa on news.
+- Code: `src/news/taste.js` (shared reaction taste with the evidence rule; `meme-taste.js` is now a thin wrapper, same
+  file format), `src/news/chat-trends.js` (memory only), `src/news/memes.js` (10 themes, shuffled order, 14-day topic
+  memory, rested templates, tie-break, MPL result queue, lemmy.world memes with `strict` review), `src/news/feeds.js`
+  (desks, 10 feeds appended after the old ones, pop culture filter), `src/news/selection.js` (desk mix),
+  `src/news/service.js` (🔥 😴 seeds and the news taste), `src/esports/service.js` (`onResult` for notable MPL results).
+- Receipts keep the live schema 4 rules: new publisher ids match `^[a-z0-9-]{1,64}$`, MPL memes use the normal meme
+  slots. Pop culture and kampus are not in the saved settings, so rolling back to 1.90.0 needs no state change.
+- New runtime file on the VM after deploy: `data/news-taste.json` (created by the first news post). Worth a read-only
+  check a few days after deploy, next to the meme taste in `memes-news-data.sh`.
+- QA: full suite 1139/1139 on Node 22.23.3, 0 skipped, data folder untouched. Deploy needs Henry's approval (minute 05-45 UTC, helpers from deploy-v1900 via a
+  new derive script). Main is not pushed: 1b8eda2, 5b1dca0 and this release.
 
 ## Hengs Discord v1.90.0 deployed and accepted - 2026-10-30
 

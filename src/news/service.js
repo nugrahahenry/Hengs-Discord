@@ -3,10 +3,11 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const crypto = require('node:crypto');
 const { createNewsStore, wibClock } = require('./store');
-const { createFeedReader, SOURCES } = require('./feeds');
+const { createFeedReader, SOURCES, deskOf, deskTopics } = require('./feeds');
 const { dueSlot } = require('./cadence');
 const { digestPayload, memePayload } = require('./presentation');
 const { MEME_REACTIONS } = require('./meme-taste');
+const { NEWS_REACTIONS } = require('./taste');
 const { selectArticles } = require('./selection');
 const { rankArticles, createTrendReader } = require('./trending');
 const { DEFAULTS, HELP, NewsPromptError, parsePrompt, editSettings, describe, validSettings } = require('./prompts');
@@ -18,7 +19,8 @@ const KINDS = Object.freeze(['news', 'meme']);
 // What a news post needs in its channel; memes also attach their image.
 const NEWS_NEEDS = Object.freeze([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]);
 function createNewsService({ store = createNewsStore(), readFeeds = createFeedReader({ readTrends: createTrendReader() }),
-  now = Date.now, guildAccess, logger = console, editArticles = async items => items, memeMaker = null, reportFailure = async () => {} } = {}) {
+  now = Date.now, guildAccess, logger = console, editArticles = async items => items, memeMaker = null, reportFailure = async () => {},
+  newsTaste = null, countNewsReactions = null } = {}) {
   const drafts = new Map();
   const busy = new Map();
   const delivering = new Set();
@@ -49,8 +51,16 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     await target(guild, settings.channelId);
     if (settings.memeChannelId) await target(guild, settings.memeChannelId);
   }
-  function selected(settings, items, row) {
-    return selectArticles(settings, items, row, now());
+  function selected(settings, items, row, liked = null) {
+    return selectArticles(settings, items, row, now(), { liked });
+  }
+  // Desks members keep marking 🔥 (see ./taste); a failed read only means no lift this time.
+  async function likedDesks(row) {
+    if (!newsTaste || !row?.guildId) return null;
+    try {
+      if (countNewsReactions) await newsTaste.refresh(row.guildId, countNewsReactions);
+      return newsTaste.liked(row.guildId).desks;
+    } catch { logger.error('[news] NEWS_TASTE_FAILED'); return null; }
   }
   function ranked(result) {
     return rankArticles(result.items, { now: now(), trends: result.trends || [] });
@@ -95,10 +105,15 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
         memeMaker?.remember?.(guild.id, { messageId: sent.id, channelId: channel.id, template: items[0].template,
           situation: items[0].topicTitle });
       }
-      // Real reaction buttons under every meme, outside ones too; Hengs' own reactions are never counted. Best effort.
-      if (kind === 'meme' && typeof sent?.react === 'function') {
-        for (const emoji of MEME_REACTIONS) {
-          try { await sent.react(emoji); } catch { logger.error('[news] NEWS_MEME_REACT_FAILED'); break; }
+      // News posts too (2026-10-31), totalled per desk and source.
+      if (kind === 'news' && sent?.id && publisher) {
+        try { newsTaste?.remember(guild.id, { messageId: sent.id, channelId: channel.id, desk: deskOf(SOURCES.find(x => x.id === publisher)), source: publisher }); }
+        catch { logger.error('[news] NEWS_TASTE_FAILED'); }
+      }
+      // Real reaction buttons under every meme and news post, outside memes too; Hengs' own reactions are never counted. Best effort.
+      if (typeof sent?.react === 'function') {
+        for (const emoji of kind === 'meme' ? MEME_REACTIONS : NEWS_REACTIONS) {
+          try { await sent.react(emoji); } catch { logger.error(kind === 'meme' ? '[news] NEWS_MEME_REACT_FAILED' : '[news] NEWS_REACT_FAILED'); break; }
         }
       }
       return finished;
@@ -154,7 +169,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (request.action === 'preview') {
         if (existing?.previewAt && now() - existing.previewAt < 30_000) return { content: 'Preview barusan masih berlaku. Revisi draft jika perlu, atau tunggu 30 detik untuk memperbarui.' };
         await checkTargets(interaction.guild, draft.settings);
-        const result = await readFeeds(draft.settings.topics);
+        const result = await readFeeds(deskTopics(draft.settings.topics));
         assertLease();
         assertRevision(interaction.guildId, draft.revision);
         const edited = await editArticles(selected(draft.settings, ranked(result), row), draft.settings);
@@ -231,11 +246,12 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
   }
   async function newsFor(row) {
     const settings = { ...row.settings, count: 1 };
-    const result = await readFeeds(settings.topics);
+    const result = await readFeeds(deskTopics(settings.topics));
+    const liked = await likedDesks(row);
     assertRevision(row.guildId, row.revision);
-    const items = selected(settings, ranked(result), row);
+    const items = selected(settings, ranked(result), row, liked);
     if (!items.length) return { items, failures: result.failures };
-    return { items: selected(settings, await editArticles(items, settings), row), failures: 0 };
+    return { items: selected(settings, await editArticles(items, settings), row, liked), failures: 0 };
   }
   async function memeFor(row, slot) {
     const comics = await readFeeds(['memes']);
@@ -295,6 +311,8 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
   }
   return {
     handle, tick, getSettings: guildId => store.get(guildId),
+    // A notable MPL result from Hengs Analis waits for the next meme slot (2026-10-30).
+    queueResult: (guildId, result) => memeMaker?.queueResult?.(guildId, result),
     canHandle: (interaction, prompt) => Boolean(parsePrompt(prompt, Boolean(draftFor(interaction)))),
     clear(interaction) {
       const prefix = `${interaction.guildId}:${interaction.user.id}:`;

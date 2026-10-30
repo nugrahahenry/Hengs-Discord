@@ -5,6 +5,39 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.91.0] - 2026-10-31
+
+### Added
+
+- MPL result memes (Henry: memes when big teams win or lose): a finished MPL or M-series match from Hengs Analis that is
+  a sweep, an upset (at least 3 guesses, over 60% on the loser), a final or a comeback waits up to a day for the next
+  meme slot (publisher `mpl-meme`, at most 2 a day). Team names allowed; player names and mocking are not.
+- Chat trends as meme material: a word of 4+ letters (no digits, no member names, no sensitive words) used by at least
+  3 members within 24 hours in a public channel can be the third meme's topic. Counted in memory only, nothing on disk;
+  bot, log, admin and scrim channels are left out.
+- lemmy.world `memes` as a second outside source (1 a day) with a stricter image check: no current events, politicians
+  or other public figures.
+- News desks and 10 new Indonesian feeds: Dafunda (gaming), Hybrid (esports), Gizmologi, Selular.ID and Jagat Review
+  (gadget), CNN Indonesia Hiburan and Liputan6 Showbiz (pop culture: films, series, music and anime only, never
+  gossip), CNN Indonesia Edukasi, Republika and IndBeasiswa (kampus). Pop culture and kampus run whenever any news topic
+  is on, outside the saved settings, so a rollback stays safe. Esportsnesia and Revival TV move to the esports desk.
+- 🔥 menarik / 😴 biasa under every news post; reactions are totalled per desk and per source in `data/news-taste.json`
+  (counts only, read between 2 hours and 3 days after posting), same rules as the meme taste.
+
+### Changed
+
+- Meme variety from the reaction data (Henry: "biar gak terlalu template"): 10 themes in a shuffled daily order with
+  14 days of topic memory instead of the grouped list walked in order; the 6 newest templates rest; a judge tie goes to
+  the least used template.
+- Reaction taste (memes and news) counts a key as liked only with enough posts, a clearly positive net and a smoothed
+  score above the server average. Zero reactions used to count as liked and kept the first three templates on repeat.
+- News picks spread over desks: one slot per desk a day, a second only when no other desk has news; a desk missing for
+  three days gets a lift, desks members keep marking 🔥 a smaller one. One publisher per day stays.
+
+### Verification
+
+- Full offline suite passed 1139/1139 on Node 22.23.3 (0 skipped); no runtime file written into the checkout.
+
 ## [1.90.0] - 2026-10-30
 
 ### Added

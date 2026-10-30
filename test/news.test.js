@@ -52,7 +52,7 @@ function rig(t, options = {}) {
   const readFeeds = options.readFeeds || (async () => ({ items: parseFeed(rss(SOURCES[0], 5, f.now()), SOURCES[0], f.now()), failures: 0 }));
   const service = createNewsService({ store: f.store, now: f.now, readFeeds, guildAccess,
     editArticles: options.editArticles, memeMaker: options.memeMaker, reportFailure: options.reportFailure,
-    logger: { error: code => logs.push(code) } });
+    newsTaste: options.newsTaste, countNewsReactions: options.countNewsReactions, logger: { error: code => logs.push(code) } });
   t.after(() => service.stop());
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
   const client = { guilds: { cache: new Map([[GUILD, guild]]) } };
@@ -716,8 +716,8 @@ test('meme slots use the meme maker, attach files to the meme channel and previe
   const receipt = r.store.get(GUILD).receipts.at(-1);
   assert.deepEqual([receipt.kind, receipt.slot, receipt.publisher, receipt.status], ['meme', 0, 'hengs-meme', 'sent']);
   assert(!fs.readFileSync(r.filePath, 'utf8').includes('Tema sintetis'));
-  // The meme gets tap-to-vote reactions (news never does), and the posted Hengs meme goes to the taste store.
-  assert.deepEqual(r.reactions, ['😂', '😐', '💀']);
+  // The test news post got 🔥 😴 and the meme its own tap-to-vote set; the posted Hengs meme goes to the taste store.
+  assert.deepEqual(r.reactions, ['🔥', '😴', '😂', '😐', '💀']);
   assert.deepEqual(calls, [['preview'], ['make', 0],
     ['remember', GUILD, { messageId: 'synthetic', channelId: MEMES, template: 'drake', situation: 'Tema sintetis' }]]);
   assert.equal(parsePrompt('preview meme').action, 'preview_meme');
@@ -735,8 +735,29 @@ test('outside memes get the same tap-to-vote reactions but never go to the taste
   r.store.revise(GUILD, row.revision, { ...row.settings, memeChannelId: MEMES, memeCount: 1, memeTime: '15:00' });
   r.advance(DAY + 7 * 60 * 60_000); r.service.start(r.client); await r.service.tick();
   assert.equal(r.destinations.at(-1), MEMES);
-  assert.deepEqual(r.reactions, ['😂', '😐', '💀']);
+  assert.deepEqual(r.reactions.slice(-3), ['😂', '😐', '💀']);
   assert.deepEqual(calls, []);
+});
+
+// Owner request, 2026-10-31: see which news members like.
+test('news posts get 🔥 😴 and go to the news taste store by desk and source; liked desks are read before a scheduled pick', async t => {
+  const calls = [];
+  const newsTaste = { remember: (guildId, post) => calls.push(['remember', guildId, post]),
+    refresh: async (guildId, count) => { calls.push(['refresh', guildId, await count({})]); },
+    liked: () => { calls.push(['liked']); return { desks: new Map([['tech', 1]]), sources: new Map() }; } };
+  const r = rig(t, { newsTaste, countNewsReactions: async () => 4 });
+  await testedRow(r);
+  assert.deepEqual(r.reactions, ['🔥', '😴']);
+  const post = { messageId: 'synthetic', channelId: CHANNEL, desk: 'tech', source: SOURCES[0].id };
+  assert.deepEqual(calls, [['remember', GUILD, post]]);
+  r.advance(DAY); r.service.start(r.client); await r.service.tick();
+  assert.deepEqual(calls.slice(1), [['refresh', GUILD, 4], ['liked'], ['remember', GUILD, post]]);
+  assert.deepEqual(r.reactions, ['🔥', '😴', '🔥', '😴']);
+  // A broken taste store never stops the post.
+  const broken = rig(t, { newsTaste: { remember() { throw new Error('disk'); }, refresh: async () => { throw new Error('disk'); }, liked: () => ({}) },
+    countNewsReactions: async () => 0 });
+  await testedRow(broken); broken.advance(DAY); broken.service.start(broken.client); await broken.service.tick();
+  assert.equal(broken.sent.length, 2); assert.deepEqual(broken.logs, ['[news] NEWS_TASTE_FAILED', '[news] NEWS_TASTE_FAILED', '[news] NEWS_TASTE_FAILED']);
 });
 
 test('a scheduled send that fails, or a channel Hengs cannot post in, is reported to bot-settings without provider text', async t => {

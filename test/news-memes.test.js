@@ -28,6 +28,10 @@ test('meme and vision completions send bounded JSON requests and map provider fa
   await review({ data: PNG, type: 'image/png' }, {});
   assert.equal(bodies[2].model, 'vision-model'); assert.equal(bodies[2].temperature, 0);
   assert.match(bodies[2].messages[1].content[1].image_url.url, /^data:image\/png;base64,/);
+  // lemmy.world memes get the strict line (no current events or public figures); others keep the plain check.
+  assert.doesNotMatch(bodies[2].messages[0].content, /tokoh publik/);
+  await review({ data: PNG, type: 'image/png' }, { strict: true });
+  assert.match(bodies[3].messages[0].content, /tokoh publik/);
   assert.equal(createVisionReview({}), null); assert.equal(createMemeCompletion({}), null); assert.equal(createMemeJudge({}), null);
   const limited = createMemeCompletion({ client: { chat: { completions: { create: async () => {
     throw Object.assign(new Error('x'), { status: 429 }); } } } }, model: 'm' });
@@ -155,6 +159,7 @@ function maker(overrides = {}) {
     // Like the real writer, answer with a template from the offered list (it rotates per slot).
     completeMeme: async messages => {
       calls.write++;
+      calls.system = messages[0].content;
       calls.written = JSON.parse(messages[1].content);
       const template = calls.written.templates[0].id;
       return JSON.stringify({ options: [option(undefined, { template }), option(['a b', 'c d'], { template })] });
@@ -247,4 +252,68 @@ test('meme cards attach the image, describe it and never mention anyone', () => 
   assert.match(lemmy, /Lihat post aslinya\]\(https:\/\/programming.dev\/post\/7\)/); assert.match(lemmy, /Skor 300, 4 komentar/);
   // Every meme asks for a tap; only Hengs-made memes claim that Hengs learns from it.
   assert.match(lemmy, /Reaksi 😂 kalau lucu, 😐 kalau garing\./); assert.doesNotMatch(lemmy, /belajar dari reaksi/);
+});
+// Variety (owner report, 2026-10-30: "biar gak terlalu template").
+const { THEMES, resultSituation } = require('../src/news/memes');
+const { SENSITIVE } = require('../src/news/trending');
+const dayBefore = days => new Date(NOW - days * 24 * HOUR).toISOString().slice(0, 10);
+
+test('the five Hengs slots of a day walk five different themes, and a situation waits 14 days before it returns', () => {
+  const themeOf = title => THEMES.find(theme => theme.situations.includes(title)).key;
+  assert.equal(new Set([0, 1, 2, 3, 4].map(slot => themeOf(pickTopic(empty, DAYKEY, slot).title))).size, 5);
+  assert.deepEqual(THEMES.map(theme => theme.key), ['kampus', 'game', 'mlbb', 'ngoding', 'kos', 'organisasi', 'popculture', 'keluarga',
+    'pertemanan', 'keseharian']);
+  assert.ok(THEMES.every(theme => theme.situations.length >= 6));
+  for (const situation of EVERGREEN) assert.doesNotMatch(situation, SENSITIVE, situation);
+  const first = pickTopic(empty, DAYKEY, 0).title;
+  const ran = days => ({ seen: [{ hash: memeHash(`evergreen:${first}:${dayBefore(days)}`), at: NOW }], receipts: [] });
+  assert.notEqual(pickTopic(ran(13), DAYKEY, 0).title, first);
+  assert.equal(pickTopic(ran(14), DAYKEY, 0).title, first);
+});
+
+test('on a judge tie the template used least recently wins', () => {
+  const options = [validMeme(option(), TEMPLATES), validMeme({ template: 'fine', lines: ['Deadline besok, belum mulai', 'Aman kok'] }, TEMPLATES)];
+  const tie = JSON.stringify({ scores: [score(9, 9, 9), score(9, 9, 9)] });
+  assert.equal(judgedBest(tie, options, ['drake']).template, 'fine');
+  assert.equal(judgedBest(tie, options).template, 'drake');
+});
+
+test('a queued MPL result goes first with the team-name rules, at most twice a day, never twice for one series', async () => {
+  const result = { id: 'r1', event: 'MPL ID S18 Playoffs', winner: 'ONIC', loser: 'RRQ Hoshi', score: [3, 0], flags: { sweep: true, final: true } };
+  assert.equal(resultSituation(result), 'ONIC menang 3-0 atas RRQ Hoshi di MPL ID S18 Playoffs, di grand final, tanpa kehilangan satu game pun');
+  const { meme, calls } = maker();
+  const row = { ...empty, guildId: 'g1' };
+  meme.queueResult('g1', result);
+  const item = await meme.make({ row, slot: 1 }); // an odd slot still takes the result first
+  assert.deepEqual([item.kind, item.publisher, item.topicTitle, item.hash], ['hengs', 'mpl-meme', resultSituation(result), memeHash('mpl:r1')]);
+  assert.match(calls.system, /Boleh menyebut nama tim/); assert.match(calls.system, /Dilarang nama pemain/);
+  assert.notEqual((await meme.make({ row, slot: 0 })).publisher, 'mpl-meme'); // the queue is empty again
+  meme.queueResult('g1', result);
+  assert.notEqual((await meme.make({ row: { ...row, seen: [{ hash: memeHash('mpl:r1'), at: NOW }] }, slot: 0 })).publisher, 'mpl-meme');
+  meme.queueResult('g1', { ...result, id: 'r2' });
+  assert.notEqual((await meme.make({ row: { ...usedBy('mpl-meme', 2), guildId: 'g1' }, slot: 2 })).publisher, 'mpl-meme');
+});
+
+test('the middle Hengs slot can take what the server talks about today, once a day', async () => {
+  const { meme } = maker({ trendOf: () => 'bakso' });
+  const item = await meme.make({ row: { ...empty, guildId: 'g1' }, slot: 2 });
+  assert.deepEqual([item.topicTitle, item.hash], ['lagi rame di server: bakso', memeHash(`trend:bakso:${DAYKEY}`)]);
+  const again = await meme.make({ row: { seen: [{ hash: item.hash, at: NOW }], receipts: [], guildId: 'g1' }, slot: 2 });
+  assert.ok(EVERGREEN.includes(again.topicTitle));
+});
+
+test('one general Lemmy meme a day, with the strict image review', async () => {
+  const world = { posts: [{ post: { id: 9, name: 'General joke', url: 'https://lemmy.world/pictrs/image/1234abcd-9.jpg',
+    published: new Date(NOW - HOUR).toISOString(), nsfw: false, deleted: false, removed: false, featured_community: false, featured_local: false },
+  counts: { score: 300, comments: 4 } }] };
+  const strict = [];
+  const fetchBytes = async url => (url.startsWith('https://lemmy.world/api/') ? Buffer.from(JSON.stringify(world))
+    : url.startsWith('https://programming.dev/api/') ? Buffer.from(JSON.stringify({ posts: [] })) : url.startsWith('https://api.memegen.link/') ? PNG : JPG);
+  const { meme } = maker({ fetchBytes, reviewImage: async (image, options) => { strict.push(options.strict); return '{"safe":true}'; } });
+  const item = await meme.make({ row: usedBy('xkcd', 1), slot: 1 });
+  assert.deepEqual([item.kind, item.publisher, item.url, item.source], ['lemmy', 'lemmy-memes', 'https://lemmy.world/post/9', 'Lemmy memes']);
+  assert.deepEqual(strict, [true]);
+  const used = { seen: [], receipts: [...usedBy('xkcd', 1).receipts, { kind: 'meme', day: DAYKEY, publisher: 'lemmy-memes', status: 'sent',
+    slot: 3, hashes: [], at: NOW - HOUR }] };
+  assert.equal((await meme.make({ row: used, slot: 1 })).kind, 'hengs'); // the general one is used up, programmer humour is empty
 });
