@@ -17,11 +17,11 @@ function createEsportsStore({ filePath = path.join(__dirname, '..', '..', 'data'
     try {
       const data = JSON.parse(fsImpl.readFileSync(filePath, 'utf8'));
       if (data?.version === 1 && data.pages && data.guilds) {
-        return { guides: {}, daily: {}, votes: {}, league: {}, leagueRole: {}, discovered: [], lastDiscovery: 0, ...data };
+        return { guides: {}, daily: {}, votes: {}, league: {}, leagueRole: {}, nobarRole: {}, discovered: [], lastDiscovery: 0, ...data };
       }
     } catch { /* missing or broken: start empty */ }
-    return { version: 1, pages: {}, lastCheck: 0, guilds: {}, guides: {}, daily: {}, votes: {}, league: {}, leagueRole: {}, discovered: [],
-      lastDiscovery: 0 };
+    return { version: 1, pages: {}, lastCheck: 0, guilds: {}, guides: {}, daily: {}, votes: {}, league: {}, leagueRole: {}, nobarRole: {},
+      discovered: [], lastDiscovery: 0 };
   }
   function write(state) {
     for (const posts of Object.values(state.guilds)) {
@@ -121,6 +121,13 @@ function createEsportsStore({ filePath = path.join(__dirname, '..', '..', 'data'
     setLeagueRole(guildId, value) {
       const state = read();
       state.leagueRole[guildId] = value;
+      write(state);
+    },
+    // The opt-in Nobar role (kickoff reminder pings), one id per server.
+    nobarRole: guildId => read().nobarRole[guildId] || null,
+    setNobarRole(guildId, roleId) {
+      const state = read();
+      state.nobarRole[guildId] = roleId;
       write(state);
     },
     discovered: () => read().discovered,

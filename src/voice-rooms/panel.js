@@ -1,8 +1,8 @@
 'use strict';
 
 // The owner panel in a room's text chat: rename, lock or unlock, slot, invite; Belajar rooms add the Pomodoro row (start
-// with a preset, or stop). Custom ids: voice-room:<action>:<channelId>; the weekly board's Menitku button carries the
-// server id instead.
+// with a preset, or stop); Nobar rooms add mode siaran (switch, and while on, who gets a mic). Custom ids:
+// voice-room:<action>:<channelId>; the weekly board's Menitku button carries the server id instead.
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, StringSelectMenuBuilder, TextInputBuilder, TextInputStyle,
   UserSelectMenuBuilder } = require('discord.js');
 const { PRESETS, phaseLine } = require('./pomodoro');
@@ -11,7 +11,7 @@ const PREFIX = 'voice-room:';
 const SLOTS = Object.freeze([0, 2, 3, 4, 5, 6, 8, 10, 15, 20]);
 const idOf = (action, channelId) => `${PREFIX}${action}:${channelId}`;
 
-function panelPayload({ type, ownerId, channelId, limit, locked, pomodoro = null, boardId = null }) {
+function panelPayload({ type, ownerId, channelId, limit, locked, pomodoro = null, boardId = null, broadcast = null }) {
   const buttons = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(idOf('rename', channelId)).setLabel('Ganti nama').setEmoji('✏️').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(idOf(locked ? 'unlock' : 'lock', channelId)).setLabel(locked ? 'Buka' : 'Kunci')
@@ -30,6 +30,17 @@ function panelPayload({ type, ownerId, channelId, limit, locked, pomodoro = null
         .addOptions(Object.values(PRESETS).map(p => ({ label: p.label, value: p.key, emoji: p.emoji })))));
     study = `\n${pomodoro ? phaseLine(pomodoro) : '🍅 Pomodoro belum jalan. Pilih preset di bawah buat mulai.'}`
       + `\n-# Menit fokus dihitung buat papan Rajin Belajar mingguan${boardId ? ` di <#${boardId}>` : ''}.`;
+  }
+  if (type.broadcast) {
+    const on = Boolean(broadcast?.on);
+    components.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(idOf(on ? 'siaran-off' : 'siaran-on', channelId))
+      .setLabel(on ? 'Matiin mode siaran' : 'Mode siaran').setEmoji('📢').setStyle(on ? ButtonStyle.Danger : ButtonStyle.Secondary)));
+    if (on) {
+      components.push(new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId(idOf('mic', channelId))
+        .setPlaceholder('🎙️ Kasih mic (maks 5)').setMinValues(0).setMaxValues(5)));
+    }
+    study += on ? `\n📢 Mode siaran nyala · yang bisa ngomong: ${[ownerId, ...(broadcast.speakers || [])].map(id => `<@${id}>`).join(' ')}`
+      : '\n📢 Mode siaran mati: semua bisa ngomong. Nyalain biar cuma kamu (dan yang dikasih mic) yang bisa ngomong dan share screen.';
   }
   return {
     content: `${type.emoji} Room ${type.label} punya <@${ownerId}>. Panel ini cuma bisa dipakai pemilik room.`

@@ -5,6 +5,33 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.90.0] - 2026-10-30
+
+### Added
+
+- Kickoff reminder for the MPL ID S18 playoffs (Henry: "Siapin playoff"): 10 to 15 minutes before every previewed match,
+  one message in #hengs-analis with the guess link, the open Nobar rooms (or the 🎬・Bikin Nobar door), the official
+  live link where it was checked (MPL Indonesia YouTube) and mentions for the members holding the Nobar role (at most
+  50). Claimed once per match; none for a match that already started.
+- 🔔 Ingetin aku on every reminder and preview: adds or removes the opt-in Nobar role (created once, no permissions,
+  not mentionable), with a private reply. A role Hengs cannot manage is reported once.
+- 📢 Mode siaran in Nobar rooms: @everyone loses Speak and Stream, the owner and up to 5 members given a mic keep them;
+  a new owner gets the mic at once; switching off clears everyone given one; a failed switch-on is undone and reported.
+- The Analis guide posts itself once when #hengs-analis exists without a known guide (channels now made over REST),
+  with a new Nobar paragraph.
+- `/admin setup` package **Akademik** (belajar-bareng plus the Belajar door, category 📚 Akademik); Bikin Room keeps the
+  other six doors.
+
+### Server (over REST, Henry delegated setup on 30 Oct)
+
+- Created #tanya-hengs (BOT CENTER) and #hengs-analis with the setup overwrites and topics, posted the Tanya Hengs
+  guide (pin needs Pin Messages on the Hengs Bot role), made 📚 AKADEMIK (belajar-bareng, Bikin Belajar) and ⚔️ MLBB
+  (hengs-analis, hasil-scrim).
+
+### Verification
+
+- Full offline suite passed 1124/1124 on Node 22.23.3 (0 skipped); no runtime file written into the checkout.
+
 ## [1.89.0] - 2026-10-28 (provisional, branch coach-v2; main took 1.88.0 for Belajar Pomodoro)
 
 ### Added

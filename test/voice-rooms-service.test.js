@@ -15,7 +15,7 @@ const SEC = 1000; const MIN = 60 * SEC;
 const PEOPLE = { u1: 'Raka', u2: 'Dara', u3: 'Sky', u4: 'Budi', u5: 'Eko', u6: 'Fajar' };
 const home = { classify: () => ({ kind: 'home' }) };
 
-function rig(t, { perms = true, failMove = false, board = true } = {}) {
+function rig(t, { perms = true, failMove = false, board = true, failEdit = null } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-voice-rooms-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const store = createVoiceRoomStore({ filePath: path.join(dir, 'rooms.json') });
@@ -44,7 +44,10 @@ function rig(t, { perms = true, failMove = false, board = true } = {}) {
       get members() { return new Map([...where].filter(([, at]) => at === id).map(([user]) => [user, member(user)])); },
       async send(payload) { return messageIn(channel.sent, payload); },
       messages: { fetch: fetchFrom(extra.sentList || []) },
-      permissionOverwrites: { cache: new Map(), async edit(target, options, more) { channel.edits.push([target, options, more?.type]); } },
+      permissionOverwrites: { cache: new Map(), async edit(target, options, more) {
+        if (failEdit?.(target, options)) throw Object.assign(new Error('private-provider'), { code: 50013 });
+        channel.edits.push([target, options, more?.type]);
+      } },
       async setName(value) { channel.name = value; },
       async setUserLimit(value) { channel.userLimit = value; },
       async delete() { cache.delete(id); deleted.push(id); } };
@@ -55,7 +58,7 @@ function rig(t, { perms = true, failMove = false, board = true } = {}) {
     ['mods', { id: 'mods', type: 0, allow: { bitfield: P.ViewChannel }, deny: { bitfield: 0n } }]]) } };
   cache.set(category.id, category);
   for (const [key, label, emoji] of [['mabar', 'Mabar', '🎮'], ['scrim', 'Scrim', '⚔️'], ['diskusi', 'Diskusi', '💬'],
-    ['belajar', 'Belajar', '📚'], ['privat', 'Privat', '🔒']]) voiceChannel(`door-${key}`, `${emoji}・Bikin ${label}`, { parentId: 'cat', parent: category });
+    ['belajar', 'Belajar', '📚'], ['privat', 'Privat', '🔒'], ['nobar', 'Nobar', '🎬']]) voiceChannel(`door-${key}`, `${emoji}・Bikin ${label}`, { parentId: 'cat', parent: category });
   cache.set('mabar-text', { id: 'mabar-text', type: ChannelType.GuildText, name: '🎮・mabar',
     async send(payload) { return messageIn(posts, payload); }, messages: { fetch: fetchFrom(posts) } });
   if (board) {
@@ -381,4 +384,53 @@ test('without belajar-bareng the board is skipped with one note, and a role abov
   await startAt(s);
   assert.deepEqual(s.reports.map(x => x.feature), ['Role Rajin Belajar']); assert.match(s.reports[0].reason, /Manage Roles/);
   assert.doesNotMatch(s.boardPosts[0].payload.content, /pindah ke/);
+});
+
+// Mode siaran in Nobar rooms (2026-10-30).
+const OFF = { Speak: null, Stream: null }; const MIC = { Speak: true, Stream: true };
+const { OverwriteType } = require('discord.js');
+
+test('mode siaran: owner only, mic for up to 5, a new owner gets the mic, and switching off clears everyone given one', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-nobar'); const id = r.where.get('u1'); const room = r.cache.get(id); const panel = room.sent[0];
+  r.clock.now += SEC; await r.voice('u2', id); r.clock.now += SEC; await r.voice('u3', id);
+  assert.equal(lastRow(panel), `voice-room:siaran-on:${id}`); assert.match(panel.payload.content, /Mode siaran mati/);
+  assert.match((await press(r, 'u2', 'siaran-on', id)).replies[0].content, /khusus pemilik room/);
+  assert.match((await press(r, 'u1', 'siaran-on', id)).replies[0].content, /Mode siaran nyala/);
+  assert.deepEqual(room.edits, [[GUILD, { Speak: false, Stream: false }, OverwriteType.Role], ['u1', MIC, OverwriteType.Member]]);
+  assert.match(panel.payload.content, /Mode siaran nyala · yang bisa ngomong: <@u1>$/);
+  assert.deepEqual(panel.payload.components.slice(-2).map(row => row.toJSON().components[0].custom_id), [`voice-room:siaran-off:${id}`, `voice-room:mic:${id}`]);
+  await press(r, 'u1', 'mic', id, { values: ['u2', 'u3', 'u1'] });
+  assert.deepEqual(room.edits.slice(-2), [['u2', MIC, OverwriteType.Member], ['u3', MIC, OverwriteType.Member]]);
+  await press(r, 'u1', 'mic', id, { values: ['u3'] });
+  assert.deepEqual(room.edits.at(-1), ['u2', OFF, OverwriteType.Member]); assert.deepEqual(r.store.get(id).broadcast.speakers, ['u3']);
+  await r.voice('u1', null); // u2 has been inside longest and takes over
+  assert.equal(r.store.get(id).ownerId, 'u2'); assert.deepEqual(room.edits.at(-1), ['u2', MIC, OverwriteType.Member]);
+  room.edits.length = 0;
+  assert.match((await press(r, 'u2', 'siaran-off', id)).replies[0].content, /semua bisa ngomong lagi/);
+  assert.deepEqual(room.edits, [[GUILD, OFF, OverwriteType.Role], ['u1', OFF, OverwriteType.Member], ['u3', OFF, OverwriteType.Member],
+    ['u2', OFF, OverwriteType.Member]]);
+  assert.equal(r.store.get(id).broadcast, null); assert.equal(lastRow(panel), `voice-room:siaran-on:${id}`);
+});
+
+test('mode siaran is Nobar only, and a failed switch-on is undone and reported', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-mabar');
+  assert.match((await press(r, 'u1', 'siaran-on', r.where.get('u1'))).replies[0].content, /cuma ada di room Nobar/);
+  const f = rig(t, { failEdit: (target, options) => target === 'u1' && options.Speak === true });
+  await f.voice('u1', 'door-nobar'); const id = f.where.get('u1');
+  assert.match((await press(f, 'u1', 'siaran-on', id)).replies[0].content, /belum bisa dinyalain/);
+  assert.deepEqual(f.cache.get(id).edits, [[GUILD, { Speak: false, Stream: false }, OverwriteType.Role], [GUILD, OFF, OverwriteType.Role]]);
+  assert.equal(f.store.get(id).broadcast, undefined); assert.deepEqual(f.reports.map(x => x.feature), ['Room voice']);
+  assert.match(f.reports[0].reason, /Speak dan Video/);
+});
+
+test('openRooms lists the open rooms of one type with their head count, for the kickoff reminder', async t => {
+  const r = rig(t);
+  await r.voice('u1', 'door-nobar'); const nobar = r.where.get('u1'); await r.voice('u2', nobar);
+  await r.voice('u3', 'door-mabar');
+  assert.deepEqual(r.service.openRooms(r.guild, 'nobar'), [{ id: nobar, count: 2 }]);
+  assert.deepEqual(r.service.openRooms(r.guild, 'karaoke'), []);
+  const index = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.js'), 'utf8');
+  assert.match(index, /nobarRooms: guild => voiceRooms\.openRooms\(guild, 'nobar'\)/);
 });

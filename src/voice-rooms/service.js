@@ -24,6 +24,10 @@ const NEEDS = [P.ManageChannels, P.MoveMembers, P.ManageRoles];
 const POST_SLUGS = ['mabar', 'info-mabar', 'lfg'];
 const BOARD_SLUG = 'belajar-bareng';
 const ROLE_REASON = 'Hengs butuh izin Manage Roles, dan role Hengs Bot harus ada di atas Rajin Belajar (Server Settings > Roles)';
+const MIC_REASON = 'mode siaran belum bisa diatur: Hengs butuh izin Manage Roles, Speak dan Video di room Nobar';
+
+// Mode siaran (2026-10-30): true allows, false denies, null clears Speak and Stream (voice and screen share) for one id.
+const mic = (channel, id, type, value) => channel.permissionOverwrites.edit(id, { Speak: value, Stream: value }, { type, reason: 'Hengs: mode siaran' });
 
 function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats = createStudyStats(), reportFailure = async () => {},
   logger = console, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, repeat = setInterval } = {}) {
@@ -39,7 +43,25 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
   const postChannel = (guild, type) => textChannel(guild, type?.postSlugs || POST_SLUGS);
   const note = (door, content) => door?.send?.({ content, allowedMentions: { parse: [] } }).catch(() => {});
   const panelOf = (guild, channelId, room) => panelPayload({ type: typeOf(room.type), ownerId: room.ownerId, channelId,
-    limit: room.limit, locked: room.locked, pomodoro: room.pomodoro || null, boardId: textChannel(guild, [BOARD_SLUG])?.id || null });
+    limit: room.limit, locked: room.locked, pomodoro: room.pomodoro || null, boardId: textChannel(guild, [BOARD_SLUG])?.id || null,
+    broadcast: room.broadcast || null });
+
+  // A new owner takes over the panel; while mode siaran is on they get the mic at once.
+  async function setOwner(guild, channelId, ownerId) {
+    store.update(channelId, { ownerId });
+    const room = store.get(channelId); const channel = guild.channels.cache.get(channelId);
+    if (room?.broadcast?.on && channel && ownerId && !room.broadcast.allowed.includes(ownerId)) {
+      try {
+        await mic(channel, ownerId, OverwriteType.Member, true);
+        store.update(channelId, { broadcast: { ...room.broadcast, allowed: [...room.broadcast.allowed, ownerId] } });
+      } catch { logger.error('[voice-rooms] BROADCAST_OWNER_FAILED'); }
+    }
+    await refreshPanel(guild, channelId);
+  }
+
+  // Open rooms of one type, for the Nobar line of the kickoff reminder.
+  const openRooms = (guild, typeKey) => roomsOf(guild.id).filter(([, room]) => room.type === typeKey)
+    .map(([id]) => guild.channels.cache.get(id)).filter(Boolean).map(channel => ({ id: channel.id, count: humans(channel).length }));
 
   async function handleVoiceState(oldState, newState) {
     const guild = newState.guild || oldState.guild;
@@ -82,10 +104,8 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
       if (ownChannel) {
         // The old room stays with whoever is still inside, or closes now when it is empty.
         const inside = humans(ownChannel).map(m => m.id).filter(id => id !== member.id);
-        if (inside.length) {
-          store.update(own[0], { ownerId: nextOwner(Object.fromEntries(inside.map(id => [id, joins.get(own[0])?.[id] || now()]))) });
-          await refreshPanel(guild, own[0]);
-        } else await closeRoom(guild, own[0], ownChannel);
+        if (inside.length) await setOwner(guild, own[0], nextOwner(Object.fromEntries(inside.map(id => [id, joins.get(own[0])?.[id] || now()]))));
+        else await closeRoom(guild, own[0], ownChannel);
       }
       let room;
       try {
@@ -153,8 +173,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
     const room = store.get(channelId);
     if (!inside.length) scheduleEmpty(guild, channelId);
     else if (room.ownerId === userId || !inside.includes(room.ownerId)) {
-      store.update(channelId, { ownerId: nextOwner(Object.fromEntries(inside.map(id => [id, map[id] || now()]))) });
-      await refreshPanel(guild, channelId);
+      await setOwner(guild, channelId, nextOwner(Object.fromEntries(inside.map(id => [id, map[id] || now()]))));
     }
     if (typeOf(room.type)?.announce) schedulePost(guild, channelId);
   }
@@ -394,6 +413,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
       await reply(`${ids.length} anggota diundang.`);
       return true;
     }
+    if (['siaran-on', 'siaran-off', 'mic'].includes(action)) return broadcastAction(interaction, action, guild, channel, channelId, room, type, reply);
     if (action === 'pomodoro') {
       if (!type.pomodoro) { await reply('Pomodoro cuma ada di room Belajar.'); return true; }
       if (room.pomodoro) { await reply('Pomodoro udah jalan. Stop dulu kalau mau ganti preset.'); return true; }
@@ -413,6 +433,51 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
     return true;
   }
 
+  // Mode siaran in Nobar rooms (owner request, 2026-10-30): @everyone loses Speak and Stream, the owner and up to 5 picked
+  // members keep them; `allowed` remembers every member given the mic so switching off clears them all. A failed switch-on
+  // undoes what it set.
+  async function broadcastAction(interaction, action, guild, channel, channelId, room, type, reply) {
+    if (!type.broadcast) { await reply('Mode siaran cuma ada di room Nobar.'); return true; }
+    const everyone = guild.roles.everyone.id; const state = room.broadcast;
+    const failed = async (error, text) => { await reply(text); await report(guild, MIC_REASON, error?.code || null); return true; };
+    if (action === 'siaran-on') {
+      if (state?.on) { await reply('Mode siaran udah nyala.'); return true; }
+      const done = [];
+      try {
+        await mic(channel, everyone, OverwriteType.Role, false); done.push([everyone, OverwriteType.Role]);
+        await mic(channel, room.ownerId, OverwriteType.Member, true);
+      } catch (error) {
+        for (const [id, kind] of done) await mic(channel, id, kind, null).catch(() => {});
+        return failed(error, 'Mode siaran belum bisa dinyalain. Admin udah dikabarin.');
+      }
+      store.update(channelId, { broadcast: { on: true, speakers: [], allowed: [room.ownerId] } });
+      await refreshPanel(guild, channelId);
+      await reply('📢 Mode siaran nyala: cuma kamu yang bisa ngomong dan share screen. Kasih mic ke maksimal 5 orang dari panel.');
+      return true;
+    }
+    if (!state?.on) { await reply('Mode siaran lagi mati.'); return true; }
+    if (action === 'siaran-off') {
+      try {
+        await mic(channel, everyone, OverwriteType.Role, null);
+        for (const id of [...new Set([...state.allowed, ...state.speakers])]) await mic(channel, id, OverwriteType.Member, null);
+      } catch (error) { return failed(error, 'Mode siaran belum bisa dimatiin. Coba lagi sebentar ya.'); }
+      store.update(channelId, { broadcast: null });
+      await refreshPanel(guild, channelId);
+      await reply('Mode siaran mati: semua bisa ngomong lagi.');
+      return true;
+    }
+    const picked = [...new Set(interaction.values || [])].filter(id => id !== room.ownerId).slice(0, 5);
+    try {
+      for (const id of state.speakers.filter(id => !picked.includes(id))) await mic(channel, id, OverwriteType.Member, null);
+      for (const id of picked.filter(id => !state.speakers.includes(id))) await mic(channel, id, OverwriteType.Member, true);
+    } catch (error) { return failed(error, 'Mic-nya belum bisa diatur. Coba lagi sebentar ya.'); }
+    const allowed = [...new Set([...state.allowed.filter(id => id === room.ownerId || picked.includes(id) || !state.speakers.includes(id)), ...picked])];
+    store.update(channelId, { broadcast: { on: true, speakers: picked, allowed } });
+    await refreshPanel(guild, channelId);
+    await reply(picked.length ? `Mic dikasih ke ${picked.length} orang.` : 'Mic tamu dicabut, tinggal kamu yang bisa ngomong.');
+    return true;
+  }
+
   // After a restart: rooms whose channel is gone are dropped, empty rooms close, the rest go on with an owner inside and
   // their Pomodoro. Then the weekly board check, every 5 minutes from here.
   async function start(client) {
@@ -423,10 +488,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
       const inside = humans(channel).map(m => m.id);
       if (!channel || !inside.length) { await closeRoom(guild, channelId, channel || null); continue; }
       joins.set(channelId, Object.fromEntries(inside.map(id => [id, now()])));
-      if (!inside.includes(room.ownerId)) {
-        store.update(channelId, { ownerId: nextOwner(joins.get(channelId)) });
-        await refreshPanel(guild, channelId);
-      }
+      if (!inside.includes(room.ownerId)) await setOwner(guild, channelId, nextOwner(joins.get(channelId)));
       if (room.pomodoro) await resume(guild, channelId, room.pomodoro);
       if (typeOf(room.type)?.announce) await syncPost(guild, channelId);
     }
@@ -435,7 +497,7 @@ function createVoiceRooms({ guildAccess, store = createVoiceRoomStore(), stats =
     repeat(tick, TICK_EVERY)?.unref?.();
   }
 
-  return { handleVoiceState, handleInteraction, start };
+  return { handleVoiceState, handleInteraction, start, openRooms };
 }
 
 module.exports = { createVoiceRooms };

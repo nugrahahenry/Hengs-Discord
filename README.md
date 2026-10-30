@@ -2,7 +2,12 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.88.0: Belajar rooms get a Pomodoro timer on the owner panel (Klasik 25/5 with
+**Current checkpoint:** Hengs Discord v1.90.0 (local, not deployed): for the MPL ID S18 playoffs (4 to 8 Nov), Hengs
+Analis posts a kickoff reminder 10 to 15 minutes before every previewed match (guess link, open Nobar rooms, the
+official live link) and pings the members who took the opt-in **Nobar** role with the 🔔 Ingetin aku button (on the
+reminder and the 08:00 preview). Nobar rooms get **📢 Mode siaran**: only the owner and up to 5 members given a mic
+can talk and share screen. The Analis guide posts itself once in a new #hengs-analis, and `/admin setup` gains the
+**Akademik** package (belajar-bareng plus the Belajar door). v1.89.0 added Coach Buku Pintar. Builds on v1.88.0: Belajar rooms get a Pomodoro timer on the owner panel (Klasik 25/5 with
 a 15-minute break after every 4th round, 8 rounds; Panjang 50/10, 4 rounds). Each phase change mentions only the members
 inside, and the panel's end time counts down by itself. Focus minutes (only time inside during a focus phase) feed the
 weekly **Rajin Belajar** board in the new `📚・belajar-bareng`: Monday 07:00 WIB, the top 10 from 25 minutes, a private

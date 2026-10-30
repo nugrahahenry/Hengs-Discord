@@ -59,6 +59,8 @@ test('a preview carries the card, the caption, the Liquipedia credit and two vot
   assert.equal(payload.files[0].name, 'hengs-preview.png');
   assert.match(json, /hengs-analis:vote:abc123def456:1/); assert.match(json, /hengs-analis:vote:abc123def456:2/);
   assert.match(json, /Tebak ONIC/); assert.match(json, /Tebak RRQ/); assert.match(json, /Liquipedia/);
+  assert.match(json, /"custom_id":"hengs-analis:nobar"/); assert.match(json, /Ingetin aku/); // the 🔔 Nobar row (2026-10-30)
+  assert.match(texts(guidePayload()), /\*\*Nobar\*\*[\s\S]*Ingetin aku[\s\S]*Mode siaran/);
   assert.equal(VOTE_PREFIX, 'hengs-analis:vote:');
   const list = listPayload(PNG, 'Rekap 4 Nov', '**Rekap Rabu, 4 Nov 2026**: ONIC menang 2-0.');
   assert.equal(list.files[0].name, 'hengs-rekap.png'); assert.deepEqual(list.allowedMentions, { parse: [] });

@@ -9,6 +9,7 @@ const { TYPES: ROOM_TYPES } = require('../voice-rooms/types');
 const CATEGORIES = Object.freeze({
   lobby: { emoji: '🚪', label: 'Lobby', aliases: ['lobby', 'welcome', 'get started', 'start here'] },
   komunitas: { emoji: '💬', label: 'Community', aliases: ['community', 'komunitas'] },
+  akademik: { emoji: '📚', label: 'Akademik', aliases: ['akademik', 'academic', 'kampus', 'belajar', 'study'] },
   gaming: { emoji: '🎮', label: 'Area Gaming', aliases: ['area gaming', 'gaming'] },
   hengs: { emoji: '🤖', label: 'Hengs', aliases: ['hengs', 'bot center', 'bot'] },
   creator: { emoji: '🎬', label: 'Creator Studio', aliases: ['creator studio', 'creator'] },
@@ -16,22 +17,26 @@ const CATEGORIES = Object.freeze({
   room: { emoji: '🎛️', label: 'Bikin Room', aliases: ['bikin room', 'room', 'voice room', 'room voice'] },
   admin: { emoji: '🔒', label: 'Admin', aliases: ['admin', 'private', 'privat', 'staff', 'mod', 'bot admin'] },
 });
-const ORDER = ['lobby', 'komunitas', 'gaming', 'hengs', 'creator', 'voice', 'room', 'admin'];
+const ORDER = ['lobby', 'komunitas', 'akademik', 'gaming', 'hengs', 'creator', 'voice', 'room', 'admin'];
 
 // kind: read (members read and react), chat (server defaults), tanya/analis/news/memes/scrim (Hengs' own), voice.
 const PACKAGES = Object.freeze([
   { key: 'lobby', label: 'Lobby', about: 'welcome, rules, ambil-role', category: 'lobby',
     channels: [['👋', 'welcome', 'read'], ['📜', 'rules', 'read'], ['🎭', 'ambil-role', 'read']] },
   { key: 'komunitas', label: 'Komunitas', about: 'ngobrol, media', category: 'komunitas', channels: [['💬', 'ngobrol', 'chat'], ['📷', 'media', 'chat']] },
+  // Academic corner (Henry, 2026-10-30: "harus punya channel terpisah untuk akademik"): belajar-bareng carries the Belajar
+  // room posts and the weekly Rajin Belajar board, members chat there; the Belajar door opens study rooms in this category.
+  { key: 'akademik', label: 'Akademik', about: 'belajar-bareng dan pintu Bikin Belajar', category: 'akademik',
+    channels: [['📚', 'belajar-bareng', 'chat'], ...ROOM_TYPES.filter(type => type.key === 'belajar').map(type => [type.emoji, `Bikin ${type.label}`, 'door'])] },
   { key: 'gaming', label: 'Gaming', about: 'mabar, info-scrim', category: 'gaming', channels: [['🎮', 'mabar', 'chat'], ['⚔️', 'info-scrim', 'chat']] },
   { key: 'hengs', label: 'Hengs', about: 'tanya-hengs, hengs-analis', category: 'hengs', channels: [['🤖', 'tanya-hengs', 'tanya'], ['📊', 'hengs-analis', 'analis']] },
   { key: 'tim', label: 'Tim scrim', about: 'hasil-scrim, privat Hengs Family', category: 'hengs', channels: [['📸', 'hasil-scrim', 'scrim']] },
   { key: 'creator', label: 'Creator', about: 'live-stream, showcase', category: 'creator', channels: [['🎥', 'live-stream', 'chat'], ['✨', 'showcase', 'chat']] },
   { key: 'voice', label: 'Voice', about: 'Lounge, AFK', category: 'voice', channels: [['🔊', 'Lounge', 'voice'], ['💤', 'AFK', 'voice']] },
-  // Doors of the voice rooms (2026-10-26): joining one makes a room of that type (src/voice-rooms). belajar-bareng
-  // (2026-10-28) carries the Belajar room posts and the weekly Rajin Belajar board, and members chat there.
-  { key: 'room', label: 'Bikin Room', about: 'pintu room voice: Mabar, Scrim, Diskusi, Belajar, Nobar, Karaoke, Privat, plus belajar-bareng',
-    category: 'room', channels: [...ROOM_TYPES.map(type => [type.emoji, `Bikin ${type.label}`, 'door']), ['📚', 'belajar-bareng', 'chat']] },
+  // Doors of the voice rooms (2026-10-26): joining one makes a room of that type (src/voice-rooms). The Belajar door lives
+  // in Akademik since 2026-10-30.
+  { key: 'room', label: 'Bikin Room', about: 'pintu room voice: Mabar, Scrim, Diskusi, Nobar, Karaoke, Privat', category: 'room',
+    channels: ROOM_TYPES.filter(type => type.key !== 'belajar').map(type => [type.emoji, `Bikin ${type.label}`, 'door']) },
   // Owner channels (2026-10-26): decisions in bot-settings, failure notes in bot-logs, online notices and status in bot-status.
   { key: 'admin', label: 'Admin Hengs', about: 'bot-settings, bot-logs, bot-status (privat)', category: 'admin',
     channels: [['⚙️', 'bot-settings', 'admin'], ['📋', 'bot-logs', 'admin'], ['📡', 'bot-status', 'admin']] },

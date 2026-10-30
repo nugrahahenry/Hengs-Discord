@@ -31,6 +31,7 @@ const PREP_AT = 7 * 60 + 30; const PREVIEW_AT = 8 * 60; const RECAP_LATEST = 23 
 const BANNER = path.join(__dirname, '../../assets/esports/guide-banner.png');
 const { slugOf: normalize } = require('../guilds/channel-style');
 const { rotateRole } = require('../utils/rotating-role');
+const { NOBAR_ID, reminderDue, reminderText, pingIds, nobarRow, NOBAR_REPLIES } = require('./nobar');
 
 async function defaultBanner() {
   try { return fs.statSync(BANNER).isFile() ? fs.readFileSync(BANNER) : null; } catch { return null; }
@@ -40,7 +41,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
   render = renderSeriesCard, renderPreview = renderPreviewCard, renderList = renderListCard, renderDraft = renderDraftCard,
   now = Date.now, logger = console,
   watch = WATCH, discover = watch === WATCH, loadBanner = defaultBanner, reportFailure = async () => {}, commentator = null,
-  draftAppreciation = null } = {}) {
+  draftAppreciation = null, nobarRooms = () => [] } = {}) {
   let client = null; let running = false; let timer = null;
   const watchlist = () => (discover ? [...watch, ...store.discovered()] : watch);
   const leagueOf = page => watchlist().find(w => w.title === page)?.league || '';
@@ -201,6 +202,32 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     }
   }
 
+  // Kickoff reminder (owner request, 2026-10-30, MPL ID playoffs): one per featured match, 10 to 15 minutes before it
+  // starts, claimed first; pings the members holding the opt-in Nobar role and lists the open Nobar rooms.
+  async function reminders(guild, channel, today) {
+    for (const match of featured(today)) {
+      const key = `remind:${match.id}`;
+      if (!reminderDue(match, now()) || store.daily(guild.id, key)) continue;
+      store.claimDaily(guild.id, key);
+      const entry = watchlist().find(w => w.title === match.page);
+      const preview = store.daily(guild.id, `preview:${match.id}`)?.messageIds?.[0];
+      const roleId = store.nobarRole(guild.id);
+      let ids = []; let rooms = [];
+      if (roleId) {
+        try { ids = pingIds([...(await guild.members.fetch()).values()].filter(m => !m.user?.bot && m.roles?.cache?.has(roleId)).map(m => m.id)); } catch {
+          logger.error('[esports] NOBAR_MEMBERS_FAILED');
+        }
+      }
+      try { rooms = (await nobarRooms(guild)) || []; } catch { rooms = []; }
+      const content = reminderText({ match, league: entry?.league || '', rooms, stream: entry?.stream || null, ids,
+        previewUrl: preview ? `https://discord.com/channels/${guild.id}/${channel.id}/${preview}` : null });
+      try { await channel.send({ content, components: [nobarRow()], allowedMentions: { users: ids } }); } catch (error) {
+        logger.error('[esports] NOBAR_REMIND_FAILED');
+        await reportFailure(guild, { feature: 'Pengingat Nobar', channel, code: error?.code || null });
+      }
+    }
+  }
+
   // After the day's last match, or at 23:30 WIB with what is finished; never for days older than 36 hours.
   async function dayRecap(guild, channel, all, day, today) {
     const key = `day:${day}`;
@@ -328,6 +355,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     const day = wibDay(now());
     const today = dayMatches(all, day);
     if (wibMinutes(now()) >= PREVIEW_AT && today.length) await previews(guild, channel, all, today, day);
+    if (today.length) await reminders(guild, channel, today);
     for (const d of [previousDay(day), day]) await dayRecap(guild, channel, all, d, day);
     for (const event of [...new Set(all.map(m => m.event).filter(Boolean))]) await eventRecap(guild, channel, all, event);
   }
@@ -360,8 +388,40 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     return true;
   }
 
+  // The opt-in Nobar role: found by the stored id or by name, else created once with no permissions.
+  async function nobarRoleOf(guild) {
+    const roles = await guild.roles.fetch(); const known = store.nobarRole(guild.id);
+    const role = (known && roles.get(known)) || [...roles.values()].find(r => normalize(r.name) === 'nobar')
+      || await guild.roles.create({ name: 'Nobar', permissions: [], hoist: false, mentionable: false, reason: 'Hengs: role pengingat Nobar (opt-in)' });
+    if (!role.editable) throw new Error('NOBAR_ROLE_ABOVE_HENGS');
+    if (role.id !== known) store.setNobarRole(guild.id, role.id);
+    return role;
+  }
+
+  // 🔔 Ingetin aku under a preview or a reminder: adds or removes the Nobar role; the reply is private.
+  async function handleNobar(interaction) {
+    const reply = content => interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+    if (!interaction.guildId || guildAccess?.classify(interaction.guildId)?.kind !== 'home' || !interaction.member?.roles) {
+      await reply('Tombol ini udah nggak berlaku.'); return true;
+    }
+    try {
+      const role = await nobarRoleOf(interaction.guild);
+      const has = Boolean(interaction.member.roles.cache?.has(role.id));
+      if (has) await interaction.member.roles.remove(role, 'Hengs Nobar: berhenti di-ping');
+      else await interaction.member.roles.add(role, 'Hengs Nobar: minta di-ping');
+      await reply(has ? NOBAR_REPLIES.off : NOBAR_REPLIES.on);
+    } catch {
+      logger.error('[esports] NOBAR_ROLE_FAILED');
+      await reply(NOBAR_REPLIES.failed);
+      await reportFailure(interaction.guild, { feature: 'Role Nobar',
+        reason: 'Hengs butuh izin Manage Roles, dan role Hengs Bot harus ada di atas Nobar (Server Settings > Roles)' });
+    }
+    return true;
+  }
+
   async function handleButton(interaction) {
     const id = String(interaction.customId || '');
+    if (id === NOBAR_ID) return handleNobar(interaction);
     return id.startsWith(LIGA_PREFIX) ? handleLiga(interaction, id.slice(LIGA_PREFIX.length)) : handleVote(interaction);
   }
 
@@ -382,6 +442,10 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
         .filter(m => m.finished && m.valid && m.startAt && now() - m.startAt <= POST_WINDOW && m.startAt <= now())
         .sort((x, y) => x.startAt - y.startAt) : [];
       for (const [guild, channel] of targets) {
+        // A channel made outside /admin setup (2026-10-30: setup now runs over REST) still gets its guide once.
+        if (!store.guide(guild.id)) {
+          try { await ensureGuide(channel); } catch { logger.error('[esports] ESPORTS_GUIDE_FAILED'); }
+        }
         if (fresh) {
           let posted = 0;
           for (const match of candidates) {

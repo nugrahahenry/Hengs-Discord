@@ -29,11 +29,12 @@ function series(key, startAt, winners, mvp = '') {
 }}`;
 }
 
-function rig(t, wiki) {
+function rig(t, wiki, { guide = true } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-esports-svc-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const clock = { now: NOW };
   const store = createEsportsStore({ filePath: path.join(dir, 'state.json'), now: () => clock.now });
+  if (guide) store.setGuide(GUILD, 'guide-existing'); // a tick posts the guide only when none is known
   const lp = { revid: 1, wiki, revisionCalls: 0, contentCalls: 0, fail: false };
   const liquipedia = {
     async revisions(titles) { lp.revisionCalls++; if (lp.fail) throw new Error('ESPORTS_FETCH_FAILED');
@@ -127,6 +128,15 @@ test('a failed send is recorded and never retried', async t => {
   assert.deepEqual(r.reports.map(x => [x.feature, x.channel.id, x.code]), [['Kartu Analis', r.channel.id, null]]); // to bot-settings
   r.channel.fail = false; r.clock.now += 3 * HOUR; await r.service.tick();
   assert.equal(r.sent.length, 0);
+});
+
+test('a tick posts the guide once when none is known, as for a channel made over REST (2026-10-30)', async t => {
+  const r = rig(t, WIKI, { guide: false });
+  await r.service.tick();
+  assert.match(JSON.stringify(r.sent[0].components), /Hengs Analis/); assert.equal(r.pins.length, 1);
+  const guides = () => r.sent.filter(p => /## 📊 Hengs Analis/.test(JSON.stringify(p.components))).length;
+  r.clock.now += 6 * 60_000; await r.service.tick();
+  assert.equal(guides(), 1);
 });
 
 test('the guide is posted and pinned once, updated in place while it exists, and posted again only when it is gone', async t => {

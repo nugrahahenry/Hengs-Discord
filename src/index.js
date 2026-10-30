@@ -128,7 +128,9 @@ const esportsService = createEsportsService({ guildAccess, reportFailure,
   // Liga Tebak champions: an appreciation draft in bot-settings for the owner to review (same form as any appreciation).
   draftAppreciation: (guild, data, externalId) => opsHub.createDraftPanel(guild, {
     ...require('./ops/appreciation').buildAppreciationDraft(data), kind: 'announcement', source: 'discord',
-    createdBy: client.user?.id || null, externalId }) });
+    createdBy: client.user?.id || null, externalId }),
+  // Kickoff reminders list the open Nobar rooms (2026-10-30); voiceRooms is defined below and only read at reminder time.
+  nobarRooms: guild => voiceRooms.openRooms(guild, 'nobar') });
 // Voice rooms: a "Bikin <tipe>" door makes a room of that type; failures go to bot-logs.
 const voiceRooms = createVoiceRooms({ guildAccess, reportFailure });
 communitySharing = createCommunitySharing({ guildAccess, getSettings: guildId => newsService.getSettings(guildId),

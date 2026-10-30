@@ -26,14 +26,16 @@ function match(id, teams, startAt, winners = []) {
     games: winners.map((w, i) => ({ ...g(w), number: i + 1 })), score, winner: finished ? (score[0] === 2 ? 1 : 2) : 0 };
 }
 
-function rig(t, matches, { now = at(8, 0), people = { u1: 'Henry' }, roles = [] } = {}) {
+function rig(t, matches, { now = at(8, 0), people = { u1: 'Henry' }, roles = [], guide = true, holders = [], rooms = [], watch = WATCH } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hengs-analis-daily-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const clock = { now };
   const store = createEsportsStore({ filePath: path.join(dir, 'state.json'), now: () => clock.now });
   store.savePages({ [PAGE]: { revid: 1, matches } }, clock.now);
+  if (guide) store.setGuide(GUILD, 'guide-existing'); // a tick posts the guide only when none is known
   const sent = []; const edits = []; const reports = []; const lists = []; const drafts = []; const roleLog = []; const rolesMade = [];
-  const member = id => ({ id, displayName: people[id], roles: {
+  // holders: members carrying the opt-in Nobar role 'r-nobar'.
+  const member = id => ({ id, displayName: people[id], user: { bot: false }, roles: { cache: new Set(holders.includes(id) ? ['r-nobar'] : []),
     async add(role) { roleLog.push(['add', id, role.id]); }, async remove(role) { roleLog.push(['remove', id, role.id]); } } });
   const roleMap = new Map(roles.map(role => [role.id, role]));
   const channel = { id: '900000000000000001', guildId: GUILD, name: '📊・hengs-analis', type: ChannelType.GuildText, fail: false,
@@ -53,17 +55,18 @@ function rig(t, matches, { now = at(8, 0), people = { u1: 'Henry' }, roles = [] 
       async create(options) { const role = { id: 'r-new', editable: true, ...options }; rolesMade.push(options); roleMap.set(role.id, role); return role; } } };
   const liquipedia = { async revisions(titles) { return titles.map(title => ({ title, revid: 1, missing: false })); },
     async contents() { throw new Error('unexpected'); } };
-  const service = createEsportsService({ guildAccess: { classify: () => ({ kind: 'home' }) }, store, liquipedia, watch: WATCH,
+  const service = createEsportsService({ guildAccess: { classify: () => ({ kind: 'home' }) }, store, liquipedia, watch,
     render: async () => Buffer.from('png'), renderPreview: async () => Buffer.from('png'),
     renderList: async data => { lists.push(data); return Buffer.from('png'); }, renderDraft: async () => Buffer.from('png'),
-    draftAppreciation: async (g2, data, externalId) => { drafts.push([data, externalId]); },
+    draftAppreciation: async (g2, data, externalId) => { drafts.push([data, externalId]); }, nobarRooms: () => rooms,
     now: () => clock.now, logger: { error() {} }, reportFailure: async (g2, details) => { reports.push(details); } });
   service.attach({ guilds: { cache: new Map([[GUILD, guild]]) } });
   const set = list => store.savePages({ [PAGE]: { revid: 1, matches: list } }, clock.now);
-  return { service, store, clock, sent, edits, reports, channel, set, lists, drafts, roleLog, rolesMade };
+  return { service, store, clock, sent, edits, reports, channel, set, lists, drafts, roleLog, rolesMade, guild, messages };
 }
-// Match-day cards only; series cards ('hengs-analis.png') follow a fresh check and are tested in esports-service.test.js.
-const kinds = sent => sent.map(p => p.files[0].name).filter(name => name !== 'hengs-analis.png');
+// Match-day cards only; series cards ('hengs-analis.png') follow a fresh check and are tested in esports-service.test.js,
+// and kickoff reminders (text only, no file) have their own test.
+const kinds = sent => sent.filter(p => p.files).map(p => p.files[0].name).filter(name => name !== 'hengs-analis.png');
 const ONIC = T('onic', 'ONIC'); const RRQ = T('rrq hoshi', 'RRQ'); const EVOS = T('evos', 'EVOS'); const AE = T('alter ego', 'AE');
 
 test('previews go out once from 08:00 WIB on match days, only for matches that have not started', async t => {
@@ -251,4 +254,46 @@ test('Lihat posisiku answers privately with the rank, or how far a member is fro
   assert.equal(replies[0].flags, MessageFlags.Ephemeral); assert.deepEqual(replies[0].allowedMentions, { parse: [] });
   assert.equal(replies[1].content, `Kamu belum masuk klasemen ${EVENT}: nebak minimal 3 laga dulu ya. Sejauh ini 2 tebakan kehitung.`);
   assert.match(replies[2].content, /udah nggak berlaku/);
+});
+
+// Light Nobar for the MPL ID playoffs (2026-10-30): kickoff reminder and the opt-in 🔔 role.
+const LIVE = 'https://www.youtube.com/@MPLIndonesia';
+
+test('the kickoff reminder goes out once 10 to 15 minutes before a previewed match and pings only Nobar members', async t => {
+  const room = { id: '777000000000000001', count: 3 };
+  const r = rig(t, [match('a', [ONIC, RRQ], at(13))], { now: at(8, 5), people: { u1: 'Henry', u2: 'Dara' }, holders: ['u2'],
+    rooms: [room], watch: [{ ...WATCH[0], stream: LIVE }] });
+  r.store.setNobarRole(GUILD, 'r-nobar');
+  await r.service.tick();
+  const preview = [...r.messages.keys()][0];
+  r.clock.now = at(12, 44); await r.service.tick(); assert.equal(r.sent.length, 1); // 16 minutes before: not yet
+  r.clock.now = at(12, 46); await r.service.tick(); r.clock.now = at(12, 51); await r.service.tick();
+  assert.equal(r.sent.length, 2);
+  const reminder = r.sent[1];
+  assert.equal(reminder.content, [`🔴 **ONIC vs RRQ HOSHI** mulai 13:00 WIB (<t:${at(13) / 1000}:R>) · MPL ID S18 Playoffs`,
+    `Tebakan ditutup pas laga mulai: https://discord.com/channels/${GUILD}/${r.channel.id}/${preview}`,
+    `Nobar bareng: <#${room.id}> (3 orang), atau buka sendiri lewat 🎬・Bikin Nobar`, `Live: <${LIVE}>`, '<@u2>'].join('\n'));
+  assert.deepEqual(reminder.allowedMentions, { users: ['u2'] });
+  assert.equal(reminder.components[0].toJSON().components[0].custom_id, 'hengs-analis:nobar');
+  const started = rig(t, [match('a', [ONIC, RRQ], at(13))], { now: at(13, 1) });
+  await started.service.tick(); assert.equal(started.sent.filter(p => p.content).length, 0); // already started: no reminder
+});
+
+test('🔔 adds the Nobar role made once, a second click removes it, and a role above Hengs is reported', async t => {
+  const r = rig(t, [match('a', [ONIC, RRQ], at(13))], { now: at(8, 5) });
+  const replies = []; const log = [];
+  const press = cache => r.service.handleButton({ customId: 'hengs-analis:nobar', guildId: GUILD, guild: r.guild,
+    member: { roles: { cache, async add(role) { log.push(['add', role.id]); }, async remove(role) { log.push(['remove', role.id]); } } },
+    user: { id: 'u1' }, async reply(p) { replies.push(p); } });
+  await press(new Set());
+  assert.deepEqual(r.rolesMade.map(o => [o.name, o.permissions, o.hoist, o.mentionable]), [['Nobar', [], false, false]]);
+  assert.equal(r.store.nobarRole(GUILD), 'r-new'); assert.deepEqual(log, [['add', 'r-new']]);
+  assert.match(replies[0].content, /bakal di-ping/); assert.equal(replies[0].flags, MessageFlags.Ephemeral);
+  await press(new Set(['r-new']));
+  assert.deepEqual(log.at(-1), ['remove', 'r-new']); assert.match(replies.at(-1).content, /nggak di-ping lagi/); assert.equal(r.rolesMade.length, 1);
+  const high = rig(t, [], { roles: [{ id: 'rx', name: '🔔 Nobar', editable: false }] });
+  const out = [];
+  await high.service.handleButton({ customId: 'hengs-analis:nobar', guildId: GUILD, guild: high.guild,
+    member: { roles: { cache: new Set(), async add() {}, async remove() {} } }, user: { id: 'u1' }, async reply(p) { out.push(p); } });
+  assert.match(out[0].content, /belum bisa diatur/); assert.deepEqual(high.reports.map(x => x.feature), ['Role Nobar']);
 });

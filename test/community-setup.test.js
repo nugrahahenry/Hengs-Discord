@@ -17,7 +17,7 @@ const inventory = [
 ];
 
 test('the packages match the approved list', () => {
-  assert.deepEqual(PACKAGES.map(p => p.key), ['lobby', 'komunitas', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'room', 'admin']);
+  assert.deepEqual(PACKAGES.map(p => p.key), ['lobby', 'komunitas', 'akademik', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'room', 'admin']);
 });
 
 test('a plan reuses categories and channels by slug, puts new channels in their package category and renames nothing', () => {
@@ -192,15 +192,28 @@ test('Admin Hengs puts bot-settings, bot-logs and bot-status in a private Admin 
   assert.deepEqual(result.failed, []);
 });
 
-test('Bikin Room plans the seven voice doors and belajar-bareng in their own category and reuses what exists', () => {
+test('Bikin Room plans six voice doors in their own category and reuses a door that exists', () => {
   const items = [...inventory, { id: 'd1', name: '🎮 bikin-mabar', type: 2, parentId: 'c3', position: 1 }];
   const plan = buildPlan({ inventory: items, packages: ['room'], extras: {}, theme: themeById('dot') });
   assert.deepEqual(plan.categories.map(c => [c.key, c.id, c.name]), [['room', null, plan.categories[0].name]]);
   assert.deepEqual(plan.channels.map(c => [c.slug, c.type, c.kind, c.id]), [['bikin mabar', 'voice', 'door', null], ['bikin scrim', 'voice', 'door', null],
-    ['bikin diskusi', 'voice', 'door', null], ['bikin belajar', 'voice', 'door', null], ['bikin nobar', 'voice', 'door', null],
-    ['bikin karaoke', 'voice', 'door', null], ['bikin privat', 'voice', 'door', null], ['belajar-bareng', 'text', 'chat', null]]);
-  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar'); assert.equal(plan.channels.at(-1).name, '📚・belajar-bareng');
-  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 },
-    { id: 't1', name: '📚・belajar-bareng', type: 0, parentId: 'c3', position: 2 }], packages: ['room'], extras: {}, theme: themeById('dot') });
-  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.channels.at(-1).id, 't1'); assert.equal(reused.counts.channels, 6);
+    ['bikin diskusi', 'voice', 'door', null], ['bikin nobar', 'voice', 'door', null], ['bikin karaoke', 'voice', 'door', null],
+    ['bikin privat', 'voice', 'door', null]]);
+  assert.equal(plan.channels[0].name, '🎮・Bikin Mabar');
+  const reused = buildPlan({ inventory: [...inventory, { id: 'd1', name: '🎮・Bikin Mabar', type: 2, parentId: 'c3', position: 1 }],
+    packages: ['room'], extras: {}, theme: themeById('dot') });
+  assert.equal(reused.channels[0].id, 'd1'); assert.equal(reused.counts.channels, 5);
+});
+
+// Henry, 2026-10-30: "harus punya channel terpisah untuk akademik".
+test('Akademik plans belajar-bareng and the Belajar door in its own category and reuses them by slug', () => {
+  const plan = buildPlan({ inventory, packages: ['akademik'], extras: {}, theme: themeById('dot') });
+  assert.deepEqual(plan.categories.map(c => [c.key, c.id]), [['akademik', null]]);
+  assert.deepEqual(plan.channels.map(c => [c.slug, c.type, c.kind, c.name]), [['belajar-bareng', 'text', 'chat', '📚・belajar-bareng'],
+    ['bikin belajar', 'voice', 'door', '📚・Bikin Belajar']]);
+  const reused = buildPlan({ inventory: [...inventory, { id: 'k1', name: '📚 AKADEMIK', type: 4, position: 4 },
+    { id: 't1', name: '📚・belajar-bareng', type: 0, parentId: 'k1', position: 1 }, { id: 'v1', name: '📚・Bikin Belajar', type: 2, parentId: 'k1', position: 2 }],
+  packages: ['akademik'], extras: {}, theme: themeById('dot') });
+  assert.deepEqual(reused.categories.map(c => c.id), ['k1']); assert.deepEqual(reused.channels.map(c => c.id), ['t1', 'v1']);
+  assert.equal(reused.counts.channels, 0);
 });

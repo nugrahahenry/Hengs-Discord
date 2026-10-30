@@ -2,6 +2,27 @@
 
 Updated: 2026-10-30
 
+## Hengs Discord v1.90.0 light Nobar for the playoffs (committed locally, not pushed, not deployed) - 2026-10-30
+
+- Henry picked "Siapin playoff" and delegated server setup: "Lu bisa jalankan semua admin setup sendiri nantinya."
+  Spec and plan (ignored docs): `docs/superpowers/specs/2026-10-30-hengs-nobar-playoff-design.md`,
+  `docs/superpowers/plans/2026-10-30-hengs-nobar-playoff.md`.
+- Server work over REST (scripts in `.cloud/automation/deploy-v1890/`, ignored): `hengs-channels-create.sh` made
+  `🤖・tanya-hengs` (members chat) and `📊・hengs-analis` (members read and react) with the setup overwrites;
+  `hengs-channels-topic.sh` set the setup topics; `chat-guide-post.sh` posted the Tanya Hengs guide (pin 50013: the
+  Hengs Bot role lacks Pin Messages, Henry's step). Henry: belajar-bareng belongs in an academic category, so
+  `akademik-move.sh` made `📚 AKADEMIK` after TECH & CODE with belajar-bareng and the Bikin Belajar door; Henry: Analis
+  is MLBB, so `mlbb-move.sh` made `⚔️ MLBB` after GAMING with hengs-analis and hasil-scrim (private overwrites kept).
+- Facts: playoffs 4 to 8 Nov at JIE Convention Surabaya, two matches a day at 13:00 and 18:00 WIB, live on
+  https://www.youtube.com/@MPLIndonesia (detikInet 23 Oct; Liquipedia answered 403 to the fetch tool).
+- Code: `src/esports/nobar.js` (reminder window, text, ping cap, 🔔 row, replies); the Analis service posts reminders
+  from `daily()`, toggles the Nobar role, and posts its guide on a tick when none is known; watch entries carry
+  `stream` for MPL ID; the store keeps `nobarRole`; voice rooms add mode siaran (`siaran-on`, `siaran-off`, `mic`,
+  `setOwner`, `openRooms`); setup adds the Akademik package. Not in this release: moving the Analis and Tim scrim
+  setup packages to an MLBB category (the server is already arranged; setup reuses channels by slug).
+- QA: full suite 1124/1124 on Node 22.23.3, 0 skipped. Deploy needs Henry's approval before 3 Nov (minute 05-45,
+  helpers from deploy-v1890 via a new derive script). Next after that: News and Memes variety from the reaction data.
+
 ## Hengs Discord v1.89.0 deployed and accepted - 2026-10-30
 
 - Henry: "Gabungin coach-v2 ke main (fast-forward), jalanin full suite. Jangan push, jangan deploy." Main went 7e7642a

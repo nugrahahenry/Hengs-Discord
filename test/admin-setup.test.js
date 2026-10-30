@@ -98,7 +98,7 @@ test('setup walks packages, News + Memes, a theme board and a sidebar preview wi
   const opened = await open(r);
   assert.equal(opened.flags, MessageFlags.Ephemeral); assert.match(opened.content, /1\/4/);
   const select = components(opened).find(c => c.custom_id.endsWith(':packages'));
-  assert.deepEqual(select.options.map(o => o.value), ['lobby', 'komunitas', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'room', 'admin']);
+  assert.deepEqual(select.options.map(o => o.value), ['lobby', 'komunitas', 'akademik', 'gaming', 'hengs', 'tim', 'creator', 'voice', 'room', 'admin']);
   assert.equal(select.min_values, 1);
   const extras = (await pick(r, opened, ['hengs', 'lobby'])).edits.at(-1);
   assert.match(extras.content, /2\/4/); assert.match(extras.content, /Paket: Lobby, Hengs\./);
