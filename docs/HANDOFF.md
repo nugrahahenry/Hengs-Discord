@@ -2,6 +2,26 @@
 
 Updated: 2026-10-31
 
+## Hengs Discord v1.91.0 deployed and accepted - 2026-10-31
+
+- Henry: "Deploy v1.91.0". Release 1.91.0-ea6a6edfbd9d, archive SHA-256
+  bf538fbcaad566080281f2db96909506b2d470fbea4c02c7ba421f3b05058df4 (57 MB), rehearsal 1139/1134/5 skips with no file
+  written into the release tree, `node --check` clean. Helpers `.cloud/automation/deploy-v1910` from
+  `derive-dc-from-1900.cjs` (the v1.91.0 feed probes and the v1.90.0 Analis guide check not carried). No command, env
+  or dependency changes.
+- All times UTC on 30 Oct (02:09 to 02:15 WIB on 31 Oct, no news or meme slot at night): preflight PASS 19:09:32,
+  staged and sealed 19:10:17, dispatched 19:10:22, QA 19:10:34 to 19:13:55, ACCEPTED 19:15:03 (TESTS=1139 PASS=1134
+  CHECKOUT_SKIPS=5, two fresh health samples, WA, Canox and news unchanged).
+- CMD_CHECK HOME=14 with every check YES; DC 1.91.0 and WA 0.53.0 connected, fresh. Audit PASS 19:15:16 on the first run:
+  restarts zero, staging absent, rollback to 1.90.0-1b8eda23cc3b available.
+- What shows up next: the 08:00 WIB news gets 🔥 😴 and creates `data/news-taste.json`; pop culture and kampus join the
+  news pool; memes from 13:00 WIB with the new themes and rotation. A chat-trend meme needs 3+ members using the same
+  word in public chat within 24 hours (memory only, so a restart starts the count over). MPL result memes wait for a
+  notable finished MPL series (playoffs 4 to 8 Nov).
+- Cleanup (Recycle Bin, not emptied): the 1.91.0 archive and checksum, rehearsal-1910, deploy-v1900 and
+  derive-dc-from-1890.cjs, about 120 MB. Kept: deploy-v1910 and derive-dc-from-1900.cjs (the next derive starts from
+  deploy-v1910). Main not pushed.
+
 ## Hengs Discord v1.91.0 News and Memes variety (committed locally, not pushed, not deployed) - 2026-10-31
 
 - Henry: develop Hengs Memes and News from the reaction data so it is not "terlalu template", with more variety and
