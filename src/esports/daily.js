@@ -4,7 +4,7 @@
 // v1.80.0: the LLM caster arrives in v1.81.0 and must pass a check against these same facts.
 const crypto = require('node:crypto');
 const { wibDate } = require('./card');
-const { record, heroPool, statsOf, tag } = require('./schedule');
+const { record, heroPool, statsOf, tag, wibDay } = require('./schedule');
 const { shareRight } = require('./predictions');
 const { heroes } = require('../scrim/mlbb-heroes.json');
 
@@ -49,6 +49,33 @@ function compactData(matches, day, featuredIds) {
     lines: matches.map(m => `${wibTime(m.startAt)} WIB · ${tag(m.teams[0])} vs ${tag(m.teams[1])} · ${bo(m)}${featuredIds.has(m.id) ? ' · ada tebakan' : ''}`) }] };
 }
 const compactCaption = (matches, day) => `**Jadwal ${dayLabel(day)}**: ${matches.length} laga. Tombol tebakan ada di kartu laga unggulan di bawah.`;
+
+// Pekan Playoff H-1 (owner request, 2026-10-31): an event's whole schedule on one card. Liquipedia's open slots read in
+// Indonesian; the first 12 matches are listed and the rest summed up.
+const WEEK_LINES = 12;
+function slotName(team) {
+  if (team?.ticker) return team.ticker;
+  const name = String(team?.name || '').trim();
+  const slot = /^(.+?)\s+(winner|loser)$/i.exec(name);
+  return slot ? `${slot[2].toLowerCase() === 'winner' ? 'Pemenang' : 'Kalah'} ${slot[1]}` : name || 'TBD';
+}
+function weekData(matches, event) {
+  const list = matches.filter(m => m.startAt).sort((a, b) => a.startAt - b.startAt);
+  const shown = list.slice(0, WEEK_LINES);
+  const days = [...new Set(shown.map(m => wibDay(m.startAt)))];
+  const sections = days.map(day => ({ heading: dayLabel(day), lines: shown.filter(m => wibDay(m.startAt) === day)
+    .map(m => [`${wibTime(m.startAt)} WIB`, `${slotName(m.teams[0])} vs ${slotName(m.teams[1])}`, bo(m), m.stage].filter(Boolean).join(' · ')) }));
+  if (list.length > shown.length) sections.at(-1).lines.push(`+${list.length - shown.length} laga lagi, jadwal lengkap di Liquipedia`);
+  const first = wibDay(list[0].startAt); const last = wibDay(list.at(-1).startAt);
+  return { title: `Jadwal lengkap · ${event}`, date: first === last ? dayLabel(first) : `${dayLabel(first)} sampai ${dayLabel(last)}`, sections };
+}
+const weekCaption = (event, { stream = null, today = false } = {}) => [
+  `**${event} mulai ${today ? 'hari ini' : 'besok'}!** Jadwal lengkapnya ada di kartu.`,
+  '• Tebakan: tiap hari tanding jam 08:00 WIB ada preview dengan tombol tebak, masuk klasemen Liga Tebak.',
+  '• Nobar: masuk 🎬・Bikin Nobar buat bikin room. Pemilik room bisa nyalain 📢 Mode siaran biar cuma dia (dan yang dikasih mic) yang ngomong.',
+  '• Klik 🔔 Ingetin aku di bawah buat di-ping sekitar 15 menit sebelum tiap laga yang ada preview-nya. Klik lagi buat berhenti.',
+  stream ? `Live: <${stream}>` : '',
+].filter(Boolean).join('\n');
 
 // A Liga Tebak standings row: rank, display name (no ping), points and right guesses.
 const standingLine = (row, names) => `${row.rank}. ${names[row.user] || 'Anggota'} · ${row.points} poin (${row.right} benar dari ${row.votes})`;
@@ -151,4 +178,4 @@ function analisCard(all, now, question = '') {
 }
 
 module.exports = { wibTime, dayLabel, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption,
-  dayRecapData, dayCaption, eventRecapData, eventCaption, factsOf, analisCard };
+  dayRecapData, dayCaption, eventRecapData, eventCaption, factsOf, analisCard, slotName, weekData, weekCaption };

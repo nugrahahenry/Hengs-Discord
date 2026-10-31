@@ -2,6 +2,23 @@
 
 Updated: 2026-10-31
 
+## Hengs Discord v1.92.0 Pekan Playoff H-1 card (committed locally, not pushed, not deployed) - 2026-10-31
+
+- Why: the read-only playoff dry run (`deploy-v1910/playoff-check.sh`) showed the 🔔 Nobar button only under the 08:00
+  previews and the reminders, so before 4 Nov 08:00 nobody could opt in. Henry picked an automatic post ("Fitur
+  otomatis (A)") with no pings ("Tanpa ping"). Spec and plan (ignored docs):
+  `docs/superpowers/specs/2026-10-31-hengs-playoff-week-design.md`, `docs/superpowers/plans/2026-10-31-hengs-playoff-week.md`.
+- Code: `src/esports/daily.js` (`slotName`, `weekData`, `weekCaption`), `src/esports/presentation.js` (`weekPayload`,
+  file `hengs-pekan.png`, 🔔 row), `src/esports/service.js` (`weekAhead` in `daily()`, claim `week:<event>`, window
+  19:00 WIB the day before to 08:00 on the first match day, feature name `Pekan playoff Analis` for failures).
+- Ops on 31 Oct (scripts in `.cloud/automation/deploy-v1910/`, ignored): Henry gave 🤖Hengs Bot Pin Messages, then
+  `pin-guides.sh` pinned the Analis and Tanya Hengs guides. Read-only checks: `playoff-check.sh`, `voice-doors.sh`,
+  `news-today-check.sh`, `pin-roles.sh`, `hengs-overwrites.sh`. First v1.91.0 day: news from the gadget, esports and pop
+  culture desks with 🔥 😴; the 13:00 meme was xkcd after the judge turned down Hengs' draft (`NEWS_MEME_WEAK`).
+- QA: full suite 1144/1144 on Node 22.23.3, 0 skipped, data folder untouched. Deploy needs Henry's approval, before 3 Nov 19:00 WIB (aim for 2 Nov), helpers
+  from deploy-v1910 via a new derive script (old rel 1.91.0-ea6a6edfbd9d, counts 1139/1134 plus the new tests). No
+  command, env or dependency changes. Mode siaran still needs one live try with a friend before 4 Nov.
+
 ## Hengs Discord v1.91.0 deployed and accepted - 2026-10-31
 
 - Henry: "Deploy v1.91.0". Release 1.91.0-ea6a6edfbd9d, archive SHA-256

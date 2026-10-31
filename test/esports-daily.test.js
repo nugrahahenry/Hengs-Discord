@@ -98,3 +98,32 @@ test('the night recap marks the Laga Panas and shows the Liga Tebak standings so
   assert.deepEqual(table.lines, ['1. Henry · 10 poin (3 benar dari 3)', '2. Anggota · 9 poin (3 benar dari 3)', '3. Anggota · 8 poin (3 benar dari 3)',
     '4. Anggota · 7 poin (3 benar dari 3)', '5. Anggota · 6 poin (3 benar dari 3)']);
 });
+
+// Pekan Playoff H-1 (owner request, 2026-10-31).
+test('the week card lists the event by day with Indonesian slot names, at most 12 matches', () => {
+  assert.equal(d.slotName({ key: 'round 1a winner', name: 'Round 1A Winner', ticker: '' }), 'Pemenang Round 1A');
+  assert.equal(d.slotName({ key: 'ub final loser', name: 'UB Final Loser' }), 'Kalah UB Final');
+  assert.equal(d.slotName(ONIC), 'ONIC'); assert.equal(d.slotName({}), 'TBD');
+  const slot = { key: 'round 1a winner', name: 'Round 1A Winner', ticker: '' };
+  const data = d.weekData([match('b', [EVOS, slot], START + 24 * HOUR, [], { stage: 'Round 2', bestof: 5 }),
+    match('a', [ONIC, RRQ], START, [], { stage: 'Round 1', bestof: 5 })], 'MPL ID S18 Playoffs');
+  assert.equal(data.title, 'Jadwal lengkap · MPL ID S18 Playoffs');
+  assert.equal(data.date, 'Rabu, 4 Nov 2026 sampai Kamis, 5 Nov 2026');
+  assert.deepEqual(data.sections, [{ heading: 'Rabu, 4 Nov 2026', lines: ['15:00 WIB · ONIC vs RRQ · Bo5 · Round 1'] },
+    { heading: 'Kamis, 5 Nov 2026', lines: ['15:00 WIB · EVOS vs Pemenang Round 1A · Bo5 · Round 2'] }]);
+  const many = d.weekData(Array.from({ length: 13 }, (_, i) => match(`m${i}`, [ONIC, RRQ], START + i * HOUR / 6, [], { stage: '' })), 'E');
+  assert.equal(many.date, 'Rabu, 4 Nov 2026');
+  assert.equal(many.sections[0].lines.length, 13); // 12 matches and the rest line
+  assert.equal(many.sections[0].lines.at(-1), '+1 laga lagi, jadwal lengkap di Liquipedia');
+  assert.equal(many.sections[0].lines[0], '15:00 WIB · ONIC vs RRQ · Bo3');
+});
+
+test('the week caption says besok or hari ini, explains guesses, Nobar and 🔔, and the live link only when known', () => {
+  const evening = d.weekCaption('MPL ID S18 Playoffs', { stream: 'https://www.youtube.com/@MPLIndonesia' });
+  assert.match(evening, /^\*\*MPL ID S18 Playoffs mulai besok!\*\*/);
+  assert.match(evening, /08:00 WIB/); assert.match(evening, /Liga Tebak/); assert.match(evening, /Bikin Nobar/);
+  assert.match(evening, /Mode siaran/); assert.match(evening, /🔔 Ingetin aku/);
+  assert.match(evening, /Live: <https:\/\/www\.youtube\.com\/@MPLIndonesia>/);
+  const morning = d.weekCaption('M8 World Championship', { today: true });
+  assert.match(morning, /mulai hari ini/); assert.doesNotMatch(morning, /Live:/); assert.doesNotMatch(morning, /—/);
+});

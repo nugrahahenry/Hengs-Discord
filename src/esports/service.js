@@ -13,21 +13,22 @@ const { parseMatches, matchHash } = require('./wikitext');
 const { renderSeriesCard } = require('./card');
 const { renderPreviewCard, renderListCard } = require('./daily-cards');
 const { draftData, draftable, renderDraftCard } = require('./draft-card');
-const { seriesPayload, guidePayload, previewPayload, listPayload, ligaRows, pageUrl, REACTIONS, isWarning, VOTE_PREFIX,
+const { seriesPayload, guidePayload, previewPayload, listPayload, weekPayload, ligaRows, pageUrl, REACTIONS, isWarning, VOTE_PREFIX,
   LIGA_PREFIX } = require('./presentation');
 const { WATCH, DISCOVER, discoveredEntries } = require('./watch');
 const { wibDay, wibMinutes, previousDay, matchesOf, dayMatches, featured, eventState } = require('./schedule');
 const { voteKey } = require('./predictions');
 const { hotMatchIds, pointsFor, standings, champions, rankOf, championCard } = require('./league');
 const { wibTime, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption, dayRecapData, dayCaption,
-  eventRecapData, eventCaption, factsOf, analisCard } = require('./daily');
+  eventRecapData, eventCaption, factsOf, analisCard, weekData, weekCaption } = require('./daily');
 
 const MIN = 60_000; const HOUR = 60 * MIN; const DAY_MS = 24 * HOUR;
 const LIVE_EVERY = 20 * MIN; const IDLE_EVERY = 3 * HOUR;
 const POST_WINDOW = 36 * HOUR; const KEEP_IN_STEP = 72 * HOUR; const LIVE_WINDOW = 12 * HOUR;
 const MAX_POSTS_PER_TICK = 3;
-// WIB minutes: one fresh check from 07:30, previews from 08:00, the night recap at the latest 23:30.
-const PREP_AT = 7 * 60 + 30; const PREVIEW_AT = 8 * 60; const RECAP_LATEST = 23 * 60 + 30;
+// WIB minutes: one fresh check from 07:30, previews from 08:00, the night recap at the latest 23:30, an event's
+// schedule card from 19:00 the evening before.
+const PREP_AT = 7 * 60 + 30; const PREVIEW_AT = 8 * 60; const RECAP_LATEST = 23 * 60 + 30; const WEEK_AT = 19 * 60;
 const BANNER = path.join(__dirname, '../../assets/esports/guide-banner.png');
 const { slugOf: normalize } = require('../guilds/channel-style');
 const { rotateRole } = require('../utils/rotating-role');
@@ -221,6 +222,24 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     }
   }
 
+  // Pekan Playoff H-1 (owner request, 2026-10-31): the evening before an event's first match day, its schedule with the
+  // 🔔 button, so members can opt in to the Nobar pings before the first preview. From 19:00 WIB the day before until
+  // 08:00 on the day (a late start still posts); once per event, from the cache, never retried.
+  async function weekAhead(guild, channel, all) {
+    for (const event of [...new Set(all.map(m => m.event).filter(Boolean))]) {
+      const key = `week:${event}`;
+      const list = all.filter(m => m.event === event && m.startAt).sort((a, b) => a.startAt - b.startAt);
+      if (!list.length || list[0].startAt <= now() || store.daily(guild.id, key)) continue;
+      const first = wibDay(list[0].startAt); const today = wibDay(now()); const minutes = wibMinutes(now());
+      const morning = today === first && minutes < PREVIEW_AT;
+      if (!morning && !(today === previousDay(first) && minutes >= WEEK_AT)) continue;
+      store.claimDaily(guild.id, key);
+      const stream = watchlist().find(w => w.event === event && w.stream)?.stream || null;
+      await send(guild, channel, 'Pekan playoff Analis', key, async () =>
+        weekPayload(await renderList(weekData(list, event)), `Jadwal ${event}`, weekCaption(event, { stream, today: morning })));
+    }
+  }
+
   // Kickoff reminder (owner request, 2026-10-30, MPL ID playoffs): one per featured match, 10 to 15 minutes before it
   // starts, claimed first; pings the members holding the opt-in Nobar role and lists the open Nobar rooms.
   async function reminders(guild, channel, today) {
@@ -371,6 +390,7 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     const all = matchesOf(pages, watchlist());
     if (!all.length) return;
     scoreFinished(guild, all);
+    await weekAhead(guild, channel, all);
     const day = wibDay(now());
     const today = dayMatches(all, day);
     if (wibMinutes(now()) >= PREVIEW_AT && today.length) await previews(guild, channel, all, today, day);

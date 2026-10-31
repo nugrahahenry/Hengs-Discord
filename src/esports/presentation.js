@@ -69,6 +69,10 @@ function previewPayload(match, png, { key, caption }) {
 const listPayload = (png, description, caption, rows = []) => cardPayload(png, 'hengs-rekap.png', description,
   [caption, '-# Data: Liquipedia (CC-BY-SA 3.0)'], rows);
 
+// The evening before an event starts: its schedule card with the 🔔 Nobar button (2026-10-31).
+const weekPayload = (png, description, caption) => cardPayload(png, 'hengs-pekan.png', description,
+  [caption, '-# Data: Liquipedia (CC-BY-SA 3.0)'], [nobarRow()]);
+
 const GUIDE = [
   '## 📊 Hengs Analis',
   'Rekap MLBB pro dari Hengs: hasil series, draft hero, dan catatan dari angka.',
@@ -94,5 +98,5 @@ function guidePayload({ banner = null } = {}) {
     flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
-module.exports = { seriesPayload, guidePayload, previewPayload, listPayload, ligaRows, pageUrl, REACTIONS, isWarning, GUIDE, VOTE_PREFIX,
-  LIGA_PREFIX };
+module.exports = { seriesPayload, guidePayload, previewPayload, listPayload, weekPayload, ligaRows, pageUrl, REACTIONS, isWarning, GUIDE,
+  VOTE_PREFIX, LIGA_PREFIX };

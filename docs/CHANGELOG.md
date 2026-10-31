@@ -5,6 +5,24 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.92.0] - 2026-10-31
+
+### Added
+
+- Pekan Playoff H-1 (Henry picked the automatic post over a one-off): the evening before an event's first match day,
+  from 19:00 WIB (or up to 08:00 on the day after a late start), Hengs Analis posts one schedule card for the whole
+  event in #hengs-analis: one section per match day, time, teams, best-of and stage, open bracket slots in Indonesian
+  (`Pemenang Round 1A`, `Kalah UB Final`), at most 12 matches plus a rest line. The caption explains the 08:00
+  guesses and Liga Tebak, Nobar rooms with mode siaran, and the 🔔 pings, plus the official live link where checked.
+  The 🔔 Ingetin aku button sits under the card, so members can opt in before the first preview. Once per event, no
+  pings, from the cached schedule only; a failed send is reported to bot-settings and not retried.
+
+### Verification
+
+- Playoff dry run on 31 Oct (read-only): 8 MPL ID S18 playoff matches cached for 4 to 8 Nov, so the first card is
+  due 3 Nov 19:00 WIB once this release is live.
+- Full offline suite passed 1144/1144 on Node 22.23.3 (0 skipped); no runtime file written into the checkout.
+
 ## [1.91.0] - 2026-10-31
 
 ### Added

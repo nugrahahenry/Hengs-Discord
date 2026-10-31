@@ -71,10 +71,11 @@ const ONIC = T('onic', 'ONIC'); const RRQ = T('rrq hoshi', 'RRQ'); const EVOS = 
 
 test('previews go out once from 08:00 WIB on match days, only for matches that have not started', async t => {
   const r = rig(t, [match('a', [ONIC, RRQ], at(15)), match('b', [EVOS, AE], at(18))], { now: at(7, 50) });
-  await r.service.tick(); assert.equal(r.sent.length, 0);
+  // No schedule card was posted the evening before in this rig, so it goes out first (2026-10-31).
+  await r.service.tick(); assert.deepEqual(kinds(r.sent), ['hengs-pekan.png']);
   r.clock.now = at(8, 5); await r.service.tick(); await r.service.tick();
-  assert.deepEqual(kinds(r.sent), ['hengs-preview.png', 'hengs-preview.png']);
-  assert.match(JSON.stringify(r.sent[0].components), new RegExp(`hengs-analis:vote:${voteKey('a')}:1`));
+  assert.deepEqual(kinds(r.sent), ['hengs-pekan.png', 'hengs-preview.png', 'hengs-preview.png']);
+  assert.match(JSON.stringify(r.sent.find(p => p.files?.[0]?.name === 'hengs-preview.png').components), new RegExp(`hengs-analis:vote:${voteKey('a')}:1`));
   const late = rig(t, [match('a', [ONIC, RRQ], at(9))], { now: at(10) });
   await late.service.tick(); assert.equal(late.sent.length, 0);
 });
@@ -296,4 +297,45 @@ test('🔔 adds the Nobar role made once, a second click removes it, and a role 
   await high.service.handleButton({ customId: 'hengs-analis:nobar', guildId: GUILD, guild: high.guild,
     member: { roles: { cache: new Set(), async add() {}, async remove() {} } }, user: { id: 'u1' }, async reply(p) { out.push(p); } });
   assert.match(out[0].content, /belum bisa diatur/); assert.deepEqual(high.reports.map(x => x.feature), ['Role Nobar']);
+});
+
+// Pekan Playoff H-1 (owner request, 2026-10-31): the schedule with the 🔔 button the evening before the first match day.
+const EVE = -24 * HOUR;
+const SLOT = { key: 'round 1a winner', name: 'Round 1A Winner', ticker: '' };
+const playoffs = () => [match('a', [AE, ONIC], at(13)), match('b', [EVOS, SLOT], at(13) + 24 * HOUR)];
+const weeks = sent => sent.filter(p => p.files?.[0]?.name === 'hengs-pekan.png');
+
+test('the evening before the first match day one schedule card goes out with the 🔔 button and no pings', async t => {
+  const r = rig(t, playoffs(), { now: at(18, 55) + EVE });
+  await r.service.tick(); assert.equal(r.sent.length, 0);
+  r.clock.now = at(19, 0) + EVE; await r.service.tick(); await r.service.tick();
+  assert.equal(weeks(r.sent).length, 1); assert.equal(r.sent.length, 1);
+  const json = JSON.stringify(r.sent[0].components);
+  assert.match(json, /hengs-analis:nobar/); assert.match(json, /MPL ID S18 Playoffs mulai besok!/);
+  assert.deepEqual(r.sent[0].allowedMentions, { parse: [] });
+  assert.equal(r.lists[0].title, 'Jadwal lengkap · MPL ID S18 Playoffs');
+  assert.deepEqual(r.lists[0].sections.map(s => s.lines[0]), ['13:00 WIB · AE vs ONIC · Bo3 · Upper Bracket',
+    '13:00 WIB · EVOS vs Pemenang Round 1A · Bo3 · Upper Bracket']);
+});
+
+test('a late start in the window still posts, the morning one says hari ini, and nothing outside it or without an event', async t => {
+  const late = rig(t, playoffs(), { now: at(23) + EVE });
+  await late.service.tick(); assert.equal(weeks(late.sent).length, 1);
+  const morning = rig(t, playoffs(), { now: at(7, 50) });
+  await morning.service.tick(); assert.match(JSON.stringify(morning.sent[0].components), /mulai hari ini/);
+  const after = rig(t, playoffs(), { now: at(8, 5) });
+  await after.service.tick(); assert.equal(weeks(after.sent).length, 0);
+  const started = rig(t, [match('a', [AE, ONIC], at(7, 30))], { now: at(7, 45) });
+  await started.service.tick(); assert.equal(started.sent.length, 0);
+  const record = rig(t, playoffs(), { now: at(20) + EVE, watch: [{ ...WATCH[0], event: null }] });
+  await record.service.tick(); assert.equal(record.sent.length, 0);
+  const live = rig(t, playoffs(), { now: at(20) + EVE, watch: [{ ...WATCH[0], stream: 'https://www.youtube.com/@MPLIndonesia' }] });
+  await live.service.tick(); assert.match(JSON.stringify(live.sent[0].components), /Live: <https:\/\/www\.youtube\.com\/@MPLIndonesia>/);
+});
+
+test('a failed schedule post is claimed, reported to bot-settings and never retried', async t => {
+  const r = rig(t, playoffs(), { now: at(19, 5) + EVE });
+  r.channel.fail = true; await r.service.tick();
+  assert.deepEqual(r.reports.map(x => [x.feature, x.code]), [['Pekan playoff Analis', 50013]]);
+  r.channel.fail = false; await r.service.tick(); assert.equal(r.sent.length, 0);
 });

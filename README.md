@@ -2,7 +2,11 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.91.0 (local, not deployed): more variety in Hengs News and Memes, steered by
+**Current checkpoint:** Hengs Discord v1.92.0 (local, not deployed): the evening before an event's first match day
+(from 19:00 WIB, or until 08:00 on the day after a late start), Hengs Analis posts the event's full schedule card in
+#hengs-analis with how to join Liga Tebak and Nobar and the 🔔 Ingetin aku button, so members can opt in to the Nobar
+pings before the first preview. Open bracket slots read in Indonesian (Pemenang Round 1A, Kalah UB Final); no pings.
+v1.91.0 is live since 30 Oct: more variety in Hengs News and Memes, steered by
 the reactions members leave. Memes walk 10 themes in a shuffled daily order with 14 days of topic memory, the 6 newest
 templates rest, a judge tie goes to the least used template, and a template with zero reactions no longer counts as
 liked. A notable MPL result from Hengs Analis (sweep, upset, final, comeback) becomes a meme in the next meme slot (team
