@@ -298,4 +298,6 @@ test('welcome runtime copy contains no em dash or en dash', () => {
   const welcomeEnd = source.indexOf('client.on(Events.GuildMemberUpdate');
   const welcomeSurface = source.slice(welcomeStart, welcomeEnd);
   assert.doesNotMatch(welcomeSurface, /[\u2013\u2014]/);
+  assert.match(welcomeSurface, /communityPack\.reactMemberEvent\(sentMessage, 'welcome'\)/);
+  assert.match(welcomeSurface, /communityPack\.reactMemberEvent\(sentMessage, 'leave'\)/);
 });

@@ -5,6 +5,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+## [1.93.0] - 2026-11-09
+
+### Added
+
+- Welcome and leave events add one small reaction after the message is sent. New members get `👋` and departing
+  members get `🫡`. The reaction is best-effort and logs only a fixed code when Discord does not allow reactions;
+  the welcome or leave card is never blocked by that secondary action.
+
+### Verification
+
+- Targeted offline suite and syntax checks pass. The full suite reaches 1143 passing tests; one unrelated Windows
+  symlink permission test is blocked by the sandbox. No live Discord event, deploy, restart, or message was triggered.
+
 ## [1.92.0] - 2026-10-31
 
 ### Added

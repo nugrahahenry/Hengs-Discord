@@ -2,6 +2,11 @@ const { PermissionFlagsBits } = require('discord.js');
 const { resolveCommunityWelcome } = require('./config-store');
 const { generateCard } = require('../utils/welcome-card');
 
+const MEMBER_EVENT_REACTIONS = Object.freeze({
+  welcome: '👋',
+  leave: '🫡',
+});
+
 const SNOWFLAKE = /^\d{17,20}$/;
 const REQUIRED_PERMISSIONS = Object.freeze([
   PermissionFlagsBits.ViewChannel,
@@ -23,7 +28,22 @@ function publicCopy(member, type, { preview = false } = {}) {
   if (type === 'welcome') {
     return `👋 Halo <@${member.id}>! Aku Hengs, asisten komunitas di sini. Selamat datang. Coba baca aturan, ambil role, lalu kenalan. Kalau bingung, mention Hengs atau pakai \`/hengs help\`.`;
   }
-  return '👋 Satu member baru saja meninggalkan server. Makasih sudah pernah mampir dan jadi bagian dari komunitas ini.';
+  return '🫡 Satu member baru saja meninggalkan server. Makasih sudah pernah mampir dan jadi bagian dari komunitas ini.';
+}
+
+async function reactMemberEvent(message, type, { logger = console } = {}) {
+  const emoji = MEMBER_EVENT_REACTIONS[type];
+  if (!emoji) return { reacted: false, code: 'COMMUNITY_REACTION_INVALID' };
+  if (!message || typeof message.react !== 'function') {
+    return { reacted: false, code: 'COMMUNITY_REACTION_UNAVAILABLE' };
+  }
+  try {
+    await message.react(emoji);
+    return { reacted: true, code: 'COMMUNITY_REACTION_ADDED', emoji };
+  } catch {
+    logger.warn('[community-pack] COMMUNITY_REACTION_FAILED');
+    return { reacted: false, code: 'COMMUNITY_REACTION_FAILED', emoji };
+  }
 }
 
 async function buildCommunityPayload(member, type, options = {}) {
@@ -57,7 +77,8 @@ function createCommunityPack({ generateCardImpl = generateCard, logger = console
     }
     try {
       const payload = await buildCommunityPayload(member, type, { generateCardImpl });
-      await channel.send(payload);
+      const sentMessage = await channel.send(payload);
+      await reactMemberEvent(sentMessage, type, { logger });
       return { sent: true, code: 'COMMUNITY_EVENT_SENT' };
     } catch {
       logger.error('[community-pack] COMMUNITY_EVENT_FAILED');
@@ -68,13 +89,16 @@ function createCommunityPack({ generateCardImpl = generateCard, logger = console
   return {
     canUseChannel: canUseCommunityChannel,
     preview,
+    reactMemberEvent: (message, type) => reactMemberEvent(message, type, { logger }),
     sendMemberEvent,
   };
 }
 
 module.exports = {
+  MEMBER_EVENT_REACTIONS,
   REQUIRED_PERMISSIONS,
   buildCommunityPayload,
   canUseCommunityChannel,
   createCommunityPack,
+  reactMemberEvent,
 };

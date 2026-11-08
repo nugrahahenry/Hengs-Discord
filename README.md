@@ -2,7 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.92.0 (local, not deployed): the evening before an event's first match day
+**Current checkpoint:** Hengs Discord v1.93.0 (local, not deployed): welcome and leave events now add a small
+one-tap reaction, `👋` for a new member and `🫡` for a member who leaves. The reaction is best-effort, so a missing
+Add Reactions permission never blocks the card or onboarding message. Builds on v1.92.0: the evening before an event's first match day
 (from 19:00 WIB, or until 08:00 on the day after a late start), Hengs Analis posts the event's full schedule card in
 #hengs-analis with how to join Liga Tebak and Nobar and the 🔔 Ingetin aku button, so members can opt in to the Nobar
 pings before the first preview. Open bracket slots read in Indonesian (Pemenang Round 1A, Kalah UB Final); no pings.

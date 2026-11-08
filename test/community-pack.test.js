@@ -3,9 +3,11 @@ const test = require('node:test');
 const { PermissionFlagsBits, MessageFlags } = require('discord.js');
 
 const {
+  MEMBER_EVENT_REACTIONS,
   buildCommunityPayload,
   canUseCommunityChannel,
   createCommunityPack,
+  reactMemberEvent,
 } = require('../src/guilds/community-pack');
 
 const CHANNEL_ID = '523456789012345678';
@@ -54,6 +56,11 @@ test('community channel requires all three Discord permissions', () => {
 
 test('public welcome sends one card with one targeted mention', async () => {
   const value = fixture();
+  const reacted = [];
+  value.channel.send = async payload => {
+    value.sent.push(payload);
+    return { async react(emoji) { reacted.push(emoji); } };
+  };
   const result = await value.pack.sendMemberEvent(value.member, 'welcome', value.config);
   assert.deepEqual(result, { sent: true, code: 'COMMUNITY_EVENT_SENT' });
   assert.equal(value.sent.length, 1);
@@ -63,16 +70,37 @@ test('public welcome sends one card with one targeted mention', async () => {
     users: [value.member.id],
   });
   assert.equal(value.sent[0].files[0].name, 'welcome.png');
+  assert.deepEqual(reacted, [MEMBER_EVENT_REACTIONS.welcome]);
 });
 
 test('public leave card contains no member mention', async () => {
   const value = fixture();
+  const reacted = [];
+  value.channel.send = async payload => {
+    value.sent.push(payload);
+    return { async react(emoji) { reacted.push(emoji); } };
+  };
   const result = await value.pack.sendMemberEvent(value.member, 'leave', value.config);
   assert.deepEqual(result, { sent: true, code: 'COMMUNITY_EVENT_SENT' });
   assert.equal(value.sent.length, 1);
   assert.doesNotMatch(value.sent[0].content, /<@/);
   assert.deepEqual(value.sent[0].allowedMentions, { parse: [] });
   assert.equal(value.sent[0].files[0].name, 'leave.png');
+  assert.match(value.sent[0].content, /^🫡/u);
+  assert.deepEqual(reacted, [MEMBER_EVENT_REACTIONS.leave]);
+});
+
+test('reaction failure never blocks the member event', async () => {
+  const logs = [];
+  const result = await reactMemberEvent({ async react() { throw new Error('permission'); } }, 'welcome', {
+    logger: { warn(code) { logs.push(code); } },
+  });
+  assert.deepEqual(result, {
+    reacted: false,
+    code: 'COMMUNITY_REACTION_FAILED',
+    emoji: '👋',
+  });
+  assert.deepEqual(logs, ['[community-pack] COMMUNITY_REACTION_FAILED']);
 });
 
 test('disabled or unwritable community welcome never falls back to another channel', async () => {

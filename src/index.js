@@ -430,17 +430,19 @@ client.on(Events.GuildMemberAdd, async (member) => {
     if (cardBuffer) {
       const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome.png' });
       embed.setImage('attachment://welcome.png');
-      await channel.send({
+      const sentMessage = await channel.send({
         embeds: [embed],
         files: [attachment],
         allowedMentions: { parse: [] },
       });
+      await communityPack.reactMemberEvent(sentMessage, 'welcome');
     } else {
       embed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
-      await channel.send({
+      const sentMessage = await channel.send({
         embeds: [embed],
         allowedMentions: { parse: [] },
       });
+      await communityPack.reactMemberEvent(sentMessage, 'welcome');
     }
   } catch (err) {
     console.error('❌ Welcome card error:', err.message);
@@ -467,15 +469,17 @@ client.on(Events.GuildMemberRemove, async (member) => {
     const cardBuffer = await generateCard(member, 'leave');
     const embed = new EmbedBuilder()
       .setColor(0xE53935)
-      .setDescription(`**${member.user.username}** telah meninggalkan server. Sampai jumpa! 👋`)
+      .setDescription(`**${member.user.username}** telah meninggalkan server. Sampai jumpa! 🫡`)
       .setTimestamp();
 
     if (cardBuffer) {
       const attachment = new AttachmentBuilder(cardBuffer, { name: 'leave.png' });
       embed.setImage('attachment://leave.png');
-      await channel.send({ embeds: [embed], files: [attachment] });
+      const sentMessage = await channel.send({ embeds: [embed], files: [attachment] });
+      await communityPack.reactMemberEvent(sentMessage, 'leave');
     } else {
-      await channel.send({ embeds: [embed] });
+      const sentMessage = await channel.send({ embeds: [embed] });
+      await communityPack.reactMemberEvent(sentMessage, 'leave');
     }
   } catch (err) {
     console.error('❌ Leave card error:', err.message);
