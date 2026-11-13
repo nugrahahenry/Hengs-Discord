@@ -1,8 +1,8 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-11-09
+Updated: 2026-11-14
 
-## Hengs Discord v1.93.0 Welcome and leave reactions (local, not deployed) - 2026-11-09
+## Hengs Discord v1.93.0 Welcome and leave reactions (deployed and accepted) - 2026-11-14
 
 - Welcome and leave handlers now add one reaction after a successful send. New members receive `👋`; members who
   leave receive `🫡`.
@@ -14,14 +14,18 @@ Updated: 2026-11-09
 
 ### Verification
 
-- Targeted community-pack tests pass. The full suite is green apart from one pre-existing Windows symlink permission
-  test blocked by the sandbox, unrelated to this change.
-- Package metadata is aligned at 1.93.0.
-- Cloud remains on the prior deployed checkpoint. No deploy, restart, QR, or live Discord acceptance was performed.
+- Candidate release QA passed 1145 total with 1140 passed and five checkout-only skips. The local Node 24 suite passed
+  1145/1145. Package metadata is aligned at 1.93.0.
+- Release `1.93.0-987a7abdf329` was staged once and accepted by the controlled upgrader. Two fresh health samples
+  passed. WA 0.53.0 and Canox stayed unchanged, with zero service restarts and rollback still available.
+- Post-deploy audit passed with staging absent. The welcome channel has the bot's View, Send, Embed, Attach, History,
+  and Add Reactions permissions. No live member was fabricated for acceptance, so the next real join or leave event is
+  the final visual confirmation.
 
 ### Next step
 
-- Henry can review the local card plus reaction behavior, then explicitly approve a later deployment if desired.
+- Let the next real member join or leave event confirm the visible `👋` or `🫡` reaction. Reaction failure remains
+  fail-soft and logs only `COMMUNITY_REACTION_FAILED`.
 
 ## Hengs Discord v1.92.0 Pekan Playoff H-1 card (committed locally, not pushed, not deployed) - 2026-10-31
 

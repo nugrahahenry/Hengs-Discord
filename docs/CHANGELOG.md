@@ -15,8 +15,10 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Targeted offline suite and syntax checks pass. The full suite reaches 1143 passing tests; one unrelated Windows
-  symlink permission test is blocked by the sandbox. No live Discord event, deploy, restart, or message was triggered.
+- Candidate release QA passed 1145 tests with 1140 passes and five checkout-only skips. The local Node 24 suite passed
+  1145/1145. Cloud acceptance completed with two fresh health samples, WA and Canox unchanged, and staging cleaned.
+- Read-only permission audit confirms Add Reactions in the welcome channel. No live member event was fabricated during
+  deployment; the next real join or leave will visibly confirm the `👋` or `🫡` reaction.
 
 ## [1.92.0] - 2026-10-31
 
