@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { chatPlacement, INTENTS, parseIntent, parseRoute, guideFor, createIntentClassifier, isChatChannelName, askScrimSlots } = require('../src/chat-mode');
+const { chatPlacement, isDirectOperationRoute, INTENTS, parseIntent, parseRoute, guideFor, createIntentClassifier, isChatChannelName, askScrimSlots } = require('../src/chat-mode');
 
 const text = (name, extra = {}) => ({ id: String(800000000000000000n + BigInt(name.length)), type: 0, name, ...extra });
 const thread = (parent) => ({ id: '810000000000000001', type: 11, name: 'diskusi', isThread: () => true, parent });
@@ -35,6 +35,14 @@ test('bot-commands is shared with other bots: Hengs chats there only until a tan
   assert.equal(chatPlacement(after), 'wave');
   assert.equal(chatPlacement({ ...tanya, guild: after.guild }), 'chat');
   assert.equal(chatPlacement(thread({ ...botCommands, guild: after.guild })), 'wave');
+});
+
+test('explicit operation prompts can answer in a wave-only channel, while casual chat still waves', () => {
+  for (const kind of ['operation_questions', 'appreciation_missing', 'ops_draft', 'event_draft']) {
+    assert.equal(isDirectOperationRoute({ handled: true, kind }), true, kind);
+  }
+  assert.equal(isDirectOperationRoute({ handled: true, kind: 'help' }), false);
+  assert.equal(isDirectOperationRoute({ handled: false, kind: 'ops_draft' }), false);
 });
 
 test('only known intents pass; anything odd is plain chat', () => {

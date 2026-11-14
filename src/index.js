@@ -15,7 +15,7 @@ const {
 const fs   = require('node:fs');
 const path = require('node:path');
 const agent = require('./agent');
-const { chatPlacement, createIntentClassifier, guideFor, askScrimSlots, postChatGuide } = require('./chat-mode');
+const { chatPlacement, isDirectOperationRoute, createIntentClassifier, guideFor, askScrimSlots, postChatGuide } = require('./chat-mode');
 const { createChatActions, firstImage, readKirim } = require('./chat-actions');
 const { createCoachQuota } = require('./scrim/coach');
 const state = require('./state');
@@ -574,30 +574,28 @@ client.on(Events.MessageCreate, async (msg) => {
   // elsewhere, so #ngobrol stays a place for people. Public servers keep their own channel policy.
   const place = messageScope.kind === 'home' ? chatPlacement(msg.channel) : 'chat';
   if (place === 'silent') return;
-  if (place === 'wave') { await msg.react('👋').catch(() => {}); return; }
-  if (messageScope.kind === 'public' && !isPublicChannelAllowed(messageScope.config, msg.channelId)) {
-    await msg.reply({
-      content: 'Hengs hanya dapat menjawab di channel yang dipilih pengelola server.',
-      allowedMentions: { parse: [] },
-    });
-    return;
-  }
 
-  // Bersihkan mention dari teks
-  const text = msg.content
-    .replace(/<@!?\d+>/g, '')
-    .trim();
-
+  // Pull the mention out before channel policy is applied. Explicit operations such as appreciation should answer
+  // even when they were typed in shared bot-commands; ordinary chat there still gets the wave-only behavior.
+  const text = msg.content.replace(/<@!?\d+>/g, '').trim();
   if (!text) {
-    await msg.reply({
-      content: 'Ada yang bisa aku bantu? Tulis apa yang mau kamu tanya 😊',
-      allowedMentions: { parse: [] },
-    });
+    if (place === 'wave') { await msg.react('👋').catch(() => {}); return; }
+    await msg.reply({ content: 'Ada yang bisa aku bantu? Tulis apa yang mau kamu tanya 😊', allowedMentions: { parse: [] } });
     return;
   }
   if (text.length > MAX_PROMPT_LENGTH) {
+    await msg.reply({ content: `Prompt terlalu panjang. Batasnya ${MAX_PROMPT_LENGTH} karakter supaya Hengs tetap fokus.`, allowedMentions: { parse: [] } });
+    return;
+  }
+  let promptRoute = null;
+  if (place === 'wave') {
+    const candidate = resolvePrompt({ prompt: text, scopeKind: messageScope.kind, actor: msg, guild: msg.guild, privateReply: false });
+    if (!isDirectOperationRoute(candidate)) { await msg.react('👋').catch(() => {}); return; }
+    promptRoute = candidate;
+  }
+  if (messageScope.kind === 'public' && !isPublicChannelAllowed(messageScope.config, msg.channelId)) {
     await msg.reply({
-      content: `Prompt terlalu panjang. Batasnya ${MAX_PROMPT_LENGTH} karakter supaya Hengs tetap fokus.`,
+      content: 'Hengs hanya dapat menjawab di channel yang dipilih pengelola server.',
       allowedMentions: { parse: [] },
     });
     return;
@@ -623,7 +621,7 @@ client.on(Events.MessageCreate, async (msg) => {
     return;
   }
 
-  const promptRoute = resolvePrompt({
+  promptRoute ||= resolvePrompt({
     prompt: text,
     scopeKind: messageScope.kind,
     actor: msg,
@@ -653,12 +651,14 @@ client.on(Events.MessageCreate, async (msg) => {
             externalId: `${promptRoute.kind === 'project_draft' ? 'prompt-project' : 'prompt-ops'}:${msg.id}`,
           });
           await msg.reply({
-            content: result.created
+            content: result.duplicate
+              ? `ℹ️ Draft apresiasi ini sudah ada di \`bot-settings\` dan masih berstatus **Menunggu persetujuan owner**. Aku tidak membuat duplikat.`
+              : result.created
               ? (promptRoute.kind === 'project_draft'
                 ? 'Rencana tugas proyek privat sudah masuk ke `bot-settings`. Review di sana, lalu owner yang menentukan langkah berikutnya.'
                 : `Draft pengumuman privat sudah masuk ke \`bot-settings\`. Review di sana, lalu owner yang memutuskan publish atau jadwal.${
                   promptRoute.preparedDraft ? ` ${require('./ops/appreciation').TAG_TIP}` : ''}`)
-              : 'Draft dari prompt ini sudah pernah dibuat.',
+              : 'ℹ️ Draft dari prompt ini sudah pernah dibuat.',
             allowedMentions: { parse: [] },
           });
           return;

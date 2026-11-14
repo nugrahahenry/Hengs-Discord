@@ -83,7 +83,9 @@ function extractCapacity(value) {
 function buildOperationQuestions(kind = 'operation') {
   if (kind === 'appreciation') {
     return [
-      '🏆 Yuk, bikin kartu apresiasinya. Klik **Isi kartu apresiasi** di bawah.',
+      '🏆 Yuk, bikin kartu apresiasinya.',
+      '',
+      'Status saat ini: belum ada draft yang disimpan. Klik **Isi kartu apresiasi** di bawah untuk mulai.',
       '',
       '• Isi nama persis yang ingin ditampilkan, misalnya **Hengs Family**. Tidak perlu ditambah kata Tim.',
       '• Tulis pencapaian, nama turnamen, dan tanggalnya. Detail yang belum tahu boleh dikosongkan.',
@@ -91,7 +93,7 @@ function buildOperationQuestions(kind = 'operation') {
       '• Setelah draft jadi, klik **Sertifikat** di preview untuk memilih satu PNG atau JPG, maksimal 8 MB.',
       `• ${TAG_TIP}`,
       '',
-      'Preview masuk ke `bot-settings` dan belum diumumkan. Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.',
+      'Setelah dikirim, preview masuk ke `bot-settings` dengan status **Menunggu persetujuan owner**. Belum diumumkan dan belum masuk Hall of Fame.',
     ].join('\n');
   }
   if (kind === 'project') {

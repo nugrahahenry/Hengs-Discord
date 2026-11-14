@@ -88,6 +88,7 @@ function missingQuestion(data, missing) {
   const { escapeMarkdown } = require('discord.js');
   return [`🏆 Siap bikin kartu apresiasi buat **${escapeMarkdown(data.recipient)}** (${escapeMarkdown(data.achievement)})!`,
     '', ...missing.map(key => `• ${ASK[key]}`), '',
+    'Status: detail awal ini hanya diingat sementara selama 5 menit. Draft belum dibuat.',
     'Klik **Lengkapi detail** untuk mengisi sisanya. Nama dan pencapaian sudah kuisi.',
     'Kalau belum tahu, pilih **Bikin sekarang**. Nanti masih bisa diedit.', '',
     '• Sertifikat bisa ditambahkan dari preview di bot-settings.', `• ${TAG_TIP}`].join('\n');

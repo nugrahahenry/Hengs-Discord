@@ -1,10 +1,11 @@
 'use strict';
 
-// Appreciation details Hengs already has while it asks for the rest (tournament, date, players). In memory for 15
+// Appreciation details Hengs already has while it asks for the rest (tournament, date, players). RAM-only for five
 // minutes and bound to the requester; after a restart the Lengkapi form simply opens empty.
 const crypto = require('node:crypto');
 
-const TTL = 15 * 60_000;
+const TTL = 5 * 60_000;
+const SWEEP_INTERVAL = 5 * 60_000;
 const MAX = 200;
 const pending = new Map();
 
@@ -28,4 +29,7 @@ function recall(key, requesterId, now = Date.now()) {
 
 const forget = key => { pending.delete(key); };
 
-module.exports = { remember, recall, forget };
+const sweepTimer = setInterval(() => sweep(Date.now()), SWEEP_INTERVAL);
+sweepTimer.unref?.();
+
+module.exports = { TTL, SWEEP_INTERVAL, remember, recall, forget, sweep };

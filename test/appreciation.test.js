@@ -12,7 +12,7 @@ const store = require('../src/ops/store');
 const { buildAppreciationDraft, readAppreciationDraft, validateAppreciation, formatAppreciation } = require('../src/ops/appreciation');
 const { appreciationFormRow, appreciationModal, appreciationRevision } = require('../src/ops/appreciation-form');
 const { renderAppreciationCard, cardContent, layoutCard } = require('../src/utils/appreciation-card');
-const { draftPayload, approvalRow, handleButton, handleModal, processDueSchedules } = require('../src/ops/hub');
+const { createDraftPanel, draftPayload, approvalRow, handleButton, handleModal, processDueSchedules } = require('../src/ops/hub');
 const { parseOperationPrompt } = require('../src/prompt-operations');
 const { resolvePrompt } = require('../src/prompt-assistant');
 const OWNER = '123456789012345678';
@@ -479,13 +479,27 @@ test('a competition result without tournament, date or players asks first with t
   assert.equal(parseOperationPrompt('bikin apresiasi Raka karena jadi MVP; momen Campus Cup; tanggal 1 Nov 2026; pemain Raka').kind, 'ops_draft');
 });
 
-test('pending appreciation details expire after 15 minutes and belong to one requester', () => {
+test('pending appreciation details expire after five minutes and belong to one requester', () => {
   const pending = require('../src/ops/appreciation-pending');
   const key = pending.remember(OWNER, { recipient: 'A', achievement: 'juara 2' }, 1000);
   assert.match(key, /^[a-f0-9]{8}$/);
   assert.deepEqual(pending.recall(key, OWNER, 1000 + 60_000), { recipient: 'A', achievement: 'juara 2' });
   assert.equal(pending.recall(key, OTHER, 1000 + 60_000), null);
-  assert.equal(pending.recall(key, OWNER, 1000 + 15 * 60_000), null);
+  assert.equal(pending.recall(key, OWNER, 1000 + 5 * 60_000), null);
+});
+
+test('repeating the same appreciation returns the active panel instead of creating a duplicate', async t => {
+  withEnv(t, { OWNER_ID: OWNER, DISCORD_GUILD_ID: HOME, BOT_SETTINGS_CHANNEL_ID: 'settings' });
+  const { interaction } = fixture();
+  const input = { ...buildAppreciationDraft({ recipient: 'Repeat Team', achievement: 'Juara 1', date: '15 November 2026' }),
+    kind: 'announcement', source: 'discord', createdBy: OWNER, externalId: 'repeat-appreciation-1' };
+  const first = await createDraftPanel(interaction.guild, input);
+  const second = await createDraftPanel(interaction.guild, { ...input, externalId: 'repeat-appreciation-2' });
+  assert.equal(first.created, true);
+  assert.equal(second.created, false);
+  assert.equal(second.duplicate, true);
+  assert.equal(second.draft.id, first.draft.id);
+  t.after(() => store.finalizeDraft(first.draft.id, 'discarded', OWNER));
 });
 
 test('Lengkapi opens the form with what Hengs already has; Bikin sekarang drafts once; both stay with the requester', async t => {

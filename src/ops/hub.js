@@ -289,6 +289,16 @@ async function createDraftPanel(guild, input) {
   if (!findSettingsChannel(guild)) {
     throw new Error('Channel bot-settings tidak ditemukan. Isi BOT_SETTINGS_CHANNEL_ID atau cek nama channel.');
   }
+  // A repeated natural-language request must point at the existing pending card instead of creating a confusing
+  // second panel. Only the same requester and the same canonical appreciation details are considered duplicates.
+  if (input?.createdBy && readAppreciationDraft(input)) {
+    const active = ['pending', 'scheduled', 'publishing', 'revising']
+      .flatMap(status => store.listDraftsByStatus(status))
+      .find(draft => draft.createdBy === String(input.createdBy)
+        && readAppreciationDraft(draft)
+        && draft.title === input.title && draft.body === input.body);
+    if (active) return { draft: active, created: false, duplicate: true };
+  }
   const result = store.createDraft(input);
   if (!result.created) return result;
   try {
@@ -771,8 +781,10 @@ async function handleAppreciationForm(interaction) {
       externalId: `appreciation:${interaction.id}`,
     });
     await interaction.editReply({
-      content: result.created ? `Posternya siap dicek di \`bot-settings\`. Belum diumumkan.\n• Pakai Edit kalau ada detail yang perlu diganti.\n• Klik Sertifikat untuk melampirkan PNG atau JPG.\n• ${TAG_TIP}\n• Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.`
-        : 'Draft dari form ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] },
+      content: result.duplicate
+        ? 'ℹ️ Draft apresiasi ini sudah ada di `bot-settings` dan masih berstatus **Menunggu persetujuan owner**. Aku tidak membuat duplikat.'
+        : result.created ? `Posternya siap dicek di \`bot-settings\`. Statusnya **Menunggu persetujuan owner**.\n• Pakai Edit kalau ada detail yang perlu diganti.\n• Klik Sertifikat untuk melampirkan PNG atau JPG.\n• ${TAG_TIP}\n• Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.`
+          : 'Draft dari form ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] },
     });
   } catch {
     console.warn('[ops] APPRECIATION_DRAFT_FAILED');
@@ -804,8 +816,10 @@ async function handleAppreciationAsk(interaction, action, requester, key) {
       ...buildAppreciationDraft(data), kind: 'announcement', source: 'discord', createdBy: requester,
       externalId: `appreciation-now:${key}`,
     });
-    await interaction.editReply({ content: result.created ? `Posternya siap dicek di \`bot-settings\`. Belum diumumkan.\n• Klik Sertifikat kalau ingin menambahkan gambar aslinya.\n• ${TAG_TIP}\n• Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.`
-      : 'Draft ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] } });
+    await interaction.editReply({ content: result.duplicate
+      ? 'ℹ️ Draft apresiasi ini sudah ada di `bot-settings` dan masih berstatus **Menunggu persetujuan owner**. Aku tidak membuat duplikat.'
+      : result.created ? `Posternya siap dicek di \`bot-settings\`. Statusnya **Menunggu persetujuan owner**.\n• Klik Sertifikat kalau ingin menambahkan gambar aslinya.\n• ${TAG_TIP}\n• Publish mengirim ke pengumuman, bukan otomatis ke Hall of Fame.`
+        : 'Draft ini sudah dibuat. Cek `bot-settings` ya.', allowedMentions: { parse: [] } });
   } catch {
     console.warn('[ops] APPRECIATION_DRAFT_FAILED');
     await interaction.editReply({ content: 'Draft belum bisa dibuat. Pastikan channel privat `bot-settings` tersedia, lalu coba lagi.', allowedMentions: { parse: [] } });

@@ -322,7 +322,9 @@ async function execute(interaction, {
           });
           const settingsChannel = opsHub.findSettingsChannel(interaction.guild);
           await interaction.editReply({
-            content: result.created
+            content: result.duplicate
+              ? 'ℹ️ Draft apresiasi ini sudah ada di `bot-settings` dan masih berstatus **Menunggu persetujuan owner**. Aku tidak membuat duplikat.'
+              : result.created
               ? (promptRoute.kind === 'project_draft'
                 ? `🧭 Rencana tugas **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner menentukan langkah berikutnya.`
                 : `📋 Draft **${result.draft.title}** sudah masuk ke ${settingsChannel || '`bot-settings`'}. Review dulu, lalu owner yang memutuskan publish atau jadwal.${

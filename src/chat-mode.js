@@ -14,6 +14,11 @@ const { slugOf } = require('./guilds/channel-style');
 const named = (name, label) => slugOf(name) === label;
 const isChatChannelName = name => ['tanya-hengs', 'bot-commands', 'bot-settings'].some(label => named(name, label));
 
+// A direct operation request should not disappear behind the friendly wave when a member posts it in the shared
+// bot channel. Casual chat still stays in the dedicated Hengs channel.
+const WAVE_OPERATION_KINDS = new Set(['operation_status', 'operation_questions', 'appreciation_missing', 'ops_draft', 'project_draft', 'event_draft']);
+const isDirectOperationRoute = route => Boolean(route?.handled && WAVE_OPERATION_KINDS.has(route.kind));
+
 const hasTanyaHengs = guild => [...(guild?.channels?.cache?.values?.() || [])].some(c => c?.type === 0 && named(c.name, 'tanya-hengs'));
 
 // chat: full chat mode. coach: hasil-scrim (and its threads). silent: the gallery. wave: everywhere else gets 👋.
@@ -129,5 +134,5 @@ async function postChatGuide(channel) {
   try { await message.pin(); return { posted: true, pinned: true }; } catch { return { posted: true, pinned: false }; }
 }
 
-module.exports = { INTENTS, CLASSIFIER, chatPlacement, isChatChannelName, parseIntent, parseRoute, createIntentClassifier,
+module.exports = { INTENTS, CLASSIFIER, chatPlacement, isChatChannelName, isDirectOperationRoute, parseIntent, parseRoute, createIntentClassifier,
   guideFor, askScrimSlots, chatGuide, postChatGuide };

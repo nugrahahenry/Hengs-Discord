@@ -823,5 +823,5 @@ test('runtime hands mentions in hasil-scrim to the coach before any other prompt
     || source.includes('createScrimResults({ store: createScrimStore(), agent, coachStore: createCoachStore(),\r\n  proPages: esportsPages.pages })'));
   const coachAt = source.indexOf("if (messageScope.kind === 'home' && await scrimResults.coach(msg, text)) return;");
   assert.ok(coachAt > source.indexOf('if (text.length > MAX_PROMPT_LENGTH)'));
-  assert.ok(coachAt < source.indexOf('const promptRoute = resolvePrompt({'));
+  assert.ok(coachAt < source.indexOf('promptRoute ||= resolvePrompt({'));
 });

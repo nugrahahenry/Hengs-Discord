@@ -2,6 +2,17 @@
 
 Updated: 2026-11-14
 
+## Hengs Discord v1.93.1 Appreciation prompt routing and expiry (local, not deployed) - 2026-11-15
+
+- Explicit appreciation and other operation prompts now answer from a shared `bot-commands` channel instead of being
+  mistaken for casual chat and receiving only the 👋 reaction. Ordinary messages there keep the wave-only policy.
+- Temporary appreciation details are RAM-only for five minutes and are swept every five minutes. Persistent cards in
+  `bot-settings` stay until review, publish, or discard. Repeating the same card for the same requester returns the
+  existing active panel instead of creating a duplicate.
+- Focused QA: 61/61 appreciation, routing, and onboarding tests passed. The full suite reached 1145 passes out of 1147
+  tests; one pre-existing Windows symlink permission failure and one existing skip remain unrelated. This checkpoint is
+  local only and not deployed.
+
 ## Hengs Discord v1.93.0 Welcome and leave reactions (deployed and accepted) - 2026-11-14
 
 - Welcome and leave handlers now add one reaction after a successful send. New members receive `👋`; members who
