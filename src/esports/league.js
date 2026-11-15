@@ -29,6 +29,13 @@ function standings(users, { min = 3 } = {}) {
   return rows;
 }
 
+// A public recap also needs to show people who have started guessing but have
+// not reached the three-guess ranking threshold yet. Keep the same ordering as
+// the real leaderboard, while allowing one or two guesses to be visible.
+function participants(users) {
+  return standings(users, { min: 0 });
+}
+
 const champions = table => table.filter(row => row.rank === 1);
 
 function rankOf(users, userId, options) {
@@ -51,4 +58,4 @@ function championCard(event, winners, names, day) {
   };
 }
 
-module.exports = { hotMatchIds, pointsFor, standings, champions, rankOf, championCard };
+module.exports = { hotMatchIds, pointsFor, standings, participants, champions, rankOf, championCard };

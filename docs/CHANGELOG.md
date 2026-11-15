@@ -10,6 +10,23 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Published the Henry-approved Carnage Hengs Juara 2 appreciation card to the existing Hall of Fame channel with the five confirmed member mentions.
 - Attached the appreciation visual and the optimized original certificate, then verified both images after publication.
 
+## [1.94.0] - 2026-11-16
+
+### Fixed
+
+- Draft apresiasi yang tertinggal di status `Sedang dipublikasikan` sekarang dipulihkan ke `Menunggu persetujuan owner` setelah 10 menit bila tidak ada pesan publik dengan marker draft yang cocok.
+
+### Added
+
+- Rekap Liga Tebak sekarang menampilkan pilihan tiap anggota setelah laga selesai.
+- Rekap juga menampilkan peserta yang baru punya satu atau dua tebakan, jadi mereka tidak hilang hanya karena belum mencapai syarat tiga tebakan untuk peringkat.
+
+### Verification
+
+- Focused Ops and Analis tests pass 65/65.
+- Full suite passes 1148 tests with one known Windows symlink-permission failure and one existing skip unrelated to this change.
+- Changed JavaScript files pass syntax checks and `git diff --check`.
+
 ## [1.93.1] - 2026-11-15
 
 ### Fixed

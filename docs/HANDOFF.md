@@ -1,6 +1,22 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-11-15
+Updated: 2026-11-16
+
+## Hengs Discord v1.94.0 draft recovery and Liga Tebak visibility - ready for deploy
+
+- A stale appreciation publish claim with no matching public marker now returns to `pending` after a ten-minute recovery grace period. This fixes old tagged drafts that stayed at `Sedang dipublikasikan` after a process interruption.
+- Daily and event Analis recaps now show each finished pick with the member display name, chosen team, and result. They also show participants below the three-guess ranking threshold.
+- The change is local and committed, but not deployed yet. No live Discord state was changed for this checkpoint.
+
+### Verification
+
+- Focused Ops and Analis tests: 65/65 passed.
+- Full suite: 1148 passed, one known Windows symlink-permission failure, one existing skip.
+- Syntax checks and `git diff --check` passed.
+
+### Next step
+
+- Henry can approve deployment of v1.94.0. After restart, the old stuck draft will be rechecked against the announcements channel and returned to an actionable pending panel only when no matching public message exists.
 
 ## Hall of Fame appreciation publication - Carnage Hengs runner-up - 2026-11-16
 

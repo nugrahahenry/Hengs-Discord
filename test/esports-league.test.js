@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { hotMatchIds, pointsFor, standings, champions, rankOf, championCard } = require('../src/esports/league');
+const { hotMatchIds, pointsFor, standings, participants, champions, rankOf, championCard } = require('../src/esports/league');
 
 const voters = n => Object.fromEntries(Array.from({ length: n }, (_, i) => [`u${i}`, 1]));
 
@@ -41,6 +41,14 @@ test('a member sees their rank, or that they are not ranked yet', () => {
   assert.deepEqual(rankOf(users, 'raka'), { rank: 1, of: 1, entry: users.raka });
   assert.deepEqual(rankOf(users, 'eko'), { rank: null, of: 1, entry: users.eko });
   assert.deepEqual(rankOf(users, 'nobody'), { rank: null, of: 1, entry: null });
+});
+
+test('participants keeps members with fewer than three guesses visible for the recap', () => {
+  const rows = participants({
+    henry: { points: 2, right: 2, votes: 2, hot: 0 },
+    asako: { points: 0, right: 0, votes: 1, hot: 0 },
+  });
+  assert.deepEqual(rows.map(row => [row.user, row.votes]), [['henry', 2], ['asako', 1]]);
 });
 
 test('the champion card names the champions safely, or gives up when no name is left', () => {

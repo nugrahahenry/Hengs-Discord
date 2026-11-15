@@ -29,6 +29,7 @@ let inboxTimer = null;
 let inboxBusy = false;
 let scheduleTimer = null;
 let scheduleBusy = false;
+const PUBLISH_RECOVERY_GRACE_MS = 10 * 60 * 1000;
 
 function isValidDraftId(draftId) {
   return /^(?:[a-f0-9]{12}|[a-f0-9]{16})$/.test(draftId || '');
@@ -937,7 +938,18 @@ async function recoverPublishingDrafts(client) {
         && message.embeds?.some(embed => embed.footer?.text?.includes(marker)),
     );
     if (!publishedMessage && selectedTags(draft).length) {
-      console.warn('[ops] APPRECIATION_RECOVERY_REVIEW_REQUIRED');
+      const startedAt = Date.parse(draft.actionStartedAt || '');
+      const stale = Number.isFinite(startedAt) && Date.now() - startedAt >= PUBLISH_RECOVERY_GRACE_MS;
+      if (!stale) {
+        console.warn('[ops] APPRECIATION_RECOVERY_REVIEW_REQUIRED');
+        continue;
+      }
+      const recovered = store.recoverPublishing(draft.id, 'system', 'appreciation_publish_recovered');
+      if (recovered) {
+        await editStoredPanel(guild, recovered).catch(error =>
+          console.error(`⚠ Ops panel recovery ${draft.id}:`, error.message));
+        console.log(`  ♻️ Draft apresiasi ${draft.id} dikembalikan ke pending setelah timeout publish.`);
+      }
       continue;
     }
     const recovered = publishedMessage

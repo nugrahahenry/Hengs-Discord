@@ -79,6 +79,16 @@ const weekCaption = (event, { stream = null, today = false } = {}) => [
 
 // A Liga Tebak standings row: rank, display name (no ping), points and right guesses.
 const standingLine = (row, names) => `${row.rank}. ${names[row.user] || 'Anggota'} · ${row.points} poin (${row.right} benar dari ${row.votes})`;
+const participantLine = (row, names) => `${names[row.user] || 'Anggota'} · ${row.votes} tebakan · ${row.right} benar · ${row.points} poin`;
+
+function guessLines(matches, votesByMatch = {}, names = {}) {
+  return matches.filter(done).flatMap(match => {
+    const picks = Object.entries(votesByMatch[match.id] || {});
+    if (!picks.length) return [];
+    const label = `${tag(match.teams[0])} vs ${tag(match.teams[1])}`;
+    return picks.map(([user, team]) => `${label} · ${names[user] || 'Anggota'} → ${tag(match.teams[Number(team) - 1])} ${Number(team) === match.winner ? '✅' : '❌'}`);
+  }).slice(0, 30);
+}
 
 // hot: the day's Laga Panas ids; tables: [{ event, rows }] of ranked Liga Tebak rows (league.js), shown top 5.
 function dayRecapData(matches, day, votesByMatch, { hot = new Set(), tables = [], names = {} } = {}) {
@@ -101,6 +111,9 @@ function dayRecapData(matches, day, votesByMatch, { hot = new Set(), tables = []
     ].filter(Boolean) },
     { heading: 'MVP', lines: s.mvps.map(x => `${x.mvp} (${tag(x.match.teams[x.match.winner - 1])})`) },
     ...tables.map(t => ({ heading: `Klasemen sementara ${t.event}`, lines: t.rows.slice(0, 5).map(row => standingLine(row, names)) })),
+    ...tables.map(t => ({ heading: `Yang sudah nebak · ${t.event}`,
+      lines: (t.participants || []).slice(0, 20).map(row => participantLine(row, names)) })),
+    ...(guessLines(matches, votesByMatch, names).length ? [{ heading: 'Tebakan member', lines: guessLines(matches, votesByMatch, names) }] : []),
   ].filter(section => section.lines.length);
   return { title: `Rekap hari ini · ${leagues(matches)}`, date: dayLabel(day), sections };
 }
@@ -108,7 +121,7 @@ const dayCaption = (matches, day, line = null) => `**Rekap ${dayLabel(day)}**: $
   .map(m => `${tag(m.teams[m.winner - 1])} menang ${Math.max(...m.score)}-${Math.min(...m.score)}`).join(', ')}.`}`;
 
 // table: the event's ranked Liga Tebak rows (league.js), shown top 10 under the champions.
-function eventRecapData(state, event, { table = [], names = {} } = {}) {
+function eventRecapData(state, event, { table = [], participants = [], names = {}, votesByMatch = {} } = {}) {
   const { final, matches } = state;
   const s = statsOf(matches, { top: 5 });
   const winner = final.teams[final.winner - 1]; const loser = final.teams[2 - final.winner];
@@ -128,6 +141,10 @@ function eventRecapData(state, event, { table = [], names = {} } = {}) {
       ].filter(Boolean) },
       { heading: 'Klasemen final Liga Tebak', lines: table.length
         ? [`Juara Liga Tebak: ${champs.join(' dan ')}`, ...table.slice(0, 10).map(row => standingLine(row, names))] : [] },
+      ...(participants.length ? [{ heading: 'Yang sudah nebak', lines: participants.slice(0, 20).map(row => participantLine(row, names)) }] : []),
+      ...(guessLines([final], votesByMatch, names).length
+        ? [{ heading: 'Tebakan final', lines: guessLines([final], votesByMatch, names) }]
+        : []),
     ].filter(section => section.lines.length),
   };
 }
@@ -178,4 +195,4 @@ function analisCard(all, now, question = '') {
 }
 
 module.exports = { wibTime, dayLabel, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption,
-  dayRecapData, dayCaption, eventRecapData, eventCaption, factsOf, analisCard, slotName, weekData, weekCaption };
+  guessLines, dayRecapData, dayCaption, eventRecapData, eventCaption, factsOf, analisCard, slotName, weekData, weekCaption };

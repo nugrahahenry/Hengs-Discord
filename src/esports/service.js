@@ -18,7 +18,7 @@ const { seriesPayload, guidePayload, previewPayload, listPayload, weekPayload, l
 const { WATCH, DISCOVER, discoveredEntries } = require('./watch');
 const { wibDay, wibMinutes, previousDay, matchesOf, dayMatches, featured, eventState } = require('./schedule');
 const { voteKey } = require('./predictions');
-const { hotMatchIds, pointsFor, standings, champions, rankOf, championCard } = require('./league');
+const { hotMatchIds, pointsFor, standings, participants, champions, rankOf, championCard } = require('./league');
 const { wibTime, cleanName, previewData, previewCaption, previewHash, compactData, compactCaption, dayRecapData, dayCaption,
   eventRecapData, eventCaption, factsOf, analisCard, weekData, weekCaption } = require('./daily');
 
@@ -279,8 +279,15 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     const votes = store.allVotes(guild.id);
     // Liga Tebak so far for the day's events (at most two), top 5 by display name, and the day's Laga Panas.
     const tables = [...new Set(list.map(m => m.event).filter(Boolean))].slice(0, 2)
-      .map(event => ({ event, key: voteKey(event), rows: standings(store.league(guild.id, event)?.users) })).filter(t => t.rows.length);
-    const names = await memberNames(guild, [...new Set(tables.flatMap(t => t.rows.slice(0, 5).map(row => row.user)))]);
+      .map(event => {
+        const users = store.league(guild.id, event)?.users || {};
+        return { event, key: voteKey(event), rows: standings(users), participants: participants(users) };
+      }).filter(t => t.rows.length || t.participants.length);
+    const voteIds = list.flatMap(match => Object.keys(votes[match.id] || {}));
+    const names = await memberNames(guild, [...new Set([
+      ...tables.flatMap(t => [...t.rows.slice(0, 5), ...t.participants.slice(0, 20)].map(row => row.user)),
+      ...voteIds,
+    ])]);
     const hot = hotMatchIds(list.filter(m => m.startAt <= now()), votes);
     await send(guild, channel, 'Rekap harian Analis', key, async () => {
       const data = dayRecapData(list, day, votes, { hot, tables, names });
@@ -306,10 +313,17 @@ function createEsportsService({ guildAccess, store = createEsportsStore(), liqui
     const state = eventState(all, event);
     if (!state.complete || !state.final.startAt || now() - state.final.startAt > POST_WINDOW) return;
     store.claimDaily(guild.id, key);
-    const table = standings(store.league(guild.id, event)?.users);
-    const names = await memberNames(guild, table.slice(0, 10).map(row => row.user));
+    const votes = store.allVotes(guild.id);
+    const users = store.league(guild.id, event)?.users || {};
+    const table = standings(users);
+    const allParticipants = participants(users);
+    const names = await memberNames(guild, [...new Set([
+      ...table.slice(0, 10).map(row => row.user),
+      ...allParticipants.slice(0, 20).map(row => row.user),
+      ...Object.keys(votes[state.final.id] || {}),
+    ])]);
     await send(guild, channel, 'Rekap event Analis', key, async () => {
-      const data = eventRecapData(state, event, { table, names });
+      const data = eventRecapData(state, event, { table, participants: allParticipants, names, votesByMatch: votes });
       const winners = champions(table).map(row => names[row.user] || 'Anggota');
       return listPayload(await renderList(data), `Rekap ${event}`, eventCaption(state, event, await line('event', data, all), winners),
         ligaRows(table.length ? [{ event, key: voteKey(event) }] : []));

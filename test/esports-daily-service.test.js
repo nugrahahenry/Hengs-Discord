@@ -195,8 +195,10 @@ test('Liga Tebak scores a day once all its matches started, doubles the Laga Pan
   const recap = r.lists.at(-1);
   assert.deepEqual(recap.sections[0].lines.filter(line => line.startsWith('Laga Panas')),
     ['Laga Panas: ONIC vs RRQ (4 penebak, poin dobel)', 'Laga Panas: RRQ vs EVOS (4 penebak, poin dobel)']);
-  assert.deepEqual(recap.sections.at(-1), { heading: `Klasemen sementara ${EVENT}`,
+  assert.deepEqual(recap.sections.find(section => section.heading === `Klasemen sementara ${EVENT}`), { heading: `Klasemen sementara ${EVENT}`,
     lines: ['1. Uno · 5 poin (3 benar dari 3)', '2. Henry · 4 poin (2 benar dari 3)', '3. Dua · 3 poin (2 benar dari 3)'] });
+  assert.match(recap.sections.find(section => section.heading === `Yang sudah nebak · ${EVENT}`).lines.join('\n'), /Empat · 2 tebakan/);
+  assert.match(recap.sections.find(section => section.heading === 'Tebakan member').lines.join('\n'), /Henry → ONIC/);
   const buttons = JSON.stringify(r.sent.at(-1).components);
   assert.match(buttons, new RegExp(`hengs-analis:liga:${voteKey(EVENT)}`)); assert.match(buttons, /Lihat posisiku/);
 });
@@ -219,7 +221,7 @@ test('after the grand final the champion gets one appreciation draft and the rot
   const r = rig(t, dayOf(DONE), { now: at(9), people: { ...PEOPLE, u9: 'Lama' } });
   voteDay(r); r.store.setLeagueRole(GUILD, { roleId: 'r0', holders: ['u9'] });
   r.clock.now = at(21); await r.service.tick(); await r.service.tick(); await r.service.tick();
-  const final = r.lists.at(-1).sections.at(-1);
+  const final = r.lists.at(-1).sections.find(section => section.heading === 'Klasemen final Liga Tebak');
   assert.equal(final.heading, 'Klasemen final Liga Tebak');
   assert.deepEqual(final.lines.slice(0, 2), ['Juara Liga Tebak: Uno', '1. Uno · 5 poin (3 benar dari 3)']);
   const card = JSON.stringify(r.sent.at(-1).components);

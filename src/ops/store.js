@@ -182,6 +182,23 @@ function releasePublish(id) {
   return draft;
 }
 
+// A process can die after the publish claim but before Discord confirms the send.
+// Recovery callers must first check the destination for the draft marker. This
+// transition only clears the local lock so the owner can review and publish again.
+function recoverPublishing(id, userId = 'system', reason = 'publish_recovered') {
+  const state = readState();
+  const draft = state.drafts.find(item => item.id === id);
+  if (!draft || draft.status !== 'publishing') return null;
+  const nextStatus = draft.publishOriginStatus === 'scheduled' && draft.schedule ? 'scheduled' : 'pending';
+  draft.status = nextStatus;
+  draft.actionStartedAt = null;
+  draft.actionBy = null;
+  draft.publishOriginStatus = null;
+  appendAudit(state, draft.id, reason, userId);
+  writeState(state);
+  return draft;
+}
+
 function scheduleDraft(id, userId, scheduledAt, nowMs = Date.now()) {
   const timestamp = Date.parse(scheduledAt);
   if (!Number.isFinite(timestamp) || timestamp <= nowMs) {
@@ -514,6 +531,7 @@ module.exports = {
   removeDraft,
   claimPublish,
   releasePublish,
+  recoverPublishing,
   scheduleDraft,
   cancelSchedule,
   listDueSchedules,

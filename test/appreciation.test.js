@@ -455,6 +455,20 @@ test('manual publication remains owner-only and duplicate clicks publish graphic
   assert.equal(store.getDraft(draft.id).status, 'published');
 });
 
+test('a stale tagged publish claim can be recovered to pending after a restart', () => {
+  const { draft } = store.createDraft({ ...template, appreciationTags: undefined });
+  store.claimPublish(draft.id, OWNER);
+  const statePath = path.join(dir, 'ops-state.json');
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  state.drafts.find(item => item.id === draft.id).actionStartedAt = new Date(Date.now() - 15 * 60_000).toISOString();
+  fs.writeFileSync(statePath, JSON.stringify(state));
+  const recovered = store.recoverPublishing(draft.id, 'system', 'appreciation_publish_recovered');
+  assert.equal(recovered.status, 'pending');
+  assert.equal(store.getDraft(draft.id).actionStartedAt, null);
+  assert.equal(store.getAuditHistory(1)[0].action, 'appreciation_publish_recovered');
+  store.finalizeDraft(draft.id, 'discarded', OWNER);
+});
+
 test('scheduled publication retains graphic and exactly-once claims', async t => {
   withEnv(t, { OWNER_ID: OWNER, ANNOUNCE_CHANNEL_ID: 'announcements', DISCORD_GUILD_ID: HOME });
   const { draft } = store.createDraft({ ...template });
