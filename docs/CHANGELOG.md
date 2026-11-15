@@ -5,6 +5,11 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ## [Unreleased]
 
+### Operations
+
+- Published the Henry-approved Carnage Hengs Juara 2 appreciation card to the existing Hall of Fame channel with the five confirmed member mentions.
+- Attached the appreciation visual and the optimized original certificate, then verified both images after publication.
+
 ## [1.93.1] - 2026-11-15
 
 ### Fixed

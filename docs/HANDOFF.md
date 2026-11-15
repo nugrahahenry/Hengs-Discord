@@ -2,6 +2,20 @@
 
 Updated: 2026-11-15
 
+## Hall of Fame appreciation publication - Carnage Hengs runner-up - 2026-11-16
+
+- Henry-authorized live publication completed in the existing `🏆・hall-of-fame` channel.
+- The card records `Carnage Hengs`, Juara 2, `C1ndy Organizer Tournament Online Season 003`, dated 14 November 2026.
+- The confirmed five-player roster was rendered as a point list and each resolved Discord member was mentioned exactly once.
+- The appreciation card and optimized certificate attachment were both uploaded and re-fetched successfully for verification.
+- No bot restart, permission change, command reset, or second channel was used. Temporary operator staging was removed after verification.
+
+### Verification
+
+- Preflight found exactly one Hall of Fame channel, zero matching duplicate publications, and exactly one member match for each of the five supplied roster entries.
+- Live result: `HALL_PUBLISHED_VERIFIED`, five member mentions, two images, certificate hash verified, restart false, staging cleanup successful.
+- The first payload attempt was rejected by Discord because the optional nonce field was invalid; the field was removed before the successful single publication. No duplicate message was created.
+
 ## Hengs Discord v1.93.1 Appreciation prompt routing and expiry (deployed and accepted) - 2026-11-15
 
 - Explicit appreciation and other operation prompts now answer from a shared `bot-commands` channel instead of being
