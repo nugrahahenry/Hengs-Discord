@@ -18,7 +18,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Suite apresiasi, routing channel, dan onboarding lulus 61/61. Full suite mencapai 1145 pass dari 1147 test;
   satu kegagalan lama pada symlink Windows tetap tidak terkait perubahan ini dan satu test lama tetap skip. Syntax check
-  untuk modul yang berubah lulus.
+  untuk modul yang berubah lulus. Candidate release QA lulus 1147 test dengan 1142 pass dan lima checkout-only skip.
+- Cloud acceptance lulus dengan dua heartbeat fresh, WhatsApp dan Canox tidak berubah, zero restart, staging bersih,
+  dan rollback ke v1.93.0 tersedia.
 
 ## [1.93.0] - 2026-11-09
 

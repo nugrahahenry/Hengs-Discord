@@ -1,17 +1,22 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-11-14
+Updated: 2026-11-15
 
-## Hengs Discord v1.93.1 Appreciation prompt routing and expiry (local, not deployed) - 2026-11-15
+## Hengs Discord v1.93.1 Appreciation prompt routing and expiry (deployed and accepted) - 2026-11-15
 
 - Explicit appreciation and other operation prompts now answer from a shared `bot-commands` channel instead of being
   mistaken for casual chat and receiving only the 👋 reaction. Ordinary messages there keep the wave-only policy.
 - Temporary appreciation details are RAM-only for five minutes and are swept every five minutes. Persistent cards in
   `bot-settings` stay until review, publish, or discard. Repeating the same card for the same requester returns the
   existing active panel instead of creating a duplicate.
-- Focused QA: 61/61 appreciation, routing, and onboarding tests passed. The full suite reached 1145 passes out of 1147
-  tests; one pre-existing Windows symlink permission failure and one existing skip remain unrelated. This checkpoint is
-  local only and not deployed.
+- Focused QA: 61/61 appreciation, routing, and onboarding tests passed. The candidate release QA passed 1147 tests with
+  1142 passes and five checkout-only skips. Cloud acceptance completed with two fresh health samples, WA and Canox
+  unchanged, zero service restarts, staging absent, and rollback to v1.93.0 available.
+
+### Verification
+
+- Release `1.93.1-0efa60507f18` is active as the single Discord consumer. Audit returned
+  `CLOUD_AUDIT=PASS DC=1.93.1 WA=0.53.0 HEALTH=FRESH SINGLE_CONSUMER=YES CANOX=UNCHANGED RESTARTS=ZERO STAGING=ABSENT ROLLBACK=AVAILABLE`.
 
 ## Hengs Discord v1.93.0 Welcome and leave reactions (deployed and accepted) - 2026-11-14
 
