@@ -1,8 +1,18 @@
 # Hengs Discord Bot - Handoff
 
-Updated: 2026-11-16
+Updated: 2026-11-20
 
-## Hengs Discord v1.94.0 draft recovery and Liga Tebak visibility - ready for deploy
+## Hengs Discord v1.94.1 safe recovery deployment checkpoint
+
+- Henry approved Discord deployment. WA and Canox are out of mutation scope.
+- Preflight confirmed Discord 1.93.1 and WA 0.53.0 connected/fresh, single consumers, zero restarts, Canox unchanged, staging absent.
+- Pre-deploy review caught an unsafe v1.94.0 assumption: missing from the latest 100 messages does not establish a failed publication. Recovery now reads at most ten pages, checks history permission and coverage before the claim, and holds incomplete or failed checks for review.
+- Recovered claims always return to manual `pending` with no schedule, preventing automatic replay of interrupted scheduled posts. Existing receipts finalize without sending again.
+- Focused appreciation/Ops QA passes 58/58. Full local suite passes 1156/1156 on Node 24 after syncing the pinned release test metadata. Candidate Linux/Node 22 QA remains a deployment gate. No live publication or data reset was performed.
+- Source checkpoint subject: `fix(ops): Hengs Discord v1.94.1 - bound publish recovery and prevent replay`.
+- Next gate: committed source archive, controlled Discord-only deployment, two fresh moving heartbeats and isolation audit. Deployment is not yet accepted.
+
+## Hengs Discord v1.94.0 draft recovery and Liga Tebak visibility - superseded by v1.94.1
 
 - A stale appreciation publish claim with no matching public marker now returns to `pending` after a ten-minute recovery grace period. This fixes old tagged drafts that stayed at `Sedang dipublikasikan` after a process interruption.
 - Daily and event Analis recaps now show each finished pick with the member display name, chosen team, and result. They also show participants below the three-guess ranking threshold.

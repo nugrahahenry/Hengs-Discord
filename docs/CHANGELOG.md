@@ -10,6 +10,19 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Published the Henry-approved Carnage Hengs Juara 2 appreciation card to the existing Hall of Fame channel with the five confirmed member mentions.
 - Attached the appreciation visual and the optimized original certificate, then verified both images after publication.
 
+## [1.94.1] - 2026-11-20
+
+### Fixed
+
+- Startup publication recovery now checks bounded message history back to the claim time instead of treating absence from the latest 100 messages as proof of a failed send.
+- Missing history permission, incomplete history, fetch failures, and fresh claims stay locked for review. Existing publication receipts finalize the draft without sending again.
+- Interrupted scheduled publications return to manual owner approval, never automatic replay.
+
+### Verification
+
+- Focused appreciation and Ops suite passes 58/58, including six new recovery and replay-safety tests.
+- Full local Node 24 suite passes 1156/1156. Linux Node 22 candidate acceptance is checked separately before activation.
+
 ## [1.94.0] - 2026-11-16
 
 ### Fixed

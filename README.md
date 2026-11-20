@@ -2,8 +2,9 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.94.0 (local, not deployed): stale appreciation publish claims recover to an
-actionable pending draft after ten minutes without a matching public message. Liga Tebak recaps now show each finished
+**Current checkpoint:** Hengs Discord v1.94.1: startup recovery checks up to 1,000 destination messages for a public
+receipt before reopening stale drafts. Incomplete history keeps the claim locked. Recovered drafts require owner approval,
+including interrupted scheduled posts, so recovery never automatically resends or pings members. Liga Tebak recaps show each finished
 pick by display name and participants who have not reached three guesses yet. Builds on v1.93.0: welcome and leave
 events add a small one-tap reaction, `👋` for a new member and `🫡` for a member who leaves. The reaction is best-effort,
 so a missing Add Reactions permission never blocks the card or onboarding message. Builds on v1.92.0: the evening before an event's first match day

@@ -10,6 +10,7 @@ const {
   TextInputStyle,
   UserSelectMenuBuilder,
   escapeMarkdown,
+  PermissionFlagsBits,
 } = require('discord.js');
 const store = require('./store');
 const { formatWib, parseScheduleInput } = require('./time');
@@ -20,6 +21,7 @@ const { selectedTags, validateMembers } = require('./appreciation-tags');
 const { appreciationModal, appreciationRevision } = require('./appreciation-form');
 const { renderAppreciationCard } = require('../utils/appreciation-card');
 const certificate = require('./appreciation-certificate');
+const { inspectPublishHistory } = require('./publish-recovery');
 
 const DATA_DIR = process.env.OPS_DATA_DIR
   ? path.resolve(process.env.OPS_DATA_DIR)
@@ -29,7 +31,6 @@ let inboxTimer = null;
 let inboxBusy = false;
 let scheduleTimer = null;
 let scheduleBusy = false;
-const PUBLISH_RECOVERY_GRACE_MS = 10 * 60 * 1000;
 
 function isValidDraftId(draftId) {
   return /^(?:[a-f0-9]{12}|[a-f0-9]{16})$/.test(draftId || '');
@@ -923,41 +924,24 @@ async function recoverPublishingDrafts(client) {
     return;
   }
 
-  let recent;
-  try {
-    recent = await channel.messages.fetch({ limit: 100 });
-  } catch (error) {
-    console.error('⚠ Ops recovery gagal membaca announcements:', error.message);
+  const permissions = channel.permissionsFor(client.user);
+  if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory])) {
+    console.warn('[ops] PUBLISH_RECOVERY_HISTORY_UNAVAILABLE');
     return;
   }
 
   for (const draft of publishing) {
-    const marker = `Draft ID: ${draft.id}`;
-    const publishedMessage = recent.find(message =>
-      message.author?.id === client.user?.id
-        && message.embeds?.some(embed => embed.footer?.text?.includes(marker)),
-    );
-    if (!publishedMessage && selectedTags(draft).length) {
-      const startedAt = Date.parse(draft.actionStartedAt || '');
-      const stale = Number.isFinite(startedAt) && Date.now() - startedAt >= PUBLISH_RECOVERY_GRACE_MS;
-      if (!stale) {
-        console.warn('[ops] APPRECIATION_RECOVERY_REVIEW_REQUIRED');
-        continue;
-      }
-      const recovered = store.recoverPublishing(draft.id, 'system', 'appreciation_publish_recovered');
-      if (recovered) {
-        await editStoredPanel(guild, recovered).catch(error =>
-          console.error(`⚠ Ops panel recovery ${draft.id}:`, error.message));
-        console.log(`  ♻️ Draft apresiasi ${draft.id} dikembalikan ke pending setelah timeout publish.`);
-      }
+    const evidence = await inspectPublishHistory(channel, draft, client.user.id);
+    if (evidence.status === 'review') {
+      console.warn('[ops] PUBLISH_RECOVERY_REVIEW_REQUIRED');
       continue;
     }
-    const recovered = publishedMessage
+    const recovered = evidence.status === 'published'
       ? store.finalizeDraft(draft.id, 'published', draft.actionBy || process.env.OWNER_ID, {
           channelId: channel.id,
-          messageId: publishedMessage.id,
+          messageId: evidence.messageId,
         })
-      : store.releasePublish(draft.id);
+      : store.recoverPublishing(draft.id, 'system', 'publish_recovered');
     if (recovered) {
       await editStoredPanel(guild, recovered).catch(error =>
         console.error(`⚠ Ops panel recovery ${draft.id}:`, error.message));
@@ -1103,6 +1087,7 @@ module.exports = {
   // Pure helper diekspor untuk test kontrak inbox tanpa menjalankan bot.
   normalizeCanoxEntries,
   recoverStaleCanoxInbox,
+  recoverPublishingDrafts,
   refreshPendingDraftPanels,
   processDueSchedules,
   isValidDraftId,

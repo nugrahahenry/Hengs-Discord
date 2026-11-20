@@ -72,6 +72,19 @@ test('failed publish can return to pending and discard wins only once', () => {
   assert.equal(store.finalizeDraft(draft.id, 'discarded', 'owner-1'), null);
 });
 
+test('startup recovery returns an interrupted scheduled send to manual review, never automatic replay', () => {
+  const { draft } = store.createDraft({ title: 'Recovery', body: 'Review before sending.' });
+  const now = Date.now();
+  store.scheduleDraft(draft.id, 'owner-1', new Date(now + 60_000).toISOString(), now);
+  store.claimScheduledPublish(draft.id, now + 61_000);
+  const recovered = store.recoverPublishing(draft.id);
+  assert.equal(recovered.status, 'pending');
+  assert.equal(recovered.schedule, null);
+  assert.equal(store.claimScheduledPublish(draft.id, now + 120_000), null);
+  assert.equal(store.recoverPublishing(draft.id), null);
+  store.finalizeDraft(draft.id, 'discarded', 'owner-1');
+});
+
 test('project drafts keep a bounded kind without changing approval flow', () => {
   const { draft } = store.createDraft({
     title: 'Landing page',

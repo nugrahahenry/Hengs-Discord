@@ -189,8 +189,8 @@ function recoverPublishing(id, userId = 'system', reason = 'publish_recovered') 
   const state = readState();
   const draft = state.drafts.find(item => item.id === id);
   if (!draft || draft.status !== 'publishing') return null;
-  const nextStatus = draft.publishOriginStatus === 'scheduled' && draft.schedule ? 'scheduled' : 'pending';
-  draft.status = nextStatus;
+  draft.status = 'pending';
+  draft.schedule = null;
   draft.actionStartedAt = null;
   draft.actionBy = null;
   draft.publishOriginStatus = null;
