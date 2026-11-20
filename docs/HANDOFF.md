@@ -2,15 +2,21 @@
 
 Updated: 2026-11-20
 
-## Hengs Discord v1.94.1 safe recovery deployment checkpoint
+## Hengs Discord v1.94.1 safe recovery - deployed and accepted
 
 - Henry approved Discord deployment. WA and Canox are out of mutation scope.
 - Preflight confirmed Discord 1.93.1 and WA 0.53.0 connected/fresh, single consumers, zero restarts, Canox unchanged, staging absent.
 - Pre-deploy review caught an unsafe v1.94.0 assumption: missing from the latest 100 messages does not establish a failed publication. Recovery now reads at most ten pages, checks history permission and coverage before the claim, and holds incomplete or failed checks for review.
 - Recovered claims always return to manual `pending` with no schedule, preventing automatic replay of interrupted scheduled posts. Existing receipts finalize without sending again.
-- Focused appreciation/Ops QA passes 58/58. Full local suite passes 1156/1156 on Node 24 after syncing the pinned release test metadata. Candidate Linux/Node 22 QA remains a deployment gate. No live publication or data reset was performed.
+- Focused appreciation/Ops QA passes 58/58. Full local suite passes 1156/1156 on Node 24 after syncing the pinned release test metadata. Candidate Linux/Node 22 QA passed 1156 total, 1151 passed, five expected checkout-only skips. No live publication or data reset was performed.
 - Source checkpoint subject: `fix(ops): Hengs Discord v1.94.1 - bound publish recovery and prevent replay`.
-- Next gate: committed source archive, controlled Discord-only deployment, two fresh moving heartbeats and isolation audit. Deployment is not yet accepted.
+- Source commit `e8afdc0da870`, immutable release `1.94.1-e8afdc0da870`, archive SHA-256 `e6f05a2cade51e3e5e56045753c941449eafa5567d8448d2e05e7385ea0873e2`. Source pushed to origin/main. Git used Windows Schannel trust after the default CA store rejected the issuer; TLS verification stayed enabled.
+- Controlled deployment accepted with two fresh moving heartbeats, single Discord consumer, zero service restarts, WA/Canox/news unchanged, staging absent. Rollback release `1.93.1-0efa60507f18` remains available. The first transfer failed before any bot change; one retry completed with matching hashes.
+- Read-only Discord API verification confirmed the screenshot's stuck appreciation draft is now `pending` and its Publish button is enabled. No new appreciation post or mention was sent for acceptance.
+- Helpers live under ignored `.cloud/automation/deploy-v1941/`; local QA output is ignored `.cloud/qa-v1.94.1-final.tap`. Live bounded receipt is `/var/lib/hengs-discord-diagnostics/deploy-v1.94.1.status`.
+- Final audit: `CLOUD_AUDIT=PASS DC=1.94.1 WA=0.53.0 HEALTH=FRESH SINGLE_CONSUMER=YES CANOX=UNCHANGED RESTARTS=ZERO STAGING=ABSENT ROLLBACK=AVAILABLE`.
+- Next step: Henry can review and approve the existing draft in bot-settings. New Analis recaps include finished picks and below-threshold participants; historical messages are not automatically reposted. No Discord gateway was started locally.
+- Acceptance checkpoint subject: `docs(ops): Hengs Discord v1.94.1 - record cloud acceptance`.
 
 ## Hengs Discord v1.94.0 draft recovery and Liga Tebak visibility - superseded by v1.94.1
 

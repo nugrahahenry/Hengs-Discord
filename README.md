@@ -2,7 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.94.1: startup recovery checks up to 1,000 destination messages for a public
+**Current checkpoint:** Hengs Discord v1.94.1 (deployed and accepted): startup recovery checks up to 1,000 destination messages for a public
 receipt before reopening stale drafts. Incomplete history keeps the claim locked. Recovered drafts require owner approval,
 including interrupted scheduled posts, so recovery never automatically resends or pings members. Liga Tebak recaps show each finished
 pick by display name and participants who have not reached three guesses yet. Builds on v1.93.0: welcome and leave

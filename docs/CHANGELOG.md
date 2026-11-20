@@ -21,7 +21,9 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 ### Verification
 
 - Focused appreciation and Ops suite passes 58/58, including six new recovery and replay-safety tests.
-- Full local Node 24 suite passes 1156/1156. Linux Node 22 candidate acceptance is checked separately before activation.
+- Full local Node 24 suite passes 1156/1156. Linux Node 22 candidate suite passes 1151 with five expected checkout-only skips.
+- Cloud deployment accepted with two fresh moving health samples, zero service restarts, WA/Canox/news unchanged, staging removed, and rollback available.
+- Read-only live verification confirms the previously stuck appreciation draft is pending with its Publish button enabled. No duplicate publication or mention was sent.
 
 ## [1.94.0] - 2026-11-16
 
