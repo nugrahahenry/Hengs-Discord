@@ -32,6 +32,10 @@ test('meme and vision completions send bounded JSON requests and map provider fa
   assert.doesNotMatch(bodies[2].messages[0].content, /tokoh publik/);
   await review({ data: PNG, type: 'image/png' }, { strict: true });
   assert.match(bodies[3].messages[0].content, /tokoh publik/);
+  await review({ data: PNG, type: 'image/png' }, { mode: 'blind-meme' });
+  assert.equal(review.supportsBlindMeme, true);
+  assert.equal(bodies[4].max_tokens, 240);
+  assert.match(bodies[4].messages[0].content, /tanpa memakai tema/);
   assert.equal(createVisionReview({}), null); assert.equal(createMemeCompletion({}), null); assert.equal(createMemeJudge({}), null);
   const limited = createMemeCompletion({ client: { chat: { completions: { create: async () => {
     throw Object.assign(new Error('x'), { status: 429 }); } } } }, model: 'm' });
@@ -39,10 +43,10 @@ test('meme and vision completions send bounded JSON requests and map provider fa
 });
 
 const { TEMPLATES, EVERGREEN, MEME_SYSTEM, memegenUrl, validMeme, validOptions, judgedBest, offerTemplates, pickTopic, parseLemmy,
-  safeVerdict, imageKind, memeHash, createTemplateRanker, createMemeMaker } = require('../src/news/memes');
+  safeVerdict, blindMemeVerdict, imageKind, memeHash, createTemplateRanker, createMemeMaker } = require('../src/news/memes');
 const drake = TEMPLATES.find(row => row.id === 'drake');
 const option = (lines = ['nugas H-1 jam 23.59', 'nugas dari awal minggu?'], extra = {}) => ({ template: 'drake', lines, ...extra });
-const score = (nyambung, lucu, bahasa) => ({ nyambung, lucu, bahasa });
+const score = (nyambung, natural, terbaca, lucu, bahasa) => ({ nyambung, natural, terbaca, lucu, bahasa });
 
 test('memegen URLs follow the documented escaping', () => {
   assert.equal(memegenUrl('drake', ['nugas H-1 jam 23.59', 'nugas dari awal minggu?']),
@@ -89,6 +93,8 @@ test('the writer asks for five options in known Indonesian meme formats with a t
   assert.match(MEME_SYSTEM, /tepat 5 opsi/);
   assert.match(MEME_SYSTEM, /Seumur hidup/);
   assert.match(MEME_SYSTEM, /twist/);
+  assert.match(MEME_SYSTEM, /perilaku yang benar-benar terjadi/);
+  assert.match(MEME_SYSTEM, /Kalau nama tema dihapus/);
   const five = Array.from({ length: 6 }, (_, i) => option([`nugas H-${i + 1} jam 23.59`, 'nugas dari awal minggu?']));
   assert.equal(validOptions(JSON.stringify({ options: five }), [drake]).length, 5);
 });
@@ -102,18 +108,18 @@ test('Hengs memes come from everyday situations, never news headlines, and do no
   assert.notEqual(pickTopic({ seen: [{ hash: memeHash(first.key), at: NOW }], receipts: [] }, DAYKEY, 0).key, first.key);
 });
 
-test('the judge must score every option, and only an option at 7 or more on all three counts is posted', () => {
+test('the judge must score every option, and only an option meeting naturalness and readability gates is posted', () => {
   const options = [validMeme(option(), [drake]), validMeme(option(['Belajar dari jauh hari', 'Sistem kebut semalam']), [drake])];
   const verdict = scores => JSON.stringify({ scores });
-  assert.equal(judgedBest(verdict([score(8, 7, 9), score(9, 9, 9)]), options), options[1]);
-  assert.equal(judgedBest(verdict([score(9, 9, 9), score(9, 6, 9)]), options), options[0]);
+  assert.equal(judgedBest(verdict([score(8, 8, 8, 7, 9), score(9, 9, 9, 9, 9)]), options), options[1]);
+  assert.equal(judgedBest(verdict([score(9, 9, 9, 9, 9), score(9, 9, 7, 9, 9)]), options), options[0]);
   // The CPU or deadline meme: fluent, but the two buttons are no real dilemma.
-  assert.equal(judgedBest(verdict([score(2, 6, 9), score(9, 9, 6)]), options), null);
-  // Henry does not want dry memes: humour needs 8, so a merely okay joke loses to a funny one.
-  assert.equal(judgedBest(verdict([score(10, 7, 10), score(7, 8, 7)]), options), options[1]);
-  assert.equal(judgedBest(verdict([score(10, 7, 10), score(9, 7, 9)]), options), null);
-  for (const raw of [verdict([score(9, 9, 9)]), verdict([score(9, 9, 9), score(9, 9, 11)]),
-    verdict([score(9, 9, 9), { nyambung: '9', lucu: 9, bahasa: 9 }]), 'nope', '{}']) {
+  assert.equal(judgedBest(verdict([score(2, 8, 8, 6, 9), score(9, 9, 9, 9, 6)]), options), null);
+  // Henry does not want dry or ambiguous memes: humour, naturalness, and readability need 8.
+  assert.equal(judgedBest(verdict([score(10, 9, 9, 7, 10), score(8, 8, 8, 8, 8)]), options), options[1]);
+  assert.equal(judgedBest(verdict([score(10, 8, 7, 9, 10), score(9, 8, 8, 7, 9)]), options), null);
+  for (const raw of [verdict([score(9, 9, 9, 9, 9)]), verdict([score(9, 9, 9, 9, 11)]),
+    verdict([score(9, 9, 9, 9, 9), { nyambung: '9', natural: 9, terbaca: 9, lucu: 9, bahasa: 9 }]), 'nope', '{}']) {
     assert.equal(judgedBest(raw, options), null, raw);
   }
 });
@@ -138,6 +144,10 @@ test('Lemmy posts keep only fresh, safe, scored pictrs images ranked by the hot 
 test('vision verdicts must be exactly {"safe":true} and images are recognised by their bytes', () => {
   assert.equal(safeVerdict('{"safe":true}'), true);
   for (const raw of ['{"safe":false}', '{"safe":true,"reason":"ok"}', '{"safe":"true"}', 'safe', '', null]) assert.equal(safeVerdict(raw), false);
+  assert.equal(blindMemeVerdict('{"safe":true,"understood":8,"natural":8,"funny":9,"readable":8}'), true);
+  for (const raw of ['{"safe":true,"understood":7,"natural":9,"funny":9,"readable":9}',
+    '{"safe":true,"understood":8,"natural":8,"funny":8}', '{"safe":false,"understood":10,"natural":10,"funny":10,"readable":10}',
+    '{"safe":true,"understood":8,"natural":8,"funny":8,"readable":8,"extra":1}', 'nope']) assert.equal(blindMemeVerdict(raw), false);
   assert.equal(imageKind(PNG), 'png'); assert.equal(imageKind(JPG), 'jpg');
   assert.equal(imageKind(Buffer.from('RIFF0000WEBPVP8 ')), 'webp'); assert.equal(imageKind(Buffer.from('<svg>')), null);
 });
@@ -167,7 +177,7 @@ function maker(overrides = {}) {
     judgeMeme: async messages => {
       calls.judge++;
       calls.judged = JSON.parse(messages[1].content);
-      return JSON.stringify({ scores: [score(8, 8, 9), score(3, 2, 6)] });
+      return JSON.stringify({ scores: [score(8, 8, 8, 8, 9), score(3, 3, 3, 2, 6)] });
     },
     reviewImage: async () => { calls.review++; return '{"safe":true}'; },
     fetchBytes: async url => {
@@ -203,8 +213,23 @@ test('even slots post the option the judge rates best, about an everyday situati
   assert.ok(calls.judged.options.every(row => row.arti));
 });
 
+test('a vision-capable reviewer must approve the rendered meme without context', async () => {
+  const review = async (_, options = {}) => options.mode === 'blind-meme'
+    ? '{"safe":true,"understood":9,"natural":8,"funny":8,"readable":9}' : '{"safe":true}';
+  review.supportsBlindMeme = true;
+  const { meme, calls } = maker({ reviewImage: review });
+  const item = await meme.make({ row: empty, slot: 0 });
+  assert.equal(item.kind, 'hengs');
+  assert.equal(calls.review, 0); // override intentionally bypasses the maker's safety-only counter
+  const rejected = async (_, options = {}) => options.mode === 'blind-meme'
+    ? '{"safe":true,"understood":9,"natural":7,"funny":10,"readable":9}' : '{"safe":true}';
+  rejected.supportsBlindMeme = true;
+  const fallback = await maker({ reviewImage: rejected }).meme.make({ row: empty, slot: 0 });
+  assert.equal(fallback.kind, 'lemmy');
+});
+
 test('a Hengs meme the judge finds weak is not posted and the slot falls back to an outside meme', async () => {
-  const weak = async () => JSON.stringify({ scores: [score(2, 6, 9), score(6, 6, 6)] });
+  const weak = async () => JSON.stringify({ scores: [score(2, 2, 2, 6, 9), score(6, 6, 6, 6, 6)] });
   assert.equal((await maker({ judgeMeme: weak }).meme.make({ row: empty, slot: 0 })).kind, 'lemmy');
   const down = maker({ judgeMeme: async () => { throw new Error('synthetic judge down'); } });
   assert.equal((await down.meme.make({ row: empty, slot: 0 })).kind, 'lemmy');
@@ -273,7 +298,7 @@ test('the five Hengs slots of a day walk five different themes, and a situation 
 
 test('on a judge tie the template used least recently wins', () => {
   const options = [validMeme(option(), TEMPLATES), validMeme({ template: 'fine', lines: ['Deadline besok, belum mulai', 'Aman kok'] }, TEMPLATES)];
-  const tie = JSON.stringify({ scores: [score(9, 9, 9), score(9, 9, 9)] });
+  const tie = JSON.stringify({ scores: [score(9, 9, 9, 9, 9), score(9, 9, 9, 9, 9)] });
   assert.equal(judgedBest(tie, options, ['drake']).template, 'fine');
   assert.equal(judgedBest(tie, options).template, 'drake');
 });

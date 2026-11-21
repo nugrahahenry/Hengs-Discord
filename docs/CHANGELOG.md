@@ -10,6 +10,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Published the Henry-approved Carnage Hengs Juara 2 appreciation card to the existing Hall of Fame channel with the five confirmed member mentions.
 - Attached the appreciation visual and the optimized original certificate, then verified both images after publication.
 
+## [1.95.0] - 2026-11-22
+
+### Added
+
+- Hengs meme copy now asks for real, recognizable behavior and a punchline that still reads without the topic label.
+- Meme judging adds naturalness and readability gates, so a technically valid but confusing template is discarded.
+- Vision-capable deployments perform a second blind review of each rendered Hengs meme before it can be published.
+
+### Verification
+
+- Focused meme suite and full local suite pass before any deployment. This checkpoint is local and not deployed.
+
 ## [1.94.1] - 2026-11-20
 
 ### Fixed

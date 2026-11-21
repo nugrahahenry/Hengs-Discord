@@ -78,15 +78,26 @@ Jawab JSON saja: {"safe":true} atau {"safe":false}.`;
 // current events, politicians or other public figures. Famous meme templates elsewhere keep the normal check.
 const VISION_STRICT = `\nUntuk gambar ini, tolak juga kalau membahas berita atau peristiwa terkini, politisi, pejabat, atau tokoh publik lain.`;
 
+const VISION_BLIND_MEME = `\nIni adalah pemeriksaan kedua untuk meme yang sudah dirender. Nilai hanya gambar final yang terlihat,
+tanpa memakai tema, nama template, atau konteks lain. Jangan menebak maksud yang tidak terbaca dari gambar.
+Jawab JSON persis dengan empat skor integer 1 sampai 10 dan safe boolean:
+{"safe":true,"understood":8,"natural":8,"funny":8,"readable":8}
+safe false jika gambar tidak aman. understood menilai apakah situasi dan punchline langsung dipahami,
+natural menilai apakah kejadian dan reaksi terasa seperti perilaku manusia yang nyata,
+funny menilai apakah ada kelucuan yang jelas, readable menilai keterbacaan teks pada ukuran posting Discord.`;
+
 function createVisionReview({ client, model } = {}) {
   if (!client || !model) return null;
-  return ({ data, type }, { signal, strict = false } = {}) => chatJson(client, {
-    model, temperature: 0, max_tokens: 200, response_format: { type: 'json_object' },
-    messages: [{ role: 'system', content: strict ? `${VISION_SYSTEM}${VISION_STRICT}` : VISION_SYSTEM }, { role: 'user', content: [
-      { type: 'text', text: 'Nilai gambar meme ini untuk komunitas umum.' },
+  const review = ({ data, type }, { signal, strict = false, mode = 'safety' } = {}) => chatJson(client, {
+    model, temperature: 0, max_tokens: mode === 'blind-meme' ? 240 : 200, response_format: { type: 'json_object' },
+    messages: [{ role: 'system', content: mode === 'blind-meme' ? `${VISION_SYSTEM}${VISION_BLIND_MEME}`
+      : (strict ? `${VISION_SYSTEM}${VISION_STRICT}` : VISION_SYSTEM) }, { role: 'user', content: [
+      { type: 'text', text: mode === 'blind-meme' ? 'Nilai meme final ini tanpa konteks tambahan.' : 'Nilai gambar meme ini untuk komunitas umum.' },
       { type: 'image_url', image_url: { url: `data:${type};base64,${data.toString('base64')}` } },
     ] }],
   }, { signal, timeout: 20000 });
+  review.supportsBlindMeme = true;
+  return review;
 }
 
 module.exports = { createNewsCompletion, createMemeCompletion, createMemeJudge, createVisionReview, NewsCompletionError };
