@@ -75,6 +75,15 @@ test('zero reactions are never liked: a key needs 3 settled posts, net +2 and mo
   assert.deepEqual([...taste.weights(GUILD).templates.keys()], ['fa']); // gb has no laughs, drake only two posts
 });
 
+test('taste summary never labels a low-evidence key as a favorite', async t => {
+  const clock = { now: NOW };
+  const taste = store(t, clock);
+  taste.remember(GUILD, { messageId: 'single', channelId: 'c', template: 'single-hit', situation: 'sekali' });
+  clock.now += 3 * HOUR;
+  await taste.refresh(GUILD, async () => 99);
+  assert.deepEqual(taste.summary(GUILD).templates, []);
+});
+
 test('a broken taste file or a failing read never stops memes', async t => {
   const clock = { now: NOW };
   const taste = store(t, clock);

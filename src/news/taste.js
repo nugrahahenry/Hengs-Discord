@@ -76,10 +76,19 @@ function createReactionTaste({ filePath, fields, evidence, now = Date.now, fsImp
   }
   function summaryOf(guild, group, field) {
     const totals = totalsOf(guild, group, field);
-    return [...totals.entries()].map(([key, row]) => ({
-      key, posts: row.posts, reactions: row.reactions,
-      average: row.posts ? Math.round((row.reactions / row.posts) * 10) / 10 : 0,
-    })).sort((a, b) => b.average - a.average || b.posts - a.posts || a.key.localeCompare(b.key)).slice(0, 8);
+    const rows = [...totals.values()];
+    const posts = rows.reduce((sum, row) => sum + row.posts, 0);
+    const mean = posts ? rows.reduce((sum, row) => sum + row.reactions, 0) / posts : 0;
+    return [...totals.entries()]
+      .map(([key, row]) => ({
+        key, posts: row.posts, reactions: row.reactions,
+        average: row.posts ? Math.round((row.reactions / row.posts) * 10) / 10 : 0,
+        score: (row.reactions + mean) / (row.posts + 1),
+      }))
+      .filter(row => row.posts >= evidence.posts && row.reactions >= evidence.net && row.score > mean)
+      .sort((a, b) => b.score - a.score || b.average - a.average || b.posts - a.posts || a.key.localeCompare(b.key))
+      .slice(0, 8)
+      .map(({ score, ...row }) => row);
   }
   return {
     filePath,

@@ -443,10 +443,11 @@ async function execute(interaction, {
     const context = scope.kind === 'public'
       ? {
         kind: 'public',
+        ...(interaction.channel?.name ? { channelName: interaction.channel.name } : {}),
         replyStyle: resolveReplyStyle(scope.config),
         language: resolveLanguage(scope.config),
       }
-      : { kind: 'home', visibility: 'private' };
+      : { kind: 'home', visibility: 'private', ...(interaction.channel?.name ? { channelName: interaction.channel.name } : {}) };
     if (scope.kind === 'public') context.visibility = 'shared';
     const evidence = memory ? await memory.session.prepare(prompt) : null;
     if (evidence?.stale) {

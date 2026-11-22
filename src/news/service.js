@@ -70,7 +70,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       const rows = (summary.templates || []).slice(0, 5);
       const lines = rows.length
         ? rows.map((row, index) => `${index + 1}. ${row.key} | ${row.posts} post | rata-rata ${row.average} skor reaksi`)
-        : ['Belum ada cukup post yang selesai dinilai.'];
+        : ['Belum kelihatan favorit server. Butuh minimal 3 post dan reaksi yang cukup.'];
       return { content: ['🎛️ Selera meme Hengs', 'Ringkasan ini hanya memakai agregat reaksi anonim.', '',
         '**Template yang paling disukai**', ...lines,
         '', 'Situasi dipakai Hengs untuk memilih topik, tetapi tidak ditampilkan di sini. Reaksi 😐 dihitung sebagai sinyal kurang cocok.',

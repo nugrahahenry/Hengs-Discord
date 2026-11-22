@@ -152,6 +152,25 @@ const PUBLIC_LANGUAGE_INSTRUCTIONS = Object.freeze({
   en: 'Use English for the complete response.',
 });
 
+// Channel names are only a lookup key. These fixed strings keep a renamed channel from injecting instructions
+// into the model prompt while still letting Hengs sound different in chat, coach, and operations contexts.
+const CHANNEL_PERSONAS = Object.freeze({
+  'tanya-hengs': 'Teman ngobrol Gen Z. Tanggapi konteks terbaru dulu, pakai bahasa santai yang natural, dan jangan bilang sedang belajar atau akan memberi tahu nanti. Kalau perlu informasi, jawab apa yang bisa dilakukan sekarang.',
+  'bot-commands': 'Asisten command yang ramah. Jawab singkat dan jelas, arahkan ke command yang tepat, lalu tetap terasa seperti teman, bukan menu otomatis.',
+  'bot-settings': 'Operator komunitas. Utamakan status, langkah, dan hasil yang bisa diverifikasi. Hindari candaan panjang dan jangan mengaku aksi berhasil sebelum program memberi hasil.',
+  'hasil-scrim': 'Coach MLBB tim. Bahas data scrim secara terstruktur, bedakan fakta dari saran, dan beri satu atau dua langkah latihan yang bisa langsung dicoba.',
+  'hengs-analis': 'Analis MLBB yang mudah diajak ngobrol. Jelaskan draft, objektif, dan statistik dengan bahasa manusia, lalu tandai bagian yang belum tersedia daripada menebak.',
+  'hengs-news': 'Editor berita komunitas. Ringkas fakta dan sumber dengan bahasa ringan. Jangan menambah detail yang tidak ada di sumber.',
+  'hengs-memes': 'Teman meme server. Boleh playful dan sedikit Gen Z, tetapi punchline harus nyambung dengan konteks dan tidak memaksa lelucon.',
+  'hall-of-fame': 'Apresiator komunitas. Fokus pada ucapan selamat dan informasi penghargaan. Jangan mengubah galeri menjadi ruang tanya jawab atau menjalankan aksi.',
+});
+const DEFAULT_CHANNEL_PERSONA = 'Asisten komunitas yang santai dan membantu. Jawab sesuai konteks tanpa gaya robotik atau janji yang belum terjadi.';
+const PUBLIC_CHANNEL_PERSONA = 'Teman komunitas yang ramah. Ikuti gaya obrolan lawan bicara tanpa meniru typo, jawab inti dulu, dan tetap jujur soal batasan Hengs.';
+function personaForChannel(channelName, kind = 'home') {
+  const label = String(channelName || '').toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/gu, '');
+  return CHANNEL_PERSONAS[label] || (kind === 'public' ? PUBLIC_CHANNEL_PERSONA : DEFAULT_CHANNEL_PERSONA);
+}
+
 function buildConversationKey(guildId, userId) {
   const guild = String(guildId || '').trim();
   const user = String(userId || '').trim();
@@ -161,14 +180,16 @@ function buildConversationKey(guildId, userId) {
   return `${guild}:${user}`;
 }
 
-function buildSystemPrompt({ kind = 'home', replyStyle = 'balanced', language = 'auto' } = {}) {
-  if (kind !== 'public') return SYSTEM_PROMPT;
+function buildSystemPrompt({ kind = 'home', replyStyle = 'balanced', language = 'auto', channelName } = {}) {
+  const persona = `- PERSONA KONTEKS: ${personaForChannel(channelName, kind)}`;
+  if (kind !== 'public') return `${SYSTEM_PROMPT}\n${persona}`;
   const styleInstruction = PUBLIC_REPLY_STYLE_INSTRUCTIONS[replyStyle];
   if (!styleInstruction) throw new Error('PUBLIC_REPLY_STYLE_INVALID');
   const languageInstruction = PUBLIC_LANGUAGE_INSTRUCTIONS[language];
   if (!languageInstruction) throw new Error('PUBLIC_LANGUAGE_INVALID');
   return [
     PUBLIC_SYSTEM_PROMPT,
+    persona,
     `- GAYA SERVER: ${styleInstruction}`,
     `- BAHASA SERVER: ${languageInstruction}`,
   ].join('\n');
@@ -498,6 +519,7 @@ module.exports = {
   buildConversationKey,
   dropSorryOpener,
   buildSystemPrompt,
+  personaForChannel,
   createConversationLease,
   chat,
   clearHistory,

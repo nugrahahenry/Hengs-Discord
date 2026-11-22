@@ -2,6 +2,13 @@
 
 Updated: 2026-11-22
 
+## Hengs Discord v1.97.0 persona and evidence gate - local, not deployed
+
+- Meme taste reports now apply the same evidence gate as selection. Low-evidence templates are omitted, and an empty report explicitly says the server preference is not clear yet.
+- Fixed channel personas are attached by allowlisted channel slug only. `tanya-hengs` is casual and contextual, `hasil-scrim` is coach-like, Hall of Fame is appreciative, and settings stay operational. A channel name never becomes prompt text.
+- Source checkpoint is the combined release for Henry's request to deploy meme honesty and persona together. No local bot was started and no Discord state was changed yet.
+- Verification: focused suites pass 63/63 after the new regression tests. Full suite and deployment preflight remain before the single approved deploy.
+
 ## Hengs Discord v1.96.0 meme taste report - local, not deployed
 
 - Builds on the v1.95.0 meme quality gate. Existing reactions already adapt template and situation selection; managers can now run `lihat selera meme` for a private aggregate report.

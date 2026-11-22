@@ -10,6 +10,21 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 - Published the Henry-approved Carnage Hengs Juara 2 appreciation card to the existing Hall of Fame channel with the five confirmed member mentions.
 - Attached the appreciation visual and the optimized original certificate, then verified both images after publication.
 
+## [1.97.0] - 2026-11-22
+
+### Added
+
+- Added fixed, bounded channel personas so Hengs stays casual in `tanya-hengs`, coach-like in `hasil-scrim`, appreciative in Hall of Fame, and operational in settings without treating channel names as instructions.
+
+### Fixed
+
+- Meme taste reports now use the same minimum evidence gate as meme selection. A template needs at least three settled posts, enough net reactions, and a score above the server average before it can be called a favorite.
+- Empty or low-evidence reports now say that the server preference is not clear yet instead of presenting a misleading ranking.
+
+### Verification
+
+- Focused news, meme, AI prompt, and release tests pass. This checkpoint is local and awaits the single combined deployment.
+
 ## [1.95.0] - 2026-11-22
 
 ### Added

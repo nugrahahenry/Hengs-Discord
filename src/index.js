@@ -785,6 +785,7 @@ client.on(Events.MessageCreate, async (msg) => {
     const reply = await agent.chat(text, conversationKey, {
       kind: messageScope.kind,
       visibility: 'shared',
+      ...(msg.channel?.name ? { channelName: msg.channel.name } : {}),
       replyStyle: messageScope.config?.settings?.replyStyle || 'balanced',
       language: messageScope.config?.settings?.language || 'auto',
     });
