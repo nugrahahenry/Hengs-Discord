@@ -23,7 +23,7 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 ### Verification
 
-- Focused news, meme, AI prompt, and release tests pass. This checkpoint is local and awaits the single combined deployment.
+- Focused news, meme, AI prompt, and release tests pass. Cloud QA passed 1160 tests with 1155 passes and five checkout-only skips. Discord cutover was accepted with two fresh health heartbeats, one consumer, zero restarts, WA/Canox unchanged, staging absent, and rollback available.
 
 ## [1.95.0] - 2026-11-22
 

@@ -2,12 +2,13 @@
 
 Updated: 2026-11-22
 
-## Hengs Discord v1.97.0 persona and evidence gate - local, not deployed
+## Hengs Discord v1.97.0 persona and evidence gate - deployed and accepted
 
 - Meme taste reports now apply the same evidence gate as selection. Low-evidence templates are omitted, and an empty report explicitly says the server preference is not clear yet.
 - Fixed channel personas are attached by allowlisted channel slug only. `tanya-hengs` is casual and contextual, `hasil-scrim` is coach-like, Hall of Fame is appreciative, and settings stay operational. A channel name never becomes prompt text.
-- Source checkpoint is the combined release for Henry's request to deploy meme honesty and persona together. No local bot was started and no Discord state was changed yet.
-- Verification: focused suites pass 63/63 after the new regression tests. Full suite and deployment preflight remain before the single approved deploy.
+- Source checkpoint is the combined release for Henry's request to deploy meme honesty and persona together. Source commit `32823ddd2db6a135f160b44b2644a9f2c2c125c1`; immutable archive `hengs-discord-1.97.0-32823ddd2db6.tar.gz`; SHA-256 `e6c678dc4bd6357b37d114ab3457a220f4b37ad24fbcb85b65a84ebe917961a8`.
+- Verification: focused suites pass 63/63. Cloud QA passed 1160 tests with 1155 passes and five checkout-only skips. Final bounded audit: `CLOUD_AUDIT=PASS DC=1.97.0 WA=0.53.0 HEALTH=FRESH SINGLE_CONSUMER=YES CANOX=UNCHANGED RESTARTS=ZERO STAGING=ABSENT ROLLBACK=AVAILABLE`.
+- The first dispatch was stopped by the runbook's UTC minute gate before service change. A bounded stale preflight marker was cleared, then the same sealed archive was staged and accepted. No WA, Canox, news state, or command registration was changed.
 
 ## Hengs Discord v1.96.0 meme taste report - local, not deployed
 
