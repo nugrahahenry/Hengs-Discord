@@ -20,7 +20,7 @@ const KINDS = Object.freeze(['news', 'meme']);
 const NEWS_NEEDS = Object.freeze([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]);
 function createNewsService({ store = createNewsStore(), readFeeds = createFeedReader({ readTrends: createTrendReader() }),
   now = Date.now, guildAccess, logger = console, editArticles = async items => items, memeMaker = null, reportFailure = async () => {},
-  newsTaste = null, countNewsReactions = null } = {}) {
+  newsTaste = null, countNewsReactions = null, memeTaste = null, countMemeReactions = null } = {}) {
   const drafts = new Map();
   const busy = new Map();
   const delivering = new Set();
@@ -61,6 +61,21 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
       if (countNewsReactions) await newsTaste.refresh(row.guildId, countNewsReactions);
       return newsTaste.liked(row.guildId).desks;
     } catch { logger.error('[news] NEWS_TASTE_FAILED'); return null; }
+  }
+  async function memeTasteReport(guildId) {
+    if (!memeTaste?.summary) return { content: 'Ringkasan selera meme belum tersedia di versi ini.' };
+    try {
+      if (countMemeReactions) await memeTaste.refresh(guildId, countMemeReactions);
+      const summary = memeTaste.summary(guildId);
+      const rows = (summary.templates || []).slice(0, 5);
+      const lines = rows.length
+        ? rows.map((row, index) => `${index + 1}. ${row.key} | ${row.posts} post | rata-rata ${row.average} skor reaksi`)
+        : ['Belum ada cukup post yang selesai dinilai.'];
+      return { content: ['🎛️ Selera meme Hengs', 'Ringkasan ini hanya memakai agregat reaksi anonim.', '',
+        '**Template yang paling disukai**', ...lines,
+        '', 'Situasi dipakai Hengs untuk memilih topik, tetapi tidak ditampilkan di sini. Reaksi 😐 dihitung sebagai sinyal kurang cocok.',
+        `Post yang masih menunggu penilaian: ${summary.pending || 0}`].join('\n') };
+    } catch { logger.error('[news] NEWS_MEME_TASTE_SUMMARY_FAILED'); return { content: 'Ringkasan selera meme belum bisa dibaca sekarang. Tidak ada data yang diubah.' }; }
   }
   function ranked(result) {
     return rankArticles(result.items, { now: now(), trends: result.trends || [] });
@@ -138,6 +153,7 @@ function createNewsService({ store = createNewsStore(), readFeeds = createFeedRe
     try {
       const row = store.get(interaction.guildId);
       const draft = existing || { settings: structuredClone(row?.settings || DEFAULTS), revision: row?.revision || 0 };
+      if (request.action === 'meme_taste') return memeTasteReport(interaction.guildId);
       if (request.action === 'status') return { content: row
         ? `${describe(row.settings, row.enabled ? 'aktif' : 'jeda')}\nHasil terakhir: ${{ claimed: 'belum terkonfirmasi', sent: 'terkirim', empty: 'tidak ada berita baru', failed: 'gagal atau belum pasti', cancelled: 'dibatalkan' }[row.receipts.at(-1)?.status] || 'belum ada kiriman'}.\nKiriman uji hanya satu berita dan menutup sisa slot berita hari itu. Hasil tidak pasti tidak dicoba ulang otomatis.`
         : 'Hengs News belum diatur. Mulai dengan `atur berita teknologi AI ke #hengs-news`.' };

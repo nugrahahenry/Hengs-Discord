@@ -74,6 +74,13 @@ function createReactionTaste({ filePath, fields, evidence, now = Date.now, fsImp
       .filter(([, row, score]) => row.posts >= evidence.posts && row.reactions >= evidence.net && score > mean)
       .map(([name, , score]) => [name, score]));
   }
+  function summaryOf(guild, group, field) {
+    const totals = totalsOf(guild, group, field);
+    return [...totals.entries()].map(([key, row]) => ({
+      key, posts: row.posts, reactions: row.reactions,
+      average: row.posts ? Math.round((row.reactions / row.posts) * 10) / 10 : 0,
+    })).sort((a, b) => b.average - a.average || b.posts - a.posts || a.key.localeCompare(b.key)).slice(0, 8);
+  }
   return {
     filePath,
     remember(guildId, post = {}) {
@@ -111,6 +118,11 @@ function createReactionTaste({ filePath, fields, evidence, now = Date.now, fsImp
     liked(guildId) {
       const guild = { ...emptyGuild(), ...(read().guilds[guildId] || {}) };
       return Object.fromEntries(groups.map((group, i) => [group, liked(guild, group, fields[i])]));
+    },
+    // Bounded, aggregate-only view for a manager. No message IDs, channels, or member identity leave this store.
+    summary(guildId) {
+      const guild = { ...emptyGuild(), ...(read().guilds[guildId] || {}) };
+      return { pending: guild.pending.length, ...Object.fromEntries(groups.map((group, i) => [group, summaryOf(guild, group, fields[i])])) };
     },
     // The newest values of one field among the posts still pending (about the last 3 days), newest first.
     recent(guildId, field, count) {

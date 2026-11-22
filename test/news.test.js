@@ -52,7 +52,8 @@ function rig(t, options = {}) {
   const readFeeds = options.readFeeds || (async () => ({ items: parseFeed(rss(SOURCES[0], 5, f.now()), SOURCES[0], f.now()), failures: 0 }));
   const service = createNewsService({ store: f.store, now: f.now, readFeeds, guildAccess,
     editArticles: options.editArticles, memeMaker: options.memeMaker, reportFailure: options.reportFailure,
-    newsTaste: options.newsTaste, countNewsReactions: options.countNewsReactions, logger: { error: code => logs.push(code) } });
+    newsTaste: options.newsTaste, countNewsReactions: options.countNewsReactions,
+    memeTaste: options.memeTaste, countMemeReactions: options.countMemeReactions, logger: { error: code => logs.push(code) } });
   t.after(() => service.stop());
   const interaction = { guildId: GUILD, channelId: CHANNEL, user: { id: USER }, guild };
   const client = { guilds: { cache: new Map([[GUILD, guild]]) } };
@@ -277,6 +278,8 @@ test('news questions/negations never turn on schedules; drafts have bounded revi
     assert.equal(parsePrompt(prompt).action, 'help');
   }
   assert.equal(parsePrompt('aktifkan berita').action, 'enable');
+  assert.equal(parsePrompt('lihat selera meme').action, 'meme_taste');
+  assert.equal(parsePrompt('cek feedback meme').action, 'meme_taste');
   assert.equal(parsePrompt('lebih santai'), null);
   assert.equal(parsePrompt('lebih santai', true).action, 'edit');
   assert.equal(parsePrompt('Angel udah tidur belum?'), null);
@@ -291,6 +294,22 @@ test('news questions/negations never turn on schedules; drafts have bounded revi
     assert.throws(() => editSettings(prompt, config));
   }
   assert.equal(config.time, '09:00');
+});
+
+test('meme taste report is manager-only, aggregate-only, and refreshes settled reactions', async t => {
+  const calls = [];
+  const memeTaste = {
+    refresh: async (guildId, count) => { calls.push(['refresh', guildId, await count({})]); },
+    summary: guildId => { calls.push(['summary', guildId]); return { pending: 2, templates: [
+      { key: 'fa', posts: 4, reactions: 16, average: 4 }, { key: 'drake', posts: 3, reactions: 3, average: 1 },
+    ] }; },
+  };
+  const r = rig(t, { memeTaste, countMemeReactions: async () => 5 });
+  const report = await r.handle('lihat selera meme');
+  assert.match(report.content, /Template yang paling disukai/);
+  assert.match(report.content, /fa \| 4 post \| rata-rata 4 skor reaksi/);
+  assert.match(report.content, /agregat reaksi anonim/);
+  assert.deepEqual(calls, [['refresh', GUILD, 5], ['summary', GUILD]]);
 });
 
 test('news source boundary rejects private DNS, redirects/unsafe article links and XML entities', async () => {

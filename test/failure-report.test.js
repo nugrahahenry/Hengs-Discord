@@ -68,7 +68,9 @@ test('welcome, leave and boost handlers report through the one reporter; the wel
   assert.match(between('client.on(Events.GuildMemberRemove', 'client.on(Events.GuildMemberUpdate'), /reportFailure\(member\.guild, \{ feature: 'Leave card'/);
   assert.match(source, /reportFailure\(g, \{ feature: 'Ucapan boost'/);
   assert.match(source, /createEsportsService\(\{ guildAccess, reportFailure,/);
-  assert.match(source, /trendOf: \(\) => chatTrends\.trend\(\) \}\), reportFailure,\s+newsTaste: createNewsTaste\(\), countNewsReactions \}\);/);
+  assert.match(source, /trendOf: \(\) => chatTrends\.trend\(\) \}\), reportFailure,/);
+  assert.match(source, /taste: memeTaste, countReactions: countMemeReactions/);
+  assert.match(source, /memeTaste, countMemeReactions, newsTaste: createNewsTaste\(\), countNewsReactions \}\);/);
 });
 
 test('failures go to bot-log when it exists, and the reporter counts the notes it sent', async () => {

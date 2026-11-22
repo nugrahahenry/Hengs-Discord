@@ -2,8 +2,7 @@
 
 > Bot komunitas serba-bisa untuk server Discord: AI chat, mode fokus, welcome card custom, reaction roles, dan auto-setup struktur server.
 
-**Current checkpoint:** Hengs Discord v1.95.0 (local, not deployed): Hengs meme generation now requires natural, self-explanatory copy and a blind visual review
-receipt before reopening stale drafts. Incomplete history keeps the claim locked. Recovered drafts require owner approval,
+**Current checkpoint:** Hengs Discord v1.96.0 (local, not deployed): meme feedback is already adaptive, and managers can inspect an anonymous taste summary with `lihat selera meme`. Publication recovery checks the receipt before reopening stale drafts. Incomplete history keeps the claim locked. Recovered drafts require owner approval,
 including interrupted scheduled posts, so recovery never automatically resends or pings members. Liga Tebak recaps show each finished
 pick by display name and participants who have not reached three guesses yet. Builds on v1.93.0: welcome and leave
 events add a small one-tap reaction, `👋` for a new member and `🫡` for a member who leaves. The reaction is best-effort,

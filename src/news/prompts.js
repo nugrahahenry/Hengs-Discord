@@ -23,6 +23,7 @@ const HELP = [
   'Channel yang sudah diuji: ubah draft, `preview berita`, lalu `terapkan berita`. Status aktif/jeda tetap; tidak mengirim ulang.',
   'Anggota bisa posting langsung sesuai izin channel, atau `/hengs ask` → `bagikan berita: https://contoh.com/artikel` untuk preview dan konfirmasi sendiri.',
   '`jeda berita` menghentikan jadwal. `status berita` melihat pengaturan dan hasil terakhir.',
+  'Pengelola bisa melihat hasil belajar reaksi meme dengan `lihat selera meme`. Yang ditampilkan hanya agregat anonim.',
   'Ringkasan Indonesia memakai AI dari judul/cuplikannya saja. Jika tidak tersedia, tampil bahasa sumber. Hiburan bukan berita faktual.',
 ].join('\n');
 
@@ -36,6 +37,7 @@ function isNewsIntent(value) {
 function parsePrompt(value, hasDraft = false) {
   const text = clean(value);
   if (/^(?:preview|pratinjau|contoh)\s+meme$/i.test(text.replace(/[.!]+$/, ''))) return { action: 'preview_meme' };
+  if (/^(?:lihat|cek|tampilkan|tunjukkan)\s+(?:selera|feedback|statistik)\s+meme$/i.test(text.replace(/[.!]+$/, ''))) return { action: 'meme_taste' };
   const contextual = hasDraft && /^(?:lebih |(?:ubah|ganti|tambah(?:kan|in)?|kurangi|hapus|pakai|pilih|pindah(?:kan)?)\b)/i.test(text)
     && /\b(?:santai|formal|netral|jam|pukul|teknologi|tech|ai|gaming|game|meme|hiburan|komik|item|channel)\b|<#\d|#hengs-news/i.test(text);
   if (!isNewsIntent(text) && !contextual) return null;

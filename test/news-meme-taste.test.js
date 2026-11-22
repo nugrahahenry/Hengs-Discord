@@ -48,6 +48,8 @@ test('reactions are read between 2 hours and 3 days after posting, then kept as 
   assert.deepEqual(reads.sort(), ['m1', 'm2', 'm3', 'm4', 'm5', 'm6']);
   let scores = taste.weights(GUILD);
   assert.deepEqual([...scores.templates.keys()], ['fa']); assert.deepEqual([...scores.situations.keys()], ['begadang sebelum UAS']);
+  assert.deepEqual(taste.summary(GUILD).templates[0], { key: 'fa', posts: 3, reactions: 18, average: 6 });
+  assert.equal(taste.summary(GUILD).templates.some(row => 'messageId' in row || 'channelId' in row), false);
   assert.deepEqual(taste.recent(GUILD, 'template', 2), ['drake', 'fa']); // newest first
   // After three days the counts are final: no more reads, totals stay, a vanished message keeps its last count.
   counts.m1 = null;

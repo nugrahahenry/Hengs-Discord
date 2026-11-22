@@ -124,10 +124,11 @@ const countMemeReactions = reactionCounter(memberReactions);
 const countNewsReactions = reactionCounter(message => netReactions(message, '😴'));
 // What the home server talks about, as meme material (counts in memory only, see src/news/chat-trends.js).
 const chatTrends = createChatTrends();
+const memeTaste = createMemeTaste();
 newsService = createNewsService({ guildAccess, editArticles: createNewsEditor({ complete: agent.completeNews }),
   memeMaker: createMemeMaker({ completeMeme: agent.completeMeme, judgeMeme: agent.judgeMeme, reviewImage: agent.reviewMemeImage,
-    taste: createMemeTaste(), countReactions: countMemeReactions, trendOf: () => chatTrends.trend() }), reportFailure,
-  newsTaste: createNewsTaste(), countNewsReactions });
+    taste: memeTaste, countReactions: countMemeReactions, trendOf: () => chatTrends.trend() }), reportFailure,
+  memeTaste, countMemeReactions, newsTaste: createNewsTaste(), countNewsReactions });
 // Hengs Analis: MLBB pro series cards from Liquipedia in #hengs-analis (home server only). The caster writes captions and
 // answers from Hengs' own numbers; without a Groq client the templates stay.
 const esportsService = createEsportsService({ guildAccess, reportFailure,

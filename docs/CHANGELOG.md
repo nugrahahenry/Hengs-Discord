@@ -22,6 +22,18 @@ Lihat aturan lengkap di `../../../../KONVENSI-VERSI.md`.
 
 - Focused meme suite and full local suite pass before any deployment. This checkpoint is local and not deployed.
 
+## [1.96.0] - 2026-11-22
+
+### Added
+
+- Existing meme reactions now have a private manager report through `lihat selera meme`.
+- The report shows only bounded template aggregates and keeps situations, message IDs, channels, and member identity out of the reply.
+- Settled reaction counts refresh before the report so the ranking reflects the current server taste.
+
+### Verification
+
+- Focused news, meme, failure-report, and release suite passes 68/68. Full local suite passes 1156/1158 with one known Windows symlink-permission failure and one skip. This checkpoint is local and not deployed.
+
 ## [1.94.1] - 2026-11-20
 
 ### Fixed

@@ -2,13 +2,14 @@
 
 Updated: 2026-11-22
 
-## Hengs Discord v1.95.0 meme quality gate - local, not deployed
+## Hengs Discord v1.96.0 meme taste report - local, not deployed
 
-- Hengs-generated memes now require natural, self-explanatory captions in the writer and judge prompts. The judge gates `nyambung`, `natural`, `terbaca`, and `lucu` at 8, with language at 7.
+- Builds on the v1.95.0 meme quality gate. Existing reactions already adapt template and situation selection; managers can now run `lihat selera meme` for a private aggregate report.
+- The report refreshes settled reactions, shows only the top template aggregates, and keeps situations, message IDs, channels, and member identity out of the reply.
 - When the configured vision reviewer supports blind review, the final rendered PNG is checked without topic or template context. Any unsafe, unclear, unnatural, unfunny, or unreadable result is dropped and the slot can fall back to an external meme.
 - Existing Lemmy safety review is unchanged. No live Discord state, bot restart, or deployment was performed for this checkpoint.
-- Source checkpoint subject: `feat(memes): Hengs Discord v1.95.0 - add naturalness and blind meme review`.
-- Next step: run the local focused and full suites, then deploy only after Henry explicitly approves.
+- Source checkpoint subject: `feat(memes): Hengs Discord v1.96.0 - add anonymous meme taste report`.
+- Verification: focused news, meme, failure-report, and release suite passes 68/68. Full local suite passes 1156/1158 with one known Windows symlink-permission failure and one skip. Deploy only after Henry explicitly approves.
 
 ## Hengs Discord v1.94.1 safe recovery - deployed and accepted
 
